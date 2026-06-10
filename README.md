@@ -60,6 +60,8 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
 - [x] **Sprint 0** — Setup, schema completo, seed, Auth.js + RBAC (guards + proxy),
       layout base con design tokens. 4 logins → 4 paneles; cruce de rol redirige;
       test de guards en verde.
-- [ ] Sprint 1 — Landing + leads + PlayerCard.
+- [x] **Sprint 1** — Landing animada (Hero con carta 3D, demo en vivo con slider,
+      features, formulario de captación), `POST /api/leads` con honeypot +
+      tiempo mínimo + rate limit, y el componente firma `PlayerCard` v1.
 - [ ] Sprint 2 — Panel Súper Admin.
 - [ ] … (ver roadmap en el Plan Maestro, Sección 17).
