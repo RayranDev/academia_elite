@@ -18,3 +18,15 @@ export function crearLeadGlobal(data: LeadInput) {
     select: { id: true },
   });
 }
+
+export function listarLeadsGlobal() {
+  return db.lead.findMany({ orderBy: { createdAt: "desc" } });
+}
+
+export function obtenerLeadGlobal(id: string) {
+  return db.lead.findUnique({ where: { id } });
+}
+
+export function actualizarEstadoLeadGlobal(id: string, estado: string) {
+  return db.lead.update({ where: { id }, data: { estado } });
+}

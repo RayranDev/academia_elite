@@ -63,5 +63,9 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
 - [x] **Sprint 1** — Landing animada (Hero con carta 3D, demo en vivo con slider,
       features, formulario de captación), `POST /api/leads` con honeypot +
       tiempo mínimo + rate limit, y el componente firma `PlayerCard` v1.
-- [ ] Sprint 2 — Panel Súper Admin.
+- [x] **Sprint 2** — Panel Súper Admin: pipeline de leads (kanban con cambio de
+      estado), conversión lead→escuela+admin (con contraseña temporal), edición
+      de parámetros de fórmula y explorador de AuditLog. Toda acción sensible
+      queda auditada.
+- [ ] Sprint 3 — Panel Escuela.
 - [ ] … (ver roadmap en el Plan Maestro, Sección 17).
