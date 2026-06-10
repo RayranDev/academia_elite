@@ -1,0 +1,76 @@
+// Union types que reemplazan a los enums (SQLite no soporta enums nativos).
+// Estos son la fuente de verdad para validación Zod y tipado en toda la app.
+
+export const ROLES = ["SUPER_ADMIN", "ESCUELA_ADMIN", "DT", "JUGADOR"] as const;
+export type Rol = (typeof ROLES)[number];
+
+export const POSICIONES = ["POR", "DEF", "MED", "DEL"] as const;
+export type Posicion = (typeof POSICIONES)[number];
+
+export const ESTADOS_JUGADOR = ["PENDIENTE", "ACTIVO", "INACTIVO"] as const;
+export type EstadoJugador = (typeof ESTADOS_JUGADOR)[number];
+
+export const NIVELES = ["BRONCE", "PLATA", "ORO", "HEROE"] as const;
+export type Nivel = (typeof NIVELES)[number];
+
+export const TIPOS_EVENTO = [
+  "PARTIDO",
+  "ENTRENAMIENTO",
+  "EVALUACION",
+  "OTRO",
+] as const;
+export type TipoEvento = (typeof TIPOS_EVENTO)[number];
+
+export const CONFIRMACIONES = ["PENDIENTE", "CONFIRMADO", "RECHAZADO"] as const;
+export type Confirmacion = (typeof CONFIRMACIONES)[number];
+
+export const TIPOS_NOTIFICACION = [
+  "EVALUACION_VENCIDA",
+  "CONVOCATORIA",
+  "MENSAJE",
+  "LOGRO",
+  "ANUNCIO",
+  "SISTEMA",
+] as const;
+export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];
+
+export const TIPOS_LOGRO = ["INSIGNIA", "BONUS"] as const;
+export type TipoLogro = (typeof TIPOS_LOGRO)[number];
+
+export const STATS_CARTA = ["RIT", "TIR", "PAS", "REG", "DEF", "FIS"] as const;
+export type StatCarta = (typeof STATS_CARTA)[number];
+
+// MEN y OVR son objetivos válidos para ObjetivoJugador además de los stats base.
+export const STATS_OBJETIVO = [...STATS_CARTA, "MEN", "OVR"] as const;
+export type StatObjetivo = (typeof STATS_OBJETIVO)[number];
+
+export const ESTADOS_OBJETIVO = ["ACTIVO", "CUMPLIDO", "VENCIDO"] as const;
+export type EstadoObjetivo = (typeof ESTADOS_OBJETIVO)[number];
+
+export const ESTADOS_LEAD = [
+  "NUEVO",
+  "CONTACTADO",
+  "CONVERTIDO",
+  "DESCARTADO",
+] as const;
+export type EstadoLead = (typeof ESTADOS_LEAD)[number];
+
+// DTO plano de la carta del jugador (nunca se expone el modelo Prisma a la UI).
+export interface PlayerCardData {
+  nombre: string;
+  posicion: Posicion;
+  ovr: number;
+  nivel: Nivel;
+  stats: {
+    rit: number;
+    tir: number;
+    pas: number;
+    reg: number;
+    def: number;
+    fis: number;
+  };
+  men: number;
+  fotoUrl: string | null;
+  escudoEscuelaUrl?: string;
+  dorsal?: number;
+}

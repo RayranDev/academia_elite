@@ -1,0 +1,395 @@
+// Schema Prisma — Fútbol Career Mode (Fase 1, SQLite)
+// SQLite vía Prisma NO soporta enums: los campos tipo enum son String
+// validados por Zod y tipados con union types en src/types/.
+// El comentario `// enum:` documenta los valores permitidos.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  passwordHash     String
+  nombre           String
+  rol              String // enum: SUPER_ADMIN | ESCUELA_ADMIN | DT | JUGADOR
+  escuelaId        String?
+  escuela          Escuela?       @relation(fields: [escuelaId], references: [id])
+  entrenador       Entrenador?
+  jugadores        Jugador[] // un padre puede tener varios hijos
+  jugadorCuenta    Jugador?       @relation("CuentaJugador")
+  mensajesEnviados Mensaje[]      @relation("MensajesEnviados")
+  notificaciones   Notificacion[]
+  activo           Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([escuelaId])
+}
+
+model Escuela {
+  id                       String             @id @default(cuid())
+  nombre                   String
+  slug                     String             @unique
+  logoUrl                  String?
+  colorPrimario            String             @default("#4ADE80")
+  frecuenciaEvaluacionDias Int                @default(30)
+  topeBonusEntreEvals      Int                @default(3)
+  activa                   Boolean            @default(true)
+  users                    User[]
+  sedes                    Sede[]
+  categorias               Categoria[]
+  entrenadores             Entrenador[]
+  jugadores                Jugador[]
+  eventos                  Evento[]
+  conversaciones           Conversacion[]
+  anuncios                 Anuncio[]
+  codigos                  CodigoInvitacion[]
+  createdAt                DateTime           @default(now())
+}
+
+model Sede {
+  id        String   @id @default(cuid())
+  escuelaId String
+  escuela   Escuela  @relation(fields: [escuelaId], references: [id])
+  nombre    String
+  direccion String?
+  canchas   Cancha[]
+
+  @@index([escuelaId])
+}
+
+model Cancha {
+  id      String   @id @default(cuid())
+  sedeId  String
+  sede    Sede     @relation(fields: [sedeId], references: [id])
+  nombre  String
+  eventos Evento[]
+}
+
+model Categoria {
+  id           String                @id @default(cuid())
+  escuelaId    String
+  escuela      Escuela               @relation(fields: [escuelaId], references: [id])
+  nombre       String // "Sub-12"
+  anioDesde    Int
+  anioHasta    Int
+  jugadores    Jugador[]
+  entrenadores EntrenadorCategoria[]
+  eventos      Evento[]
+  anuncios     Anuncio[]
+
+  @@index([escuelaId])
+}
+
+model Entrenador {
+  id           String                @id @default(cuid())
+  userId       String                @unique
+  user         User                  @relation(fields: [userId], references: [id])
+  escuelaId    String
+  escuela      Escuela               @relation(fields: [escuelaId], references: [id])
+  categorias   EntrenadorCategoria[]
+  evaluaciones Evaluacion[]
+
+  @@index([escuelaId])
+}
+
+model EntrenadorCategoria {
+  entrenadorId String
+  categoriaId  String
+  entrenador   Entrenador @relation(fields: [entrenadorId], references: [id])
+  categoria    Categoria  @relation(fields: [categoriaId], references: [id])
+
+  @@id([entrenadorId, categoriaId])
+}
+
+model Jugador {
+  id                      String             @id @default(cuid())
+  escuelaId               String
+  escuela                 Escuela            @relation(fields: [escuelaId], references: [id])
+  categoriaId             String
+  categoria               Categoria          @relation(fields: [categoriaId], references: [id])
+  padreUserId             String?
+  padre                   User?              @relation(fields: [padreUserId], references: [id])
+  cuentaUserId            String?            @unique
+  cuentaUser              User?              @relation("CuentaJugador", fields: [cuentaUserId], references: [id])
+  nombre                  String
+  apellido                String
+  fechaNacimiento         DateTime
+  posicion                String // enum: POR | DEF | MED | DEL
+  dorsal                  Int?
+  estado                  String             @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO
+  fotoUrl                 String?
+  consentimientoFoto      Boolean            @default(false)
+  consentimientoFotoFecha DateTime?
+  evaluaciones            Evaluacion[]
+  stats                   StatsCalculados[]
+  asistencias             Asistencia[]
+  convocatorias           JugadorConvocado[]
+  logros                  LogroJugador[]
+  objetivos               ObjetivoJugador[]
+  createdAt               DateTime           @default(now())
+
+  @@index([escuelaId, categoriaId])
+  @@index([padreUserId])
+}
+
+model CodigoInvitacion {
+  id          String   @id @default(cuid())
+  escuelaId   String
+  escuela     Escuela  @relation(fields: [escuelaId], references: [id])
+  categoriaId String
+  codigo      String   @unique // 8 chars alfanum, generado cripto-seguro
+  usosMaximos Int      @default(1)
+  usos        Int      @default(0)
+  expiraEn    DateTime
+  activo      Boolean  @default(true)
+
+  @@index([escuelaId])
+}
+
+model Evaluacion {
+  id                    String           @id @default(cuid())
+  escuelaId             String
+  jugadorId             String
+  jugador               Jugador          @relation(fields: [jugadorId], references: [id])
+  entrenadorId          String
+  entrenador            Entrenador       @relation(fields: [entrenadorId], references: [id])
+  fecha                 DateTime         @default(now())
+  anulada               Boolean          @default(false) // solo admin, auditado
+  // 4 físicas (medidas crudas)
+  sprint30mSeg          Float
+  saltoVerticalCm       Float
+  agilidadIllinoisSeg   Float
+  resistenciaYoyoNivel  Float
+  // 4 técnicas (nota 1-10)
+  controlBalon          Float
+  pase                  Float
+  tiro                  Float
+  regate                Float
+  // 4 mentalidad (nota 1-10)
+  actitud               Float
+  concentracion         Float
+  trabajoEquipo         Float
+  resiliencia           Float
+  observacionesPrivadas String? // visible solo padre + DT
+  statsCalculados       StatsCalculados?
+
+  @@index([escuelaId, jugadorId])
+}
+
+model StatsCalculados {
+  id             String     @id @default(cuid())
+  escuelaId      String
+  jugadorId      String
+  jugador        Jugador    @relation(fields: [jugadorId], references: [id])
+  evaluacionId   String     @unique
+  evaluacion     Evaluacion @relation(fields: [evaluacionId], references: [id])
+  rit            Int
+  tir            Int
+  pas            Int
+  reg            Int
+  def            Int
+  fis            Int
+  men            Int
+  ovr            Int
+  nivel          String // enum: BRONCE | PLATA | ORO | HEROE
+  bonusAplicado  Int        @default(0) // suma de bonus incluida en esta carta
+  versionFormula String     @default("v1.1")
+  createdAt      DateTime   @default(now())
+
+  @@index([escuelaId, jugadorId])
+}
+
+model Evento {
+  id                 String             @id @default(cuid())
+  escuelaId          String
+  escuela            Escuela            @relation(fields: [escuelaId], references: [id])
+  categoriaId        String
+  categoria          Categoria          @relation(fields: [categoriaId], references: [id])
+  canchaId           String?
+  cancha             Cancha?            @relation(fields: [canchaId], references: [id])
+  tipo               String // enum: PARTIDO | ENTRENAMIENTO | EVALUACION | OTRO
+  titulo             String // "vs. Academia Sur" / "Entrenamiento técnico"
+  rival              String? // solo PARTIDO
+  esLocal            Boolean? // solo PARTIDO
+  inicio             DateTime
+  fin                DateTime
+  notas              String?
+  resultadoLocal     Int? // carga post-partido (opcional, para el hub)
+  resultadoVisitante Int?
+  convocados         JugadorConvocado[]
+  asistencias        Asistencia[]
+  createdAt          DateTime           @default(now())
+
+  @@index([escuelaId, categoriaId, inicio])
+}
+
+model JugadorConvocado {
+  eventoId     String
+  jugadorId    String
+  evento       Evento    @relation(fields: [eventoId], references: [id])
+  jugador      Jugador   @relation(fields: [jugadorId], references: [id])
+  confirmacion String    @default("PENDIENTE") // enum: PENDIENTE | CONFIRMADO | RECHAZADO
+  confirmadoEn DateTime?
+
+  @@id([eventoId, jugadorId])
+}
+
+model Asistencia {
+  id        String  @id @default(cuid())
+  escuelaId String
+  eventoId  String
+  evento    Evento  @relation(fields: [eventoId], references: [id])
+  jugadorId String
+  jugador   Jugador @relation(fields: [jugadorId], references: [id])
+  presente  Boolean
+
+  @@unique([eventoId, jugadorId])
+  @@index([escuelaId, jugadorId])
+}
+
+model Conversacion {
+  id        String    @id @default(cuid())
+  escuelaId String
+  escuela   Escuela   @relation(fields: [escuelaId], references: [id])
+  jugadorId String // hilo SIEMPRE anclado a un jugador concreto
+  asunto    String
+  mensajes  Mensaje[]
+  cerrada   Boolean   @default(false)
+  updatedAt DateTime  @updatedAt
+  createdAt DateTime  @default(now())
+
+  @@index([escuelaId, jugadorId])
+}
+
+model Mensaje {
+  id                   String       @id @default(cuid())
+  conversacionId       String
+  conversacion         Conversacion @relation(fields: [conversacionId], references: [id])
+  remitenteId          String
+  remitente            User         @relation("MensajesEnviados", fields: [remitenteId], references: [id])
+  cuerpo               String // texto plano, máx 2000
+  leidoPorDestinatario Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+
+  @@index([conversacionId, createdAt])
+}
+
+model Anuncio {
+  id             String     @id @default(cuid())
+  escuelaId      String
+  escuela        Escuela    @relation(fields: [escuelaId], references: [id])
+  categoriaId    String? // null = toda la escuela
+  categoria      Categoria? @relation(fields: [categoriaId], references: [id])
+  autorRol       String // DT | ESCUELA_ADMIN
+  titulo         String
+  cuerpo         String // texto plano
+  visibleJugador Boolean    @default(false) // "mostrar al jugador" -> noticia del club
+  fijado         Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+
+  @@index([escuelaId, categoriaId, createdAt])
+}
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tipo      String // enum: EVALUACION_VENCIDA | CONVOCATORIA | MENSAJE | LOGRO | ANUNCIO | SISTEMA
+  titulo    String
+  cuerpo    String?
+  url       String? // deep-link interno
+  leida     Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, leida, createdAt])
+}
+
+model Logro {
+  id          String         @id @default(cuid())
+  codigo      String         @unique // "ASISTENCIA_PERFECTA_SEMANA"
+  nombre      String
+  descripcion String
+  tipo        String // enum: INSIGNIA | BONUS
+  statBonus   String? // enum: RIT|TIR|PAS|REG|DEF|FIS|MEN (solo BONUS)
+  valorBonus  Int? // normalmente 1
+  repetible   Boolean        @default(false)
+  icono       String // nombre de icono/lottie
+  jugadores   LogroJugador[]
+}
+
+model LogroJugador {
+  id             String   @id @default(cuid())
+  escuelaId      String
+  jugadorId      String
+  jugador        Jugador  @relation(fields: [jugadorId], references: [id])
+  logroId        String
+  logro          Logro    @relation(fields: [logroId], references: [id])
+  otorgadoEn     DateTime @default(now())
+  bonusConsumido Boolean  @default(false) // true cuando ya se aplicó en una evaluación
+
+  @@index([escuelaId, jugadorId])
+}
+
+model ObjetivoJugador {
+  id                    String   @id @default(cuid())
+  escuelaId             String
+  jugadorId             String
+  jugador               Jugador  @relation(fields: [jugadorId], references: [id])
+  creadoPorEntrenadorId String
+  stat                  String // RIT|TIR|PAS|REG|DEF|FIS|MEN|OVR
+  valorMeta             Int
+  fechaLimite           DateTime
+  estado                String   @default("ACTIVO") // enum: ACTIVO | CUMPLIDO | VENCIDO
+
+  @@index([escuelaId, jugadorId])
+}
+
+model Lead {
+  id             String   @id @default(cuid())
+  nombreEscuela  String
+  contactoNombre String
+  contactoEmail  String
+  telefono       String?
+  ciudad         String?
+  mensaje        String?
+  estado         String   @default("NUEVO") // enum: NUEVO | CONTACTADO | CONVERTIDO | DESCARTADO
+  createdAt      DateTime @default(now())
+}
+
+model ParametroFormula {
+  id          String   @id @default(cuid())
+  clave       String   @unique // "PESO_MEN_EN_OVR", "RANGO_SPRINT_SUB12_MIN", ...
+  valor       Float
+  descripcion String?
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actorRol  String
+  accion    String // "ANULAR_EVALUACION", "REVOCAR_CONSENTIMIENTO", ...
+  entidad   String // "Evaluacion"
+  entidadId String
+  escuelaId String?
+  motivo    String?
+  createdAt DateTime @default(now())
+
+  @@index([escuelaId, createdAt])
+}
+
+model Membresia {
+  id        String @id @default(cuid()) // Fase 2 — sin UI en Fase 1
+  escuelaId String
+  jugadorId String
+  periodo   String // "2026-06"
+  estado    String @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
+  monto     Float?
+}

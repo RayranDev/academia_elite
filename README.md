@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚽ Fútbol Career Mode
 
-## Getting Started
+Plataforma web multi-escuela que gamifica la formación en fútbol base:
+evaluaciones reales → carta estilo Modo Carrera con stats, niveles y evolución.
 
-First, run the development server:
+Implementación basada en `PLAN-MAESTRO-v4.md` (en la carpeta raíz del proyecto).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+Next.js 16 (App Router) · TypeScript estricto · Tailwind v4 · Prisma 7 + SQLite
+(driver adapter) · Auth.js v5 (Credentials + JWT) · Zod v4 · Vitest.
+
+## Puesta en marcha (Windows / local)
+
+```powershell
+npm install
+npx prisma migrate dev      # crea dev.db y aplica el schema
+npm run db:seed             # datos demo deterministas
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+> Si el puerto 3000 está ocupado, Next usará el 3001 (lo indica en consola).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usuarios demo
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contraseña para todos: **`Demo1234!`**
 
-## Learn More
+| Email              | Rol           | Panel       |
+|--------------------|---------------|-------------|
+| admin@demo.app     | SUPER_ADMIN   | `/admin`    |
+| escuela@demo.app   | ESCUELA_ADMIN | `/escuela`  |
+| dt@demo.app        | DT            | `/dt`       |
+| jugador@demo.app   | JUGADOR       | `/jugador`  |
 
-To learn more about Next.js, take a look at the following resources:
+> Credenciales válidas solo en entorno local de demostración.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Comando             | Qué hace                                  |
+|---------------------|-------------------------------------------|
+| `npm run dev`       | Servidor de desarrollo                    |
+| `npm run build`     | Build de producción                       |
+| `npm run typecheck` | TypeScript sin emitir                     |
+| `npm test`          | Tests unitarios (Vitest)                  |
+| `npm run db:seed`   | Re-siembra la base demo (idempotente)     |
+| `npm run db:reset`  | Resetea la BD y vuelve a migrar+sembrar   |
 
-## Deploy on Vercel
+## Arquitectura (capas, dependencias solo hacia abajo)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`app | components → actions → services → repositories → prisma`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Presentación** (`src/app`, `src/components`): renderiza, sin lógica ni BD.
+- **Aplicación** (`src/actions`): autentica, valida (Zod), autoriza (RBAC).
+- **Dominio** (`src/services`, `src/lib/stats-engine`): reglas de negocio puras.
+- **Datos** (`src/repositories`, `prisma`): acceso a datos con `escuelaId`.
+
+Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
+
+## Estado por sprints
+
+- [x] **Sprint 0** — Setup, schema completo, seed, Auth.js + RBAC (guards + proxy),
+      layout base con design tokens. 4 logins → 4 paneles; cruce de rol redirige;
+      test de guards en verde.
+- [ ] Sprint 1 — Landing + leads + PlayerCard.
+- [ ] Sprint 2 — Panel Súper Admin.
+- [ ] … (ver roadmap en el Plan Maestro, Sección 17).

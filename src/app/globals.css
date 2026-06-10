@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/*
+  Design system "Noche de estadio" (Sección 12.1 del Plan Maestro v4).
+  Tailwind v4: los tokens se declaran con @theme y quedan disponibles como
+  utilidades (bg-surface, text-muted, border-subtle, etc.).
+*/
+
+@theme {
+  /* Fondos y superficies */
+  --color-base: #070b14;
+  --color-surface: #0d1322;
+  --color-surface-2: #111a2e;
+  --color-subtle: #1e2a44;
+
+  /* Texto */
+  --color-foreground: #f1f5f9;
+  --color-muted: #94a3b8;
+
+  /* Acento cancha */
+  --color-pitch: #4ade80;
+
+  /* Niveles de carta */
+  --color-bronce: #b08d57;
+  --color-plata: #c7d1dd;
+  --color-oro: #f5c542;
+  --color-heroe: #a78bfa;
+  --color-heroe-2: #f0abfc;
+
+  /* Estados */
+  --color-alerta: #f87171;
+  --color-info: #60a5fa;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+/* color de marca por escuela (white-label); se sobreescribe en el layout del tenant */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --brand: #4ade80;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-base);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números siempre tabulares en stats y marcadores */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respeta prefers-reduced-motion globalmente */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
