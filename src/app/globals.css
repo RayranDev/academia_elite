@@ -31,6 +31,10 @@
   --color-alerta: #f87171;
   --color-info: #60a5fa;
 
+  /* Marca por escuela (white-label): se resuelve desde --brand,
+     que el layout del tenant sobreescribe con su colorPrimario. */
+  --color-brand: var(--brand);
+
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 

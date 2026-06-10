@@ -39,3 +39,12 @@ export function assertOwnPlayer(
     throw new TenantMismatchError();
   }
 }
+
+/**
+ * Devuelve el escuelaId del contexto garantizando que exista (todo rol salvo
+ * SUPER_ADMIN tiene escuela). Útil para acotar consultas de tenant.
+ */
+export function requireEscuela(ctx: AuthContext): string {
+  if (!ctx.escuelaId) throw new ForbiddenError();
+  return ctx.escuelaId;
+}

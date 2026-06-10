@@ -1,13 +1,16 @@
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requireRole, requireEscuela } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import {
   listarEscuelasGlobal,
   slugExisteGlobal,
   emailExisteGlobal,
+  obtenerEscuela,
+  actualizarBrandingEscuela,
 } from "@/repositories/escuela.repository";
+import type { BrandingInput } from "@/lib/validators/escuela";
 import { obtenerLeadGlobal } from "@/repositories/lead.repository";
 import type { ConvertirLeadInput } from "@/lib/validators/admin";
 
@@ -21,6 +24,47 @@ export interface EscuelaDTO {
   categorias: number;
   usuarios: number;
   createdAt: string;
+}
+
+export interface MiEscuelaDTO {
+  id: string;
+  nombre: string;
+  slug: string;
+  colorPrimario: string;
+  logoUrl: string | null;
+  frecuenciaEvaluacionDias: number;
+}
+
+/** Devuelve la escuela del ESCUELA_ADMIN actual (para branding y layout). */
+export async function obtenerMiEscuela(
+  ctx: AuthContext,
+): Promise<MiEscuelaDTO> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  const e = await obtenerEscuela(escuelaId);
+  if (!e) throw new NotFoundError("Escuela no encontrada.");
+  return {
+    id: e.id,
+    nombre: e.nombre,
+    slug: e.slug,
+    colorPrimario: e.colorPrimario,
+    logoUrl: e.logoUrl,
+    frecuenciaEvaluacionDias: e.frecuenciaEvaluacionDias,
+  };
+}
+
+export async function actualizarBranding(
+  ctx: AuthContext,
+  data: BrandingInput,
+): Promise<void> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  await actualizarBrandingEscuela(escuelaId, {
+    nombre: data.nombre,
+    colorPrimario: data.colorPrimario,
+    logoUrl: data.logoUrl ? data.logoUrl : null,
+    frecuenciaEvaluacionDias: data.frecuenciaEvaluacionDias,
+  });
 }
 
 export async function listarEscuelas(ctx: AuthContext): Promise<EscuelaDTO[]> {

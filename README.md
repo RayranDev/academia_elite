@@ -67,5 +67,9 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       estado), conversión lead→escuela+admin (con contraseña temporal), edición
       de parámetros de fórmula y explorador de AuditLog. Toda acción sensible
       queda auditada.
-- [ ] Sprint 3 — Panel Escuela.
+- [x] **Sprint 3** — Panel Escuela (autogestión): categorías, sedes/canchas,
+      DTs (alta con contraseña temporal y categorías asignadas), códigos de
+      invitación (generación/desactivación) y branding white-label
+      (`colorPrimario` inyectado como `--brand` que tiñe el panel del tenant).
+- [ ] Sprint 4 — Panel DT (plantilla, evaluación 4+4+4, motor de stats).
 - [ ] … (ver roadmap en el Plan Maestro, Sección 17).

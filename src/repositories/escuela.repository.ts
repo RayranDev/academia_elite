@@ -17,3 +17,19 @@ export function slugExisteGlobal(slug: string) {
 export function emailExisteGlobal(email: string) {
   return db.user.findUnique({ where: { email }, select: { id: true } });
 }
+
+export function obtenerEscuela(escuelaId: string) {
+  return db.escuela.findUnique({ where: { id: escuelaId } });
+}
+
+export function actualizarBrandingEscuela(
+  escuelaId: string,
+  data: {
+    nombre?: string;
+    colorPrimario?: string;
+    logoUrl?: string | null;
+    frecuenciaEvaluacionDias?: number;
+  },
+) {
+  return db.escuela.update({ where: { id: escuelaId }, data });
+}
