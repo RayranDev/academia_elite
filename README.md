@@ -82,5 +82,9 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       progreso, y foto con consentimiento/avatar servida por API protegida
       (magic bytes + strip EXIF + resize). Revocar consentimiento oculta la foto
       al instante.
-- [ ] Sprint 6 — Eventos, calendario y mensajería.
-- [ ] … (ver roadmap en el Plan Maestro, Sección 17).
+- [x] **Sprint 6** — Eventos + calendario + mensajería: CRUD de eventos (incl.
+      recurrentes), convocatorias con confirmación del padre, asistencia y
+      resultados; `MonthGrid` + `UpcomingList`; hilos DT↔padre, anuncios y
+      noticias del club; notificaciones in-app con badge.
+- [ ] Sprint 7 — Endurecimiento de seguridad + E2E (Playwright) + docs.
+- [ ] Sprint 8 — Fase 2 (Supabase + Vercel + Storage + RLS).

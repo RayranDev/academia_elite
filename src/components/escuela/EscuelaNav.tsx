@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/escuela/sedes", label: "Sedes" },
   { href: "/escuela/dts", label: "DTs" },
   { href: "/escuela/codigos", label: "Códigos" },
+  { href: "/escuela/anuncios", label: "Anuncios" },
   { href: "/escuela/branding", label: "Branding" },
 ];
 

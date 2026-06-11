@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 
 const LINKS = [
   { href: "/dt", label: "Plantilla" },
+  { href: "/dt/calendario", label: "Calendario" },
+  { href: "/dt/mensajes", label: "Mensajes" },
   { href: "/dt/solicitudes", label: "Solicitudes" },
 ];
 

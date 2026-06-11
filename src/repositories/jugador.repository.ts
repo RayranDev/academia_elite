@@ -64,6 +64,18 @@ export function actualizarEstadoJugador(
   return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
 }
 
+/** Ids de jugadores de unas categorías (para acotar consultas del DT). */
+export async function jugadorIdsDeCategorias(
+  escuelaId: string,
+  categoriaIds: string[],
+): Promise<string[]> {
+  const rows = await db.jugador.findMany({
+    where: { escuelaId, categoriaId: { in: categoriaIds } },
+    select: { id: true },
+  });
+  return rows.map((r) => r.id);
+}
+
 /** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
 export function listarHijos(userId: string) {
   return db.jugador.findMany({

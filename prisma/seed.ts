@@ -330,6 +330,103 @@ async function main() {
     ],
   });
 
+  // 9.e) Eventos, convocatorias, asistencia, resultado (categoría de Lucas: Sub-10).
+  const sub10Ids = jugadoresCreados.filter((j) => j.index < 5).map((j) => j.id);
+  const enHoras = (h: number) => new Date(Date.now() + h * 60 * 60 * 1000);
+
+  // 4 entrenamientos futuros
+  for (let k = 1; k <= 4; k++) {
+    await db.evento.create({
+      data: {
+        escuelaId: escuela.id,
+        categoriaId: sub10.id,
+        tipo: "ENTRENAMIENTO",
+        titulo: `Entrenamiento técnico ${k}`,
+        inicio: enHoras(k * 48),
+        fin: enHoras(k * 48 + 1.5),
+      },
+    });
+  }
+
+  // Partido futuro con convocatoria a medio confirmar
+  const partidoFuturo = await db.evento.create({
+    data: {
+      escuelaId: escuela.id,
+      categoriaId: sub10.id,
+      tipo: "PARTIDO",
+      titulo: "vs. Academia Sur",
+      rival: "Academia Sur",
+      esLocal: true,
+      inicio: enHoras(72),
+      fin: enHoras(74),
+    },
+  });
+  await db.jugadorConvocado.createMany({
+    data: sub10Ids.map((jugadorId) => ({ eventoId: partidoFuturo.id, jugadorId })),
+  });
+  // Confirmar la mitad (los primeros 2)
+  for (const jid of sub10Ids.slice(0, 2)) {
+    await db.jugadorConvocado.update({
+      where: { eventoId_jugadorId: { eventoId: partidoFuturo.id, jugadorId: jid } },
+      data: { confirmacion: "CONFIRMADO", confirmadoEn: new Date() },
+    });
+  }
+
+  // Partido pasado con asistencia y resultado
+  const partidoPasado = await db.evento.create({
+    data: {
+      escuelaId: escuela.id,
+      categoriaId: sub10.id,
+      tipo: "PARTIDO",
+      titulo: "vs. Club Norte",
+      rival: "Club Norte",
+      esLocal: true,
+      inicio: new Date(Date.now() - 5 * DIA),
+      fin: new Date(Date.now() - 5 * DIA + 2 * 60 * 60 * 1000),
+      resultadoLocal: 3,
+      resultadoVisitante: 1,
+    },
+  });
+  await db.jugadorConvocado.createMany({
+    data: sub10Ids.map((jugadorId) => ({
+      eventoId: partidoPasado.id,
+      jugadorId,
+      confirmacion: "CONFIRMADO",
+    })),
+  });
+  await db.asistencia.createMany({
+    data: sub10Ids.map((jugadorId, i) => ({
+      escuelaId: escuela.id,
+      eventoId: partidoPasado.id,
+      jugadorId,
+      presente: i !== 4, // todos menos uno
+    })),
+  });
+
+  // 9.f) Conversación DT ↔ padre sobre Lucas, con 3 mensajes.
+  await db.conversacion.create({
+    data: {
+      escuelaId: escuela.id,
+      jugadorId: lucasId,
+      asunto: "Progreso de Lucas",
+      mensajes: {
+        create: [
+          { remitenteId: dtUser.id, cuerpo: "¡Hola! Lucas viene entrenando muy bien esta semana." },
+          { remitenteId: padreUser.id, cuerpo: "¡Qué alegría! ¿En qué puede mejorar?" },
+          { remitenteId: dtUser.id, cuerpo: "Trabajaremos el pase. Le puse un objetivo de PAS 75." },
+        ],
+      },
+    },
+  });
+
+  // 9.g) Anuncios (1 global, 1 visible al jugador con la noticia del partido).
+  await db.anuncio.createMany({
+    data: [
+      { escuelaId: escuela.id, categoriaId: null, autorRol: "ESCUELA_ADMIN", titulo: "Bienvenidos a la temporada", cuerpo: "Arranca una nueva temporada. ¡A entrenar con todo!", fijado: true },
+      { escuelaId: escuela.id, categoriaId: sub10.id, autorRol: "DT", titulo: "Resultado: vs. Club Norte", cuerpo: "Ganamos 3-1 ante Club Norte. ¡Gran partido del equipo!", visibleJugador: true },
+    ],
+  });
+
   // 10) Leads en distintos estados (pipeline de la landing).
   await db.lead.createMany({
     data: [

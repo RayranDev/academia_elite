@@ -1,5 +1,7 @@
 import { logout } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/Button";
+import { getAuthContext } from "@/lib/auth/session";
+import { contarMisNoLeidas } from "@/services/notificacion.service";
 import type { Rol } from "@/types";
 
 const ETIQUETA_ROL: Record<Rol, string> = {
@@ -9,7 +11,7 @@ const ETIQUETA_ROL: Record<Rol, string> = {
   JUGADOR: "Jugador / Familia",
 };
 
-export function PanelShell({
+export async function PanelShell({
   rol,
   nombre,
   children,
@@ -18,6 +20,8 @@ export function PanelShell({
   nombre: string;
   children: React.ReactNode;
 }) {
+  const ctx = await getAuthContext();
+  const noLeidas = ctx ? await contarMisNoLeidas(ctx) : 0;
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center justify-between border-b border-subtle bg-surface px-6 py-4">
@@ -28,6 +32,14 @@ export function PanelShell({
           <p className="text-sm text-muted">{ETIQUETA_ROL[rol]}</p>
         </div>
         <div className="flex items-center gap-4">
+          {noLeidas > 0 && (
+            <span
+              className="rounded-full bg-brand/20 px-2 py-0.5 text-xs font-bold text-brand"
+              title="Notificaciones sin leer"
+            >
+              🔔 {noLeidas}
+            </span>
+          )}
           <span className="text-sm text-muted">
             Hola, <span className="text-foreground">{nombre}</span>
           </span>

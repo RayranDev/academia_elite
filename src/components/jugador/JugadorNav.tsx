@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 
 const LINKS = [
   { href: "/jugador", label: "Inicio" },
+  { href: "/jugador/mensajes", label: "Mensajes" },
   { href: "/jugador/logros", label: "Logros" },
   { href: "/jugador/perfil", label: "Perfil" },
 ];

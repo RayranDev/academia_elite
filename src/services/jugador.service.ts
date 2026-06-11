@@ -46,6 +46,20 @@ export async function listarCategoriasDelDt(
   return categoriasDeEntrenador(entrenadorId);
 }
 
+/** Jugadores activos del DT (id, nombre, categoría) para convocatorias. */
+export async function listarActivosDt(
+  ctx: AuthContext,
+): Promise<{ id: string; nombre: string; apellido: string; categoriaId: string }[]> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const jugadores = await listarPlantilla(escuelaId, categoriaIds);
+  return jugadores.map((j) => ({
+    id: j.id,
+    nombre: j.nombre,
+    apellido: j.apellido,
+    categoriaId: j.categoriaId,
+  }));
+}
+
 export async function listarPlantillaDt(
   ctx: AuthContext,
 ): Promise<PlantillaItemDTO[]> {

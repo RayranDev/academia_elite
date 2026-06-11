@@ -7,8 +7,22 @@ import {
   obtenerJugadorHub,
 } from "@/repositories/jugador.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
+import { noticiasDeJugador } from "@/repositories/anuncio.repository";
+import {
+  proximosEventosJugador,
+  ultimoPartidoJugador,
+  type ProximoEventoDTO,
+  type UltimoPartidoDTO,
+} from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
 import type { PlayerCardData, Posicion } from "@/types";
+
+export interface NoticiaDTO {
+  id: string;
+  titulo: string;
+  cuerpo: string;
+  fecha: string;
+}
 
 export interface HijoRef {
   id: string;
@@ -65,6 +79,9 @@ export interface HubDTO {
   bonus: BonusDTO[];
   objetivos: ObjetivoDTO[];
   foto: { tieneFoto: boolean; consentimiento: boolean };
+  proximos: ProximoEventoDTO[];
+  ultimoPartido: UltimoPartidoDTO | null;
+  noticias: NoticiaDTO[];
 }
 
 export async function obtenerHub(
@@ -82,11 +99,15 @@ export async function obtenerHub(
   if (!elegido) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, elegido.escuelaId);
 
-  const [full, evals, catalogo] = await Promise.all([
-    obtenerJugadorHub(elegido.id),
-    listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
-    db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
-  ]);
+  const [full, evals, catalogo, proximos, ultimoPartido, noticiasRows] =
+    await Promise.all([
+      obtenerJugadorHub(elegido.id),
+      listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
+      db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
+      proximosEventosJugador(elegido.escuelaId, elegido.categoriaId, elegido.id),
+      ultimoPartidoJugador(elegido.escuelaId, elegido.categoriaId),
+      noticiasDeJugador(elegido.escuelaId, elegido.categoriaId),
+    ]);
   if (!full) throw new NotFoundError("Jugador no encontrado.");
 
   const stats = full.stats[0] ?? null;
@@ -189,5 +210,13 @@ export async function obtenerHub(
       tieneFoto: !!full.fotoUrl,
       consentimiento: full.consentimientoFoto,
     },
+    proximos,
+    ultimoPartido,
+    noticias: noticiasRows.map((n) => ({
+      id: n.id,
+      titulo: n.titulo,
+      cuerpo: n.cuerpo,
+      fecha: n.createdAt.toISOString(),
+    })),
   };
 }
