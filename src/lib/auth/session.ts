@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
-import { UnauthorizedError } from "@/lib/errors";
 import type { Rol } from "@/types";
 
 /**
@@ -40,10 +39,21 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   return ctx;
 }
 
-/** Igual que getAuthContext pero lanza si no hay sesión. */
+/**
+ * Versión para páginas/acciones: si no hay sesión va a /login; si la sesión
+ * apunta a un usuario inexistente (p. ej. tras un re-seed) limpia la cookie vía
+ * /api/salir. Así nunca se cae con un 500 por sesión obsoleta.
+ */
 export async function requireAuthContext(): Promise<AuthContext> {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { activo: true },
+  });
+  if (!user || !user.activo) redirect("/api/salir");
   const ctx = await getAuthContext();
-  if (!ctx) throw new UnauthorizedError();
+  if (!ctx) redirect("/login");
   return ctx;
 }
 
@@ -61,6 +71,18 @@ export async function requirePanelUser(rol: Rol): Promise<{
   if (!session?.user?.id) redirect("/login");
   const actual = session.user.rol as Rol;
   if (actual !== rol) redirect(panelPorRol(actual));
+
+  // La sesión (JWT) puede apuntar a un usuario que ya no existe (p. ej. tras un
+  // re-seed de la BD en desarrollo). En ese caso forzamos re-login en vez de
+  // dejar que las consultas de tenant fallen con un 500.
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, activo: true },
+  });
+  // Redirige a un endpoint que limpia la cookie (si fuéramos a /login el proxy
+  // nos reenviaría al panel y entraríamos en bucle).
+  if (!user || !user.activo) redirect("/api/salir");
+
   return {
     id: session.user.id,
     rol: actual,

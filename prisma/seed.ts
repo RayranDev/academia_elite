@@ -62,9 +62,12 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
 
+  // IDs fijos para las entidades con login: así un re-seed no invalida las
+  // sesiones (JWT) ya emitidas en desarrollo.
   // 1) SUPER_ADMIN (sin escuela)
   await db.user.create({
     data: {
+      id: "demo-user-superadmin",
       email: "admin@demo.app",
       passwordHash,
       nombre: "Súper Admin",
@@ -75,6 +78,7 @@ async function main() {
   // 2) Escuela demo + su administrador
   const escuela = await db.escuela.create({
     data: {
+      id: "demo-escuela",
       nombre: "Academia Demo",
       slug: "demo",
       colorPrimario: "#4ADE80",
@@ -84,6 +88,7 @@ async function main() {
 
   await db.user.create({
     data: {
+      id: "demo-user-escuela",
       email: "escuela@demo.app",
       passwordHash,
       nombre: "Admin Academia Demo",
@@ -107,6 +112,7 @@ async function main() {
   // 4) Categorías Sub-10 y Sub-12
   const sub10 = await db.categoria.create({
     data: {
+      id: "demo-cat-sub10",
       escuelaId: escuela.id,
       nombre: "Sub-10",
       anioDesde: 2016,
@@ -115,6 +121,7 @@ async function main() {
   });
   const sub12 = await db.categoria.create({
     data: {
+      id: "demo-cat-sub12",
       escuelaId: escuela.id,
       nombre: "Sub-12",
       anioDesde: 2014,
@@ -125,6 +132,7 @@ async function main() {
   // 5) DT asignado a ambas categorías
   const dtUser = await db.user.create({
     data: {
+      id: "demo-user-dt",
       email: "dt@demo.app",
       passwordHash,
       nombre: "Diego Técnico",
@@ -133,7 +141,7 @@ async function main() {
     },
   });
   const entrenador = await db.entrenador.create({
-    data: { userId: dtUser.id, escuelaId: escuela.id },
+    data: { id: "demo-entrenador", userId: dtUser.id, escuelaId: escuela.id },
   });
   await db.entrenadorCategoria.createMany({
     data: [
@@ -145,6 +153,7 @@ async function main() {
   // 6) Cuenta JUGADOR (gestionada por el padre) + su jugador
   const padreUser = await db.user.create({
     data: {
+      id: "demo-user-padre",
       email: "jugador@demo.app",
       passwordHash,
       nombre: "Familia García",
