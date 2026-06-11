@@ -71,5 +71,10 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       DTs (alta con contraseña temporal y categorías asignadas), códigos de
       invitación (generación/desactivación) y branding white-label
       (`colorPrimario` inyectado como `--brand` que tiñe el panel del tenant).
-- [ ] Sprint 4 — Panel DT (plantilla, evaluación 4+4+4, motor de stats).
+- [x] **Sprint 4** — Núcleo: motor de stats v1.1 puro y testeado (38 tests),
+      auto-registro del padre por código, plantilla de mini-cartas, solicitudes
+      (aprobar/rechazar), **formulario de evaluación 4+4+4** y snapshot inmutable.
+      La carta "nace" con OVR, sello MEN y nivel; los logros BONUS se aplican con
+      tope anti-inflación.
+- [ ] Sprint 5 — Hub del jugador (carta hero, evolución, logros, objetivos, foto).
 - [ ] … (ver roadmap en el Plan Maestro, Sección 17).

@@ -53,6 +53,17 @@ export async function obtenerMiEscuela(
   };
 }
 
+/** Branding del tenant (nombre + color) para cualquier rol de la escuela. */
+export async function obtenerBrandingTenant(
+  ctx: AuthContext,
+): Promise<{ nombre: string; colorPrimario: string }> {
+  requireRole(ctx, ["ESCUELA_ADMIN", "DT", "JUGADOR"]);
+  const escuelaId = requireEscuela(ctx);
+  const e = await obtenerEscuela(escuelaId);
+  if (!e) throw new NotFoundError("Escuela no encontrada.");
+  return { nombre: e.nombre, colorPrimario: e.colorPrimario };
+}
+
 export async function actualizarBranding(
   ctx: AuthContext,
   data: BrandingInput,

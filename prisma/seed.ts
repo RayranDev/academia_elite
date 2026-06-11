@@ -1,6 +1,13 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
+import {
+  computeStats,
+  grupoEdadPorEdad,
+  edadEnAnios,
+  type MedidasEvaluacion,
+} from "@/lib/stats-engine";
+import type { Posicion } from "@/types";
 
 /**
  * Seed determinista (Apéndice B del Plan Maestro).
@@ -160,21 +167,30 @@ async function main() {
     ["Felipe", "Vega"],
   ];
 
+  const jugadoresCreados: {
+    id: string;
+    posicion: string;
+    fechaNacimiento: Date;
+    index: number;
+  }[] = [];
+
   for (let i = 0; i < nombres.length; i++) {
     const [nombre, apellido] = nombres[i];
     const categoriaId = i < 5 ? sub10.id : sub12.id;
     const estado = i === 9 ? "PENDIENTE" : "ACTIVO";
     // El primer jugador (Lucas García) es la cuenta del padre demo, con foto+consentimiento.
     const esCuentaDemo = i === 0;
+    const fechaNacimiento = new Date(2015 - (i % 2), (i % 12) + 1, 10);
+    const posicion = POSICIONES[i % POSICIONES.length];
 
-    await db.jugador.create({
+    const j = await db.jugador.create({
       data: {
         escuelaId: escuela.id,
         categoriaId,
         nombre,
         apellido,
-        fechaNacimiento: new Date(2015 - (i % 2), (i % 12) + 1, 10),
-        posicion: POSICIONES[i % POSICIONES.length],
+        fechaNacimiento,
+        posicion,
         dorsal: i + 1,
         estado,
         padreUserId: esCuentaDemo ? padreUser.id : null,
@@ -183,6 +199,7 @@ async function main() {
         consentimientoFotoFecha: esCuentaDemo ? new Date() : null,
       },
     });
+    jugadoresCreados.push({ id: j.id, posicion, fechaNacimiento, index: i });
   }
 
   // 8) Parámetros de fórmula (rangos por grupo de edad + peso de MEN).
@@ -204,6 +221,81 @@ async function main() {
       { codigo: "TEMPORADA_DE_HIERRO", nombre: "Temporada de hierro", descripcion: "10 asistencias seguidas.", tipo: "INSIGNIA", icono: "shield" },
     ],
   });
+
+  // 9.b) Evaluaciones de ejemplo (calculadas con el motor) para que las cartas
+  //      ya existan en la demo. La última de cada jugador alimenta su carta.
+  const DIA = 24 * 60 * 60 * 1000;
+  const medidasNivel = (nivel: number): MedidasEvaluacion => {
+    const t = (base: number, max: number) => base + (max - base) * nivel;
+    return {
+      sprint30mSeg: 6.5 - 2.0 * nivel, // menos = mejor
+      saltoVerticalCm: t(16, 50),
+      agilidadIllinoisSeg: 21 - 5 * nivel, // menos = mejor
+      resistenciaYoyoNivel: t(4, 16),
+      controlBalon: t(4, 9),
+      pase: t(4, 9),
+      tiro: t(3, 9),
+      regate: t(4, 9),
+      actitud: t(5, 9),
+      concentracion: t(4, 9),
+      trabajoEquipo: t(5, 10),
+      resiliencia: t(4, 9),
+    };
+  };
+
+  for (const jug of jugadoresCreados) {
+    if (jug.index === 9) continue; // PENDIENTE: sin evaluaciones
+    const vencido = jug.index === 8; // su última evaluación quedará "vencida"
+    const grupo = grupoEdadPorEdad(edadEnAnios(jug.fechaNacimiento));
+    const niveles = [0.45 + (jug.index % 3) * 0.05, 0.62 + (jug.index % 4) * 0.06];
+
+    for (let k = 0; k < niveles.length; k++) {
+      const medidas = medidasNivel(Math.min(niveles[k], 0.98));
+      const r = computeStats(medidas, {
+        posicion: jug.posicion as Posicion,
+        grupoEdad: grupo,
+      });
+      const diasAtras = vencido ? 60 + (niveles.length - 1 - k) * 40 : (niveles.length - 1 - k) * 40;
+      const fecha = new Date(Date.now() - diasAtras * DIA);
+
+      const ev = await db.evaluacion.create({
+        data: {
+          escuelaId: escuela.id,
+          jugadorId: jug.id,
+          entrenadorId: entrenador.id,
+          fecha,
+          ...medidas,
+        },
+      });
+      await db.statsCalculados.create({
+        data: {
+          escuelaId: escuela.id,
+          jugadorId: jug.id,
+          evaluacionId: ev.id,
+          rit: r.rit, tir: r.tir, pas: r.pas, reg: r.reg, def: r.def, fis: r.fis,
+          men: r.men, ovr: r.ovr, nivel: r.nivel,
+          bonusAplicado: r.bonusAplicado, versionFormula: r.versionFormula,
+          createdAt: fecha,
+        },
+      });
+    }
+  }
+
+  // 9.c) Un logro BONUS sin consumir para Lucas (index 0): se aplicará en su
+  //      próxima evaluación (demo del desglose anti-inflación).
+  const logroBonus = await db.logro.findUnique({
+    where: { codigo: "ASISTENCIA_PERFECTA_SEMANA" },
+  });
+  if (logroBonus) {
+    await db.logroJugador.create({
+      data: {
+        escuelaId: escuela.id,
+        jugadorId: jugadoresCreados[0].id,
+        logroId: logroBonus.id,
+        bonusConsumido: false,
+      },
+    });
+  }
 
   // 10) Leads en distintos estados (pipeline de la landing).
   await db.lead.createMany({

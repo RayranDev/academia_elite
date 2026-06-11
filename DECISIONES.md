@@ -44,6 +44,28 @@ cambió de API, se adapta y se documenta aquí).
 8. **`Anuncio.visibleJugador`**: campo añadido (no estaba explícito en el schema
    v3 pero sí en la regla 9.1 "mostrar al jugador" → noticia del club).
 
+## Sprint 4 — Motor de stats v1.1
+
+10b. **Derivación de los 6 stats de carta (vacío de v3 resuelto).** El plan
+   referencia "las ponderaciones v1" del motor de v3, que no acompañaba al
+   documento. Se definió una derivación explícita y testeada (en
+   `src/lib/stats-engine/weights.ts`) a partir de las medidas normalizadas:
+   - Físicas → VEL (sprint), POT (salto), AGI (agilidad), RES (yoyo) en [40,99].
+   - Técnicas (1-10) → CTRL, PAS, TIR, REG en [1,99] (nota × 9.9).
+   - `RIT = 0.65·VEL + 0.35·AGI` · `TIR = 0.75·TIR + 0.25·POT` ·
+     `PAS = 0.75·PAS + 0.25·CTRL` · `REG = 0.55·REG + 0.25·AGI + 0.20·CTRL` ·
+     `DEF = 0.45·RES + 0.30·POT + 0.25·CTRL` · `FIS = 0.50·RES + 0.35·POT + 0.15·VEL`.
+   Cada fila suma 1.0 (queda en rango). `MEN` = promedio de las 4 dimensiones de
+   mentalidad. `OVR = (1−pesoMen)·Σ(peso_posición·stat) + pesoMen·MEN`, con
+   `pesoMen` desde `ParametroFormula("PESO_MEN_EN_OVR")`.
+
+10c. **Rangos físicos por edad embebidos** (`ranges.ts`) con valores iniciales
+   razonables (SUB8–SUB16). El motor acepta override por `opts.rangos`; la
+   edición desde `ParametroFormula` por el SUPER_ADMIN queda como refinamiento.
+
+10d. **Piso físico 40 / técnico 1.** Las medidas físicas normalizan a [40,99]
+   (un niño nunca "vale 1" físicamente); técnicas y mentalidad a [1,99].
+
 ### Alcance del seed en Sprint 0
 9. El seed (Apéndice B) se implementa por capas: en el Sprint 0 cubre la
    estructura base + los **4 usuarios (uno por rol)** para verificar login/RBAC,

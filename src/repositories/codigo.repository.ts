@@ -26,3 +26,8 @@ export function desactivarCodigo(escuelaId: string, id: string) {
     data: { activo: false },
   });
 }
+
+// Búsqueda global por código (registro público, antes de tener tenant).
+export function obtenerCodigoPorValor(codigo: string) {
+  return db.codigoInvitacion.findUnique({ where: { codigo } });
+}

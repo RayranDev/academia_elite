@@ -1,0 +1,65 @@
+import { db } from "@/lib/db";
+
+// Repositorio de jugadores (Capa 4). Firma con escuelaId (multi-tenant).
+
+const statsLatest = {
+  orderBy: { createdAt: "desc" as const },
+  take: 1,
+};
+
+/** Plantilla: jugadores ACTIVO de las categorías indicadas, con su última carta. */
+export function listarPlantilla(escuelaId: string, categoriaIds: string[]) {
+  return db.jugador.findMany({
+    where: { escuelaId, categoriaId: { in: categoriaIds }, estado: "ACTIVO" },
+    include: {
+      categoria: { select: { id: true, nombre: true } },
+      stats: statsLatest,
+    },
+    orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+  });
+}
+
+/** Solicitudes pendientes de aprobación en las categorías del DT. */
+export function listarSolicitudes(escuelaId: string, categoriaIds: string[]) {
+  return db.jugador.findMany({
+    where: { escuelaId, categoriaId: { in: categoriaIds }, estado: "PENDIENTE" },
+    include: {
+      categoria: { select: { id: true, nombre: true } },
+      padre: { select: { nombre: true, email: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+export function obtenerJugador(escuelaId: string, id: string) {
+  return db.jugador.findFirst({
+    where: { id, escuelaId },
+    include: {
+      categoria: { select: { id: true, nombre: true } },
+      stats: statsLatest,
+    },
+  });
+}
+
+export function crearJugador(
+  escuelaId: string,
+  data: {
+    categoriaId: string;
+    nombre: string;
+    apellido: string;
+    fechaNacimiento: Date;
+    posicion: string;
+    dorsal?: number | null;
+    estado: string;
+  },
+) {
+  return db.jugador.create({ data: { escuelaId, ...data } });
+}
+
+export function actualizarEstadoJugador(
+  escuelaId: string,
+  id: string,
+  estado: string,
+) {
+  return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
+}
