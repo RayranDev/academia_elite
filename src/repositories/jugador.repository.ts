@@ -63,3 +63,61 @@ export function actualizarEstadoJugador(
 ) {
   return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
 }
+
+/** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
+export function listarHijos(userId: string) {
+  return db.jugador.findMany({
+    where: { OR: [{ padreUserId: userId }, { cuentaUserId: userId }] },
+    include: {
+      categoria: { select: { nombre: true } },
+      stats: statsLatest,
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/** Jugador con todo lo necesario para el hub (carta, logros, objetivos). */
+export function obtenerJugadorHub(id: string) {
+  return db.jugador.findUnique({
+    where: { id },
+    include: {
+      categoria: { select: { nombre: true } },
+      stats: statsLatest,
+      logros: { include: { logro: true }, orderBy: { otorgadoEn: "desc" } },
+      objetivos: { orderBy: { fechaLimite: "asc" } },
+    },
+  });
+}
+
+/** Datos mínimos para control de acceso a la foto (serving y gestión). */
+export function obtenerJugadorParaFoto(id: string) {
+  return db.jugador.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      escuelaId: true,
+      categoriaId: true,
+      padreUserId: true,
+      cuentaUserId: true,
+      fotoUrl: true,
+      consentimientoFoto: true,
+    },
+  });
+}
+
+export function actualizarFotoJugador(id: string, fotoUrl: string) {
+  return db.jugador.update({ where: { id }, data: { fotoUrl } });
+}
+
+export function actualizarConsentimientoJugador(
+  id: string,
+  consiente: boolean,
+) {
+  return db.jugador.update({
+    where: { id },
+    data: {
+      consentimientoFoto: consiente,
+      consentimientoFotoFecha: consiente ? new Date() : null,
+    },
+  });
+}

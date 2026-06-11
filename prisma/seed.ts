@@ -305,6 +305,30 @@ async function main() {
       },
     });
   }
+  // Una insignia obtenida para la vitrina.
+  const insignia = await db.logro.findUnique({
+    where: { codigo: "CAPITAN_VESTUARIO" },
+  });
+  if (insignia) {
+    await db.logroJugador.create({
+      data: {
+        escuelaId: escuela.id,
+        jugadorId: jugadoresCreados[0].id,
+        logroId: insignia.id,
+      },
+    });
+  }
+
+  // 9.d) Objetivos de desarrollo para Lucas (2 activos + 1 cumplido).
+  const lucasId = jugadoresCreados[0].id;
+  const enDias = (d: number) => new Date(Date.now() + d * DIA);
+  await db.objetivoJugador.createMany({
+    data: [
+      { escuelaId: escuela.id, jugadorId: lucasId, creadoPorEntrenadorId: entrenador.id, stat: "PAS", valorMeta: 75, fechaLimite: enDias(45), estado: "ACTIVO" },
+      { escuelaId: escuela.id, jugadorId: lucasId, creadoPorEntrenadorId: entrenador.id, stat: "FIS", valorMeta: 80, fechaLimite: enDias(60), estado: "ACTIVO" },
+      { escuelaId: escuela.id, jugadorId: lucasId, creadoPorEntrenadorId: entrenador.id, stat: "MEN", valorMeta: 70, fechaLimite: enDias(-10), estado: "CUMPLIDO" },
+    ],
+  });
 
   // 10) Leads en distintos estados (pipeline de la landing).
   await db.lead.createMany({

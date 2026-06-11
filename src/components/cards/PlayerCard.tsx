@@ -9,6 +9,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import { cn } from "@/lib/cn";
+import { CountUp } from "@/components/cards/CountUp";
 import type { PlayerCardData, Nivel } from "@/types";
 
 type Size = "sm" | "md" | "hero";
@@ -17,6 +18,7 @@ interface PlayerCardProps {
   data: PlayerCardData;
   size?: Size;
   interactive?: boolean;
+  reveal?: boolean;
   className?: string;
 }
 
@@ -70,6 +72,7 @@ export function PlayerCard({
   data,
   size = "md",
   interactive = false,
+  reveal = false,
   className,
 }: PlayerCardProps) {
   const reduce = useReducedMotion();
@@ -146,7 +149,7 @@ export function PlayerCard({
         <div className="flex items-start justify-between">
           <div className="leading-none">
             <div className={cn(s.ovr, "font-black italic tabular")}>
-              {data.ovr}
+              <CountUp value={data.ovr} reveal={reveal} />
             </div>
             <div className="text-xs font-bold tracking-widest opacity-90">
               {data.posicion}
@@ -201,7 +204,9 @@ export function PlayerCard({
         >
           {STAT_LABELS.map(([key, label]) => (
             <div key={key} className="flex justify-between">
-              <span className="tabular">{data.stats[key]}</span>
+              <span className="tabular">
+                <CountUp value={data.stats[key]} reveal={reveal} />
+              </span>
               <span className="opacity-70">{label}</span>
             </div>
           ))}
@@ -225,7 +230,7 @@ export function PlayerCard({
               size === "hero" ? "text-xl" : size === "md" ? "text-sm" : "text-[10px]",
             )}
           >
-            {data.men}
+            <CountUp value={data.men} reveal={reveal} />
           </div>
           <div
             className={cn(

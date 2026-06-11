@@ -7,6 +7,8 @@ import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { crearObjetivoAction } from "@/actions/dt.actions";
+import { STATS_OBJETIVO } from "@/types";
 
 export default async function JugadorDetallePage({
   params,
@@ -84,6 +86,50 @@ export default async function JugadorDetallePage({
           )}
         </Card>
       </div>
+
+      <Card className="max-w-xl">
+        <h2 className="mb-3 text-lg font-bold">Fijar objetivo de desarrollo</h2>
+        <form
+          action={crearObjetivoAction}
+          className="flex flex-wrap items-end gap-3"
+        >
+          <input type="hidden" name="jugadorId" value={detalle.id} />
+          <div>
+            <label className="mb-1 block text-xs text-muted">Stat</label>
+            <select
+              name="stat"
+              className="rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+            >
+              {STATS_OBJETIVO.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted">Meta</label>
+            <input
+              name="valorMeta"
+              type="number"
+              min={1}
+              max={99}
+              defaultValue={75}
+              className="w-20 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm tabular outline-none focus:border-brand"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted">Fecha límite</label>
+            <input
+              name="fechaLimite"
+              type="date"
+              required
+              className="rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+          </div>
+          <Button type="submit">Crear objetivo</Button>
+        </form>
+      </Card>
     </div>
   );
 }

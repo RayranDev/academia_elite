@@ -76,5 +76,11 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       (aprobar/rechazar), **formulario de evaluación 4+4+4** y snapshot inmutable.
       La carta "nace" con OVR, sello MEN y nivel; los logros BONUS se aplican con
       tope anti-inflación.
-- [ ] Sprint 5 — Hub del jugador (carta hero, evolución, logros, objetivos, foto).
+- [x] **Sprint 5** — Hub del jugador estilo FC26: carta hero con revelación
+      (count-up + confetti), evolución (Recharts con stat seleccionable), vitrina
+      de logros (insignias + bonus con anti-inflación), objetivos con barras de
+      progreso, y foto con consentimiento/avatar servida por API protegida
+      (magic bytes + strip EXIF + resize). Revocar consentimiento oculta la foto
+      al instante.
+- [ ] Sprint 6 — Eventos, calendario y mensajería.
 - [ ] … (ver roadmap en el Plan Maestro, Sección 17).

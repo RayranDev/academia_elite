@@ -1,0 +1,193 @@
+import { db } from "@/lib/db";
+import type { AuthContext } from "@/lib/auth/context";
+import { requireRole, assertTenant } from "@/lib/auth/guards";
+import { NotFoundError } from "@/lib/errors";
+import {
+  listarHijos,
+  obtenerJugadorHub,
+} from "@/repositories/jugador.repository";
+import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
+import { aPlayerCardData } from "@/lib/mappers/player-card";
+import type { PlayerCardData, Posicion } from "@/types";
+
+export interface HijoRef {
+  id: string;
+  nombre: string;
+  apellido: string;
+}
+export interface EvolucionPunto {
+  fecha: string;
+  ovr: number;
+  rit: number;
+  tir: number;
+  pas: number;
+  reg: number;
+  def: number;
+  fis: number;
+  men: number;
+}
+export interface InsigniaDTO {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  icono: string;
+  obtenido: boolean;
+  fecha?: string;
+}
+export interface BonusDTO {
+  nombre: string;
+  stat: string;
+  valor: number;
+  consumido: boolean;
+  fecha: string;
+}
+export interface ObjetivoDTO {
+  id: string;
+  stat: string;
+  valorMeta: number;
+  valorActual: number;
+  progreso: number;
+  fechaLimite: string;
+  estado: string;
+}
+export interface HubDTO {
+  jugadorId: string;
+  nombre: string;
+  apellido: string;
+  posicion: Posicion;
+  categoriaNombre: string;
+  estado: string;
+  card: PlayerCardData | null;
+  bonusUltima: number;
+  hijos: HijoRef[];
+  evolucion: EvolucionPunto[];
+  insignias: InsigniaDTO[];
+  bonus: BonusDTO[];
+  objetivos: ObjetivoDTO[];
+  foto: { tieneFoto: boolean; consentimiento: boolean };
+}
+
+export async function obtenerHub(
+  ctx: AuthContext,
+  jugadorId?: string,
+): Promise<HubDTO> {
+  requireRole(ctx, ["JUGADOR"]);
+  const hijos = await listarHijos(ctx.userId);
+  if (hijos.length === 0) {
+    throw new NotFoundError("No hay jugadores vinculados a tu cuenta.");
+  }
+  const elegido = jugadorId
+    ? hijos.find((h) => h.id === jugadorId)
+    : hijos[0];
+  if (!elegido) throw new NotFoundError("Jugador no encontrado.");
+  assertTenant(ctx, elegido.escuelaId);
+
+  const [full, evals, catalogo] = await Promise.all([
+    obtenerJugadorHub(elegido.id),
+    listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
+    db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
+  ]);
+  if (!full) throw new NotFoundError("Jugador no encontrado.");
+
+  const stats = full.stats[0] ?? null;
+  const fotoUrl =
+    full.consentimientoFoto && full.fotoUrl
+      ? `/api/archivos/foto/${full.id}`
+      : null;
+  const card = stats ? aPlayerCardData(full, stats, fotoUrl) : null;
+
+  const evolucion: EvolucionPunto[] = evals
+    .filter((e) => e.statsCalculados)
+    .map((e) => {
+      const s = e.statsCalculados!;
+      return {
+        fecha: e.fecha.toISOString(),
+        ovr: s.ovr,
+        rit: s.rit,
+        tir: s.tir,
+        pas: s.pas,
+        reg: s.reg,
+        def: s.def,
+        fis: s.fis,
+        men: s.men,
+      };
+    });
+
+  const valorStat = (stat: string): number => {
+    if (!stats) return 0;
+    const mapa: Record<string, number> = {
+      RIT: stats.rit,
+      TIR: stats.tir,
+      PAS: stats.pas,
+      REG: stats.reg,
+      DEF: stats.def,
+      FIS: stats.fis,
+      MEN: stats.men,
+      OVR: stats.ovr,
+    };
+    return mapa[stat] ?? 0;
+  };
+
+  const objetivos: ObjetivoDTO[] = full.objetivos.map((o) => {
+    const actual = valorStat(o.stat);
+    const progreso = Math.min(
+      100,
+      Math.max(0, Math.round((actual / o.valorMeta) * 100)),
+    );
+    return {
+      id: o.id,
+      stat: o.stat,
+      valorMeta: o.valorMeta,
+      valorActual: actual,
+      progreso,
+      fechaLimite: o.fechaLimite.toISOString(),
+      estado: o.estado,
+    };
+  });
+
+  const insignias: InsigniaDTO[] = catalogo.map((l) => {
+    const lj = full.logros.find((x) => x.logroId === l.id);
+    return {
+      codigo: l.codigo,
+      nombre: l.nombre,
+      descripcion: l.descripcion,
+      icono: l.icono,
+      obtenido: !!lj,
+      fecha: lj ? lj.otorgadoEn.toISOString() : undefined,
+    };
+  });
+
+  const bonus: BonusDTO[] = full.logros
+    .filter((lj) => lj.logro.tipo === "BONUS")
+    .map((lj) => ({
+      nombre: lj.logro.nombre,
+      stat: lj.logro.statBonus ?? "",
+      valor: lj.logro.valorBonus ?? 0,
+      consumido: lj.bonusConsumido,
+      fecha: lj.otorgadoEn.toISOString(),
+    }));
+
+  return {
+    jugadorId: full.id,
+    nombre: full.nombre,
+    apellido: full.apellido,
+    posicion: full.posicion as Posicion,
+    categoriaNombre: full.categoria.nombre,
+    estado: full.estado,
+    card,
+    bonusUltima: stats?.bonusAplicado ?? 0,
+    hijos: hijos.map((h) => ({
+      id: h.id,
+      nombre: h.nombre,
+      apellido: h.apellido,
+    })),
+    evolucion,
+    insignias,
+    bonus,
+    objetivos,
+    foto: {
+      tieneFoto: !!full.fotoUrl,
+      consentimiento: full.consentimientoFoto,
+    },
+  };
+}

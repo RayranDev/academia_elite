@@ -6,6 +6,8 @@ import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import { jugadorSchema } from "@/lib/validators/jugador";
 import { evaluacionSchema } from "@/lib/validators/evaluacion";
+import { objetivoSchema } from "@/lib/validators/objetivo";
+import { crearObjetivoDt } from "@/services/objetivo.service";
 import {
   crearJugadorDt,
   aprobarSolicitud,
@@ -58,6 +60,19 @@ export async function rechazarSolicitudAction(formData: FormData): Promise<void>
   if (typeof id !== "string" || !id) throw new ValidationError("Solicitud inválida.");
   await rechazarSolicitud(ctx, id);
   revalidatePath("/dt/solicitudes");
+}
+
+export async function crearObjetivoAction(formData: FormData): Promise<void> {
+  const ctx = await requireAuthContext();
+  const parsed = objetivoSchema.safeParse({
+    jugadorId: formData.get("jugadorId"),
+    stat: formData.get("stat"),
+    valorMeta: formData.get("valorMeta"),
+    fechaLimite: formData.get("fechaLimite"),
+  });
+  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+  await crearObjetivoDt(ctx, parsed.data);
+  revalidatePath(`/dt/jugadores/${parsed.data.jugadorId}`);
 }
 
 export async function crearEvaluacionAction(
