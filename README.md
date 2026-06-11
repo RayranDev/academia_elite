@@ -41,6 +41,7 @@ Contraseña para todos: **`Demo1234!`**
 | `npm run build`     | Build de producción                       |
 | `npm run typecheck` | TypeScript sin emitir                     |
 | `npm test`          | Tests unitarios (Vitest)                  |
+| `npm run test:e2e`  | E2E con Playwright (build + flujos críticos) |
 | `npm run db:seed`   | Re-siembra la base demo (idempotente)     |
 | `npm run db:reset`  | Resetea la BD y vuelve a migrar+sembrar   |
 
@@ -86,5 +87,8 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       recurrentes), convocatorias con confirmación del padre, asistencia y
       resultados; `MonthGrid` + `UpcomingList`; hilos DT↔padre, anuncios y
       noticias del club; notificaciones in-app con badge.
-- [ ] Sprint 7 — Endurecimiento de seguridad + E2E (Playwright) + docs.
+- [x] **Sprint 7** — Endurecimiento: cabeceras de seguridad (CSP/HSTS/…) en
+      `next.config`, checklist 6.8 firmado por endpoint (`SEGURIDAD.md`),
+      `MANUAL-DE-USO.md`, y suite **E2E (Playwright)** de los 3 flujos críticos
+      en verde. Fix de portabilidad: el proxy redirige usando el host real.
 - [ ] Sprint 8 — Fase 2 (Supabase + Vercel + Storage + RLS).

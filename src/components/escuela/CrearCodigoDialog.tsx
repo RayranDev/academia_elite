@@ -40,7 +40,10 @@ export function CrearCodigoDialog({
           <div className="space-y-4">
             <p className="text-sm text-brand">✅ Código generado.</p>
             <div className="rounded-lg border border-subtle bg-surface-2 p-4 text-center">
-              <p className="select-all font-mono text-3xl font-black tracking-widest text-brand">
+              <p
+                data-testid="codigo-generado"
+                className="select-all font-mono text-3xl font-black tracking-widest text-brand"
+              >
                 {exito.codigo}
               </p>
               <p className="mt-2 text-xs text-muted">

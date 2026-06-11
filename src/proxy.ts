@@ -31,6 +31,13 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const rol = req.auth?.user?.rol as Rol | undefined;
 
+  // Construye URLs absolutas desde el HOST REAL de la petición (no desde
+  // AUTH_URL): así los redirects funcionan en cualquier host/puerto.
+  const host = req.headers.get("host") ?? req.nextUrl.host;
+  const proto =
+    req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "");
+  const aUrl = (destino: string) => new URL(destino, `${proto}://${host}`);
+
   // Prefijo protegido al que apunta la petición (si alguno).
   const prefijo = Object.keys(PREFIJO_ROL).find(
     (p) => pathname === p || pathname.startsWith(p + "/"),
@@ -38,19 +45,19 @@ export default auth((req) => {
 
   // Ruta protegida sin sesión -> al login.
   if (prefijo && !rol) {
-    const url = new URL("/login", req.nextUrl);
+    const url = aUrl("/login");
     url.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(url);
   }
 
   // Sesión activa entrando al login -> a su panel.
   if (pathname === "/login" && rol) {
-    return NextResponse.redirect(new URL(panelPorRol(rol), req.nextUrl));
+    return NextResponse.redirect(aUrl(panelPorRol(rol)));
   }
 
   // Ruta protegida de OTRO rol -> a su propio panel.
   if (prefijo && rol && PREFIJO_ROL[prefijo] !== rol) {
-    return NextResponse.redirect(new URL(panelPorRol(rol), req.nextUrl));
+    return NextResponse.redirect(aUrl(panelPorRol(rol)));
   }
 
   return NextResponse.next();

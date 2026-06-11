@@ -44,6 +44,22 @@ cambió de API, se adapta y se documenta aquí).
 8. **`Anuncio.visibleJugador`**: campo añadido (no estaba explícito en el schema
    v3 pero sí en la regla 9.1 "mostrar al jugador" → noticia del club).
 
+## Sprint 7 — Endurecimiento
+
+12. **Proxy: redirect con host real.** Con `AUTH_URL` fijo, el wrapper de Auth.js
+   ponía `req.nextUrl.origin` = AUTH_URL, así que los redirects del proxy
+   apuntaban siempre a ese host/puerto (rompía en cualquier puerto distinto, p.
+   ej. en E2E). El proxy ahora construye las URLs absolutas desde el header
+   `Host` (+ `X-Forwarded-Proto`). Portabilidad correcta sin depender de AUTH_URL.
+
+13. **E2E contra build de producción.** Playwright levanta `next build && next
+   start -p 3100` (no el dev server, que compila on-demand y es lento/flaky).
+   Las pruebas comparten `dev.db` y corren en serie (`workers: 1`).
+
+14. **CSP**: `script-src` incluye `'unsafe-inline'` (Next inyecta scripts inline)
+   pero **nunca** `'unsafe-eval'` en producción (solo en dev para el HMR).
+   `style-src 'unsafe-inline'` por Tailwind v4.
+
 ## Sprint 4 — Motor de stats v1.1
 
 10b. **Derivación de los 6 stats de carta (vacío de v3 resuelto).** El plan
