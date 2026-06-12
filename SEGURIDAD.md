@@ -67,8 +67,9 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **progreso** · validarSemana (responsable) | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
 | **progreso** · validarSemanaDt (DT, sus categorías) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ |
-| **importación** · importarJugadores CSV (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **importación** · importarJugadores XLSX (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | **métricas** · fijar/quitarMetrica (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **fondos** · equiparFondo (responsable) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **gestión** · editarJugador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **gestión** · cambiarEstadoJugador (inactivar/reactivar) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **gestión** · eliminarJugador (lógico, solo SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -135,6 +136,20 @@ nunca se almacenan ni loguean en claro.
 - DiceBear v10 (`toon-head`) se genera **en proceso** (sync `toDataUri`), nunca
   una API externa. Sin datos personales: solo índices de estilo. La migración
   v1→v2 es local (no se exponen datos).
+
+### Foto de menores: recorte/compresión en cliente (M.1)
+- La imagen se redimensiona y recorta a 3:4 **en el navegador** antes de subir,
+  reduciendo lo que viaja al servidor. El servidor **vuelve a procesarla**
+  (magic bytes + strip EXIF + resize + WebP, nombre UUID) como defensa en
+  profundidad: la validación de seguridad NO depende del cliente.
+- Límite de Server Actions subido a 6 MB (`bodySizeLimit`) para que la subida no
+  se rechace antes de la validación; el servicio mantiene su tope de 5 MB.
+
+### Fondos de carta (M.1)
+- `equiparFondo`: solo el **responsable** (rol JUGADOR + `assertTenant` +
+  pertenencia). Se verifica que el fondo esté **desbloqueado** (cumple el
+  requisito o ya estaba registrado) antes de equiparlo. Es cosmético: no toca
+  OVR ni datos personales.
 
 ## Protección específica de menores (Sección 6.4)
 

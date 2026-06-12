@@ -9,6 +9,7 @@ const NAV: NavItem[] = [
   { href: "/jugador/calendario", label: "Calendario", icon: "calendario" },
   { href: "/jugador/mensajes", label: "Mensajes", icon: "mensajes" },
   { href: "/jugador/logros", label: "Logros", icon: "logros" },
+  { href: "/jugador/fondos", label: "Fondos", icon: "fondos" },
   { href: "/jugador/progreso", label: "Progreso", icon: "progreso" },
   { href: "/jugador/perfil", label: "Perfil", icon: "perfil" },
   { href: "/jugador/cuenta", label: "Mi cuenta", icon: "cuenta" },

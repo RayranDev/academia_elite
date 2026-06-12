@@ -44,6 +44,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
+    // Next ANTES de ejecutar la acción. Lo subimos para cubrir la importación
+    // de jugadores (.xlsx) y la subida de foto (hasta ~5 MB antes de recortar).
+    serverActions: {
+      bodySizeLimit: "6mb",
+    },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

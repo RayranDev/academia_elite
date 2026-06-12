@@ -90,6 +90,7 @@ export interface PlayerCardData {
   escudoEscuelaUrl?: string;
   dorsal?: number;
   avatarConfig?: AvatarConfigV2 | null;
+  fondoEstilo?: string | null; // CSS del fondo equipado (detrás del jugador)
 }
 
 // --- Avatar SVG editable (jugador) ---

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   subirFotoAction,
   actualizarConsentimientoAction,
@@ -9,7 +10,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
-import type { ActionResult } from "@/lib/action-result";
+import { FotoCropper } from "@/components/jugador/FotoCropper";
+import { prepararParaRecorte } from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
 
 export function FotoConsentimiento({
@@ -25,18 +27,62 @@ export function FotoConsentimiento({
   avatarConfig: AvatarConfig | null;
   seed: string;
 }) {
-  const [state, action, pending] = useActionState<
-    ActionResult | undefined,
-    FormData
-  >(subirFotoAction, undefined);
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [imagen, setImagen] = useState<string | null>(null); // dataURL para recortar
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const [subiendo, startTransition] = useTransition();
+
+  async function alElegirArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    setError(null);
+    setOk(false);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Elige una imagen (JPEG, PNG o WebP).");
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError("La imagen es demasiado grande (máx. 15 MB).");
+      return;
+    }
+    try {
+      const dataUrl = await prepararParaRecorte(file);
+      setImagen(dataUrl); // abre el recortador
+    } catch {
+      setError("No se pudo leer la imagen.");
+    } finally {
+      // Permite volver a elegir el mismo archivo más tarde.
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  function subir(blob: Blob) {
+    const fd = new FormData();
+    fd.set("jugadorId", jugadorId);
+    fd.set("foto", new File([blob], "foto.webp", { type: "image/webp" }));
+    startTransition(async () => {
+      const res = await subirFotoAction(undefined, fd);
+      if (res.ok) {
+        setImagen(null);
+        setOk(true);
+        router.refresh();
+      } else {
+        setError(res.error);
+        setImagen(null);
+      }
+    });
+  }
 
   return (
     <Card className="max-w-lg space-y-5">
       <div>
         <h2 className="text-lg font-bold">Foto del jugador</h2>
         <p className="text-sm text-muted">
-          La foto solo se muestra con tu consentimiento. Se procesa de forma
-          segura (se eliminan metadatos) y nunca es pública.
+          La foto se comprime y se recorta a la proporción de la carta en tu
+          dispositivo antes de subirla. Solo se muestra con tu consentimiento; se
+          procesa de forma segura (se eliminan metadatos) y nunca es pública.
         </p>
       </div>
 
@@ -65,26 +111,23 @@ export function FotoConsentimiento({
         </div>
       </div>
 
-      <form action={action} className="space-y-2">
-        <input type="hidden" name="jugadorId" value={jugadorId} />
-        <label className="block text-sm font-medium text-muted">
-          Subir/actualizar foto (JPEG, PNG o WebP · máx. 5 MB)
-        </label>
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-muted">
+          Subir/actualizar foto (JPEG, PNG o WebP)
+        </p>
         <input
+          ref={inputRef}
           type="file"
-          name="foto"
           accept="image/jpeg,image/png,image/webp"
-          required
-          className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-foreground"
+          onChange={alElegirArchivo}
+          className="hidden"
         />
-        {state && !state.ok && (
-          <p className="text-sm text-alerta">{state.error}</p>
-        )}
-        {state?.ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
-        <Button type="submit" disabled={pending}>
-          {pending ? "Subiendo…" : "Subir foto"}
+        <Button onClick={() => inputRef.current?.click()} disabled={subiendo}>
+          Elegir foto…
         </Button>
-      </form>
+        {error && <p className="text-sm text-alerta">{error}</p>}
+        {ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
+      </div>
 
       <form action={actualizarConsentimientoAction} className="border-t border-subtle pt-4">
         <input type="hidden" name="jugadorId" value={jugadorId} />
@@ -95,6 +138,15 @@ export function FotoConsentimiento({
             : "Dar consentimiento (mostrar foto)"}
         </Button>
       </form>
+
+      {imagen && (
+        <FotoCropper
+          imagen={imagen}
+          procesando={subiendo}
+          onConfirmar={subir}
+          onCancelar={() => setImagen(null)}
+        />
+      )}
     </Card>
   );
 }

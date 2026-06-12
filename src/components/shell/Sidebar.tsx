@@ -23,6 +23,7 @@ import {
   TrendingUp,
   FlaskConical,
   Settings,
+  Image,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -50,6 +51,7 @@ const ICONOS: Record<string, LucideIcon> = {
   perfil: User,
   progreso: TrendingUp,
   simulador: FlaskConical,
+  fondos: Image,
   cuenta: Settings,
 };
 

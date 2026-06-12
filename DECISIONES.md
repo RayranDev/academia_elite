@@ -157,3 +157,27 @@ cambió de API, se adapta y se documenta aquí).
 23. **Props server->client serializables (M5).** MonthGrid recibe `eventoBase`
     (string) en vez de una funcion `eventoHref`: no se pueden pasar funciones de
     un Server Component a un Client Component.
+
+## Sprint M.1 (correcciones y mejoras solicitadas)
+
+24. **Límite de body de Server Actions (error 1 MB).** Lo lanza Next ANTES de la
+    acción. Se sube experimental.serverActions.bodySizeLimit a 6mb (cubre la
+    importación .xlsx y la subida de foto antes de recortar).
+25. **Importación migrada a Excel (.xlsx) con exceljs.** Reemplaza al CSV
+    (lib/csv eliminado). lib/xlsx parsea a matriz y genera la plantilla;
+    importacion.service valida que la fila 1 tenga EXACTAMENTE las cabeceras y
+    reporta por fila los campos obligatorios faltantes sin detener el resto.
+    exceljs sobre el paquete npm xlsx por mantenimiento/seguridad.
+26. **Foto: compresión + recorte en cliente (react-easy-crop + canvas).** La
+    imagen se redimensiona y se recorta a 3:4 (proporción de la carta) en el
+    navegador antes de subir; el servidor la reprocesa igual (strip EXIF +
+    webp) como defensa en profundidad. Evita cargar imágenes enormes.
+27. **Atributos de la carta en 6 columnas.** Grid de 6: las 6 etiquetas
+    (RIT/TIR/PAS/REG/DEF/FIS, en español) en la fila 1 y los valores debajo por
+    el wrap natural del grid.
+28. **Fondos de carta por méritos (configurable).** FondoCarta (catálogo) +
+    FondoDesbloqueado (por jugador) + Jugador.fondoEquipadoId. El requisito es
+    por fondo: SIEMPRE / LOGRO / NIVEL_CARTA / NIVEL_PERSONAL (lib/fondos, puro).
+    Galería /jugador/fondos: desbloqueados a color con Equipar, bloqueados en
+    gris con candado y el mérito que falta. El fondo equipado se pinta detrás
+    del jugador en la carta.

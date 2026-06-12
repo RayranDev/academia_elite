@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/session";
 import { DomainError } from "@/lib/errors";
 import { generarPlantillaJugadores } from "@/services/importacion.service";
+import { XLSX_MIME } from "@/lib/xlsx";
 
 /**
- * Descarga la plantilla CSV de jugadores de una escuela. Requiere sesión:
+ * Descarga la plantilla .xlsx de jugadores de una escuela. Requiere sesión:
  * ESCUELA_ADMIN (su tenant) o SUPER_ADMIN (con `?escuelaId=`). El servicio
  * aplica los controles de rol/tenant.
  */
@@ -14,11 +15,11 @@ export async function GET(req: Request) {
 
   const escuelaId = new URL(req.url).searchParams.get("escuelaId") ?? undefined;
   try {
-    const { filename, contenido } = await generarPlantillaJugadores(ctx, escuelaId);
-    return new NextResponse(contenido, {
+    const { filename, buffer } = await generarPlantillaJugadores(ctx, escuelaId);
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Type": XLSX_MIME,
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },

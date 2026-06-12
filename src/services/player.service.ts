@@ -16,6 +16,7 @@ import {
   type UltimoPartidoDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
+import { obtenerFondo } from "@/repositories/fondo.repository";
 import { parseAvatarConfig } from "@/lib/avatar/config";
 import type { PlayerCardData, Posicion, AvatarConfig } from "@/types";
 
@@ -124,6 +125,11 @@ export async function obtenerHub(
     ? `/api/archivos/escudo/${elegido.escuelaId}`
     : undefined;
   const card = stats ? aPlayerCardData(full, stats, fotoUrl, escudoUrl) : null;
+  // Fondo desbloqueado y equipado por el jugador (detrás del retrato).
+  if (card && elegido.fondoEquipadoId) {
+    const fondo = await obtenerFondo(elegido.fondoEquipadoId);
+    card.fondoEstilo = fondo?.estilo ?? null;
+  }
 
   const evolucion: EvolucionPunto[] = evals
     .filter((e) => e.statsCalculados)

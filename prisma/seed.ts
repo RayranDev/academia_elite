@@ -245,6 +245,20 @@ async function main() {
   // 9) Catálogo de logros (~52, divididos por posición — G6).
   await db.logro.createMany({ data: CATALOGO_LOGROS });
 
+  // 9.a) Catálogo de fondos de carta desbloqueables por méritos (configurable
+  //      por requisito: SIEMPRE / LOGRO / NIVEL_CARTA / NIVEL_PERSONAL).
+  await db.fondoCarta.deleteMany();
+  await db.fondoCarta.createMany({
+    data: [
+      { codigo: "CLASICO", nombre: "Clásico", descripcion: "El fondo de siempre.", estilo: "linear-gradient(160deg,#0b1220,#1e293b)", requisitoTipo: "SIEMPRE", requisitoValor: null, orden: 0 },
+      { codigo: "PASTO", nombre: "Pasto", descripcion: "Verde de cancha.", estilo: "radial-gradient(circle at 50% 120%, #14532d, #052e16)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "PLATA", orden: 1 },
+      { codigo: "ESTADIO_ORO", nombre: "Estadio dorado", descripcion: "Luces de gala.", estilo: "linear-gradient(160deg,#7c5e10,#1a1407)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "ORO", orden: 2 },
+      { codigo: "LEYENDA", nombre: "Leyenda", descripcion: "Solo para héroes.", estilo: "conic-gradient(from 180deg at 50% 50%, #4c1d95, #7c3aed, #2563eb, #4c1d95)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "HEROE", orden: 3 },
+      { codigo: "CONSTANCIA", nombre: "Constancia", descripcion: "Tu disciplina semana a semana.", estilo: "linear-gradient(160deg,#0e7490,#082f49)", requisitoTipo: "NIVEL_PERSONAL", requisitoValor: "3", orden: 4 },
+      { codigo: "CAPITAN", nombre: "Capitán", descripcion: "Por tu liderazgo en el equipo.", estilo: "linear-gradient(160deg,#9f1239,#3b0a18)", requisitoTipo: "LOGRO", requisitoValor: "CAPITAN_VESTUARIO", orden: 5 },
+    ],
+  });
+
   // 9.b) Evaluaciones de ejemplo (calculadas con el motor) para que las cartas
   //      ya existan en la demo. La última de cada jugador alimenta su carta.
   const DIA = 24 * 60 * 60 * 1000;

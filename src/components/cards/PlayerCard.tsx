@@ -251,6 +251,14 @@ export function PlayerCard({
 
         {/* Retrato: foto fundida al material (máscara) o avatar */}
         <div className="relative mt-1 flex flex-1 items-end justify-center overflow-hidden">
+          {/* Fondo desbloqueado por méritos, detrás del jugador. */}
+          {data.fondoEstilo && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{ background: data.fondoEstilo, WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
+            />
+          )}
           {data.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -283,14 +291,18 @@ export function PlayerCard({
           className="mt-1 h-px w-full"
           style={{ background: `linear-gradient(90deg, transparent, ${material.ring}, transparent)` }}
         />
-        <div className={cn(s.stat, "mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5")}>
+        {/* 6 columnas: las 6 etiquetas en la 1ª fila y los 6 valores justo
+            debajo, alineados por el wrap natural del grid. */}
+        <div className={cn(s.stat, "mt-1 grid grid-cols-6 gap-x-1 text-center")}>
           {STAT_LABELS.map(([key, label]) => (
-            <div key={key} className="flex justify-between">
-              <span className="tabular font-bold">
-                <CountUp value={data.stats[key]} reveal={reveal} />
-              </span>
-              <span className="text-[0.85em] font-semibold opacity-65">{label}</span>
-            </div>
+            <span key={`et-${key}`} className="text-[0.8em] font-semibold uppercase opacity-65">
+              {label}
+            </span>
+          ))}
+          {STAT_LABELS.map(([key]) => (
+            <span key={`val-${key}`} className="tabular font-bold leading-tight">
+              <CountUp value={data.stats[key]} reveal={reveal} />
+            </span>
           ))}
         </div>
       </div>

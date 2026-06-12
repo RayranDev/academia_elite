@@ -362,7 +362,7 @@ export async function cambiarMiPasswordAction(
   }
 }
 
-const MAX_CSV_BYTES = 1024 * 1024; // 1 MB
+const MAX_XLSX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function importarJugadoresAction(
   _prev: ActionResult<ResultadoImportacion> | undefined,
@@ -375,16 +375,16 @@ export async function importarJugadoresAction(
 
     const archivo = formData.get("archivo");
     if (!(archivo instanceof File) || archivo.size === 0) {
-      throw new ValidationError("Adjunta un archivo CSV.");
+      throw new ValidationError("Adjunta un archivo Excel (.xlsx).");
     }
-    if (archivo.size > MAX_CSV_BYTES) {
-      throw new ValidationError("El archivo supera 1 MB.");
+    if (archivo.size > MAX_XLSX_BYTES) {
+      throw new ValidationError("El archivo supera 5 MB.");
     }
     const escuelaIdRaw = formData.get("escuelaId");
     const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;
 
-    const texto = await archivo.text();
-    const data = await importarJugadores(ctx, texto, escuelaId);
+    const buffer = Buffer.from(await archivo.arrayBuffer());
+    const data = await importarJugadores(ctx, buffer, escuelaId);
     revalidarGestion();
     return { ok: true, data };
   } catch (e) {

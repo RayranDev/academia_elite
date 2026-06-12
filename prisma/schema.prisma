@@ -141,6 +141,9 @@ model Jugador {
   logros                  LogroJugador[]
   objetivos               ObjetivoJugador[]
   progresos               ProgresoSemanal[]
+  fondosDesbloqueados     FondoDesbloqueado[]
+  fondoEquipadoId         String?
+  fondoEquipado           FondoCarta?        @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
   createdAt               DateTime           @default(now())
 
   @@index([escuelaId, categoriaId])
@@ -420,6 +423,34 @@ model ParametroFormula {
   valor       Float
   descripcion String?
   updatedAt   DateTime @updatedAt
+}
+
+// Fondos de carta desbloqueables por méritos (gamificación). El requisito es
+// configurable por fondo: SIEMPRE, LOGRO (código), NIVEL_CARTA (Bronce/Plata/
+// Oro/Héroe) o NIVEL_PERSONAL (nivel mínimo de progreso personal).
+model FondoCarta {
+  id            String              @id @default(cuid())
+  codigo        String              @unique
+  nombre        String
+  descripcion   String
+  estilo        String // CSS (gradiente/patrón) que se aplica detrás del jugador
+  requisitoTipo String // SIEMPRE | LOGRO | NIVEL_CARTA | NIVEL_PERSONAL
+  requisitoValor String? // logro.codigo · nivel de carta · nivel personal (número)
+  orden         Int                 @default(0)
+  desbloqueos   FondoDesbloqueado[]
+  equipadoPor   Jugador[]           @relation("FondoEquipado")
+}
+
+model FondoDesbloqueado {
+  id            String     @id @default(cuid())
+  jugadorId     String
+  jugador       Jugador    @relation(fields: [jugadorId], references: [id])
+  fondoId       String
+  fondo         FondoCarta @relation(fields: [fondoId], references: [id])
+  desbloqueadoEn DateTime  @default(now())
+
+  @@unique([jugadorId, fondoId])
+  @@index([jugadorId])
 }
 
 // M9: override por escuela de un parámetro global (solo RANGO_* y UMBRAL_*).

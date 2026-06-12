@@ -1,7 +1,7 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { parseCsv, aCsv } from "@/lib/csv";
+import { parseXlsx, plantillaJugadoresXlsx } from "@/lib/xlsx";
 import { jugadorSchema } from "@/lib/validators/jugador";
 import {
   crearJugador,
@@ -12,7 +12,7 @@ import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { format } from "date-fns";
 
-/** Cabeceras de la plantilla (orden de columnas). */
+/** Cabeceras de la plantilla (orden y nombres EXACTOS de la fila 1). */
 const CABECERAS = [
   "nombre",
   "apellido",
@@ -21,6 +21,15 @@ const CABECERAS = [
   "dorsal",
   "categoria",
 ] as const;
+
+/** Columnas obligatorias (todas menos dorsal). */
+const OBLIGATORIAS: { idx: number; etiqueta: string }[] = [
+  { idx: 0, etiqueta: "nombre" },
+  { idx: 1, etiqueta: "apellido" },
+  { idx: 2, etiqueta: "fechaNacimiento" },
+  { idx: 3, etiqueta: "posicion" },
+  { idx: 5, etiqueta: "categoria" },
+];
 
 const MAX_FILAS = 500;
 
@@ -44,49 +53,59 @@ function clave(nombre: string, apellido: string, fecha: Date): string {
   return `${nombre.trim().toLowerCase()}|${apellido.trim().toLowerCase()}|${format(fecha, "yyyy-MM-dd")}`;
 }
 
-/** Genera la plantilla CSV de una escuela (con sus categorías válidas). */
+/** Genera la plantilla .xlsx de una escuela (con sus categorías válidas). */
 export async function generarPlantillaJugadores(
   ctx: AuthContext,
   escuelaId?: string,
-): Promise<{ filename: string; contenido: string }> {
+): Promise<{ filename: string; buffer: Buffer }> {
   const id = escuelaObjetivo(ctx, escuelaId);
   const escuela = await obtenerEscuela(id);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
   const categorias = await listarCategorias(id);
 
-  const filas: string[][] = [
-    [...CABECERAS],
-    ["Lucas", "García", "2014-03-15", "DEL", "9", categorias[0]?.nombre ?? ""],
-    [
-      `# Posiciones válidas: POR, DEF, MED, DEL. Fecha en formato AAAA-MM-DD. Dorsal opcional.`,
-    ],
-    [
-      `# Categorías de ${escuela.nombre}: ${categorias.map((c) => c.nombre).join(", ") || "(sin categorías)"}`,
-    ],
-  ];
+  const buffer = await plantillaJugadoresXlsx({
+    cabeceras: [...CABECERAS],
+    ejemplo: ["Lucas", "García", "2014-03-15", "DEL", "9", categorias[0]?.nombre ?? ""],
+    escuelaNombre: escuela.nombre,
+    categorias: categorias.map((c) => c.nombre),
+  });
 
-  return {
-    filename: `plantilla-jugadores-${escuela.slug}.csv`,
-    contenido: aCsv(filas),
-  };
+  return { filename: `plantilla-jugadores-${escuela.slug}.xlsx`, buffer };
+}
+
+/** Verifica que la fila 1 tenga EXACTAMENTE las cabeceras requeridas. */
+function validarCabeceras(fila: string[] | undefined): void {
+  const actuales = (fila ?? []).map((c) => c.trim().toLowerCase());
+  const esperadas = CABECERAS.map((c) => c.toLowerCase());
+  const ok =
+    actuales.length >= esperadas.length &&
+    esperadas.every((h, i) => actuales[i] === h);
+  if (!ok) {
+    throw new ValidationError(
+      `La fila 1 debe tener exactamente estas cabeceras: ${CABECERAS.join(", ")}. Descarga la plantilla.`,
+    );
+  }
 }
 
 /**
- * Importa jugadores desde un CSV. ESCUELA_ADMIN (su tenant) o SUPER_ADMIN.
- * Valida cada fila, mapea la categoría por nombre, omite duplicados y crea los
- * válidos en estado ACTIVO. Acción sensible → auditada con los conteos.
+ * Importa jugadores desde un .xlsx. ESCUELA_ADMIN (su tenant) o SUPER_ADMIN.
+ * Valida la fila de cabeceras, luego cada fila: si falta un dato obligatorio
+ * registra el error (con nº de fila y campo) sin detener el resto; ignora filas
+ * vacías; mapea la categoría por nombre; omite duplicados; crea los válidos en
+ * estado ACTIVO. Acción sensible → auditada con los conteos.
  */
 export async function importarJugadores(
   ctx: AuthContext,
-  texto: string,
+  buffer: Buffer,
   escuelaId?: string,
 ): Promise<ResultadoImportacion> {
   const id = escuelaObjetivo(ctx, escuelaId);
   const escuela = await obtenerEscuela(id);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
 
-  const filas = parseCsv(texto);
+  const filas = await parseXlsx(buffer);
   if (filas.length === 0) throw new ValidationError("El archivo está vacío.");
+  validarCabeceras(filas[0]);
 
   // Mapa de categorías por nombre (normalizado) y set de duplicados existentes.
   const categorias = await listarCategorias(id);
@@ -101,29 +120,31 @@ export async function importarJugadores(
   let omitidos = 0;
   let procesadas = 0;
 
-  for (let i = 0; i < filas.length; i += 1) {
-    const cols = filas[i];
-    const c0 = (cols[0] ?? "").trim().toLowerCase();
-    // Salta cabecera y comentarios.
-    if (i === 0 && c0 === "nombre") continue;
-    if (c0.startsWith("#")) continue;
+  // Empezamos en 1 para saltar la fila de cabeceras.
+  for (let i = 1; i < filas.length; i += 1) {
+    const cols = filas[i].map((v) => (v ?? "").trim());
+    if (cols.every((c) => c === "")) continue; // fila vacía → se ignora
 
     procesadas += 1;
-    const numeroFila = i + 1; // 1-based para el usuario
+    const numeroFila = i + 1; // 1-based, contando la cabecera
     if (procesadas > MAX_FILAS) {
       throw new ValidationError(`El archivo supera el máximo de ${MAX_FILAS} jugadores.`);
     }
 
-    const [nombre, apellido, fechaNacimiento, posicion, dorsal, categoria] = cols.map(
-      (v) => (v ?? "").trim(),
-    );
+    // Primero, campos obligatorios presentes (mensaje claro por campo).
+    const faltan = OBLIGATORIAS.filter((o) => !cols[o.idx]).map((o) => o.etiqueta);
+    if (faltan.length > 0) {
+      errores.push({ fila: numeroFila, mensaje: `Falta(n): ${faltan.join(", ")}.` });
+      continue;
+    }
 
+    const [nombre, apellido, fechaNacimiento, posicion, dorsal, categoria] = cols;
     const parsed = jugadorSchema.safeParse({
       nombre,
       apellido,
       fechaNacimiento,
-      posicion: posicion?.toUpperCase(),
-      categoriaId: "x", // se valida aparte (mapeo por nombre)
+      posicion: posicion.toUpperCase(),
+      categoriaId: "x", // la categoría se valida por nombre aparte
       dorsal: dorsal ? dorsal : undefined,
     });
     if (!parsed.success) {
@@ -131,7 +152,7 @@ export async function importarJugadores(
       continue;
     }
 
-    const categoriaId = porNombre.get((categoria ?? "").toLowerCase());
+    const categoriaId = porNombre.get(categoria.toLowerCase());
     if (!categoriaId) {
       errores.push({ fila: numeroFila, mensaje: `Categoría desconocida: "${categoria}".` });
       continue;

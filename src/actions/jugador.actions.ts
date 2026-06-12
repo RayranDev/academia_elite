@@ -10,6 +10,7 @@ import {
   actualizarConsentimiento,
   actualizarAvatar,
 } from "@/services/foto.service";
+import { equiparFondo } from "@/services/fondo.service";
 import { MAX_FOTO_BYTES } from "@/lib/foto/process";
 import { avatarConfigSchema } from "@/lib/validators/avatar";
 
@@ -69,6 +70,27 @@ export async function actualizarAvatarAction(
     await actualizarAvatar(ctx, jugadorId, parsed.data);
     revalidatePath("/jugador");
     revalidatePath("/jugador/perfil");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function equiparFondoAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const jugadorId = formData.get("jugadorId");
+    if (typeof jugadorId !== "string" || !jugadorId) {
+      throw new ValidationError("Jugador inválido.");
+    }
+    const fondoRaw = formData.get("fondoId");
+    const fondoId = typeof fondoRaw === "string" && fondoRaw ? fondoRaw : null;
+    await equiparFondo(ctx, jugadorId, fondoId);
+    revalidatePath("/jugador");
+    revalidatePath("/jugador/fondos");
     return { ok: true };
   } catch (e) {
     return mapError(e);
