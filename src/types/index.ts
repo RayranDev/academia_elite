@@ -58,6 +58,7 @@ export type EstadoLead = (typeof ESTADOS_LEAD)[number];
 // DTO plano de la carta del jugador (nunca se expone el modelo Prisma a la UI).
 export interface PlayerCardData {
   nombre: string;
+  apellido?: string; // en la carta se muestra en línea propia, nunca truncado
   posicion: Posicion;
   ovr: number;
   nivel: Nivel;

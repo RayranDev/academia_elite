@@ -134,6 +134,7 @@ model Jugador {
   convocatorias           JugadorConvocado[]
   logros                  LogroJugador[]
   objetivos               ObjetivoJugador[]
+  progresos               ProgresoSemanal[]
   createdAt               DateTime           @default(now())
 
   @@index([escuelaId, categoriaId])
@@ -349,6 +350,28 @@ model ObjetivoJugador {
   fechaLimite           DateTime
   estado                String   @default("ACTIVO") // enum: ACTIVO | CUMPLIDO | VENCIDO
 
+  @@index([escuelaId, jugadorId])
+}
+
+// Progreso personal (crecimiento fuera de la cancha): el responsable valida
+// una vez por semana los hábitos del jugador. Genera XP y los atributos
+// Mentalidad/Disciplina, independientes del rendimiento deportivo (no toca OVR).
+model ProgresoSemanal {
+  id             String   @id @default(cuid())
+  escuelaId      String
+  jugadorId      String
+  jugador        Jugador  @relation(fields: [jugadorId], references: [id])
+  semana         String // lunes ISO de la semana validada, "2026-06-08"
+  academico      Boolean  @default(false) // logros académicos
+  comportamiento Boolean  @default(false)
+  puntualidad    Boolean  @default(false)
+  ayudaCasa      Boolean  @default(false) // ayuda en casa
+  valores        Boolean  @default(false) // valores personales
+  nota           String? // comentario opcional del responsable
+  validadoPorId  String // User (padre/responsable) que validó
+  createdAt      DateTime @default(now())
+
+  @@unique([jugadorId, semana])
   @@index([escuelaId, jugadorId])
 }
 

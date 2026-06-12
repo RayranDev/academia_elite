@@ -40,7 +40,8 @@ export function aPlayerCardData(
   escudoEscuelaUrl?: string,
 ): PlayerCardData {
   return {
-    nombre: `${jugador.nombre} ${jugador.apellido}`,
+    nombre: jugador.nombre,
+    apellido: jugador.apellido,
     posicion: jugador.posicion as Posicion,
     ovr: stats.ovr,
     nivel: stats.nivel as Nivel,

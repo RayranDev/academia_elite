@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: "/jugador", label: "Inicio", icon: "inicio" },
   { href: "/jugador/mensajes", label: "Mensajes", icon: "mensajes" },
   { href: "/jugador/logros", label: "Logros", icon: "logros" },
+  { href: "/jugador/progreso", label: "Progreso", icon: "progreso" },
   { href: "/jugador/perfil", label: "Perfil", icon: "perfil" },
 ];
 

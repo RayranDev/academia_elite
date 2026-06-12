@@ -89,3 +89,19 @@ cambió de API, se adapta y se documenta aquí).
    Las **evaluaciones con stats, eventos y mensajes** se añadirán en los sprints
    que construyen esos módulos (4, 5 y 6), porque dependen del motor de stats y
    de los servicios de dominio que aún no existen.
+
+### Sprint V.1 (mejoras visuales post-V)
+11. **Avatar con DiceBear local.** Se sustituye el SVG propio por
+    `@dicebear/core` + `@dicebear/collection` (estilo "adventurer") por pedido
+    del usuario. La generación es **en el propio proceso** (toDataUri síncrono),
+    nunca contra la API pública de DiceBear: no sale ningún dato de menores.
+    La `AvatarConfig` existente (género/piel/peinado/cabello) se mapea a
+    opciones del estilo; el editor del jugador no cambia.
+12. **Progreso personal independiente del deportivo.** `ProgresoSemanal`
+    (validación semanal del responsable, hábitos boolean) alimenta XP/nivel y
+    los atributos Mentalidad/Disciplina (50–99, ventana de 12 semanas) vía el
+    motor puro `src/lib/progreso/engine.ts`. No toca OVR ni la carta.
+13. **Tema claro/oscuro por tokens.** `html.light` sobreescribe los tokens
+    `--color-*` de Tailwind v4; preferencia en `localStorage` (`fcm-tema`) con
+    script inline anti-FOUC. Las cartas conservan sus materiales premium en
+    ambos temas.

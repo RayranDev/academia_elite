@@ -29,7 +29,16 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${inter.variable} ${archivoBlack.variable} h-full`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Aplica el tema guardado antes del primer pintado (anti-FOUC). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("fcm-tema")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-base text-foreground">
         {children}
       </body>

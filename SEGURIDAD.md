@@ -64,10 +64,14 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **mensaje** · marcarNotificacionLeida | ✓ | — | ✓ | ✓² | ✓ | ✓ | — | — |
 | **jugador** · subirFoto | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | **jugador** · actualizarConsentimiento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| **progreso** · validarSemana | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
 
 ¹ La longitud (≤2000) y la pertenencia del jugador acotan el abuso; rate limit
 de mensajes 30/h queda como refinamiento (Upstash en Fase 2).
 ² El `where` incluye `userId` del propio usuario: solo marca sus notificaciones.
+³ Solo el responsable (padre/cuenta) del jugador; una validación por semana ISO
+(único `jugadorId+semana` también a nivel de BD).
 
 ## Protección específica de menores (Sección 6.4)
 

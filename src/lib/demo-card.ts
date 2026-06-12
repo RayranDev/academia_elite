@@ -1,12 +1,12 @@
-import type { PlayerCardData, Nivel } from "@/types";
+﻿import type { PlayerCardData, Nivel } from "@/types";
 
 /**
  * Datos demo para la carta de la landing (sin tocar la BD). El slider de la
- * demo en vivo interpola entre estos cuatro niveles para mostrar la progresión.
+ * demo en vivo interpola entre estos cuatro niveles para mostrar la progresiÃ³n.
  */
 const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
   BRONCE: {
-    nombre: "Lucas García",
+    nombre: "Lucas GarcÃ­a",
     posicion: "DEL",
     ovr: 58,
     nivel: "BRONCE",
@@ -16,7 +16,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   PLATA: {
-    nombre: "Lucas García",
+    nombre: "Lucas GarcÃ­a",
     posicion: "DEL",
     ovr: 70,
     nivel: "PLATA",
@@ -26,7 +26,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   ORO: {
-    nombre: "Lucas García",
+    nombre: "Lucas GarcÃ­a",
     posicion: "DEL",
     ovr: 80,
     nivel: "ORO",
@@ -36,7 +36,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   HEROE: {
-    nombre: "Lucas García",
+    nombre: "Lucas GarcÃ­a",
     posicion: "DEL",
     ovr: 89,
     nivel: "HEROE",

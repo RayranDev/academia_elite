@@ -64,7 +64,8 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
 
   if (resultado) {
     const card: PlayerCardData = {
-      nombre: `${jugador.nombre} ${jugador.apellido}`,
+      nombre: jugador.nombre,
+      apellido: jugador.apellido,
       posicion: jugador.posicion,
       ovr: resultado.ovr,
       nivel: resultado.nivel,

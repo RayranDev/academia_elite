@@ -1,4 +1,4 @@
-# PLAN MEJORAS PRE-PRODUCCIÓN — Documento vivo de seguimiento
+﻿# PLAN MEJORAS PRE-PRODUCCIÓN — Documento vivo de seguimiento
 
 > Este archivo se actualiza a medida que se completa cada ítem.
 > Leyenda: `[ ]` pendiente · `[~]` en curso · `[x]` hecho.
@@ -46,7 +46,9 @@ ajustan los tests).
 
 ## Dependencias nuevas
 
-- `lucide-react` (iconos SVG). Única dependencia nueva.
+- `lucide-react` (iconos SVG).
+- `@dicebear/core` + `@dicebear/collection` (Sprint V.1, pedido del usuario):
+  avatares generados **localmente** (sin llamadas a APIs externas).
 - Fuente display vía `next/font/google` (sin dependencia): **Archivo Black**,
   expuesta como `--font-display`.
 
@@ -169,6 +171,79 @@ Archivos: `src/components/cards/PlayerCard.tsx` + keyframes en `globals.css`.
 - [ ] Reduced-motion → sin animaciones nuevas (carta plana, sin sheen).
 - [ ] `--brand` sigue tiñendo acentos/sidebar (cambiar color en Branding).
 - [ ] Commit + push.
+
+---
+
+# SPRINT V.1 — Correcciones visuales y experiencia (solicitud post-V)
+
+> Mantener lo que ya funciona del Sprint V; NO rehacer componentes sanos.
+> Decisión nueva del usuario: el avatar pasa a **DiceBear** (sustituye la
+> decisión previa de "avatar propio sin dependencias"). Se instala localmente
+> (`@dicebear/core` + `@dicebear/collection`) — **sin llamadas a APIs
+> externas**: se genera el SVG en el propio proceso (privacidad de menores).
+
+## V1.1 Carta premium (aspecto Oro FC26 / coleccionable AAA)
+- [x] Textura *gold foil* (grano + vetas) sobre el material por nivel.
+- [x] Reflejos metálicos (conic-gradient especular) y *luxury gradients*.
+- [x] Profundidad: bisel/filo metálico, sombras internas, drop shadow.
+- [x] Mejor jerarquía visual (OVR/posición/nombre/stats).
+
+## V1.2 Sello MEN arriba-derecha
+- [x] Mover el badge MEN de la fila de stats a la zona superior derecha
+      (debajo del escudo/dorsal), sin tapar estadísticas.
+- [x] El grid de stats vuelve a ocupar todo el ancho.
+
+## V1.3 Avatar DiceBear (fallback)
+- [x] Instalar `@dicebear/core` + `@dicebear/collection` (generación local).
+- [x] `PlayerAvatar` pasa a renderizar DiceBear (estilo *adventurer*),
+      mapeando la `AvatarConfig` existente (género/piel/peinado/cabello) a
+      opciones del estilo. Misma API de componente → el editor sigue igual.
+- [x] La foto real (con consentimiento) sigue teniendo prioridad; DiceBear
+      solo como fallback.
+
+## V1.4 Nombre en dos líneas
+- [x] `PlayerCardData` separa `nombre` y `apellido` (mapper actualizado).
+- [x] La carta muestra nombre y apellido en líneas separadas, centrado,
+      **nunca truncado** (ajuste de tamaño/wrap).
+
+## V1.5 Iconos del calendario en celdas
+- [x] `MonthGrid`: los puntos de color pasan a iconos por tipo dentro de la
+      celda (tamaño/contraste correctos, sin overflow), con `+n` si hay más.
+
+## V1.6 Pantalla de carga estilo videojuego
+- [x] **Nuevo** `src/components/shell/SplashScreen.tsx` (client): overlay con
+      logo/marca + animación breve al entrar al panel, una vez por sesión
+      (`sessionStorage`), skip con `prefers-reduced-motion`.
+- [x] Se mantiene la animación actual de entrada de la carta y la transición
+      de login.
+
+## V1.7 Progreso personal (Mentalidad y Disciplina)
+- [x] Schema: **nueva tabla** `ProgresoSemanal` (jugadorId+semana únicos;
+      5 hábitos boolean: académico, comportamiento, puntualidad, ayuda en
+      casa, valores; validadoPorId; nota opcional) → migración.
+- [x] **Motor puro** `src/lib/progreso/engine.ts`: XP por ítem cumplido,
+      nivel personal, atributos **Mentalidad** (académico+valores) y
+      **Disciplina** (puntualidad+comportamiento+ayuda) 50–99. Con tests.
+- [x] `src/services/progreso.service.ts`: validar semana (solo el
+      responsable, 1 vez por semana ISO, **auditado**) y obtener progreso
+      (responsable / DT de la categoría / admins, tenant-scoped, DTOs).
+- [x] UI `/jugador/progreso`: checklist semanal + barras Mentalidad/
+      Disciplina + XP/nivel + historial. Ítem "Progreso" en la nav.
+- [x] Independiente del rendimiento deportivo (no toca OVR ni la carta).
+
+## V1.8 Modo Claro/Oscuro
+- [x] `globals.css`: tokens duplicados para tema claro (`html.light`
+      sobreescribe `--color-*`); las cartas conservan sus materiales premium
+      en ambos modos.
+- [x] **Nuevo** `ThemeToggle` (client, Sun/Moon) en el topbar; preferencia en
+      `localStorage` + script inline anti-FOUC en el layout raíz.
+
+### Checkpoint V.1
+- [x] lint/typecheck/unit (existentes + engine de progreso)/7 E2E en verde.
+- [x] Revisión: carta premium en los 4 niveles, MEN arriba-derecha, DiceBear
+      como fallback, nombre en 2 líneas, iconos visibles en el calendario,
+      splash una vez por sesión, validación semanal persiste y suma XP,
+      toggle de tema persiste. Commit + push.
 
 ---
 
@@ -305,4 +380,5 @@ Archivos: `src/components/cards/PlayerCard.tsx` + keyframes en `globals.css`.
 | Fecha | Bloque | Estado |
 |---|---|---|
 | 2026-06-12 | **Sprint V completo** (V1–V10): fuente display, lucide, sidebar+shell, EmptyState, PlayerCard (bugs MEN/proporción, foto fundida, materiales, escudo, font), avatar SVG editable (migración `avatarConfig`), escudo de escuela PNG, iconos de calendario, login (ver/ocultar + volver + transición), filtros por categoría (plantilla y mensajes DT), hub estilo Modo Carrera | ✅ lint/typecheck/38 unit/7 E2E en verde |
+| 2026-06-12 | **Sprint V.1 completo**: carta premium (foil/reflejos/bisel), MEN arriba-derecha, avatar DiceBear local (fallback), nombre en 2 líneas, iconos en celdas del calendario, splash una vez por sesión, progreso personal (`ProgresoSemanal` + motor XP/Mentalidad/Disciplina + `/jugador/progreso`, auditado), tema claro/oscuro persistente | ✅ lint/typecheck/49 unit/7 E2E en verde |
 | — | Sprint G (gestión/CRUD/bloqueos/logros/simulador) | pendiente |

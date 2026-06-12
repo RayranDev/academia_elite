@@ -2,6 +2,8 @@ import { Bell } from "lucide-react";
 import { logout } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/Button";
 import { Sidebar, type NavItem } from "@/components/shell/Sidebar";
+import { SplashScreen } from "@/components/shell/SplashScreen";
+import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { getAuthContext } from "@/lib/auth/session";
 import { contarMisNoLeidas } from "@/services/notificacion.service";
 import type { Rol } from "@/types";
@@ -35,6 +37,7 @@ export async function PanelShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <SplashScreen marca={marca} />
       <header className="flex items-center justify-between border-b border-subtle bg-surface px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           {escudoUrl ? (
@@ -53,6 +56,7 @@ export async function PanelShell({
           </div>
         </div>
         <div className="flex items-center gap-3 sm:gap-4">
+          <ThemeToggle />
           {noLeidas > 0 && (
             <span
               className="flex items-center gap-1 rounded-full bg-brand/15 px-2 py-1 text-xs font-bold text-brand"

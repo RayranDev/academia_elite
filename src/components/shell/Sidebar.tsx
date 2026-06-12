@@ -20,6 +20,7 @@ import {
   Home,
   Medal,
   User,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -45,6 +46,7 @@ const ICONOS: Record<string, LucideIcon> = {
   inicio: Home,
   logros: Medal,
   perfil: User,
+  progreso: TrendingUp,
 };
 
 export type IconKey = keyof typeof ICONOS;

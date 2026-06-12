@@ -44,6 +44,18 @@
   --brand: #4ade80;
 }
 
+/* Tema claro: sobreescribe los tokens de superficie/texto. Las cartas
+   (PlayerCard) usan materiales propios y conservan su identidad premium. */
+html.light {
+  --color-base: #eef2f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #e7edf5;
+  --color-subtle: #c8d3e2;
+  --color-foreground: #0f172a;
+  --color-muted: #5b6b80;
+  --color-pitch: #16a34a;
+}
+
 body {
   background: var(--color-base);
   color: var(--color-foreground);
@@ -103,6 +115,19 @@ body {
     opacity: 0.6;
     transform: translateY(-6px);
   }
+}
+
+/* Barra de progreso decorativa de la pantalla de carga */
+@keyframes splash-bar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.splash-bar {
+  animation: splash-bar 1.4s ease-out forwards;
 }
 
 /* Spinner de la transición de entrada (login) */
