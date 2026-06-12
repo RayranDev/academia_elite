@@ -12,7 +12,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     nivel: "BRONCE",
     stats: { rit: 62, tir: 55, pas: 50, reg: 60, def: 38, fis: 54 },
     men: 60,
-    fotoUrl: null,
+    fotoUrl: "/nino_carta.png",
     dorsal: 9,
   },
   PLATA: {
@@ -22,7 +22,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     nivel: "PLATA",
     stats: { rit: 74, tir: 68, pas: 62, reg: 72, def: 44, fis: 66 },
     men: 71,
-    fotoUrl: null,
+    fotoUrl: "/nino_carta.png",
     dorsal: 9,
   },
   ORO: {
@@ -32,7 +32,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     nivel: "ORO",
     stats: { rit: 84, tir: 80, pas: 70, reg: 82, def: 50, fis: 74 },
     men: 82,
-    fotoUrl: null,
+    fotoUrl: "/nino_carta.png",
     dorsal: 9,
   },
   HEROE: {
@@ -42,7 +42,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     nivel: "HEROE",
     stats: { rit: 92, tir: 88, pas: 78, reg: 90, def: 56, fis: 82 },
     men: 90,
-    fotoUrl: null,
+    fotoUrl: "/nino_carta.png",
     dorsal: 9,
   },
 };

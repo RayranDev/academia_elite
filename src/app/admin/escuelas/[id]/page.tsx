@@ -6,6 +6,7 @@ import { listarJugadoresGestion } from "@/services/gestion-jugadores.service";
 import { listarCategoriasAdmin } from "@/services/categoria.service";
 import { EscuelaEditarForm } from "@/components/gestion/EscuelaEditarForm";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
+import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
 
 export default async function EscuelaDetalleAdminPage({
   params,
@@ -32,7 +33,10 @@ export default async function EscuelaDetalleAdminPage({
     <div className="space-y-4">
       <h1 className="text-3xl font-display italic uppercase">{datos.escuela.nombre}</h1>
       <EscuelaEditarForm escuela={datos.escuela} />
-      <h2 className="pt-2 text-xl font-bold">Jugadores</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+        <h2 className="text-xl font-bold">Jugadores</h2>
+        <ImportarJugadoresDialog escuelaId={id} />
+      </div>
       <JugadoresGestion
         jugadores={datos.jugadores}
         categorias={datos.categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}

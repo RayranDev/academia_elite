@@ -6,10 +6,8 @@ import { categoriasDelDt } from "@/services/dt-scope";
 import { registrarAuditoria } from "@/services/audit.service";
 import { obtenerJugador } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
-import {
-  obtenerParametroGlobal,
-  listarParametrosPorPrefijo,
-} from "@/repositories/parametro.repository";
+import { obtenerParametroGlobal } from "@/repositories/parametro.repository";
+import { resolverParametrosEscuela } from "@/services/parametro-escuela.service";
 import {
   bonusPendientes,
   obtenerEvaluacion,
@@ -22,6 +20,7 @@ import {
   grupoEdadPorEdad,
   edadEnAnios,
   rangosDesdeParametros,
+  umbralesDesdeParametros,
   type BonusLogro,
   type MedidasEvaluacion,
   type ResultadoStats,
@@ -47,13 +46,14 @@ export async function crearEvaluacion(
     throw new ValidationError("Solo se evalúan jugadores activos.");
   }
 
-  const [escuela, paramMen, pendientesTodos, configsLogros, paramsRango] =
+  const [escuela, paramMen, pendientesTodos, configsLogros, valoresEfectivos] =
     await Promise.all([
       obtenerEscuela(escuelaId),
       obtenerParametroGlobal("PESO_MEN_EN_OVR"),
       bonusPendientes(jugador.id),
       listarConfigLogrosEscuela(escuelaId),
-      listarParametrosPorPrefijo("RANGO_"),
+      // M9: valores efectivos = global + override de la escuela (RANGO_/UMBRAL_).
+      resolverParametrosEscuela(escuelaId),
     ]);
   const tope = escuela?.topeBonusEntreEvals ?? 3;
   const pesoMen = paramMen?.valor ?? 0.1;
@@ -87,11 +87,9 @@ export async function crearEvaluacion(
   }
 
   const grupoEdad = grupoEdadPorEdad(edadEnAnios(jugador.fechaNacimiento));
-  // Rangos físicos editables por el Súper Admin (G8): BD con fallback embebido.
-  const valoresRango = Object.fromEntries(
-    paramsRango.map((p) => [p.clave, p.valor]),
-  );
-  const rangos = rangosDesdeParametros(valoresRango, grupoEdad);
+  // Rangos físicos (G8) y umbrales de nivel (M8) con override por escuela (M9).
+  const rangos = rangosDesdeParametros(valoresEfectivos, grupoEdad);
+  const umbrales = umbralesDesdeParametros(valoresEfectivos);
   const medidas: MedidasEvaluacion = {
     sprint30mSeg: input.sprint30mSeg,
     saltoVerticalCm: input.saltoVerticalCm,
@@ -114,6 +112,7 @@ export async function crearEvaluacion(
     pesoMenEnOvr: pesoMen,
     topeBonus: tope,
     bonus,
+    umbrales,
   });
 
   await db.$transaction(async (tx) => {

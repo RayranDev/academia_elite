@@ -1,6 +1,12 @@
 // Motor de stats v1.1 — librería PURA (sin Prisma, sin React).
 export { computeStats } from "./compute";
-export { nivelPorOvr } from "./levels";
+export {
+  nivelPorOvr,
+  umbralesDesdeParametros,
+  UMBRALES_DEFECTO,
+  CLAVE_UMBRAL,
+  type UmbralesNivel,
+} from "./levels";
 export {
   normalizaFisica,
   normalizaNota,

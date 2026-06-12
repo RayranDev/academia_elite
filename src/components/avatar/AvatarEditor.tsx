@@ -2,24 +2,48 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import {
-  PlayerAvatar,
-  PIEL,
-  CABELLO,
-  PEINADOS_COUNT,
-  avatarDesdeSeed,
-} from "@/components/avatar/PlayerAvatar";
+  HAIR,
+  REAR_HAIR,
+  BEARD,
+  EYES,
+  EYEBROWS,
+  MOUTH,
+  CLOTHES,
+  SKIN,
+  HAIR_COLOR,
+  CLOTHES_COLOR,
+  etiqueta,
+  type AvatarConfigV2,
+} from "@/lib/avatar/toon-head";
+import { avatarDesdeSeed } from "@/lib/avatar/config";
 import { actualizarAvatarAction } from "@/actions/jugador.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { GENEROS_AVATAR, type AvatarConfig, type GeneroAvatar } from "@/types";
 
-const ETIQUETA_GENERO: Record<GeneroAvatar, string> = {
-  M: "Masculino",
-  F: "Femenino",
-  X: "Otro",
-};
+// Campos de variante (índice 0..n-1) y los opcionales (admiten -1 = ninguno).
+type VarKey = "hair" | "eyes" | "eyebrows" | "mouth" | "clothes";
+type OptKey = "rearHair" | "beard";
+type ColKey = "skinColor" | "hairColor" | "clothesColor";
+
+const VARIANTES: { key: VarKey; label: string; lista: string[] }[] = [
+  { key: "hair", label: "Peinado", lista: HAIR },
+  { key: "eyes", label: "Ojos", lista: EYES },
+  { key: "eyebrows", label: "Cejas", lista: EYEBROWS },
+  { key: "mouth", label: "Boca", lista: MOUTH },
+  { key: "clothes", label: "Ropa", lista: CLOTHES },
+];
+const OPCIONALES: { key: OptKey; label: string; lista: string[] }[] = [
+  { key: "rearHair", label: "Pelo largo", lista: REAR_HAIR },
+  { key: "beard", label: "Barba", lista: BEARD },
+];
+const COLORES: { key: ColKey; label: string; lista: string[] }[] = [
+  { key: "skinColor", label: "Tono de piel", lista: SKIN },
+  { key: "hairColor", label: "Color de cabello", lista: HAIR_COLOR },
+  { key: "clothesColor", label: "Color de ropa", lista: CLOTHES_COLOR },
+];
 
 export function AvatarEditor({
   jugadorId,
@@ -27,16 +51,16 @@ export function AvatarEditor({
   seed,
 }: {
   jugadorId: string;
-  inicial: AvatarConfig | null;
+  inicial: AvatarConfigV2 | null;
   seed: string;
 }) {
   const router = useRouter();
-  const [cfg, setCfg] = useState<AvatarConfig>(inicial ?? avatarDesdeSeed(seed));
+  const [cfg, setCfg] = useState<AvatarConfigV2>(inicial ?? avatarDesdeSeed(seed));
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function set<K extends keyof AvatarConfig>(k: K, v: AvatarConfig[K]) {
+  function set<K extends keyof AvatarConfigV2>(k: K, v: AvatarConfigV2[K]) {
     setCfg((c) => ({ ...c, [k]: v }));
     setGuardado(false);
   }
@@ -44,10 +68,12 @@ export function AvatarEditor({
   function guardar() {
     const fd = new FormData();
     fd.set("jugadorId", jugadorId);
-    fd.set("genero", cfg.genero);
-    fd.set("piel", String(cfg.piel));
-    fd.set("peinado", String(cfg.peinado));
-    fd.set("cabello", String(cfg.cabello));
+    for (const k of [
+      "hair", "rearHair", "beard", "eyes", "eyebrows", "mouth", "clothes",
+      "skinColor", "hairColor", "clothesColor",
+    ] as const) {
+      fd.set(k, String(cfg[k]));
+    }
     startTransition(async () => {
       const res = await actualizarAvatarAction(undefined, fd);
       if (res.ok) {
@@ -61,45 +87,48 @@ export function AvatarEditor({
   }
 
   return (
-    <Card className="max-w-lg">
+    <Card className="max-w-2xl">
       <h2 className="mb-1 text-lg font-bold">Avatar</h2>
       <p className="mb-4 text-sm text-muted">
         Personaliza el avatar que aparece en la carta cuando no hay foto.
       </p>
 
       <div className="flex flex-col gap-5 sm:flex-row">
-        <div className="mx-auto w-32 shrink-0 rounded-xl border border-subtle bg-surface-2 p-2">
+        <div className="mx-auto w-32 shrink-0 self-start rounded-xl border border-subtle bg-surface-2 p-2">
           <PlayerAvatar config={cfg} seed={seed} className="h-auto w-full" />
         </div>
 
         <div className="flex-1 space-y-4">
-          <Selector label="Género">
-            {GENEROS_AVATAR.map((g) => (
-              <Chip key={g} activo={cfg.genero === g} onClick={() => set("genero", g)}>
-                {ETIQUETA_GENERO[g]}
+          {VARIANTES.map(({ key, label, lista }) => (
+            <Selector key={key} label={label}>
+              {lista.map((nombre, i) => (
+                <Chip key={nombre} activo={cfg[key] === i} onClick={() => set(key, i)}>
+                  {etiqueta(nombre)}
+                </Chip>
+              ))}
+            </Selector>
+          ))}
+
+          {OPCIONALES.map(({ key, label, lista }) => (
+            <Selector key={key} label={label}>
+              <Chip activo={cfg[key] === -1} onClick={() => set(key, -1)}>
+                Ninguno
               </Chip>
-            ))}
-          </Selector>
+              {lista.map((nombre, i) => (
+                <Chip key={nombre} activo={cfg[key] === i} onClick={() => set(key, i)}>
+                  {etiqueta(nombre)}
+                </Chip>
+              ))}
+            </Selector>
+          ))}
 
-          <Selector label="Tono de piel">
-            {PIEL.map((color, i) => (
-              <Swatch key={i} color={color} activo={cfg.piel === i} onClick={() => set("piel", i)} />
-            ))}
-          </Selector>
-
-          <Selector label="Color de cabello">
-            {CABELLO.map((color, i) => (
-              <Swatch key={i} color={color} activo={cfg.cabello === i} onClick={() => set("cabello", i)} />
-            ))}
-          </Selector>
-
-          <Selector label="Peinado">
-            {Array.from({ length: PEINADOS_COUNT }, (_, i) => (
-              <Chip key={i} activo={cfg.peinado === i} onClick={() => set("peinado", i)}>
-                {i + 1}
-              </Chip>
-            ))}
-          </Selector>
+          {COLORES.map(({ key, label, lista }) => (
+            <Selector key={key} label={label}>
+              {lista.map((color, i) => (
+                <Swatch key={color + i} color={color} activo={cfg[key] === i} onClick={() => set(key, i)} />
+              ))}
+            </Selector>
+          ))}
         </div>
       </div>
 

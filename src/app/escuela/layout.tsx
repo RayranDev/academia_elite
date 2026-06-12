@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { href: "/escuela/categorias", label: "Categorías", icon: "categorias" },
   { href: "/escuela/sedes", label: "Sedes", icon: "sedes" },
   { href: "/escuela/dts", label: "DTs", icon: "usuarios" },
+  { href: "/escuela/metricas", label: "Métricas", icon: "parametros" },
   { href: "/escuela/codigos", label: "Códigos", icon: "codigos" },
   { href: "/escuela/anuncios", label: "Anuncios", icon: "anuncios" },
   { href: "/escuela/branding", label: "Branding", icon: "branding" },

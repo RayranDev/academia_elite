@@ -54,10 +54,16 @@ export async function actualizarAvatarAction(
       throw new ValidationError("Jugador inválido.");
     }
     const parsed = avatarConfigSchema.safeParse({
-      genero: formData.get("genero"),
-      piel: formData.get("piel"),
-      peinado: formData.get("peinado"),
-      cabello: formData.get("cabello"),
+      hair: formData.get("hair"),
+      rearHair: formData.get("rearHair"),
+      beard: formData.get("beard"),
+      eyes: formData.get("eyes"),
+      eyebrows: formData.get("eyebrows"),
+      mouth: formData.get("mouth"),
+      clothes: formData.get("clothes"),
+      skinColor: formData.get("skinColor"),
+      hairColor: formData.get("hairColor"),
+      clothesColor: formData.get("clothesColor"),
     });
     if (!parsed.success) throw new ValidationError("Configuración inválida.");
     await actualizarAvatar(ctx, jugadorId, parsed.data);

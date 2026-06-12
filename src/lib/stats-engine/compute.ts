@@ -91,7 +91,7 @@ export function computeStats(
     ...stats,
     men,
     ovr,
-    nivel: nivelPorOvr(ovr),
+    nivel: nivelPorOvr(ovr, opts.umbrales),
     bonusAplicado,
     versionFormula: VERSION_FORMULA,
   };

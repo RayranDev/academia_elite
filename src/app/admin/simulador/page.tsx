@@ -4,7 +4,7 @@ import { SimuladorCarta } from "@/components/admin/SimuladorCarta";
 
 export default async function SimuladorPage() {
   const ctx = await requireAuthContext();
-  const { rangosPorGrupo, pesoMen } = await obtenerConfigSimulador(ctx);
+  const { rangosPorGrupo, pesoMen, umbrales } = await obtenerConfigSimulador(ctx);
 
   return (
     <div className="space-y-4">
@@ -14,7 +14,7 @@ export default async function SimuladorPage() {
         las evaluaciones reales. Sirve para saber qué marcas necesita un
         jugador para alcanzar cada nivel.
       </p>
-      <SimuladorCarta rangosPorGrupo={rangosPorGrupo} pesoMen={pesoMen} />
+      <SimuladorCarta rangosPorGrupo={rangosPorGrupo} pesoMen={pesoMen} umbrales={umbrales} />
     </div>
   );
 }

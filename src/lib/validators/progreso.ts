@@ -17,3 +17,13 @@ export const progresoSemanaSchema = z.object({
 });
 
 export type ProgresoSemanaInput = z.infer<typeof progresoSemanaSchema>;
+
+/** Validación masiva del DT: una entrada por jugador (máx. 100). */
+export const progresoDtSchema = z.object({
+  entradas: z
+    .array(progresoSemanaSchema)
+    .min(1, "No hay jugadores marcados.")
+    .max(100, "Demasiados jugadores en una sola validación."),
+});
+
+export type ProgresoDtInput = z.infer<typeof progresoDtSchema>;

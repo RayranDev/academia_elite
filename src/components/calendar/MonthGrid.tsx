@@ -18,7 +18,15 @@ import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tip
 import type { EventoCalendarioDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
 
-export function MonthGrid({ eventos }: { eventos: EventoCalendarioDTO[] }) {
+export function MonthGrid({
+  eventos,
+  eventoBase,
+}: {
+  eventos: EventoCalendarioDTO[];
+  /** Base de URL para enlazar cada evento (p. ej. "/dt/eventos/"). Si se
+   *  omite, el panel lateral muestra los eventos sin enlace (familia). */
+  eventoBase?: string;
+}) {
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
   const [diaSel, setDiaSel] = useState<Date | null>(null);
 
@@ -127,28 +135,33 @@ export function MonthGrid({ eventos }: { eventos: EventoCalendarioDTO[] }) {
           <p className="text-sm text-muted">Sin eventos.</p>
         )}
         <ul className="space-y-2">
-          {delDiaSel.map((e) => (
-            <li key={e.id}>
-              <Link
-                href={`/dt/eventos/${e.id}`}
-                className="flex items-center gap-2 rounded-lg bg-surface-2 p-2 text-sm hover:bg-subtle"
-              >
-                {(() => {
-                  const Icon = ICONO_TIPO[e.tipo as TipoEvento];
-                  return (
-                    <Icon
-                      className="h-4 w-4 shrink-0"
-                      style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
-                      aria-hidden
-                    />
-                  );
-                })()}
+          {delDiaSel.map((e) => {
+            const Icon = ICONO_TIPO[e.tipo as TipoEvento];
+            const contenido = (
+              <>
+                <Icon
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                  aria-hidden
+                />
                 <span>
                   {format(new Date(e.inicio), "HH:mm")} · {e.titulo}
                 </span>
-              </Link>
-            </li>
-          ))}
+              </>
+            );
+            const clase = "flex items-center gap-2 rounded-lg bg-surface-2 p-2 text-sm";
+            return (
+              <li key={e.id}>
+                {eventoBase ? (
+                  <Link href={`${eventoBase}${e.id}`} className={`${clase} hover:bg-subtle`}>
+                    {contenido}
+                  </Link>
+                ) : (
+                  <div className={clase}>{contenido}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

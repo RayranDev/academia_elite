@@ -28,6 +28,18 @@ export function obtenerProgresoSemana(jugadorId: string, semana: string) {
   });
 }
 
+/** Jugadores (de la lista dada) que ya validaron una semana concreta. */
+export function listarSemana(
+  escuelaId: string,
+  semana: string,
+  jugadorIds: string[],
+) {
+  return db.progresoSemanal.findMany({
+    where: { escuelaId, semana, jugadorId: { in: jugadorIds } },
+    select: { jugadorId: true },
+  });
+}
+
 export function crearProgresoSemana(data: CrearProgresoInput) {
   return db.progresoSemanal.create({ data });
 }

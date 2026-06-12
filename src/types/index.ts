@@ -1,6 +1,8 @@
 // Union types que reemplazan a los enums (SQLite no soporta enums nativos).
 // Estos son la fuente de verdad para validación Zod y tipado en toda la app.
 
+import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
+
 export const ROLES = ["SUPER_ADMIN", "ESCUELA_ADMIN", "DT", "JUGADOR"] as const;
 export type Rol = (typeof ROLES)[number];
 
@@ -87,18 +89,12 @@ export interface PlayerCardData {
   fotoUrl: string | null;
   escudoEscuelaUrl?: string;
   dorsal?: number;
-  avatarConfig?: AvatarConfig | null;
+  avatarConfig?: AvatarConfigV2 | null;
 }
 
 // --- Avatar SVG editable (jugador) ---
-export const GENEROS_AVATAR = ["M", "F", "X"] as const;
-export type GeneroAvatar = (typeof GENEROS_AVATAR)[number];
-
-/** Configuración del avatar por capas. Índices a las paletas de PlayerAvatar. */
-export interface AvatarConfig {
-  genero: GeneroAvatar;
-  piel: number; // índice paleta de piel
-  peinado: number; // índice de peinado
-  cabello: number; // índice color de cabello
-}
+// Config v2 (DiceBear v10 "toon-head"). La v1 vive en `@/lib/avatar/config`
+// solo para migrar avatares antiguos.
+export type AvatarConfig = AvatarConfigV2;
+export type { AvatarConfigV2 };
 

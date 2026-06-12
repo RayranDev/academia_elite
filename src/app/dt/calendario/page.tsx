@@ -42,7 +42,7 @@ export default async function CalendarioPage() {
         <h1 className="text-3xl font-black italic uppercase">Calendario</h1>
         <CrearEventoDialog categorias={categorias} jugadores={jugadores} />
       </div>
-      <MonthGrid eventos={eventos} />
+      <MonthGrid eventos={eventos} eventoBase="/dt/eventos/" />
 
       <Card>
         <h2 className="mb-3 text-lg font-bold">Próximos eventos</h2>

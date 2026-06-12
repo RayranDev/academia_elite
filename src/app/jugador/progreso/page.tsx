@@ -136,6 +136,11 @@ export default async function ProgresoPage() {
                     </span>
                     <span className="font-bold text-brand">+{s.xp} XP</span>
                   </div>
+                  {s.validadaPorDt && (
+                    <p className="mt-1 text-[11px] font-semibold text-brand">
+                      Validada por tu DT
+                    </p>
+                  )}
                   <p className="mt-1 text-xs text-muted">
                     {HABITOS.filter((h) => s.habitos[h])
                       .map((h) => ETIQUETA_HABITO[h])

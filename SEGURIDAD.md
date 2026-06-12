@@ -65,7 +65,10 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **jugador** · subirFoto | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | **jugador** · actualizarConsentimiento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| **progreso** · validarSemana | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
+| **progreso** · validarSemana (responsable) | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
+| **progreso** · validarSemanaDt (DT, sus categorías) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ |
+| **importación** · importarJugadores CSV (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **métricas** · fijar/quitarMetrica (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **gestión** · editarJugador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **gestión** · cambiarEstadoJugador (inactivar/reactivar) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **gestión** · eliminarJugador (lógico, solo SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -103,6 +106,35 @@ nunca se almacenan ni loguean en claro.
 - Solo **SUPER_ADMIN**; estado `ELIMINADO` (reversible con "restaurar").
 - La acción exige reescribir el nombre del jugador + motivo; auditada. Los
   ELIMINADO se filtran de las listas (`listarHijos`, gestión por estado).
+
+### Carga masiva por CSV y plantilla (M7)
+- `importarJugadores`: **ESCUELA_ADMIN** (su tenant) / **SUPER_ADMIN** (escuela
+  explícita). Archivo `.csv` máx **1 MB**, máx **500 filas**, rate limit 5/h.
+  Cada fila se valida con el **mismo Zod** que el alta manual; la categoría se
+  mapea por nombre dentro de la escuela; los duplicados (nombre+apellido+fecha)
+  se **omiten**. Crea **solo jugadores** ACTIVO (sin familia). Auditado con los
+  conteos (`IMPORTAR_JUGADORES`).
+- `GET /api/plantilla-jugadores`: requiere sesión; el servicio aplica rol/tenant
+  (sin sesión → 401; sin permiso → 404). La plantilla lleva las categorías
+  válidas de **esa** escuela.
+
+### Métricas por escuela (M9)
+- `fijar/quitarMetrica`: **ESCUELA_ADMIN** + `requireEscuela`; whitelist
+  obligatoria (**solo** `RANGO_*` y `UMBRAL_*`). `PESO_MEN_EN_OVR` queda global
+  para que el OVR sea comparable entre escuelas. Se valida la coherencia
+  (min<max, Plata<Oro<Héroe) contra el valor **efectivo** mezclado. Auditado
+  (`CAMBIO_PARAMETRO_ESCUELA` / `QUITAR_PARAMETRO_ESCUELA`).
+
+### Validación de progreso por el DT (M6)
+- `validarSemanaDt`: el DT solo valida jugadores de **sus** categorías
+  (`categoriasDelDt`); la unicidad `jugadorId+semana` garantiza una sola
+  validación por semana (la hace quien llegue primero, padre o DT). Auditado por
+  jugador.
+
+### Avatares de menores (M10)
+- DiceBear v10 (`toon-head`) se genera **en proceso** (sync `toDataUri`), nunca
+  una API externa. Sin datos personales: solo índices de estilo. La migración
+  v1→v2 es local (no se exponen datos).
 
 ## Protección específica de menores (Sección 6.4)
 

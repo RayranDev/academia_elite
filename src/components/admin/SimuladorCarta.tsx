@@ -8,6 +8,7 @@ import {
   type GrupoEdad,
   type MedidasEvaluacion,
   type RangosFisicos,
+  type UmbralesNivel,
 } from "@/lib/stats-engine";
 import { POSICIONES, type Posicion, type PlayerCardData } from "@/types";
 
@@ -61,9 +62,11 @@ const INICIAL: MedidasEvaluacion = {
 export function SimuladorCarta({
   rangosPorGrupo,
   pesoMen,
+  umbrales,
 }: {
   rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
   pesoMen: number;
+  umbrales: UmbralesNivel;
 }) {
   const [medidas, setMedidas] = useState<MedidasEvaluacion>(INICIAL);
   const [posicion, setPosicion] = useState<Posicion>("DEL");
@@ -76,8 +79,9 @@ export function SimuladorCarta({
         grupoEdad: grupo,
         rangos: rangosPorGrupo[grupo],
         pesoMenEnOvr: pesoMen,
+        umbrales,
       }),
-    [medidas, posicion, grupo, rangosPorGrupo, pesoMen],
+    [medidas, posicion, grupo, rangosPorGrupo, pesoMen, umbrales],
   );
 
   const card: PlayerCardData = {
@@ -169,10 +173,10 @@ export function SimuladorCarta({
         <Card className="w-full max-w-xs text-sm">
           <h3 className="mb-2 font-bold">Umbrales de nivel</h3>
           <ul className="space-y-1 text-xs">
-            <li className="flex justify-between"><span className="font-semibold text-bronce">Bronce</span><span className="tabular text-muted">OVR &lt; 65</span></li>
-            <li className="flex justify-between"><span className="font-semibold text-plata">Plata</span><span className="tabular text-muted">65 – 74</span></li>
-            <li className="flex justify-between"><span className="font-semibold text-oro">Oro</span><span className="tabular text-muted">75 – 84</span></li>
-            <li className="flex justify-between"><span className="font-semibold text-heroe">Héroe</span><span className="tabular text-muted">≥ 85</span></li>
+            <li className="flex justify-between"><span className="font-semibold text-bronce">Bronce</span><span className="tabular text-muted">OVR &lt; {umbrales.plata}</span></li>
+            <li className="flex justify-between"><span className="font-semibold text-plata">Plata</span><span className="tabular text-muted">{umbrales.plata} – {umbrales.oro - 1}</span></li>
+            <li className="flex justify-between"><span className="font-semibold text-oro">Oro</span><span className="tabular text-muted">{umbrales.oro} – {umbrales.heroe - 1}</span></li>
+            <li className="flex justify-between"><span className="font-semibold text-heroe">Héroe</span><span className="tabular text-muted">≥ {umbrales.heroe}</span></li>
           </ul>
           <p className="mt-2 text-xs text-muted">
             Peso de MEN en el OVR: {Math.round(pesoMen * 100)}%. Usa los mismos

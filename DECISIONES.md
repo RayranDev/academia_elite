@@ -130,3 +130,30 @@ cambió de API, se adapta y se documenta aquí).
     notificacion.service). notificar() despacha a INAPP/EMAIL/WHATSAPP; los
     canales sin implementacion se ignoran en silencio. Email/WhatsApp se suman en
     Fase 2 sin tocar a los llamadores.
+
+## Sprint M (mejoras post-G)
+
+19. **Umbrales de nivel editables (M8).** Bronce/Plata/Oro/Heroe pasan a claves
+    UMBRAL_PLATA/ORO/HEROE en ParametroFormula (default 65/75/85). El motor sigue
+    puro: nivelPorOvr(ovr, umbrales?) y umbralesDesdeParametros (con saneo
+    Plata<Oro<Heroe; si no, cae al defecto). actualizarParametroGlobal pasa a
+    upsert con whitelist para que BDs sin re-seed puedan editar claves nuevas.
+20. **Metricas por escuela (M9).** Nueva tabla ParametroEscuela (override por
+    clave). Solo RANGO_* y UMBRAL_* son overrideables; PESO_MEN_EN_OVR queda
+    GLOBAL para que el OVR sea comparable entre escuelas. Helper puro
+    lib/parametros (mezclarParametros/resolverParametros). evaluacion.service usa
+    los valores efectivos (global + override) de la escuela del DT. El simulador
+    del Super Admin se queda global (sin selector de escuela).
+21. **Carga masiva por CSV (M7).** Parser propio lib/csv (sin dependencia nueva;
+    se abre en Excel, delimitador ',' o ';', BOM UTF-8). Plantilla descargable
+    por escuela con sus categorias. Importa SOLO jugadores (las familias se
+    vinculan luego con codigo). Duplicados omitidos; reporte de errores por fila.
+22. **Avatar DiceBear v10 toon-head (M10).** Migrado de v9 adventurer a v10
+    (@dicebear/core + @dicebear/styles, new Style/new Avatar, sync toDataUri en
+    proceso). Config v2 por indices (rearHair/beard con -1=ninguno); las listas
+    de opciones se DERIVAN de la definicion del estilo (unica fuente de verdad).
+    Migracion v1->v2 lazy (mapV1aV2, sin tocar BD; el editor guarda v2). El
+    editor expone todas las opciones del estilo.
+23. **Props server->client serializables (M5).** MonthGrid recibe `eventoBase`
+    (string) en vez de una funcion `eventoHref`: no se pueden pasar funciones de
+    un Server Component a un Client Component.

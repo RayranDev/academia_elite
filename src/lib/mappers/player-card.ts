@@ -1,4 +1,5 @@
-import type { PlayerCardData, Posicion, Nivel, AvatarConfig } from "@/types";
+import type { PlayerCardData, Posicion, Nivel } from "@/types";
+import { parseAvatarConfig } from "@/lib/avatar/config";
 
 interface StatsRow {
   rit: number;
@@ -19,17 +20,6 @@ interface JugadorRow {
   dorsal: number | null;
   fotoUrl: string | null;
   avatarConfig?: string | null;
-}
-
-function parseAvatar(raw?: string | null): AvatarConfig | null {
-  if (!raw) return null;
-  try {
-    const v = JSON.parse(raw) as AvatarConfig;
-    if (typeof v?.piel === "number" && typeof v?.peinado === "number") return v;
-  } catch {
-    /* config inválida → avatar por seed */
-  }
-  return null;
 }
 
 /** Construye el DTO plano de la carta desde el jugador + su snapshot de stats. */
@@ -57,6 +47,6 @@ export function aPlayerCardData(
     fotoUrl,
     escudoEscuelaUrl,
     dorsal: jugador.dorsal ?? undefined,
-    avatarConfig: parseAvatar(jugador.avatarConfig),
+    avatarConfig: parseAvatarConfig(jugador.avatarConfig),
   };
 }

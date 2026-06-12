@@ -34,6 +34,10 @@ import {
   editarEscuelaSuperAdmin,
 } from "@/services/admin-usuarios.service";
 import { cambiarMiPassword } from "@/services/cuenta.service";
+import {
+  importarJugadores,
+  type ResultadoImportacion,
+} from "@/services/importacion.service";
 
 // Server Actions del Sprint G (gestión). Frontera: sesión + Zod + rate limit
 // en acciones sensibles; la autorización real vive en los servicios.
@@ -353,6 +357,36 @@ export async function cambiarMiPasswordAction(
     }
     await cambiarMiPassword(ctx, parsed.data.actual, parsed.data.nueva);
     return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+const MAX_CSV_BYTES = 1024 * 1024; // 1 MB
+
+export async function importarJugadoresAction(
+  _prev: ActionResult<ResultadoImportacion> | undefined,
+  formData: FormData,
+): Promise<ActionResult<ResultadoImportacion>> {
+  try {
+    const ctx = await requireAuthContext();
+    const limite = rateLimit(`importar:${ctx.userId}`, 5, 60 * 60 * 1000);
+    if (!limite.ok) throw new ValidationError("Demasiadas importaciones. Espera un momento.");
+
+    const archivo = formData.get("archivo");
+    if (!(archivo instanceof File) || archivo.size === 0) {
+      throw new ValidationError("Adjunta un archivo CSV.");
+    }
+    if (archivo.size > MAX_CSV_BYTES) {
+      throw new ValidationError("El archivo supera 1 MB.");
+    }
+    const escuelaIdRaw = formData.get("escuelaId");
+    const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;
+
+    const texto = await archivo.text();
+    const data = await importarJugadores(ctx, texto, escuelaId);
+    revalidarGestion();
+    return { ok: true, data };
   } catch (e) {
     return mapError(e);
   }

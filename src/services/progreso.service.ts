@@ -1,13 +1,16 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
-import { listarHijos } from "@/repositories/jugador.repository";
+import { listarHijos, listarPlantilla } from "@/repositories/jugador.repository";
 import {
   listarProgresosJugador,
   obtenerProgresoSemana,
+  listarSemana,
   crearProgresoSemana,
 } from "@/repositories/progreso.repository";
+import { categoriasDelDt } from "@/services/dt-scope";
 import { registrarAuditoria } from "@/services/audit.service";
+import type { ProgresoSemanaInput, ProgresoDtInput } from "@/lib/validators/progreso";
 import {
   HABITOS,
   inicioSemanaISO,
@@ -17,13 +20,13 @@ import {
   calcularAtributos,
   type SemanaHabitos,
 } from "@/lib/progreso/engine";
-import type { ProgresoSemanaInput } from "@/lib/validators/progreso";
 
 export interface SemanaProgresoDTO {
   semana: string; // lunes ISO "yyyy-MM-dd"
   habitos: SemanaHabitos;
   xp: number;
   nota: string | null;
+  validadaPorDt: boolean; // validada por el DT (no por el responsable)
 }
 
 export interface ProgresoPersonalDTO {
@@ -103,6 +106,9 @@ export async function obtenerProgresoPersonal(
       habitos: aHabitos(r),
       xp: xpDeSemana(aHabitos(r)),
       nota: r.nota,
+      validadaPorDt:
+        r.validadoPorId !== hijo.padreUserId &&
+        r.validadoPorId !== hijo.cuentaUserId,
     })),
   };
 }
@@ -142,4 +148,104 @@ export async function validarSemanaActual(
     entidadId: creado.id,
     escuelaId: hijo.escuelaId,
   });
+}
+
+// --- Validación masiva por el DT ---
+
+export interface JugadorProgresoDtDTO {
+  jugadorId: string;
+  nombre: string;
+  apellido: string;
+  categoriaId: string;
+  categoriaNombre: string;
+  semanaValidada: boolean;
+}
+
+export interface ProgresoPlantillaDtDTO {
+  semana: string;
+  jugadores: JugadorProgresoDtDTO[];
+}
+
+/**
+ * Plantilla del DT con el estado de validación de la semana en curso.
+ * Solo jugadores ACTIVOS de las categorías asignadas al DT.
+ */
+export async function obtenerProgresoPlantillaDt(
+  ctx: AuthContext,
+): Promise<ProgresoPlantillaDtDTO> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const jugadores = await listarPlantilla(escuelaId, categoriaIds);
+  const semana = inicioSemanaISO(new Date());
+  const validadas = new Set(
+    (await listarSemana(escuelaId, semana, jugadores.map((j) => j.id))).map(
+      (r) => r.jugadorId,
+    ),
+  );
+
+  return {
+    semana,
+    jugadores: jugadores.map((j) => ({
+      jugadorId: j.id,
+      nombre: j.nombre,
+      apellido: j.apellido,
+      categoriaId: j.categoriaId,
+      categoriaNombre: j.categoria.nombre,
+      semanaValidada: validadas.has(j.id),
+    })),
+  };
+}
+
+/**
+ * El DT valida la semana en curso para varios jugadores de sus categorías.
+ * Salta los ya validados (sin error). Una validación por semana ISO la hace
+ * quien llegue primero (padre o DT). Acción sensible → auditada por jugador.
+ */
+export async function validarSemanaDt(
+  ctx: AuthContext,
+  input: ProgresoDtInput,
+): Promise<{ validados: number; omitidos: number }> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const jugadores = await listarPlantilla(escuelaId, categoriaIds);
+  const propios = new Set(jugadores.map((j) => j.id));
+  const semana = inicioSemanaISO(new Date());
+
+  // Solo jugadores de las categorías del DT (los ajenos se descartan en silencio).
+  const candidatos = input.entradas.filter((e) => propios.has(e.jugadorId));
+  const yaValidados = new Set(
+    (
+      await listarSemana(escuelaId, semana, candidatos.map((e) => e.jugadorId))
+    ).map((r) => r.jugadorId),
+  );
+
+  let validados = 0;
+  for (const e of candidatos) {
+    if (yaValidados.has(e.jugadorId)) continue;
+    let creado;
+    try {
+      creado = await crearProgresoSemana({
+        escuelaId,
+        jugadorId: e.jugadorId,
+        semana,
+        academico: e.academico,
+        comportamiento: e.comportamiento,
+        puntualidad: e.puntualidad,
+        ayudaCasa: e.ayudaCasa,
+        valores: e.valores,
+        nota: e.nota ?? null,
+        validadoPorId: ctx.userId,
+      });
+    } catch {
+      // Carrera con el responsable: la unicidad jugadorId+semana ganó el otro.
+      continue;
+    }
+    validados += 1;
+    await registrarAuditoria(ctx, {
+      accion: "VALIDAR_PROGRESO_SEMANAL",
+      entidad: "ProgresoSemanal",
+      entidadId: creado.id,
+      escuelaId,
+    });
+  }
+
+  return { validados, omitidos: candidatos.length - validados };
 }

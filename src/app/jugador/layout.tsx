@@ -6,6 +6,7 @@ import type { NavItem } from "@/components/shell/Sidebar";
 
 const NAV: NavItem[] = [
   { href: "/jugador", label: "Inicio", icon: "inicio" },
+  { href: "/jugador/calendario", label: "Calendario", icon: "calendario" },
   { href: "/jugador/mensajes", label: "Mensajes", icon: "mensajes" },
   { href: "/jugador/logros", label: "Logros", icon: "logros" },
   { href: "/jugador/progreso", label: "Progreso", icon: "progreso" },

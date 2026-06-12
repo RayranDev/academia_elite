@@ -1,4 +1,5 @@
 import type { Posicion, Nivel, StatCarta } from "@/types";
+import type { UmbralesNivel } from "./levels";
 
 export const VERSION_FORMULA = "v1.1";
 
@@ -66,4 +67,5 @@ export interface OpcionesComputo {
   rangos?: RangosFisicos; // override; por defecto usa los embebidos por grupo
   bonus?: BonusLogro[]; // logros BONUS sin consumir
   topeBonus?: number; // Escuela.topeBonusEntreEvals, default 3
+  umbrales?: UmbralesNivel; // override de los cortes Plata/Oro/Héroe
 }

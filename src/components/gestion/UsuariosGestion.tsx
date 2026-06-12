@@ -19,12 +19,30 @@ export function UsuariosGestion({ usuarios }: { usuarios: UsuarioAdminDTO[] }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [rol, setRol] = useState("");
+  const [escuela, setEscuela] = useState("");
   const [editando, setEditando] = useState<UsuarioAdminDTO | null>(null);
+
+  const SIN_ESCUELA = "__sin__";
+
+  // Lista de escuelas presente en los datos (orden alfabético).
+  const escuelas = useMemo(
+    () =>
+      Array.from(
+        new Set(usuarios.map((u) => u.escuelaNombre).filter((n): n is string => !!n)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [usuarios],
+  );
+  const hayUsuariosSinEscuela = useMemo(
+    () => usuarios.some((u) => !u.escuelaNombre),
+    [usuarios],
+  );
 
   const filtrados = useMemo(() => {
     const texto = q.trim().toLowerCase();
     return usuarios.filter((u) => {
       if (rol && u.rol !== rol) return false;
+      if (escuela === SIN_ESCUELA && u.escuelaNombre) return false;
+      if (escuela && escuela !== SIN_ESCUELA && u.escuelaNombre !== escuela) return false;
       if (
         texto &&
         !u.nombre.toLowerCase().includes(texto) &&
@@ -34,7 +52,7 @@ export function UsuariosGestion({ usuarios }: { usuarios: UsuarioAdminDTO[] }) {
       }
       return true;
     });
-  }, [usuarios, q, rol]);
+  }, [usuarios, q, rol, escuela]);
 
   function cerrar(cambio: boolean) {
     setEditando(null);
@@ -60,6 +78,20 @@ export function UsuariosGestion({ usuarios }: { usuarios: UsuarioAdminDTO[] }) {
             <option key={r} value={r}>{r}</option>
           ))}
         </select>
+        {(escuelas.length > 0 || hayUsuariosSinEscuela) && (
+          <select
+            value={escuela}
+            onChange={(e) => setEscuela(e.target.value)}
+            className={input}
+            aria-label="Filtrar por escuela"
+          >
+            <option value="">Todas las escuelas</option>
+            {escuelas.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+            {hayUsuariosSinEscuela && <option value={SIN_ESCUELA}>Sin escuela</option>}
+          </select>
+        )}
       </div>
 
       {filtrados.length === 0 ? (

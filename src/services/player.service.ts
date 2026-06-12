@@ -16,6 +16,7 @@ import {
   type UltimoPartidoDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
+import { parseAvatarConfig } from "@/lib/avatar/config";
 import type { PlayerCardData, Posicion, AvatarConfig } from "@/types";
 
 export interface NoticiaDTO {
@@ -86,14 +87,6 @@ export interface HubDTO {
   noticias: NoticiaDTO[];
 }
 
-function parseAvatarConfig(raw: string | null): AvatarConfig | null {
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as AvatarConfig;
-  } catch {
-    return null;
-  }
-}
 
 export async function obtenerHub(
   ctx: AuthContext,

@@ -10,9 +10,17 @@ import {
   CLAVE_PRUEBA,
   ETIQUETA_PRUEBA,
   RANGOS_POR_GRUPO,
+  CLAVE_UMBRAL,
+  UMBRALES_DEFECTO,
   type GrupoEdad,
   type PruebaFisica,
 } from "@/lib/stats-engine";
+
+const UMBRALES_UI: { clave: string; etiqueta: string; ayuda: string }[] = [
+  { clave: CLAVE_UMBRAL.plata, etiqueta: "Plata", ayuda: `OVR mínimo para Plata (def. ${UMBRALES_DEFECTO.plata}).` },
+  { clave: CLAVE_UMBRAL.oro, etiqueta: "Oro", ayuda: `OVR mínimo para Oro (def. ${UMBRALES_DEFECTO.oro}).` },
+  { clave: CLAVE_UMBRAL.heroe, etiqueta: "Héroe", ayuda: `OVR mínimo para Héroe (def. ${UMBRALES_DEFECTO.heroe}).` },
+];
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
@@ -43,6 +51,10 @@ export default async function ParametrosPage() {
   const parametros = await listarParametros(ctx);
   const porClave = new Map(parametros.map((p) => [p.clave, p]));
   const pesoMen = porClave.get("PESO_MEN_EN_OVR");
+
+  // Umbrales: si la BD no se re-sembró, mostramos el defecto (la acción hace upsert).
+  const umbralParametro = (clave: string, valor: number, descripcion: string): ParametroDTO =>
+    porClave.get(clave) ?? { clave, valor, descripcion, updatedAt: "" };
 
   return (
     <div className="space-y-4">
@@ -78,6 +90,37 @@ export default async function ParametrosPage() {
           </div>
         </Card>
       )}
+
+      <Card>
+        <h2 className="mb-1 font-bold">Umbrales de nivel</h2>
+        <p className="mb-3 text-xs text-muted">
+          OVR a partir del cual la carta sube de nivel. Subir a Plata debería ser
+          más fácil que llegar a Héroe. Deben cumplir Plata &lt; Oro &lt; Héroe;
+          de lo contrario el motor cae a los valores por defecto.
+        </p>
+        <div className="space-y-3">
+          {UMBRALES_UI.map((u) => (
+            <div
+              key={u.clave}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle pt-3 first:border-t-0 first:pt-0"
+            >
+              <div className="min-w-48">
+                <p className="text-sm font-semibold">{u.etiqueta}</p>
+                <p className="text-xs text-muted">{u.ayuda}</p>
+              </div>
+              <CampoParametro
+                parametro={umbralParametro(
+                  u.clave,
+                  UMBRALES_DEFECTO[
+                    u.etiqueta === "Plata" ? "plata" : u.etiqueta === "Oro" ? "oro" : "heroe"
+                  ],
+                  u.ayuda,
+                )}
+              />
+            </div>
+          ))}
+        </div>
+      </Card>
 
       {GRUPOS.map((grupo) => (
         <Card key={grupo}>

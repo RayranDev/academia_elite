@@ -55,6 +55,7 @@ model Escuela {
   conversaciones           Conversacion[]
   anuncios                 Anuncio[]
   codigos                  CodigoInvitacion[]
+  parametros               ParametroEscuela[]
   createdAt                DateTime           @default(now())
 }
 
@@ -419,6 +420,20 @@ model ParametroFormula {
   valor       Float
   descripcion String?
   updatedAt   DateTime @updatedAt
+}
+
+// M9: override por escuela de un parámetro global (solo RANGO_* y UMBRAL_*).
+// Lo que no tenga override usa el valor global de ParametroFormula.
+model ParametroEscuela {
+  id        String   @id @default(cuid())
+  escuelaId String
+  escuela   Escuela  @relation(fields: [escuelaId], references: [id])
+  clave     String
+  valor     Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([escuelaId, clave])
+  @@index([escuelaId])
 }
 
 model AuditLog {

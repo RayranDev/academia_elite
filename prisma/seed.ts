@@ -223,6 +223,11 @@ async function main() {
   //    (G8: editables por el Súper Admin; el motor cae al embebido si faltan).
   const parametros: { clave: string; valor: number; descripcion: string }[] = [
     { clave: "PESO_MEN_EN_OVR", valor: 0.1, descripcion: "Peso de MEN en el OVR (0.10)." },
+    // M8: umbrales de nivel editables (curva ajustable). Bronce <65 · Plata 65 ·
+    // Oro 75 · Héroe 85. Subir a Plata es más fácil que llegar a Héroe.
+    { clave: "UMBRAL_PLATA", valor: 65, descripcion: "OVR mínimo para nivel Plata." },
+    { clave: "UMBRAL_ORO", valor: 75, descripcion: "OVR mínimo para nivel Oro." },
+    { clave: "UMBRAL_HEROE", valor: 85, descripcion: "OVR mínimo para nivel Héroe." },
   ];
   for (const grupo of Object.keys(RANGOS_POR_GRUPO) as GrupoEdad[]) {
     for (const prueba of PRUEBAS_FISICAS) {

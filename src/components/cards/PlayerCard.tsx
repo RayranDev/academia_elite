@@ -76,7 +76,6 @@ const STAT_LABELS: [keyof PlayerCardData["stats"], string][] = [
   ["fis", "FIS"],
 ];
 
-const CLIP = "[clip-path:polygon(0_0,100%_0,100%_90%,90%_100%,0_100%)]";
 const FOTO_MASK =
   "radial-gradient(ellipse 72% 82% at 50% 42%, #000 55%, transparent 100%)";
 
@@ -162,7 +161,7 @@ export function PlayerCard({
     >
       {/* Material base */}
       <div
-        className={cn("absolute inset-0 rounded-[14px]", CLIP, animarMaterial && material.heroe && "carta-heroe-anim")}
+        className={cn("absolute inset-0 rounded-[14px]", animarMaterial && material.heroe && "carta-heroe-anim")}
         style={{
           background: material.bg,
           ...(animarMaterial && material.heroe ? { backgroundSize: "220% 220%", animation: "carta-heroe 7s ease-in-out infinite" } : {}),
@@ -173,13 +172,13 @@ export function PlayerCard({
           {/* Grano foil (textura metálica) */}
           <div
             aria-hidden
-            className={cn("pointer-events-none absolute inset-0 rounded-[14px] mix-blend-overlay", CLIP)}
+            className="pointer-events-none absolute inset-0 rounded-[14px] mix-blend-overlay"
             style={{ backgroundImage: FOIL_GRANO, backgroundSize: "120px 120px", opacity: 0.4 }}
           />
           {/* Reflejos metálicos + veta de lujo */}
           <div
             aria-hidden
-            className={cn("pointer-events-none absolute inset-0 rounded-[14px] mix-blend-screen", CLIP)}
+            className="pointer-events-none absolute inset-0 rounded-[14px] mix-blend-screen"
             style={{ background: FOIL_REFLEJOS }}
           />
         </>
@@ -187,20 +186,20 @@ export function PlayerCard({
       {/* Bisel: filo de luz arriba, sombra interna abajo, anillo metálico */}
       <div
         aria-hidden
-        className={cn("pointer-events-none absolute inset-0 rounded-[14px]", CLIP)}
+        className="pointer-events-none absolute inset-0 rounded-[14px]"
         style={{
           boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 0 1px ${material.ring}59, inset 0 -16px 30px rgba(0,0,0,0.30), inset 0 18px 30px rgba(255,255,255,0.08)`,
         }}
       />
       {/* Sheen especular (Oro/Héroe) */}
       {animarMaterial && material.sheen && (
-        <div aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden rounded-[14px]", CLIP, "carta-sheen")} />
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px] carta-sheen" />
       )}
       {/* Destellos (Héroe) */}
       {animarMaterial && material.heroe && (
         <div
           aria-hidden
-          className={cn("pointer-events-none absolute inset-0 rounded-[14px]", CLIP, "carta-sparkle")}
+          className="pointer-events-none absolute inset-0 rounded-[14px] carta-sparkle"
           style={{ background: SPARKLES }}
         />
       )}
@@ -208,7 +207,7 @@ export function PlayerCard({
       {enableTilt && (
         <motion.div
           aria-hidden
-          className={cn("pointer-events-none absolute inset-0 rounded-[14px] mix-blend-soft-light", CLIP)}
+          className="pointer-events-none absolute inset-0 rounded-[14px] mix-blend-soft-light"
           style={{ background: holoBg }}
         />
       )}

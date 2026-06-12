@@ -3,6 +3,7 @@ import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { categoriasDelDt } from "@/services/dt-scope";
+import { listarHijos } from "@/repositories/jugador.repository";
 import { notificar } from "@/services/notificacion.service";
 import {
   crearEvento,
@@ -107,6 +108,44 @@ export async function listarCalendarioDt(
   hasta: Date,
 ): Promise<EventoCalendarioDTO[]> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const rows = await listarEventosCategorias(escuelaId, categoriaIds, desde, hasta);
+  return rows.map((e) => ({
+    id: e.id,
+    tipo: e.tipo as TipoEvento,
+    titulo: e.titulo,
+    inicio: e.inicio.toISOString(),
+    fin: e.fin.toISOString(),
+    categoriaNombre: e.categoria.nombre,
+    rival: e.rival,
+    esLocal: e.esLocal,
+    resultadoLocal: e.resultadoLocal,
+    resultadoVisitante: e.resultadoVisitante,
+  }));
+}
+
+/**
+ * Calendario para la familia: eventos de las categorías de sus hijos en el
+ * rango dado. Solo el responsable (rol JUGADOR) ve los eventos de su escuela.
+ */
+export async function listarCalendarioJugador(
+  ctx: AuthContext,
+  desde: Date,
+  hasta: Date,
+): Promise<EventoCalendarioDTO[]> {
+  requireRole(ctx, ["JUGADOR"]);
+  const hijos = await listarHijos(ctx.userId);
+  if (hijos.length === 0) return [];
+
+  // Todos los hijos comparten la escuela de la familia (el primero la fija);
+  // se unen las categorías de los hijos de esa misma escuela.
+  const escuelaId = hijos[0].escuelaId;
+  assertTenant(ctx, escuelaId);
+  const categoriaIds = Array.from(
+    new Set(
+      hijos.filter((h) => h.escuelaId === escuelaId).map((h) => h.categoriaId),
+    ),
+  );
+
   const rows = await listarEventosCategorias(escuelaId, categoriaIds, desde, hasta);
   return rows.map((e) => ({
     id: e.id,

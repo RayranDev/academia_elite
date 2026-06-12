@@ -17,6 +17,18 @@ export function listarParametrosPorPrefijo(prefijo: string) {
   });
 }
 
-export function actualizarParametroGlobal(clave: string, valor: number) {
-  return db.parametroFormula.update({ where: { clave }, data: { valor } });
+/**
+ * Crea o actualiza un parámetro global. El upsert permite editar claves nuevas
+ * (p. ej. UMBRAL_*) en BDs que aún no se re-sembraron, sin fallar.
+ */
+export function actualizarParametroGlobal(
+  clave: string,
+  valor: number,
+  descripcion?: string,
+) {
+  return db.parametroFormula.upsert({
+    where: { clave },
+    update: { valor },
+    create: { clave, valor, descripcion: descripcion ?? null },
+  });
 }

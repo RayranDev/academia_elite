@@ -64,6 +64,14 @@ export function actualizarEstadoJugador(
   return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
 }
 
+/** Datos mínimos de los jugadores de una escuela para detectar duplicados. */
+export function jugadoresParaDuplicados(escuelaId: string) {
+  return db.jugador.findMany({
+    where: { escuelaId, estado: { not: "ELIMINADO" } },
+    select: { nombre: true, apellido: true, fechaNacimiento: true },
+  });
+}
+
 /** Ids de jugadores de unas categorías (para acotar consultas del DT). */
 export async function jugadorIdsDeCategorias(
   escuelaId: string,

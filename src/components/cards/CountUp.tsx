@@ -31,5 +31,7 @@ export function CountUp({
     return () => controls.stop();
   }, [value, reveal, reduce, duration]);
 
-  return <>{display}</>;
+  // Sin reveal mostramos el valor directo: así el simulador refleja en vivo
+  // los cambios de stats (display solo sirve para la animación de revelado).
+  return <>{reveal ? display : value}</>;
 }
