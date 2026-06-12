@@ -6,7 +6,6 @@ import { Download } from "lucide-react";
 import { toPng } from "html-to-image";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Button } from "@/components/ui/Button";
-import { cn } from "@/lib/cn";
 import type { PlayerCardData } from "@/types";
 
 // Marca de agua que se inyecta SOLO en la imagen descargada (no en la web).
@@ -61,18 +60,18 @@ export function HubHero({ card }: { card: PlayerCardData }) {
           interactive + perspective) para que se vean idénticas. */}
       <div ref={cartaRef} className="relative flex justify-center perspective-[1000px]">
         <PlayerCard data={card} size="hero" interactive reveal />
-        {/* Marca de agua: opacidad 0 en pantalla, opaca solo durante la exportación. */}
-        <div
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6 text-center transition-opacity",
-            exportando ? "opacity-100" : "opacity-0",
-          )}
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.55), transparent)" }}
-        >
-          <p className="text-[11px] font-bold leading-tight text-white drop-shadow">{MARCA_AGUA}</p>
-          <p className="text-[10px] leading-tight text-white/85">{WEB}</p>
-        </div>
+        {/* Marca de agua: se MONTA solo durante la exportación (opaca, sin
+            transición) para que html-to-image la capture; no se ve en la web. */}
+        {exportando && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6 text-center"
+            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
+          >
+            <p className="text-[11px] font-bold leading-tight text-white drop-shadow">{MARCA_AGUA}</p>
+            <p className="text-[10px] leading-tight text-white">{WEB}</p>
+          </div>
+        )}
       </div>
       <Button variant="secondary" size="sm" onClick={descargar} disabled={exportando}>
         <Download className="mr-1 h-4 w-4" aria-hidden />

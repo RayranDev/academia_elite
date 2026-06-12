@@ -121,6 +121,11 @@ export function PlayerCard({
   // si no, la carta de un OVR de Héroe se muestra con el marco Oro.
   const nivelVisual: Nivel = data.nivel === "HEROE" && !data.heroeEquipado ? "ORO" : data.nivel;
   const material = MATERIAL[nivelVisual];
+  // El fondo equipado (si hay) ES el fondo/estilo de TODA la carta y trae su
+  // propio color de texto para que el contraste sea legible. Si no, se usa el
+  // material del nivel (Bronce/Plata/Oro/Héroe).
+  const bgCarta = data.fondoEstilo ?? material.bg;
+  const textoCarta = data.fondoTexto ?? material.text;
   const s = SIZE[size];
   const enableTilt = interactive && !reduce;
   const animarMaterial = size === "hero"; // efectos animados solo en la carta protagonista
@@ -165,12 +170,14 @@ export function PlayerCard({
         className,
       )}
     >
-      {/* Material base */}
+      {/* Fondo/estilo de la carta (material por nivel o fondo equipado) */}
       <div
-        className={cn("absolute inset-0 rounded-[14px]", animarMaterial && material.heroe && "carta-heroe-anim")}
+        className={cn("absolute inset-0 rounded-[14px]", animarMaterial && material.heroe && !data.fondoEstilo && "carta-heroe-anim")}
         style={{
-          background: material.bg,
-          ...(animarMaterial && material.heroe ? { backgroundSize: "220% 220%", animation: "carta-heroe 7s ease-in-out infinite" } : {}),
+          background: bgCarta,
+          ...(animarMaterial && material.heroe && !data.fondoEstilo
+            ? { backgroundSize: "220% 220%", animation: "carta-heroe 7s ease-in-out infinite" }
+            : {}),
         }}
       />
       {foil && (
@@ -218,7 +225,7 @@ export function PlayerCard({
         />
       )}
 
-      <div className="relative flex h-full flex-col" style={{ color: material.text }}>
+      <div className="relative flex h-full flex-col" style={{ color: textoCarta }}>
         {/* Columna derecha: escudo · dorsal · sello MEN (no tapa stats) */}
         <div className="absolute right-0 top-0 z-10 flex flex-col items-center gap-1">
           {data.escudoEscuelaUrl && (
@@ -258,14 +265,6 @@ export function PlayerCard({
         {/* Retrato: contenedor TRANSPARENTE (el color lo pone el material de la
             carta, no la foto); la foto se funde con una máscara. */}
         <div className="relative mt-1 flex flex-1 items-end justify-center overflow-hidden bg-transparent">
-          {/* Fondo desbloqueado por méritos, detrás del jugador. */}
-          {data.fondoEstilo && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{ background: data.fondoEstilo, WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
-            />
-          )}
           {data.fotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

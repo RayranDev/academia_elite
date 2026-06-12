@@ -132,6 +132,7 @@ export async function obtenerHub(
   if (card && elegido.fondoEquipadoId) {
     const fondo = await obtenerFondo(elegido.fondoEquipadoId);
     card.fondoEstilo = fondo?.estilo ?? null;
+    card.fondoTexto = fondo?.colorTexto ?? null;
     card.heroeEquipado = fondo?.codigo === "LEYENDA";
   }
 

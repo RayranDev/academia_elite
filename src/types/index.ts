@@ -90,7 +90,8 @@ export interface PlayerCardData {
   escudoEscuelaUrl?: string;
   dorsal?: number;
   avatarConfig?: AvatarConfigV2 | null;
-  fondoEstilo?: string | null; // CSS del fondo equipado (detrás del jugador)
+  fondoEstilo?: string | null; // CSS del fondo equipado: ES el fondo/estilo de TODA la carta
+  fondoTexto?: string | null; // color de texto para contraste sobre el fondo equipado
   heroeEquipado?: boolean; // el marco Héroe (morado) solo aplica si está desbloqueado y equipado
 }
 

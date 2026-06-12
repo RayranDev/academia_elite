@@ -226,3 +226,22 @@ cambió de API, se adapta y se documenta aquí).
     (clase `light` en <html> + localStorage `fcm-tema` + anti-FOUC del layout
     raíz) en una nueva LandingHeader, en vez de introducir un sistema paralelo de
     clases `dark:`. La landing ya usa tokens, así que adapta sin más.
+
+## Sprint M.4 (jornada de medición, fondos de carta completos, contraste, marca de agua)
+
+38. **Carga masiva de evaluaciones (jornada de medición).** Servicio
+    importacion-evaluaciones (DT scope) que reutiliza crearEvaluacion por fila:
+    evalúa EXISTENTES (por codigoJugador) y crea+evalúa NUEVOS. Plantilla .xlsx
+    con los jugadores y categorías del DT. Auditado (IMPORTAR_EVALUACIONES).
+    Botón "Jornada de medición" en /dt.
+39. **El fondo es el estilo de TODA la carta.** Antes el fondo equipado solo
+    pintaba detrás del jugador; ahora reemplaza el material de toda la carta
+    (Cobre/Dorada/Plata lux/Esmeralda/Rubí/Leyenda…). PlayerCardData.fondoEstilo
+    pasa a ser el fondo de la carta; el retrato queda transparente encima.
+40. **Color de texto por contraste.** FondoCarta.colorTexto define el color de la
+    tipografía sobre cada fondo (claro u oscuro) para que siempre sea legible;
+    PlayerCardData.fondoTexto lo transporta. Los materiales por nivel ya traían su
+    color.
+41. **Marca de agua en la descarga (fix).** Se montaba con opacity 0→100 +
+    transition, así que html-to-image la capturaba casi transparente. Ahora se
+    MONTA solo durante la exportación (opaca, sin transición).

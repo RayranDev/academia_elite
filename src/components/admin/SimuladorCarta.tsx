@@ -125,6 +125,7 @@ export function SimuladorCarta({
     dorsal: 10,
     avatarConfig,
     fondoEstilo: fondoSel?.estilo ?? null,
+    fondoTexto: fondoSel?.colorTexto ?? null,
     heroeEquipado: fondoSel?.codigo === "LEYENDA",
   };
 

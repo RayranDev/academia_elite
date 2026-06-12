@@ -434,7 +434,8 @@ model FondoCarta {
   codigo        String              @unique
   nombre        String
   descripcion   String
-  estilo        String // CSS (gradiente/patrón) que se aplica detrás del jugador
+  estilo        String // CSS (gradiente/patrón) que se aplica a TODA la carta
+  colorTexto    String? // color de texto para contraste sobre el fondo (def. claro)
   requisitoTipo String // SIEMPRE | LOGRO | NIVEL_CARTA | NIVEL_PERSONAL
   requisitoValor String? // logro.codigo · nivel de carta · nivel personal (número)
   orden         Int                 @default(0)

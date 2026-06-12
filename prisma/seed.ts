@@ -255,12 +255,14 @@ async function main() {
   await db.fondoCarta.deleteMany();
   await db.fondoCarta.createMany({
     data: [
-      { codigo: "CLASICO", nombre: "Clásico", descripcion: "El fondo de siempre.", estilo: "linear-gradient(160deg,#0b1220,#1e293b)", requisitoTipo: "SIEMPRE", requisitoValor: null, orden: 0 },
-      { codigo: "PASTO", nombre: "Pasto", descripcion: "Verde de cancha.", estilo: "radial-gradient(circle at 50% 120%, #14532d, #052e16)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "PLATA", orden: 1 },
-      { codigo: "ESTADIO_ORO", nombre: "Estadio dorado", descripcion: "Luces de gala.", estilo: "linear-gradient(160deg,#7c5e10,#1a1407)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "ORO", orden: 2 },
-      { codigo: "LEYENDA", nombre: "Leyenda", descripcion: "Solo para héroes.", estilo: "conic-gradient(from 180deg at 50% 50%, #4c1d95, #7c3aed, #2563eb, #4c1d95)", requisitoTipo: "NIVEL_CARTA", requisitoValor: "HEROE", orden: 3 },
-      { codigo: "CONSTANCIA", nombre: "Constancia", descripcion: "Tu disciplina semana a semana.", estilo: "linear-gradient(160deg,#0e7490,#082f49)", requisitoTipo: "NIVEL_PERSONAL", requisitoValor: "3", orden: 4 },
-      { codigo: "CAPITAN", nombre: "Capitán", descripcion: "Por tu liderazgo en el equipo.", estilo: "linear-gradient(160deg,#9f1239,#3b0a18)", requisitoTipo: "LOGRO", requisitoValor: "CAPITAN_VESTUARIO", orden: 5 },
+      // El `estilo` es el fondo de TODA la carta; `colorTexto` da contraste.
+      { codigo: "CLASICO", nombre: "Clásico", descripcion: "El fondo de siempre.", estilo: "linear-gradient(160deg,#0b1220 0%,#1e293b 60%,#0b1220 100%)", colorTexto: "#e5e7eb", requisitoTipo: "SIEMPRE", requisitoValor: null, orden: 0 },
+      { codigo: "COBRE", nombre: "Cobre", descripcion: "Edición cobre.", estilo: "linear-gradient(160deg,#8a5a34 0%,#d99a63 30%,#7a4a27 60%,#b87a47 100%)", colorTexto: "#fdeede", requisitoTipo: "NIVEL_PERSONAL", requisitoValor: "2", orden: 1 },
+      { codigo: "ESMERALDA", nombre: "Esmeralda", descripcion: "Constancia semana a semana.", estilo: "linear-gradient(160deg,#065f46 0%,#10b981 35%,#064e3b 70%,#022c22 100%)", colorTexto: "#ecfdf5", requisitoTipo: "NIVEL_PERSONAL", requisitoValor: "4", orden: 2 },
+      { codigo: "PLATA_LUX", nombre: "Plata lux", descripcion: "Cuando tu carta llega a Plata.", estilo: "linear-gradient(160deg,#9aa6b6 0%,#eef3f8 30%,#9aa6b6 60%,#d4dde7 100%)", colorTexto: "#1b2433", requisitoTipo: "NIVEL_CARTA", requisitoValor: "PLATA", orden: 3 },
+      { codigo: "DORADA", nombre: "Dorada", descripcion: "Cuando tu carta llega a Oro.", estilo: "linear-gradient(160deg,#b88a1d 0%,#f7d558 28%,#c89b25 55%,#ffe98c 80%,#8f6b12 100%)", colorTexto: "#3a2c05", requisitoTipo: "NIVEL_CARTA", requisitoValor: "ORO", orden: 4 },
+      { codigo: "RUBI", nombre: "Rubí", descripcion: "Por tu liderazgo en el equipo.", estilo: "linear-gradient(160deg,#9f1239 0%,#e11d48 35%,#7f1d1d 70%,#3b0a18 100%)", colorTexto: "#ffe4e6", requisitoTipo: "LOGRO", requisitoValor: "CAPITAN_VESTUARIO", orden: 5 },
+      { codigo: "LEYENDA", nombre: "Leyenda", descripcion: "Solo para héroes.", estilo: "conic-gradient(from 180deg at 50% 50%, #4c1d95, #7c3aed, #f0abfc, #6d4cdf, #4c1d95)", colorTexto: "#f5d0ff", requisitoTipo: "NIVEL_CARTA", requisitoValor: "HEROE", orden: 6 },
     ],
   });
 

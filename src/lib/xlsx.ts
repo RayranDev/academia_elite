@@ -78,6 +78,33 @@ export async function plantillaJugadoresXlsx(opts: {
   return Buffer.from(buf);
 }
 
+/** Plantilla .xlsx genérica: cabeceras (negrita) + ejemplo + hoja de ayuda. */
+export async function plantillaXlsx(opts: {
+  nombreHoja: string;
+  cabeceras: string[];
+  ejemplo: string[];
+  instrucciones: string[];
+}): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Fútbol Career Mode";
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet(opts.nombreHoja);
+  ws.addRow(opts.cabeceras);
+  ws.getRow(1).font = { bold: true };
+  ws.addRow(opts.ejemplo);
+  ws.columns.forEach((col) => {
+    col.width = 16;
+  });
+
+  const guia = wb.addWorksheet("Instrucciones");
+  guia.getColumn(1).width = 80;
+  for (const linea of opts.instrucciones) guia.addRow([linea]);
+
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
+
 /** MIME y extensión del Excel moderno. */
 export const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

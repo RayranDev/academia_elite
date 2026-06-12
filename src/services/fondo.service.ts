@@ -150,15 +150,21 @@ export interface FondoCatalogoDTO {
   codigo: string;
   nombre: string;
   estilo: string;
+  colorTexto: string | null;
 }
 
-/** Catálogo de fondos (solo estilos) para el simulador del Súper Admin. */
+/** Catálogo de fondos (estilos) para el simulador del Súper Admin. */
 export async function listarCatalogoFondos(
   ctx: AuthContext,
 ): Promise<FondoCatalogoDTO[]> {
   requireRole(ctx, ["SUPER_ADMIN"]);
   const fondos = await listarFondos();
-  return fondos.map((f) => ({ codigo: f.codigo, nombre: f.nombre, estilo: f.estilo }));
+  return fondos.map((f) => ({
+    codigo: f.codigo,
+    nombre: f.nombre,
+    estilo: f.estilo,
+    colorTexto: f.colorTexto,
+  }));
 }
 
 /** Estilo del fondo equipado por el jugador (para pintar la carta). null si no. */

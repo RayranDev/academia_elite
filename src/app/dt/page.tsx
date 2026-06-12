@@ -6,6 +6,7 @@ import {
   listarCategoriasDelDt,
 } from "@/services/jugador.service";
 import { CrearJugadorDialog } from "@/components/dt/CrearJugadorDialog";
+import { ImportarEvaluacionesDialog } from "@/components/dt/ImportarEvaluacionesDialog";
 import { PlantillaGrid } from "@/components/dt/PlantillaGrid";
 import { Card } from "@/components/ui/Card";
 
@@ -23,7 +24,10 @@ export default async function DtDashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-display italic uppercase">Plantilla</h1>
-        <CrearJugadorDialog categorias={categorias} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ImportarEvaluacionesDialog />
+          <CrearJugadorDialog categorias={categorias} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">
