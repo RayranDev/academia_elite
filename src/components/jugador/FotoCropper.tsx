@@ -44,7 +44,18 @@ export function FotoCropper({
   return (
     <Modal open onClose={onCancelar} title="Ajusta la foto" className="max-w-lg">
       <div className="space-y-3">
-        <div className="relative h-80 w-full overflow-hidden rounded-lg bg-black">
+        <div
+          className="relative h-80 w-full overflow-hidden rounded-lg"
+          // Tablero de transparencia: deja claro que un PNG/SVG sin fondo no
+          // recibe fondo sólido.
+          style={{
+            backgroundColor: "#1f2937",
+            backgroundImage:
+              "linear-gradient(45deg,#374151 25%,transparent 25%),linear-gradient(-45deg,#374151 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#374151 75%),linear-gradient(-45deg,transparent 75%,#374151 75%)",
+            backgroundSize: "16px 16px",
+            backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
+          }}
+        >
           <Cropper
             image={imagen}
             crop={crop}

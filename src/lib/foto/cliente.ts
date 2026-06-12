@@ -41,7 +41,9 @@ export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<s
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas no disponible.");
     ctx.drawImage(img, 0, 0, w, h);
-    return canvas.toDataURL("image/jpeg", 0.92);
+    // WebP conserva la transparencia (JPEG la rellenaría de NEGRO). Así un PNG/
+    // SVG sin fondo sigue sin fondo durante el recorte y al subir.
+    return canvas.toDataURL("image/webp", 0.92);
   } finally {
     URL.revokeObjectURL(url);
   }

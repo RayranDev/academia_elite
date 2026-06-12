@@ -255,8 +255,9 @@ export function PlayerCard({
           <div className="text-xs font-bold tracking-widest opacity-90">{data.posicion}</div>
         </div>
 
-        {/* Retrato: foto fundida al material (máscara) o avatar */}
-        <div className="relative mt-1 flex flex-1 items-end justify-center overflow-hidden">
+        {/* Retrato: contenedor TRANSPARENTE (el color lo pone el material de la
+            carta, no la foto); la foto se funde con una máscara. */}
+        <div className="relative mt-1 flex flex-1 items-end justify-center overflow-hidden bg-transparent">
           {/* Fondo desbloqueado por méritos, detrás del jugador. */}
           {data.fondoEstilo && (
             <div

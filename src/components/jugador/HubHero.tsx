@@ -57,7 +57,9 @@ export function HubHero({ card }: { card: PlayerCardData }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div ref={cartaRef} className="relative perspective-[1000px]">
+      {/* Mismo wrapper y misma config que la carta de la landing (size hero +
+          interactive + perspective) para que se vean idénticas. */}
+      <div ref={cartaRef} className="relative flex justify-center perspective-[1000px]">
         <PlayerCard data={card} size="hero" interactive reveal />
         {/* Marca de agua: opacidad 0 en pantalla, opaca solo durante la exportación. */}
         <div

@@ -209,3 +209,20 @@ cambió de API, se adapta y se documenta aquí).
     por su mejor compatibilidad con Tailwind v4 (oklch) y gradientes.
 34. **Simulador del SA con apariencia.** El simulador prueba fondos (catálogo),
     avatar aleatorio y foto (con recorte), todo como previsualización sin guardar.
+
+## Sprint M.3 (transparencia real, carta unificada, tema en landing)
+
+35. **Transparencia de la foto (causa raíz).** El negro NO venía de la carta
+    (que ya es transparente) sino del pre-recorte en cliente: el canvas se
+    exportaba a JPEG, que no tiene alfa y rellena de negro. Se cambió a WebP
+    (lib/foto/cliente). El servidor ya conservaba alfa (sharp → webp). Además el
+    contenedor del retrato es bg-transparent explícito y el recortador muestra
+    tablero de transparencia.
+36. **Carta del dashboard = carta de la landing.** Ambas usan el MISMO componente
+    PlayerCard con size="hero" interactive y el mismo wrapper
+    (flex justify-center perspective-[1000px]); se alineó HubHero para que se
+    vean idénticas.
+37. **Tema claro/oscuro en la landing.** Se reutiliza el ThemeToggle existente
+    (clase `light` en <html> + localStorage `fcm-tema` + anti-FOUC del layout
+    raíz) en una nueva LandingHeader, en vez de introducir un sistema paralelo de
+    clases `dark:`. La landing ya usa tokens, así que adapta sin más.
