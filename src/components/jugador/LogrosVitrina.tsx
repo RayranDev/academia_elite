@@ -1,3 +1,4 @@
+import { Medal, Lock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import type { InsigniaDTO, BonusDTO } from "@/services/player.service";
@@ -30,7 +31,13 @@ export function LogrosVitrina({
               }`}
               title={i.descripcion}
             >
-              <div className="text-3xl">{i.obtenido ? "🏅" : "🔒"}</div>
+              <div className="flex justify-center">
+                {i.obtenido ? (
+                  <Medal className="h-8 w-8 text-oro" aria-hidden />
+                ) : (
+                  <Lock className="h-8 w-8 text-muted" aria-hidden />
+                )}
+              </div>
               <p className="mt-2 text-sm font-bold">{i.nombre}</p>
               <p className="mt-1 text-[11px] text-muted">{i.descripcion}</p>
             </div>

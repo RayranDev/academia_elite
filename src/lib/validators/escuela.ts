@@ -7,7 +7,6 @@ export const brandingSchema = z.object({
   colorPrimario: z.string().trim().regex(HEX, {
     error: "Color inválido (usa formato #RRGGBB).",
   }),
-  logoUrl: z.string().trim().url({ error: "URL de logo inválida." }).optional().or(z.literal("")),
   frecuenciaEvaluacionDias: z.coerce
     .number()
     .int()

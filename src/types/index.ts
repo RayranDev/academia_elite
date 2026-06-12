@@ -73,4 +73,18 @@ export interface PlayerCardData {
   fotoUrl: string | null;
   escudoEscuelaUrl?: string;
   dorsal?: number;
+  avatarConfig?: AvatarConfig | null;
 }
+
+// --- Avatar SVG editable (jugador) ---
+export const GENEROS_AVATAR = ["M", "F", "X"] as const;
+export type GeneroAvatar = (typeof GENEROS_AVATAR)[number];
+
+/** Configuración del avatar por capas. Índices a las paletas de PlayerAvatar. */
+export interface AvatarConfig {
+  genero: GeneroAvatar;
+  piel: number; // índice paleta de piel
+  peinado: number; // índice de peinado
+  cabello: number; // índice color de cabello
+}
+

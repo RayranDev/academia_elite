@@ -3,7 +3,7 @@ import { requirePanelUser, requireAuthContext } from "@/lib/auth/session";
 import { obtenerBrandingTenant } from "@/services/escuela.service";
 import { listarSolicitudesDt } from "@/services/jugador.service";
 import { PanelShell } from "@/components/PanelShell";
-import { DtNav } from "@/components/dt/DtNav";
+import type { NavItem } from "@/components/shell/Sidebar";
 
 export default async function DtLayout({
   children,
@@ -18,14 +18,32 @@ export default async function DtLayout({
   ]);
 
   const brandStyle = { ["--brand"]: branding.colorPrimario } as CSSProperties;
+  const escudoUrl = branding.tieneEscudo
+    ? `/api/archivos/escudo/${branding.escuelaId}`
+    : null;
+
+  const nav: NavItem[] = [
+    { href: "/dt", label: "Plantilla", icon: "plantilla" },
+    { href: "/dt/calendario", label: "Calendario", icon: "calendario" },
+    { href: "/dt/mensajes", label: "Mensajes", icon: "mensajes" },
+    {
+      href: "/dt/solicitudes",
+      label: "Solicitudes",
+      icon: "solicitudes",
+      badge: solicitudes.length,
+    },
+  ];
 
   return (
     <div style={brandStyle}>
-      <PanelShell rol="DT" nombre={user.nombre}>
-        <p className="mb-3 text-sm text-muted">
-          {branding.nombre}
-        </p>
-        <DtNav solicitudes={solicitudes.length} />
+      <PanelShell
+        rol="DT"
+        nombre={user.nombre}
+        navItems={nav}
+        base="/dt"
+        marca={branding.nombre}
+        escudoUrl={escudoUrl}
+      >
         {children}
       </PanelShell>
     </div>

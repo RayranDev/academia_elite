@@ -125,6 +125,7 @@ model Jugador {
   dorsal                  Int?
   estado                  String             @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO
   fotoUrl                 String?
+  avatarConfig            String? // JSON del avatar SVG (género, piel, peinado, cabello)
   consentimientoFoto      Boolean            @default(false)
   consentimientoFotoFecha DateTime?
   evaluaciones            Evaluacion[]

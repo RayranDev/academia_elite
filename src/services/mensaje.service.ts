@@ -6,6 +6,7 @@ import {
   obtenerJugadorParaFoto,
   listarHijos,
   jugadorIdsDeCategorias,
+  obtenerJugadoresMinimos,
 } from "@/repositories/jugador.repository";
 import { categoriaIdsDeEntrenador } from "@/repositories/entrenador.repository";
 import {
@@ -58,6 +59,9 @@ export interface ConversacionResumenDTO {
   id: string;
   asunto: string;
   jugadorId: string;
+  jugadorNombre: string;
+  categoriaId: string | null;
+  categoriaNombre: string | null;
   ultimoMensaje: string | null;
   actualizada: string;
 }
@@ -160,13 +164,27 @@ export async function listarConversaciones(
   } else {
     throw new ForbiddenError();
   }
-  return rows.map((c) => ({
-    id: c.id,
-    asunto: c.asunto,
-    jugadorId: c.jugadorId,
-    ultimoMensaje: c.mensajes[0]?.cuerpo ?? null,
-    actualizada: c.updatedAt.toISOString(),
-  }));
+
+  // Etiqueta cada conversación con el jugador y su categoría (para filtrar).
+  const jugadores = await obtenerJugadoresMinimos(
+    escuelaId,
+    [...new Set(rows.map((c) => c.jugadorId))],
+  );
+  const porId = new Map(jugadores.map((j) => [j.id, j]));
+
+  return rows.map((c) => {
+    const j = porId.get(c.jugadorId);
+    return {
+      id: c.id,
+      asunto: c.asunto,
+      jugadorId: c.jugadorId,
+      jugadorNombre: j ? `${j.nombre} ${j.apellido}` : "—",
+      categoriaId: j?.categoriaId ?? null,
+      categoriaNombre: j?.categoria.nombre ?? null,
+      ultimoMensaje: c.mensajes[0]?.cuerpo ?? null,
+      actualizada: c.updatedAt.toISOString(),
+    };
+  });
 }
 
 export async function obtenerConversacionDetalle(

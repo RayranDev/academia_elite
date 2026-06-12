@@ -42,3 +42,16 @@ export async function procesarFoto(buf: Buffer): Promise<Buffer> {
     .webp({ quality: 80 })
     .toBuffer();
 }
+
+export const MAX_ESCUDO_BYTES = 1 * 1024 * 1024; // 1 MB
+
+/**
+ * Procesa el escudo de la escuela: solo PNG, máx. 256×256, **conservando
+ * transparencia**. Sin metadatos. Dimensiones acotadas para no romper la UI.
+ */
+export async function procesarEscudo(buf: Buffer): Promise<Buffer> {
+  return sharp(buf)
+    .resize(256, 256, { fit: "inside", withoutEnlargement: true })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}

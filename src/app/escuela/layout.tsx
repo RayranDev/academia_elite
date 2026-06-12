@@ -2,7 +2,17 @@ import type { CSSProperties } from "react";
 import { requirePanelUser, requireAuthContext } from "@/lib/auth/session";
 import { obtenerMiEscuela } from "@/services/escuela.service";
 import { PanelShell } from "@/components/PanelShell";
-import { EscuelaNav } from "@/components/escuela/EscuelaNav";
+import type { NavItem } from "@/components/shell/Sidebar";
+
+const NAV: NavItem[] = [
+  { href: "/escuela", label: "Resumen", icon: "dashboard" },
+  { href: "/escuela/categorias", label: "Categorías", icon: "categorias" },
+  { href: "/escuela/sedes", label: "Sedes", icon: "sedes" },
+  { href: "/escuela/dts", label: "DTs", icon: "usuarios" },
+  { href: "/escuela/codigos", label: "Códigos", icon: "codigos" },
+  { href: "/escuela/anuncios", label: "Anuncios", icon: "anuncios" },
+  { href: "/escuela/branding", label: "Branding", icon: "branding" },
+];
 
 export default async function EscuelaLayout({
   children,
@@ -13,18 +23,21 @@ export default async function EscuelaLayout({
   const ctx = await requireAuthContext();
   const escuela = await obtenerMiEscuela(ctx);
 
-  // Inyecta el color de la escuela como variable --brand: tiñe los acentos
-  // del panel (white-label, Sección 12.1).
   const brandStyle = { ["--brand"]: escuela.colorPrimario } as CSSProperties;
+  const escudoUrl = escuela.logoUrl
+    ? `/api/archivos/escudo/${escuela.id}`
+    : null;
 
   return (
     <div style={brandStyle}>
-      <PanelShell rol="ESCUELA_ADMIN" nombre={user.nombre}>
-        <p className="mb-3 text-sm text-muted">
-          Escuela:{" "}
-          <span className="font-bold text-brand">{escuela.nombre}</span>
-        </p>
-        <EscuelaNav />
+      <PanelShell
+        rol="ESCUELA_ADMIN"
+        nombre={user.nombre}
+        navItems={NAV}
+        base="/escuela"
+        marca={escuela.nombre}
+        escudoUrl={escudoUrl}
+      >
         {children}
       </PanelShell>
     </div>

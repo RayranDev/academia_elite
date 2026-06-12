@@ -12,7 +12,8 @@ import {
   dtSchema,
   codigoSchema,
 } from "@/lib/validators/escuela";
-import { actualizarBranding } from "@/services/escuela.service";
+import { actualizarBranding, subirEscudo } from "@/services/escuela.service";
+import { MAX_ESCUDO_BYTES } from "@/lib/foto/process";
 import { crearCategoriaEscuela } from "@/services/categoria.service";
 import { crearSedeEscuela, crearCanchaEscuela } from "@/services/sede.service";
 import { crearDt } from "@/services/entrenador.service";
@@ -32,12 +33,34 @@ export async function actualizarBrandingAction(
   const parsed = brandingSchema.safeParse({
     nombre: formData.get("nombre"),
     colorPrimario: formData.get("colorPrimario"),
-    logoUrl: formData.get("logoUrl"),
     frecuenciaEvaluacionDias: formData.get("frecuenciaEvaluacionDias"),
   });
   if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
   await actualizarBranding(ctx, parsed.data);
   revalidatePath("/escuela", "layout");
+}
+
+export async function subirEscudoAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const file = formData.get("escudo");
+    if (!(file instanceof File) || file.size === 0) {
+      throw new ValidationError("Selecciona un PNG.");
+    }
+    if (file.size > MAX_ESCUDO_BYTES) {
+      throw new ValidationError("El escudo supera 1 MB.");
+    }
+    const buf = Buffer.from(await file.arrayBuffer());
+    await subirEscudo(ctx, buf);
+    revalidatePath("/escuela", "layout");
+    revalidatePath("/escuela/branding");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function crearCategoriaAction(

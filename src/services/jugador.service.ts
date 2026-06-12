@@ -20,6 +20,7 @@ export interface PlantillaItemDTO {
   nombre: string;
   apellido: string;
   posicion: Posicion;
+  categoriaId: string;
   categoriaNombre: string;
   card: PlayerCardData | null; // null si aún no tiene evaluación
   ultimaEvaluacion: string | null;
@@ -80,8 +81,9 @@ export async function listarPlantillaDt(
       nombre: j.nombre,
       apellido: j.apellido,
       posicion: j.posicion as Posicion,
+      categoriaId: j.categoriaId,
       categoriaNombre: j.categoria.nombre,
-      // La foto se sirve por API protegida (Sprint 5); por ahora avatar.
+      // La foto se sirve por API protegida; en la mini-carta se usa avatar.
       card: stats ? aPlayerCardData(j, stats, null) : null,
       ultimaEvaluacion: stats ? stats.createdAt.toISOString() : null,
       vencida,

@@ -8,7 +8,7 @@ import { pasarListaAction, cargarResultadoAction } from "@/actions/evento.action
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
+import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
 export default async function EventoDetallePage({
@@ -32,7 +32,19 @@ export default async function EventoDetallePage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black italic uppercase">{ev.titulo}</h1>
+        <h1 className="flex items-center gap-2 text-3xl font-display italic uppercase">
+          {(() => {
+            const Icon = ICONO_TIPO[ev.tipo as TipoEvento];
+            return (
+              <Icon
+                className="h-7 w-7 shrink-0"
+                style={{ color: COLOR_TIPO[ev.tipo as TipoEvento] }}
+                aria-hidden
+              />
+            );
+          })()}
+          {ev.titulo}
+        </h1>
         <p className="text-sm text-muted">
           {ETIQUETA_TIPO[ev.tipo as TipoEvento]} · {ev.categoriaNombre} ·{" "}
           {format(new Date(ev.inicio), "EEEE d 'de' MMMM · HH:mm", { locale: es })}

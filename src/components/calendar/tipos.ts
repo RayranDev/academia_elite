@@ -1,3 +1,10 @@
+import {
+  Dumbbell,
+  Trophy,
+  ClipboardCheck,
+  CalendarDays,
+  type LucideIcon,
+} from "lucide-react";
 import type { TipoEvento } from "@/types";
 
 export const COLOR_TIPO: Record<TipoEvento, string> = {
@@ -12,4 +19,12 @@ export const ETIQUETA_TIPO: Record<TipoEvento, string> = {
   PARTIDO: "Partido",
   EVALUACION: "Evaluación",
   OTRO: "Otro",
+};
+
+/** Icono minimalista por tipo de evento (se pinta con el color del tipo). */
+export const ICONO_TIPO: Record<TipoEvento, LucideIcon> = {
+  ENTRENAMIENTO: Dumbbell,
+  PARTIDO: Trophy,
+  EVALUACION: ClipboardCheck,
+  OTRO: CalendarDays,
 };

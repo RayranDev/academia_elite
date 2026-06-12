@@ -5,7 +5,7 @@ import {
   listarCategoriasDelDt,
 } from "@/services/jugador.service";
 import { publicarAnuncioAction } from "@/actions/mensaje.actions";
-import { ThreadList } from "@/components/messages/ThreadList";
+import { MensajesDtFiltro } from "@/components/messages/MensajesDtFiltro";
 import { NuevaConversacionDialog } from "@/components/messages/NuevaConversacionDialog";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,20 +21,23 @@ export default async function DtMensajesPage() {
     listarCategoriasDelDt(ctx),
   ]);
 
+  const nombreCat = new Map(categorias.map((c) => [c.id, c.nombre]));
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-black italic uppercase">Mensajes</h1>
+          <h1 className="text-3xl font-display italic uppercase">Mensajes</h1>
           <NuevaConversacionDialog
             basePath="/dt/mensajes"
             jugadores={jugadores.map((j) => ({
               id: j.id,
               label: `${j.nombre} ${j.apellido}`,
+              categoria: nombreCat.get(j.categoriaId) ?? "Sin categoría",
             }))}
           />
         </div>
-        <ThreadList conversaciones={conversaciones} basePath="/dt/mensajes" />
+        <MensajesDtFiltro conversaciones={conversaciones} categorias={categorias} />
       </div>
 
       <Card>

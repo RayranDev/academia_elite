@@ -14,7 +14,7 @@ import {
   format,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { COLOR_TIPO, ETIQUETA_TIPO } from "@/components/calendar/tipos";
+import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { EventoCalendarioDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
 
@@ -97,15 +97,15 @@ export function MonthGrid({ eventos }: { eventos: EventoCalendarioDTO[] }) {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted">
-          {(Object.keys(COLOR_TIPO) as TipoEvento[]).map((t) => (
-            <span key={t} className="flex items-center gap-1">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: COLOR_TIPO[t] }}
-              />
-              {ETIQUETA_TIPO[t]}
-            </span>
-          ))}
+          {(Object.keys(COLOR_TIPO) as TipoEvento[]).map((t) => {
+            const Icon = ICONO_TIPO[t];
+            return (
+              <span key={t} className="flex items-center gap-1">
+                <Icon className="h-3.5 w-3.5" style={{ color: COLOR_TIPO[t] }} aria-hidden />
+                {ETIQUETA_TIPO[t]}
+              </span>
+            );
+          })}
         </div>
       </div>
 
@@ -123,13 +123,21 @@ export function MonthGrid({ eventos }: { eventos: EventoCalendarioDTO[] }) {
             <li key={e.id}>
               <Link
                 href={`/dt/eventos/${e.id}`}
-                className="block rounded-lg bg-surface-2 p-2 text-sm hover:bg-subtle"
+                className="flex items-center gap-2 rounded-lg bg-surface-2 p-2 text-sm hover:bg-subtle"
               >
-                <span
-                  className="mr-2 inline-block h-2 w-2 rounded-full"
-                  style={{ background: COLOR_TIPO[e.tipo as TipoEvento] }}
-                />
-                {format(new Date(e.inicio), "HH:mm")} · {e.titulo}
+                {(() => {
+                  const Icon = ICONO_TIPO[e.tipo as TipoEvento];
+                  return (
+                    <Icon
+                      className="h-4 w-4 shrink-0"
+                      style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                      aria-hidden
+                    />
+                  );
+                })()}
+                <span>
+                  {format(new Date(e.inicio), "HH:mm")} · {e.titulo}
+                </span>
               </Link>
             </li>
           ))}

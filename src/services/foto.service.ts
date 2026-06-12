@@ -6,7 +6,9 @@ import {
   obtenerJugadorParaFoto,
   actualizarFotoJugador,
   actualizarConsentimientoJugador,
+  actualizarAvatarJugador,
 } from "@/repositories/jugador.repository";
+import type { AvatarConfigInput } from "@/lib/validators/avatar";
 import { registrarAuditoria } from "@/services/audit.service";
 import { detectarTipoImagen, procesarFoto } from "@/lib/foto/process";
 import { guardarFoto } from "@/lib/foto/storage";
@@ -52,6 +54,16 @@ export async function subirFoto(
   const nombre = `${randomUUID()}.webp`;
   await guardarFoto(nombre, procesada);
   await actualizarFotoJugador(jugadorId, nombre);
+}
+
+/** Actualiza el avatar SVG del jugador (solo el responsable). */
+export async function actualizarAvatar(
+  ctx: AuthContext,
+  jugadorId: string,
+  config: AvatarConfigInput,
+): Promise<void> {
+  await cargarYAutorizarGestion(ctx, jugadorId);
+  await actualizarAvatarJugador(jugadorId, JSON.stringify(config));
 }
 
 /** Otorga o revoca el consentimiento de foto (solo el responsable). Auditado. */

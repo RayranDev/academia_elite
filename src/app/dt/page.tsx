@@ -6,9 +6,8 @@ import {
   listarCategoriasDelDt,
 } from "@/services/jugador.service";
 import { CrearJugadorDialog } from "@/components/dt/CrearJugadorDialog";
-import { PlayerCard } from "@/components/cards/PlayerCard";
+import { PlantillaGrid } from "@/components/dt/PlantillaGrid";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 
 export default async function DtDashboardPage() {
   const ctx = await requireAuthContext();
@@ -23,7 +22,7 @@ export default async function DtDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-black italic uppercase">Plantilla</h1>
+        <h1 className="text-3xl font-display italic uppercase">Plantilla</h1>
         <CrearJugadorDialog categorias={categorias} />
       </div>
 
@@ -34,43 +33,7 @@ export default async function DtDashboardPage() {
         <Kpi titulo="Categorías" valor={categorias.length} />
       </div>
 
-      {plantilla.length === 0 ? (
-        <Card>
-          <p className="text-muted">
-            Aún no hay jugadores activos. Crea uno con “+ Nuevo jugador” o aprueba
-            solicitudes pendientes.
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {plantilla.map((j) => (
-            <Link
-              key={j.id}
-              href={`/dt/jugadores/${j.id}`}
-              className="group flex flex-col items-center gap-2"
-            >
-              {j.card ? (
-                <PlayerCard data={j.card} size="sm" />
-              ) : (
-                <div className="flex aspect-3/4 w-32 flex-col items-center justify-center rounded-[14px] border border-dashed border-subtle bg-surface-2 text-center text-xs text-muted">
-                  <span className="px-2">{j.nombre} {j.apellido}</span>
-                  <span className="mt-1 text-pitch">Sin evaluar</span>
-                </div>
-              )}
-              <div className="text-center">
-                <p className="text-xs font-semibold group-hover:text-brand">
-                  {j.nombre} {j.apellido}
-                </p>
-                {j.vencida ? (
-                  <Badge tono="alerta">Vencida</Badge>
-                ) : (
-                  <span className="text-[10px] text-muted">{j.categoriaNombre}</span>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+      <PlantillaGrid jugadores={plantilla} categorias={categorias} />
     </div>
   );
 }

@@ -9,11 +9,51 @@ import { Modal } from "@/components/ui/Modal";
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
+/** Opciones del select, agrupadas por categoría cuando está disponible. */
+function JugadorOptions({ jugadores }: { jugadores: JugadorOpcion[] }) {
+  const conCategoria = jugadores.some((j) => j.categoria);
+  if (!conCategoria) {
+    return (
+      <>
+        {jugadores.map((j) => (
+          <option key={j.id} value={j.id}>
+            {j.label}
+          </option>
+        ))}
+      </>
+    );
+  }
+  const grupos = new Map<string, JugadorOpcion[]>();
+  for (const j of jugadores) {
+    const k = j.categoria ?? "Sin categoría";
+    (grupos.get(k) ?? grupos.set(k, []).get(k)!).push(j);
+  }
+  return (
+    <>
+      {[...grupos.entries()].map(([cat, js]) => (
+        <optgroup key={cat} label={cat}>
+          {js.map((j) => (
+            <option key={j.id} value={j.id}>
+              {j.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </>
+  );
+}
+
+interface JugadorOpcion {
+  id: string;
+  label: string;
+  categoria?: string;
+}
+
 export function NuevaConversacionDialog({
   jugadores,
   basePath,
 }: {
-  jugadores: { id: string; label: string }[];
+  jugadores: JugadorOpcion[];
   basePath: string;
 }) {
   const router = useRouter();
@@ -46,11 +86,7 @@ export function NuevaConversacionDialog({
           <div>
             <label className="mb-1 block text-xs text-muted">Sobre el jugador</label>
             <select name="jugadorId" className={input}>
-              {jugadores.map((j) => (
-                <option key={j.id} value={j.id}>
-                  {j.label}
-                </option>
-              ))}
+              <JugadorOptions jugadores={jugadores} />
             </select>
           </div>
           <div>

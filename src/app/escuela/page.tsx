@@ -33,7 +33,7 @@ export default async function EscuelaResumenPage() {
           Bienvenido. Configura tu escuela: crea <b>categorías</b>, registra a
           tus <b>DTs</b>, genera <b>códigos de invitación</b> para las familias y
           personaliza tu <b>branding</b>. Cuando tengas categorías y DTs, ellos
-          podrán dar de alta jugadores y evaluarlos (Sprint 4).
+          podrán dar de alta jugadores y evaluarlos.
         </p>
       </Card>
     </div>

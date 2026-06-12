@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Badge } from "@/components/ui/Badge";
-import { COLOR_TIPO, ETIQUETA_TIPO } from "@/components/calendar/tipos";
+import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
 
@@ -24,11 +24,17 @@ export function UpcomingList({
           className="rounded-lg border border-subtle bg-surface-2 p-3"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <span
-                className="mr-2 inline-block h-2 w-2 rounded-full align-middle"
-                style={{ background: COLOR_TIPO[e.tipo as TipoEvento] }}
-              />
+            <div className="flex items-center gap-2">
+              {(() => {
+                const Icon = ICONO_TIPO[e.tipo as TipoEvento];
+                return (
+                  <Icon
+                    className="h-4 w-4 shrink-0"
+                    style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                    aria-hidden
+                  />
+                );
+              })()}
               <span className="font-semibold">{e.titulo}</span>
               {e.tipo === "PARTIDO" && e.rival && (
                 <span className="text-muted">

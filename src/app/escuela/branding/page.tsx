@@ -1,6 +1,7 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerMiEscuela } from "@/services/escuela.service";
 import { actualizarBrandingAction } from "@/actions/escuela.actions";
+import { EscudoUpload } from "@/components/escuela/EscudoUpload";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -13,11 +14,16 @@ export default async function BrandingPage() {
 
   return (
     <div className="max-w-xl space-y-4">
-      <h1 className="text-3xl font-black italic uppercase">Branding</h1>
+      <h1 className="text-3xl font-display italic uppercase">Branding</h1>
       <p className="text-sm text-muted">
-        Personaliza el color de tu escuela. El acento se aplica en todos los
-        paneles de tu tenant (white-label).
+        Personaliza el color y el escudo de tu escuela. El acento se aplica en
+        todos los paneles de tu tenant (white-label).
       </p>
+
+      <Card>
+        <h2 className="mb-3 text-lg font-bold">Escudo</h2>
+        <EscudoUpload escuelaId={escuela.id} tieneEscudo={!!escuela.logoUrl} />
+      </Card>
 
       <Card>
         <form action={actualizarBrandingAction} className="space-y-4">
@@ -41,21 +47,8 @@ export default async function BrandingPage() {
               />
             </div>
             <p className="pb-2 text-xs text-muted">
-              Actual:{" "}
-              <span className="font-mono">{escuela.colorPrimario}</span>
+              Actual: <span className="font-mono">{escuela.colorPrimario}</span>
             </p>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs text-muted">
-              URL del logo (opcional)
-            </label>
-            <input
-              name="logoUrl"
-              defaultValue={escuela.logoUrl ?? ""}
-              placeholder="https://…"
-              className={input}
-            />
           </div>
 
           <div>

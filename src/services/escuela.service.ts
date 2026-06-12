@@ -1,8 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
+import { detectarTipoImagen, procesarEscudo } from "@/lib/foto/process";
+import { guardarFoto } from "@/lib/foto/storage";
 import {
   listarEscuelasGlobal,
   slugExisteGlobal,
@@ -53,15 +56,39 @@ export async function obtenerMiEscuela(
   };
 }
 
-/** Branding del tenant (nombre + color) para cualquier rol de la escuela. */
-export async function obtenerBrandingTenant(
-  ctx: AuthContext,
-): Promise<{ nombre: string; colorPrimario: string }> {
+/** Branding del tenant (nombre + color + escudo) para cualquier rol de la escuela. */
+export async function obtenerBrandingTenant(ctx: AuthContext): Promise<{
+  escuelaId: string;
+  nombre: string;
+  colorPrimario: string;
+  tieneEscudo: boolean;
+}> {
   requireRole(ctx, ["ESCUELA_ADMIN", "DT", "JUGADOR"]);
   const escuelaId = requireEscuela(ctx);
   const e = await obtenerEscuela(escuelaId);
   if (!e) throw new NotFoundError("Escuela no encontrada.");
-  return { nombre: e.nombre, colorPrimario: e.colorPrimario };
+  return {
+    escuelaId: e.id,
+    nombre: e.nombre,
+    colorPrimario: e.colorPrimario,
+    tieneEscudo: !!e.logoUrl,
+  };
+}
+
+/** Sube el escudo (PNG) de la escuela: solo ESCUELA_ADMIN de su tenant. */
+export async function subirEscudo(
+  ctx: AuthContext,
+  original: Buffer,
+): Promise<void> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  if (detectarTipoImagen(original) !== "png") {
+    throw new ValidationError("El escudo debe ser un PNG.");
+  }
+  const procesado = await procesarEscudo(original);
+  const nombre = `escudo-${randomUUID()}.png`;
+  await guardarFoto(nombre, procesado);
+  await actualizarBrandingEscuela(escuelaId, { logoUrl: nombre });
 }
 
 export async function actualizarBranding(
@@ -70,10 +97,10 @@ export async function actualizarBranding(
 ): Promise<void> {
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
+  // El escudo (logoUrl) se gestiona aparte (subirEscudo); no se toca aquí.
   await actualizarBrandingEscuela(escuelaId, {
     nombre: data.nombre,
     colorPrimario: data.colorPrimario,
-    logoUrl: data.logoUrl ? data.logoUrl : null,
     frecuenciaEvaluacionDias: data.frecuenciaEvaluacionDias,
   });
 }

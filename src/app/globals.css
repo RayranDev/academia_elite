@@ -36,6 +36,7 @@
   --color-brand: var(--brand);
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), system-ui, sans-serif;
 }
 
 /* color de marca por escuela (white-label); se sobreescribe en el layout del tenant */
@@ -53,6 +54,74 @@ body {
 /* Números siempre tabulares en stats y marcadores */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- Materiales de carta (PlayerCard, solo hero/interactive) ---- */
+
+/* Brillo especular que recorre la carta (Oro / Héroe) */
+@keyframes carta-sheen {
+  0% {
+    transform: translateX(-120%) rotate(8deg);
+  }
+  100% {
+    transform: translateX(220%) rotate(8deg);
+  }
+}
+.carta-sheen::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  animation: carta-sheen 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Gradiente animado del nivel Héroe */
+@keyframes carta-heroe {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Partículas sutiles del nivel Héroe */
+@keyframes carta-sparkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateY(-6px);
+  }
+}
+
+/* Spinner de la transición de entrada (login) */
+@keyframes login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.login-ball {
+  animation: login-spin 0.9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carta-sheen::after,
+  .carta-heroe-anim,
+  .carta-sparkle,
+  .login-ball {
+    animation: none !important;
+  }
 }
 
 /* Respeta prefers-reduced-motion globalmente */

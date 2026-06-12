@@ -25,6 +25,10 @@ export function ThreadList({
                 {new Date(c.actualizada).toLocaleDateString("es")}
               </span>
             </div>
+            <p className="text-xs text-brand">
+              {c.jugadorNombre}
+              {c.categoriaNombre ? ` · ${c.categoriaNombre}` : ""}
+            </p>
             {c.ultimoMensaje && (
               <p className="mt-1 line-clamp-1 text-sm text-muted">
                 {c.ultimoMensaje}

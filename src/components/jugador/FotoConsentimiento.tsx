@@ -8,16 +8,22 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import type { ActionResult } from "@/lib/action-result";
+import type { AvatarConfig } from "@/types";
 
 export function FotoConsentimiento({
   jugadorId,
   tieneFoto,
   consentimiento,
+  avatarConfig,
+  seed,
 }: {
   jugadorId: string;
   tieneFoto: boolean;
   consentimiento: boolean;
+  avatarConfig: AvatarConfig | null;
+  seed: string;
 }) {
   const [state, action, pending] = useActionState<
     ActionResult | undefined,
@@ -44,7 +50,7 @@ export function FotoConsentimiento({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-xs text-muted">Avatar</span>
+            <PlayerAvatar config={avatarConfig} seed={seed} className="h-full w-full" />
           )}
         </div>
         <div>

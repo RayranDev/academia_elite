@@ -8,6 +8,7 @@ import {
 } from "@/repositories/jugador.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
 import { noticiasDeJugador } from "@/repositories/anuncio.repository";
+import { obtenerEscuela } from "@/repositories/escuela.repository";
 import {
   proximosEventosJugador,
   ultimoPartidoJugador,
@@ -15,7 +16,7 @@ import {
   type UltimoPartidoDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
-import type { PlayerCardData, Posicion } from "@/types";
+import type { PlayerCardData, Posicion, AvatarConfig } from "@/types";
 
 export interface NoticiaDTO {
   id: string;
@@ -79,9 +80,19 @@ export interface HubDTO {
   bonus: BonusDTO[];
   objetivos: ObjetivoDTO[];
   foto: { tieneFoto: boolean; consentimiento: boolean };
+  avatarConfig: AvatarConfig | null;
   proximos: ProximoEventoDTO[];
   ultimoPartido: UltimoPartidoDTO | null;
   noticias: NoticiaDTO[];
+}
+
+function parseAvatarConfig(raw: string | null): AvatarConfig | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as AvatarConfig;
+  } catch {
+    return null;
+  }
 }
 
 export async function obtenerHub(
@@ -99,7 +110,7 @@ export async function obtenerHub(
   if (!elegido) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, elegido.escuelaId);
 
-  const [full, evals, catalogo, proximos, ultimoPartido, noticiasRows] =
+  const [full, evals, catalogo, proximos, ultimoPartido, noticiasRows, escuela] =
     await Promise.all([
       obtenerJugadorHub(elegido.id),
       listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
@@ -107,6 +118,7 @@ export async function obtenerHub(
       proximosEventosJugador(elegido.escuelaId, elegido.categoriaId, elegido.id),
       ultimoPartidoJugador(elegido.escuelaId, elegido.categoriaId),
       noticiasDeJugador(elegido.escuelaId, elegido.categoriaId),
+      obtenerEscuela(elegido.escuelaId),
     ]);
   if (!full) throw new NotFoundError("Jugador no encontrado.");
 
@@ -115,7 +127,10 @@ export async function obtenerHub(
     full.consentimientoFoto && full.fotoUrl
       ? `/api/archivos/foto/${full.id}`
       : null;
-  const card = stats ? aPlayerCardData(full, stats, fotoUrl) : null;
+  const escudoUrl = escuela?.logoUrl
+    ? `/api/archivos/escudo/${elegido.escuelaId}`
+    : undefined;
+  const card = stats ? aPlayerCardData(full, stats, fotoUrl, escudoUrl) : null;
 
   const evolucion: EvolucionPunto[] = evals
     .filter((e) => e.statsCalculados)
@@ -210,6 +225,7 @@ export async function obtenerHub(
       tieneFoto: !!full.fotoUrl,
       consentimiento: full.consentimientoFoto,
     },
+    avatarConfig: parseAvatarConfig(full.avatarConfig),
     proximos,
     ultimoPartido,
     noticias: noticiasRows.map((n) => ({

@@ -76,6 +76,20 @@ export async function jugadorIdsDeCategorias(
   return rows.map((r) => r.id);
 }
 
+/** Datos mínimos de varios jugadores (para etiquetar conversaciones). */
+export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
+  return db.jugador.findMany({
+    where: { escuelaId, id: { in: ids } },
+    select: {
+      id: true,
+      nombre: true,
+      apellido: true,
+      categoriaId: true,
+      categoria: { select: { nombre: true } },
+    },
+  });
+}
+
 /** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
 export function listarHijos(userId: string) {
   return db.jugador.findMany({
@@ -119,6 +133,10 @@ export function obtenerJugadorParaFoto(id: string) {
 
 export function actualizarFotoJugador(id: string, fotoUrl: string) {
   return db.jugador.update({ where: { id }, data: { fotoUrl } });
+}
+
+export function actualizarAvatarJugador(id: string, avatarConfig: string) {
+  return db.jugador.update({ where: { id }, data: { avatarConfig } });
 }
 
 export function actualizarConsentimientoJugador(

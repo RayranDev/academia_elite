@@ -9,6 +9,7 @@ declare module "sharp" {
       opts?: { fit?: string; withoutEnlargement?: boolean },
     ): SharpInstance;
     webp(opts?: { quality?: number }): SharpInstance;
+    png(opts?: { compressionLevel?: number }): SharpInstance;
     toBuffer(): Promise<Buffer>;
   }
   function sharp(input: Buffer | Uint8Array): SharpInstance;

@@ -5,8 +5,13 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
-import { subirFoto, actualizarConsentimiento } from "@/services/foto.service";
+import {
+  subirFoto,
+  actualizarConsentimiento,
+  actualizarAvatar,
+} from "@/services/foto.service";
 import { MAX_FOTO_BYTES } from "@/lib/foto/process";
+import { avatarConfigSchema } from "@/lib/validators/avatar";
 
 export async function subirFotoAction(
   _prev: ActionResult | undefined,
@@ -30,6 +35,32 @@ export async function subirFotoAction(
     }
     const buf = Buffer.from(await file.arrayBuffer());
     await subirFoto(ctx, jugadorId, buf);
+    revalidatePath("/jugador");
+    revalidatePath("/jugador/perfil");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function actualizarAvatarAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const jugadorId = formData.get("jugadorId");
+    if (typeof jugadorId !== "string" || !jugadorId) {
+      throw new ValidationError("Jugador inválido.");
+    }
+    const parsed = avatarConfigSchema.safeParse({
+      genero: formData.get("genero"),
+      piel: formData.get("piel"),
+      peinado: formData.get("peinado"),
+      cabello: formData.get("cabello"),
+    });
+    if (!parsed.success) throw new ValidationError("Configuración inválida.");
+    await actualizarAvatar(ctx, jugadorId, parsed.data);
     revalidatePath("/jugador");
     revalidatePath("/jugador/perfil");
     return { ok: true };
