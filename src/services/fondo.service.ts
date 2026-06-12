@@ -146,6 +146,21 @@ export async function equiparFondo(
   await equiparFondoJugador(hijo.id, fondoId);
 }
 
+export interface FondoCatalogoDTO {
+  codigo: string;
+  nombre: string;
+  estilo: string;
+}
+
+/** Catálogo de fondos (solo estilos) para el simulador del Súper Admin. */
+export async function listarCatalogoFondos(
+  ctx: AuthContext,
+): Promise<FondoCatalogoDTO[]> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const fondos = await listarFondos();
+  return fondos.map((f) => ({ codigo: f.codigo, nombre: f.nombre, estilo: f.estilo }));
+}
+
 /** Estilo del fondo equipado por el jugador (para pintar la carta). null si no. */
 export async function estiloFondoEquipado(hijo: Hijo): Promise<string | null> {
   if (!hijo.fondoEquipadoId) return null;

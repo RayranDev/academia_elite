@@ -105,6 +105,13 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
             {pending ? "Entrando…" : entrando ? "¡Adelante!" : "Entrar"}
           </Button>
         </form>
+
+        <p className="mt-5 text-center text-sm text-muted">
+          ¿Eres familia y aún no tienes cuenta?{" "}
+          <Link href="/registro" className="font-semibold text-pitch hover:underline">
+            Regístrate
+          </Link>
+        </p>
       </Card>
 
       {entrando && <LoginTransition />}

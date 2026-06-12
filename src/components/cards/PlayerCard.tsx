@@ -76,8 +76,10 @@ const STAT_LABELS: [keyof PlayerCardData["stats"], string][] = [
   ["fis", "FIS"],
 ];
 
+// Máscara que funde la foto con el material. Centrada algo más arriba y más
+// alta para NO recortar la parte superior de la cabeza.
 const FOTO_MASK =
-  "radial-gradient(ellipse 72% 82% at 50% 42%, #000 55%, transparent 100%)";
+  "radial-gradient(ellipse 82% 96% at 50% 36%, #000 62%, transparent 100%)";
 
 // Grano "gold foil": ruido fractal SVG inline (sin assets externos).
 const FOIL_GRANO = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`;
@@ -114,7 +116,11 @@ export function PlayerCard({
 }: PlayerCardProps) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-  const material = MATERIAL[data.nivel];
+  // El marco de nivel se asigna automáticamente por OVR, pero el morado de
+  // Héroe es un fondo ESPECIAL: solo aplica si está desbloqueado y equipado;
+  // si no, la carta de un OVR de Héroe se muestra con el marco Oro.
+  const nivelVisual: Nivel = data.nivel === "HEROE" && !data.heroeEquipado ? "ORO" : data.nivel;
+  const material = MATERIAL[nivelVisual];
   const s = SIZE[size];
   const enableTilt = interactive && !reduce;
   const animarMaterial = size === "hero"; // efectos animados solo en la carta protagonista
@@ -264,7 +270,9 @@ export function PlayerCard({
             <img
               src={data.fotoUrl}
               alt={seedAvatar}
-              className="absolute inset-0 h-full w-full object-cover"
+              // object-top ancla la cabeza arriba (la foto ya viene recortada 3:4);
+              // el contenedor es transparente, el fondo lo pone la carta.
+              className="absolute inset-0 h-full w-full bg-transparent object-cover object-top"
               style={{ WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
             />
           ) : (

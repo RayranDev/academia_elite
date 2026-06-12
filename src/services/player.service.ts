@@ -117,18 +117,22 @@ export async function obtenerHub(
   if (!full) throw new NotFoundError("Jugador no encontrado.");
 
   const stats = full.stats[0] ?? null;
+  // `?v=<archivo>`: el nombre del archivo (UUID) cambia en cada subida, así que
+  // sirve de cache-buster para que el navegador muestre la foto nueva al instante.
   const fotoUrl =
     full.consentimientoFoto && full.fotoUrl
-      ? `/api/archivos/foto/${full.id}`
+      ? `/api/archivos/foto/${full.id}?v=${encodeURIComponent(full.fotoUrl)}`
       : null;
   const escudoUrl = escuela?.logoUrl
     ? `/api/archivos/escudo/${elegido.escuelaId}`
     : undefined;
   const card = stats ? aPlayerCardData(full, stats, fotoUrl, escudoUrl) : null;
-  // Fondo desbloqueado y equipado por el jugador (detrás del retrato).
+  // Fondo desbloqueado y equipado por el jugador (detrás del retrato). El marco
+  // Héroe (morado) solo se activa si el fondo equipado es el especial "LEYENDA".
   if (card && elegido.fondoEquipadoId) {
     const fondo = await obtenerFondo(elegido.fondoEquipadoId);
     card.fondoEstilo = fondo?.estilo ?? null;
+    card.heroeEquipado = fondo?.codigo === "LEYENDA";
   }
 
   const evolucion: EvolucionPunto[] = evals

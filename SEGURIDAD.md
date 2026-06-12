@@ -32,6 +32,7 @@ Sección 6.8 del Plan Maestro a **cada** frontera de la aplicación.
 |---|---|---|---|
 | `POST /api/leads` | Zod | Honeypot + tiempo mínimo + rate limit 3/h + `Sec-Fetch-Site`/Origin | Respuestas genéricas; honeypot responde 200 silencioso |
 | `registrarConCodigoAction` | Zod | Rate limit 5/h por IP | Valida vigencia/usos del código en transacción; crea jugador PENDIENTE |
+| `vincularHijoAction` | Zod | Rate limit 5/h por IP | Vincula al padre con un hijo existente (código escuela + código jugador). Si el jugador ya tiene padre o el email existe → error y NO se crea cuenta (transacción) |
 | `GET /api/auth/[...nextauth]` | Auth.js | Rate limit login 5/min (acción `login`) | bcrypt factor 12; errores genéricos |
 | `GET /api/salir` | — | — | Solo borra cookies `authjs*` y redirige a `/login` |
 

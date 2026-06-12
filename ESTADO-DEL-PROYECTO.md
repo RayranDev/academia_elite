@@ -73,10 +73,10 @@ Mensaje, Anuncio, Notificación, Lead, AuditLog, ObjetivoJugador, Logro,
 LogroEscuela, LogroJugador, ProgresoSemanal, ParametroFormula, ParametroEscuela,
 FondoCarta, FondoDesbloqueado, etc.
 
-### Migraciones (6)
+### Migraciones (7)
 
 `init` → `avatar_config` → `progreso_semanal` → `gestion_bloqueo_logros` →
-`parametro_escuela` → `fondos_carta`.
+`parametro_escuela` → `fondos_carta` → `codigo_jugador`.
 
 ---
 
@@ -192,6 +192,14 @@ Fix `Body exceeded 1 MB` (`bodySizeLimit`) · importación migrada a **Excel
 **6 columnas** · **foto con compresión + recorte 3:4** en cliente · **fondos de
 carta por méritos** (configurable). *(88 unit / 8 E2E)* — ver
 [CORRECCIONES-SPRINT-M1.md](CORRECCIONES-SPRINT-M1.md).
+
+### Sprint M.2 — Carta, foto y registro del padre (✅)
+Encuadre de la foto (cabeza completa) · reactividad al cambiar foto
+(cache-buster) · foto transparente + marco por nivel con **Héroe especial** ·
+**registro/vinculación del padre por códigos** (`codigoJugador`, página
+`/registro`) · **descarga de la carta con marca de agua** · simulador del SA que
+prueba fondos/avatares/fotos. *(91 unit / 8 E2E)* — ver
+[CORRECCIONES-SPRINT-M2.md](CORRECCIONES-SPRINT-M2.md).
 
 ### Próximo — Sprint 8 (producción)
 Despliegue, Postgres/Supabase + RLS, Upstash, emails/WhatsApp reales (ver §5).

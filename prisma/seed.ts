@@ -13,6 +13,7 @@ import {
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { CATALOGO_LOGROS } from "./seed-logros";
+import { generarCodigoInvitacion } from "../src/lib/codes";
 import type { Posicion } from "@/types";
 
 /**
@@ -51,6 +52,7 @@ async function limpiar() {
   await db.logro.deleteMany();
   await db.codigoInvitacion.deleteMany();
   await db.entrenadorCategoria.deleteMany();
+  await db.fondoDesbloqueado.deleteMany();
   await db.jugador.deleteMany();
   await db.entrenador.deleteMany();
   await db.cancha.deleteMany();
@@ -58,6 +60,8 @@ async function limpiar() {
   await db.categoria.deleteMany();
   await db.lead.deleteMany();
   await db.parametroFormula.deleteMany();
+  await db.parametroEscuela.deleteMany();
+  await db.fondoCarta.deleteMany();
   await db.user.deleteMany();
   await db.escuela.deleteMany();
 }
@@ -204,6 +208,7 @@ async function main() {
       data: {
         escuelaId: escuela.id,
         categoriaId,
+        codigoJugador: esCuentaDemo ? "LUCAS25" : generarCodigoInvitacion(),
         nombre,
         apellido,
         fechaNacimiento,

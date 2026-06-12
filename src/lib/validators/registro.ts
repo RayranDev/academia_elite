@@ -20,3 +20,18 @@ export const registroSchema = z.object({
 });
 
 export type RegistroInput = z.infer<typeof registroSchema>;
+
+/**
+ * Vinculación del padre con un hijo YA creado: el padre crea su cuenta e indica
+ * el código de la escuela (slug) y el código del jugador. La BD vincula su
+ * cuenta al perfil del hijo para que vea sus stats.
+ */
+export const vincularHijoSchema = z.object({
+  codigoEscuela: z.string().trim().toLowerCase().min(2, { error: "Código de escuela requerido." }).max(60),
+  codigoJugador: z.string().trim().toUpperCase().min(4, { error: "Código de jugador requerido." }).max(12),
+  padreNombre: z.string().trim().min(2, { error: "Tu nombre es requerido." }).max(120),
+  padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+  password: passwordSchema,
+});
+
+export type VincularHijoInput = z.infer<typeof vincularHijoSchema>;

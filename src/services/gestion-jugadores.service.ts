@@ -28,6 +28,7 @@ export interface JugadorGestionDTO {
   estado: string;
   categoriaId: string;
   categoriaNombre: string;
+  codigoJugador: string | null;
   familiaEmail: string | null;
   familiaNombre: string | null;
   bloqueado: boolean;
@@ -50,6 +51,7 @@ function aDTO(j: JugadorGestionRow): JugadorGestionDTO {
     estado: j.estado,
     categoriaId: j.categoria.id,
     categoriaNombre: j.categoria.nombre,
+    codigoJugador: j.codigoJugador,
     familiaEmail: familia?.email ?? null,
     familiaNombre: j.padre?.nombre ?? null,
     bloqueado: familia?.bloqueado ?? false,

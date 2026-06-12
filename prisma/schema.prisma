@@ -124,6 +124,7 @@ model Jugador {
   padre                   User?              @relation(fields: [padreUserId], references: [id])
   cuentaUserId            String?            @unique
   cuentaUser              User?              @relation("CuentaJugador", fields: [cuentaUserId], references: [id])
+  codigoJugador           String?            @unique // código propio del jugador para que el padre lo vincule
   nombre                  String
   apellido                String
   fechaNacimiento         DateTime

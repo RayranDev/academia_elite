@@ -1,10 +1,14 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerConfigSimulador } from "@/services/parametro.service";
+import { listarCatalogoFondos } from "@/services/fondo.service";
 import { SimuladorCarta } from "@/components/admin/SimuladorCarta";
 
 export default async function SimuladorPage() {
   const ctx = await requireAuthContext();
-  const { rangosPorGrupo, pesoMen, umbrales } = await obtenerConfigSimulador(ctx);
+  const [{ rangosPorGrupo, pesoMen, umbrales }, fondos] = await Promise.all([
+    obtenerConfigSimulador(ctx),
+    listarCatalogoFondos(ctx),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -14,7 +18,7 @@ export default async function SimuladorPage() {
         las evaluaciones reales. Sirve para saber qué marcas necesita un
         jugador para alcanzar cada nivel.
       </p>
-      <SimuladorCarta rangosPorGrupo={rangosPorGrupo} pesoMen={pesoMen} umbrales={umbrales} />
+      <SimuladorCarta rangosPorGrupo={rangosPorGrupo} pesoMen={pesoMen} umbrales={umbrales} fondos={fondos} />
     </div>
   );
 }

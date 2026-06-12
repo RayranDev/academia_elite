@@ -32,7 +32,10 @@ export function FotoConsentimiento({
   const [imagen, setImagen] = useState<string | null>(null); // dataURL para recortar
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const [version, setVersion] = useState(0); // cache-buster tras subir
   const [subiendo, startTransition] = useTransition();
+
+  const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
 
   async function alElegirArchivo(e: React.ChangeEvent<HTMLInputElement>) {
     setError(null);
@@ -67,6 +70,7 @@ export function FotoConsentimiento({
       if (res.ok) {
         setImagen(null);
         setOk(true);
+        setVersion(Date.now()); // fuerza recarga de la previsualización
         router.refresh();
       } else {
         setError(res.error);
@@ -91,9 +95,9 @@ export function FotoConsentimiento({
           {tieneFoto && consentimiento ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={`/api/archivos/foto/${jugadorId}`}
+              src={fotoSrc}
               alt="Foto del jugador"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover object-top"
             />
           ) : (
             <PlayerAvatar config={avatarConfig} seed={seed} className="h-full w-full" />

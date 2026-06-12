@@ -181,3 +181,31 @@ cambió de API, se adapta y se documenta aquí).
     Galería /jugador/fondos: desbloqueados a color con Equipar, bloqueados en
     gris con candado y el mérito que falta. El fondo equipado se pinta detrás
     del jugador en la carta.
+
+## Sprint M.2 (encuadre, reactividad, fondos, registro padre, descarga)
+
+29. **Encuadre de foto.** La carta usa object-cover + object-top y una máscara
+    centrada más arriba para no recortar la cabeza; el recorte 3:4 (M.1) ya
+    centra el rostro. El contenedor del retrato es transparente (el color lo pone
+    el material de la carta, no la foto).
+30. **Reactividad de la foto (cache-buster).** La URL pública de la foto lleva
+    `?v=<archivo>` (el nombre UUID cambia en cada subida) para forzar al navegador
+    a recargar al instante; el editor además usa una versión local tras subir.
+31. **Material por nivel con Héroe especial.** El marco se asigna por OVR, pero el
+    morado de Héroe NO se aplica solo por OVR: la carta cae a Oro salvo que el
+    jugador tenga equipado el fondo especial "LEYENDA" (desbloqueado por méritos,
+    M.1). `PlayerCardData.heroeEquipado` controla el marco.
+32. **Registro/vinculación del padre (aditivo).** Cada jugador tiene
+    `codigoJugador` (único, generado al crearse). Nueva página pública `/registro`:
+    el padre se VINCULA a un hijo existente (código de escuela = slug + código de
+    jugador) o registra a un hijo NUEVO con código de invitación. La vinculación
+    es transaccional: si falla (jugador inexistente, ya tiene padre o email
+    duplicado) NO queda ninguna cuenta a medias (no hay borrado lógico que
+    limpiar) y se muestra el aviso. DT/Escuela/SA ven el `codigoJugador` en la
+    gestión para entregárselo a la familia.
+33. **Descarga de carta con marca de agua (html-to-image).** Botón en el hub que
+    exporta la carta a PNG; inyecta "Academia Elite — Donde nacen las estrellas ·
+    academia-elite.app" solo en el archivo (no en la web). Se eligió html-to-image
+    por su mejor compatibilidad con Tailwind v4 (oklch) y gradientes.
+34. **Simulador del SA con apariencia.** El simulador prueba fondos (catálogo),
+    avatar aleatorio y foto (con recorte), todo como previsualización sin guardar.

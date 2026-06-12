@@ -44,6 +44,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     men: 90,
     fotoUrl: "/nino_carta.png",
     dorsal: 9,
+    heroeEquipado: true, // escaparate: muestra el marco especial de Héroe
   },
 };
 

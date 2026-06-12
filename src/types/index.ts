@@ -91,6 +91,7 @@ export interface PlayerCardData {
   dorsal?: number;
   avatarConfig?: AvatarConfigV2 | null;
   fondoEstilo?: string | null; // CSS del fondo equipado (detrás del jugador)
+  heroeEquipado?: boolean; // el marco Héroe (morado) solo aplica si está desbloqueado y equipado
 }
 
 // --- Avatar SVG editable (jugador) ---

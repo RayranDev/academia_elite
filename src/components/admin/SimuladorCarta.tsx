@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { FotoCropper } from "@/components/jugador/FotoCropper";
+import { prepararParaRecorte } from "@/lib/foto/cliente";
+import { avatarDesdeSeed } from "@/lib/avatar/config";
+import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
+import type { FondoCatalogoDTO } from "@/services/fondo.service";
 import {
   computeStats,
   type GrupoEdad,
@@ -63,14 +69,30 @@ export function SimuladorCarta({
   rangosPorGrupo,
   pesoMen,
   umbrales,
+  fondos,
 }: {
   rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
   pesoMen: number;
   umbrales: UmbralesNivel;
+  fondos: FondoCatalogoDTO[];
 }) {
   const [medidas, setMedidas] = useState<MedidasEvaluacion>(INICIAL);
   const [posicion, setPosicion] = useState<Posicion>("DEL");
   const [grupo, setGrupo] = useState<GrupoEdad>("SUB12");
+  // Apariencia (solo previsualización, no se guarda nada).
+  const [fondoCodigo, setFondoCodigo] = useState("");
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfigV2 | null>(null);
+  const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [imagenCrop, setImagenCrop] = useState<string | null>(null);
+  const inputFoto = useRef<HTMLInputElement>(null);
+
+  const fondoSel = fondos.find((f) => f.codigo === fondoCodigo) ?? null;
+
+  async function alElegirFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) setImagenCrop(await prepararParaRecorte(file));
+    if (inputFoto.current) inputFoto.current.value = "";
+  }
 
   const resultado = useMemo(
     () =>
@@ -99,8 +121,11 @@ export function SimuladorCarta({
       fis: resultado.fis,
     },
     men: resultado.men,
-    fotoUrl: null,
+    fotoUrl,
     dorsal: 10,
+    avatarConfig,
+    fondoEstilo: fondoSel?.estilo ?? null,
+    heroeEquipado: fondoSel?.codigo === "LEYENDA",
   };
 
   function set(key: keyof MedidasEvaluacion, v: number) {
@@ -164,6 +189,42 @@ export function SimuladorCarta({
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Técnica y mentalidad (notas 1-10)</h2>
           <div className="grid gap-3 sm:grid-cols-2">{NOTAS.map(campo)}</div>
         </Card>
+        <Card>
+          <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Apariencia (prueba)</h2>
+          <div className="space-y-3">
+            <label className="block text-sm">
+              <span className="mb-1 block text-xs text-muted">Fondo</span>
+              <select
+                value={fondoCodigo}
+                onChange={(e) => setFondoCodigo(e.target.value)}
+                className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                <option value="">Sin fondo (material por nivel)</option>
+                {fondos.map((f) => (
+                  <option key={f.codigo} value={f.codigo}>{f.nombre}</option>
+                ))}
+              </select>
+            </label>
+
+            <div>
+              <span className="mb-1 block text-xs text-muted">Retrato</span>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="secondary" onClick={() => { setAvatarConfig(avatarDesdeSeed(String(Math.random()))); setFotoUrl(null); }}>
+                  Avatar aleatorio
+                </Button>
+                <input ref={inputFoto} type="file" accept="image/*" onChange={alElegirFoto} className="hidden" />
+                <Button type="button" size="sm" variant="secondary" onClick={() => inputFoto.current?.click()}>
+                  Probar foto…
+                </Button>
+                {(fotoUrl || avatarConfig) && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => { setFotoUrl(null); setAvatarConfig(null); }}>
+                    Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="flex flex-col items-center gap-4">
@@ -184,6 +245,18 @@ export function SimuladorCarta({
           </p>
         </Card>
       </div>
+
+      {imagenCrop && (
+        <FotoCropper
+          imagen={imagenCrop}
+          procesando={false}
+          onConfirmar={(blob) => {
+            setFotoUrl(URL.createObjectURL(blob));
+            setImagenCrop(null);
+          }}
+          onCancelar={() => setImagenCrop(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { generarCodigoInvitacion } from "@/lib/codes";
 
 // Repositorio de jugadores (Capa 4). Firma con escuelaId (multi-tenant).
 
@@ -53,7 +54,10 @@ export function crearJugador(
     estado: string;
   },
 ) {
-  return db.jugador.create({ data: { escuelaId, ...data } });
+  // Cada jugador nace con su código propio (para que el padre lo vincule).
+  return db.jugador.create({
+    data: { escuelaId, codigoJugador: generarCodigoInvitacion(), ...data },
+  });
 }
 
 export function actualizarEstadoJugador(
@@ -62,6 +66,17 @@ export function actualizarEstadoJugador(
   estado: string,
 ) {
   return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
+}
+
+/** Busca un jugador por su código dentro de una escuela (para vincular padre). */
+export function obtenerJugadorPorCodigo(escuelaId: string, codigoJugador: string) {
+  return db.jugador.findFirst({
+    where: { escuelaId, codigoJugador, estado: { not: "ELIMINADO" } },
+  });
+}
+
+export function vincularPadre(jugadorId: string, padreUserId: string) {
+  return db.jugador.update({ where: { id: jugadorId }, data: { padreUserId } });
 }
 
 /** Datos mínimos de los jugadores de una escuela para detectar duplicados. */

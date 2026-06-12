@@ -110,7 +110,19 @@ export function JugadoresGestion({
                 </p>
                 <p className="text-xs text-muted">
                   {j.categoriaNombre} · {j.posicion}
-                  {j.familiaEmail && <> · {j.familiaEmail}</>}
+                  {j.familiaEmail ? (
+                    <> · {j.familiaEmail}</>
+                  ) : (
+                    j.codigoJugador && (
+                      <>
+                        {" "}
+                        · sin familia · código{" "}
+                        <span className="select-all font-mono font-semibold text-foreground">
+                          {j.codigoJugador}
+                        </span>
+                      </>
+                    )
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-1.5">
