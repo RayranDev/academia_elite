@@ -5,8 +5,14 @@ import {
   computeStats,
   grupoEdadPorEdad,
   edadEnAnios,
+  RANGOS_POR_GRUPO,
+  PRUEBAS_FISICAS,
+  claveRango,
+  ETIQUETA_PRUEBA,
+  type GrupoEdad,
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
+import { CATALOGO_LOGROS } from "./seed-logros";
 import type { Posicion } from "@/types";
 
 /**
@@ -39,7 +45,9 @@ async function limpiar() {
   await db.statsCalculados.deleteMany();
   await db.evaluacion.deleteMany();
   await db.objetivoJugador.deleteMany();
+  await db.progresoSemanal.deleteMany();
   await db.logroJugador.deleteMany();
+  await db.logroEscuela.deleteMany();
   await db.logro.deleteMany();
   await db.codigoInvitacion.deleteMany();
   await db.entrenadorCategoria.deleteMany();
@@ -211,25 +219,26 @@ async function main() {
     jugadoresCreados.push({ id: j.id, posicion, fechaNacimiento, index: i });
   }
 
-  // 8) Parámetros de fórmula (rangos por grupo de edad + peso de MEN).
+  // 8) Parámetros de fórmula: peso de MEN + rangos físicos por grupo de edad
+  //    (G8: editables por el Súper Admin; el motor cae al embebido si faltan).
   const parametros: { clave: string; valor: number; descripcion: string }[] = [
     { clave: "PESO_MEN_EN_OVR", valor: 0.1, descripcion: "Peso de MEN en el OVR (0.10)." },
-    // Sprint 4 ampliará con rangos por edad (RANGO_SPRINT_SUB12_MIN, etc.).
   ];
+  for (const grupo of Object.keys(RANGOS_POR_GRUPO) as GrupoEdad[]) {
+    for (const prueba of PRUEBAS_FISICAS) {
+      const r = RANGOS_POR_GRUPO[grupo][prueba];
+      const etiqueta = ETIQUETA_PRUEBA[prueba];
+      const [mejor, peor] = r.inverso ? ["mínimo (mejor marca)", "máximo (peor marca)"] : ["mínimo (peor marca)", "máximo (mejor marca)"];
+      parametros.push(
+        { clave: claveRango(prueba, grupo, "MIN"), valor: r.min, descripcion: `${etiqueta} · ${grupo} · ${mejor}.` },
+        { clave: claveRango(prueba, grupo, "MAX"), valor: r.max, descripcion: `${etiqueta} · ${grupo} · ${peor}.` },
+      );
+    }
+  }
   await db.parametroFormula.createMany({ data: parametros });
 
-  // 9) Catálogo de logros (seed de la Sección 11).
-  await db.logro.createMany({
-    data: [
-      { codigo: "ASISTENCIA_PERFECTA_SEMANA", nombre: "Asistencia perfecta", descripcion: "Asististe a todos los entrenamientos de la semana.", tipo: "BONUS", statBonus: "FIS", valorBonus: 1, repetible: true, icono: "calendar-check" },
-      { codigo: "MENTE_DE_ACERO", nombre: "Mente de acero", descripcion: "Tu MEN subió en 2 evaluaciones seguidas.", tipo: "INSIGNIA", icono: "brain" },
-      { codigo: "PRIMER_ORO", nombre: "Primer Oro", descripcion: "Tu carta alcanzó el nivel Oro.", tipo: "INSIGNIA", icono: "medal" },
-      { codigo: "CAPITAN_VESTUARIO", nombre: "Capitán de vestuario", descripcion: "Trabajo en equipo ≥ 9.", tipo: "INSIGNIA", icono: "armband" },
-      { codigo: "MEJOR_PROGRESO_MES", nombre: "Mejor progreso del mes", descripcion: "Fuiste quien más mejoró este mes.", tipo: "BONUS", statBonus: "RIT", valorBonus: 1, repetible: true, icono: "trending-up" },
-      { codigo: "DEBUT", nombre: "Debut", descripcion: "Confirmaste tu primera convocatoria.", tipo: "INSIGNIA", icono: "whistle" },
-      { codigo: "TEMPORADA_DE_HIERRO", nombre: "Temporada de hierro", descripcion: "10 asistencias seguidas.", tipo: "INSIGNIA", icono: "shield" },
-    ],
-  });
+  // 9) Catálogo de logros (~52, divididos por posición — G6).
+  await db.logro.createMany({ data: CATALOGO_LOGROS });
 
   // 9.b) Evaluaciones de ejemplo (calculadas con el motor) para que las cartas
   //      ya existan en la demo. La última de cada jugador alimenta su carta.

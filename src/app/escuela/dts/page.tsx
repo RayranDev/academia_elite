@@ -2,6 +2,9 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { listarDts } from "@/services/entrenador.service";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
 import { CrearDtDialog } from "@/components/escuela/CrearDtDialog";
+import { DtEditarDialog } from "@/components/escuela/DtEditarDialog";
+import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
+import { resetPasswordDtAction } from "@/actions/gestion.actions";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 
@@ -53,6 +56,17 @@ export default async function DtsPage() {
                   <Badge tono="alerta">Inactivo</Badge>
                 </div>
               )}
+              <div className="mt-3 flex flex-wrap gap-1 border-t border-subtle pt-2">
+                <DtEditarDialog
+                  dt={d}
+                  categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}
+                />
+                <ResetPasswordButton
+                  action={resetPasswordDtAction}
+                  campos={{ entrenadorId: d.id }}
+                  destinatario={d.email}
+                />
+              </div>
             </Card>
           ))}
         </div>

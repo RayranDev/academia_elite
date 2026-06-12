@@ -12,6 +12,12 @@ export {
   RANGOS_POR_GRUPO,
   grupoEdadPorEdad,
   edadEnAnios,
+  PRUEBAS_FISICAS,
+  CLAVE_PRUEBA,
+  ETIQUETA_PRUEBA,
+  claveRango,
+  rangosDesdeParametros,
+  type PruebaFisica,
 } from "./ranges";
 export { VERSION_FORMULA } from "./types";
 export type {

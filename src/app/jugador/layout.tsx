@@ -10,6 +10,7 @@ const NAV: NavItem[] = [
   { href: "/jugador/logros", label: "Logros", icon: "logros" },
   { href: "/jugador/progreso", label: "Progreso", icon: "progreso" },
   { href: "/jugador/perfil", label: "Perfil", icon: "perfil" },
+  { href: "/jugador/cuenta", label: "Mi cuenta", icon: "cuenta" },
 ];
 
 export default async function JugadorLayout({

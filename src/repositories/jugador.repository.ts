@@ -93,13 +93,65 @@ export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
 /** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
 export function listarHijos(userId: string) {
   return db.jugador.findMany({
-    where: { OR: [{ padreUserId: userId }, { cuentaUserId: userId }] },
+    where: {
+      OR: [{ padreUserId: userId }, { cuentaUserId: userId }],
+      estado: { not: "ELIMINADO" },
+    },
     include: {
       categoria: { select: { nombre: true } },
       stats: statsLatest,
     },
     orderBy: { createdAt: "asc" },
   });
+}
+
+/** Jugadores para gestión (Escuela/Súper Admin), con vínculos de familia. */
+export function listarJugadoresGestion(
+  escuelaId: string,
+  filtros: { categoriaId?: string; estados: string[] },
+) {
+  return db.jugador.findMany({
+    where: {
+      escuelaId,
+      estado: { in: filtros.estados },
+      ...(filtros.categoriaId ? { categoriaId: filtros.categoriaId } : {}),
+    },
+    include: {
+      categoria: { select: { id: true, nombre: true } },
+      padre: {
+        select: { id: true, nombre: true, email: true, bloqueado: true, bloqueoTipo: true },
+      },
+      cuentaUser: { select: { id: true, email: true, bloqueado: true } },
+    },
+    orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+  });
+}
+
+export function obtenerJugadorGestion(id: string) {
+  return db.jugador.findUnique({
+    where: { id },
+    include: {
+      categoria: { select: { id: true, nombre: true } },
+      padre: {
+        select: { id: true, nombre: true, email: true, bloqueado: true, bloqueoTipo: true },
+      },
+      cuentaUser: { select: { id: true, email: true, bloqueado: true } },
+    },
+  });
+}
+
+export function actualizarJugadorDatos(
+  id: string,
+  data: {
+    nombre: string;
+    apellido: string;
+    fechaNacimiento: Date;
+    posicion: string;
+    dorsal: number | null;
+    categoriaId: string;
+  },
+) {
+  return db.jugador.update({ where: { id }, data, select: { id: true } });
 }
 
 /** Jugador con todo lo necesario para el hub (carta, logros, objetivos). */

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleJugadorDt } from "@/services/jugador.service";
+import { credencialesFamiliaDt } from "@/services/gestion-jugadores.service";
+import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
+import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
 import { DomainError } from "@/lib/errors";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
@@ -19,8 +22,12 @@ export default async function JugadorDetallePage({
   const ctx = await requireAuthContext();
 
   let detalle;
+  let credenciales: { email: string | null; bloqueado: boolean };
   try {
-    detalle = await obtenerDetalleJugadorDt(ctx, id);
+    [detalle, credenciales] = await Promise.all([
+      obtenerDetalleJugadorDt(ctx, id),
+      credencialesFamiliaDt(ctx, id),
+    ]);
   } catch (e) {
     if (e instanceof DomainError) notFound();
     throw e;
@@ -86,6 +93,31 @@ export default async function JugadorDetallePage({
           )}
         </Card>
       </div>
+
+      <Card className="max-w-xl">
+        <h2 className="mb-1 text-lg font-bold">Cuenta de la familia</h2>
+        {credenciales.email ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-mono text-sm">{credenciales.email}</p>
+              {credenciales.bloqueado && (
+                <Badge tono="alerta" className="mt-1">
+                  Acceso bloqueado por la escuela
+                </Badge>
+              )}
+            </div>
+            <ResetPasswordButton
+              action={resetPasswordFamiliaDtAction}
+              campos={{ jugadorId: detalle.id }}
+              destinatario={`la familia de ${detalle.nombre} ${detalle.apellido}`}
+            />
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Este jugador aún no tiene cuenta de familia vinculada.
+          </p>
+        )}
+      </Card>
 
       <Card className="max-w-xl">
         <h2 className="mb-3 text-lg font-bold">Fijar objetivo de desarrollo</h2>

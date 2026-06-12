@@ -5,8 +5,16 @@ import {
   listarParametrosGlobal,
   obtenerParametroGlobal,
   actualizarParametroGlobal,
+  listarParametrosPorPrefijo,
 } from "@/repositories/parametro.repository";
 import { registrarAuditoria } from "@/services/audit.service";
+import {
+  rangosDesdeParametros,
+  type GrupoEdad,
+  type RangosFisicos,
+} from "@/lib/stats-engine";
+
+const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
 export interface ParametroDTO {
   clave: string;
@@ -26,6 +34,25 @@ export async function listarParametros(
     descripcion: p.descripcion,
     updatedAt: p.updatedAt.toISOString(),
   }));
+}
+
+/** Rangos por grupo (BD con fallback) + peso de MEN, para el simulador (G7). */
+export async function obtenerConfigSimulador(ctx: AuthContext): Promise<{
+  rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
+  pesoMen: number;
+}> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const [paramsRango, paramMen] = await Promise.all([
+    listarParametrosPorPrefijo("RANGO_"),
+    obtenerParametroGlobal("PESO_MEN_EN_OVR"),
+  ]);
+  const valores = Object.fromEntries(paramsRango.map((p) => [p.clave, p.valor]));
+  return {
+    rangosPorGrupo: Object.fromEntries(
+      GRUPOS.map((g) => [g, rangosDesdeParametros(valores, g)]),
+    ) as Record<GrupoEdad, RangosFisicos>,
+    pesoMen: paramMen?.valor ?? 0.1,
+  };
 }
 
 /** Actualiza un parámetro de fórmula. Queda auditado (solo afecta a evals futuras). */

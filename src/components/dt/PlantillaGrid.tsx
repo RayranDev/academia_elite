@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
@@ -19,12 +19,21 @@ export function PlantillaGrid({
   categorias: { id: string; nombre: string }[];
 }) {
   const [filtro, setFiltro] = useState<Filtro>("TODAS");
+  const [q, setQ] = useState("");
 
-  const visibles = jugadores.filter((j) => {
-    if (filtro === "TODAS") return true;
-    if (filtro === "VENCIDAS") return j.vencida;
-    return j.categoriaId === filtro;
-  });
+  const visibles = useMemo(() => {
+    const texto = q.trim().toLowerCase();
+    return jugadores.filter((j) => {
+      if (filtro === "VENCIDAS" && !j.vencida) return false;
+      if (filtro !== "TODAS" && filtro !== "VENCIDAS" && j.categoriaId !== filtro) {
+        return false;
+      }
+      if (texto && !`${j.nombre} ${j.apellido}`.toLowerCase().includes(texto)) {
+        return false;
+      }
+      return true;
+    });
+  }, [jugadores, filtro, q]);
 
   const chips: { id: Filtro; label: string }[] = [
     { id: "TODAS", label: "Todas" },
@@ -34,21 +43,33 @@ export function PlantillaGrid({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {chips.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setFiltro(c.id)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
-              filtro === c.id
-                ? "border-brand bg-brand/15 text-brand"
-                : "border-subtle text-muted hover:text-foreground",
-            )}
-          >
-            {c.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setFiltro(c.id)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                filtro === c.id
+                  ? "border-brand bg-brand/15 text-brand"
+                  : "border-subtle text-muted hover:text-foreground",
+              )}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <div className="relative ml-auto">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted" aria-hidden />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar jugador…"
+            aria-label="Buscar jugador"
+            className="rounded-lg border border-subtle bg-surface-2 py-2 pl-8 pr-3 text-sm outline-none focus:border-brand"
+          />
+        </div>
       </div>
 
       {visibles.length === 0 ? (

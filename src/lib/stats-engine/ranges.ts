@@ -40,6 +40,63 @@ export const RANGOS_POR_GRUPO: Record<GrupoEdad, RangosFisicos> = {
   },
 };
 
+// --- Rangos editables en BD (G8) -------------------------------------------
+// Claves en ParametroFormula: RANGO_<PRUEBA>_<GRUPO>_<MIN|MAX>, p. ej.
+// "RANGO_SPRINT_SUB12_MIN". `inverso` no es editable (es propio de la prueba).
+
+export const PRUEBAS_FISICAS = [
+  "sprint30mSeg",
+  "saltoVerticalCm",
+  "agilidadIllinoisSeg",
+  "resistenciaYoyoNivel",
+] as const;
+export type PruebaFisica = (typeof PRUEBAS_FISICAS)[number];
+
+export const CLAVE_PRUEBA: Record<PruebaFisica, string> = {
+  sprint30mSeg: "SPRINT",
+  saltoVerticalCm: "SALTO",
+  agilidadIllinoisSeg: "AGILIDAD",
+  resistenciaYoyoNivel: "YOYO",
+};
+
+export const ETIQUETA_PRUEBA: Record<PruebaFisica, string> = {
+  sprint30mSeg: "Sprint 30 m (segundos)",
+  saltoVerticalCm: "Salto vertical (cm)",
+  agilidadIllinoisSeg: "Agilidad Illinois (segundos)",
+  resistenciaYoyoNivel: "Resistencia Yo-Yo (nivel)",
+};
+
+export function claveRango(
+  prueba: PruebaFisica,
+  grupo: GrupoEdad,
+  extremo: "MIN" | "MAX",
+): string {
+  return `RANGO_${CLAVE_PRUEBA[prueba]}_${grupo}_${extremo}`;
+}
+
+/**
+ * Construye los rangos de un grupo a partir de los valores en BD
+ * (`clave → valor`), con fallback al rango embebido cuando falta alguno.
+ * Pura: testeable sin BD.
+ */
+export function rangosDesdeParametros(
+  valores: Record<string, number>,
+  grupo: GrupoEdad,
+): RangosFisicos {
+  const base = RANGOS_POR_GRUPO[grupo];
+  const out = {} as RangosFisicos;
+  for (const prueba of PRUEBAS_FISICAS) {
+    const min = valores[claveRango(prueba, grupo, "MIN")];
+    const max = valores[claveRango(prueba, grupo, "MAX")];
+    out[prueba] = {
+      min: typeof min === "number" ? min : base[prueba].min,
+      max: typeof max === "number" ? max : base[prueba].max,
+      inverso: base[prueba].inverso,
+    };
+  }
+  return out;
+}
+
 /** Determina el grupo de edad a partir de la edad en años. */
 export function grupoEdadPorEdad(edadAnios: number): GrupoEdad {
   if (edadAnios <= 8) return "SUB8";

@@ -49,9 +49,11 @@ export async function requireAuthContext(): Promise<AuthContext> {
   if (!session?.user?.id) redirect("/login");
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { activo: true },
+    select: { activo: true, bloqueado: true, rol: true },
   });
   if (!user || !user.activo) redirect("/api/salir");
+  // Familia bloqueada por la escuela → pantalla con el motivo (G2).
+  if (user.bloqueado && user.rol === "JUGADOR") redirect("/bloqueado");
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
   return ctx;
@@ -77,11 +79,13 @@ export async function requirePanelUser(rol: Rol): Promise<{
   // dejar que las consultas de tenant fallen con un 500.
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, activo: true },
+    select: { id: true, activo: true, bloqueado: true },
   });
   // Redirige a un endpoint que limpia la cookie (si fuéramos a /login el proxy
   // nos reenviaría al panel y entraríamos en bucle).
   if (!user || !user.activo) redirect("/api/salir");
+  // Familia bloqueada por la escuela → pantalla con el motivo (G2).
+  if (user.bloqueado && actual === "JUGADOR") redirect("/bloqueado");
 
   return {
     id: session.user.id,

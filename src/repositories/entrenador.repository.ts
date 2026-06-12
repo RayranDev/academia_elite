@@ -32,3 +32,26 @@ export function listarEntrenadores(escuelaId: string) {
     orderBy: { user: { nombre: "asc" } },
   });
 }
+
+export function obtenerEntrenador(escuelaId: string, id: string) {
+  return db.entrenador.findFirst({
+    where: { id, escuelaId },
+    include: {
+      user: { select: { id: true, nombre: true, email: true, activo: true } },
+      categorias: { select: { categoriaId: true } },
+    },
+  });
+}
+
+/** Sustituye las categorías asignadas a un entrenador (atómico). */
+export function reemplazarCategoriasEntrenador(
+  entrenadorId: string,
+  categoriaIds: string[],
+) {
+  return db.$transaction([
+    db.entrenadorCategoria.deleteMany({ where: { entrenadorId } }),
+    db.entrenadorCategoria.createMany({
+      data: categoriaIds.map((categoriaId) => ({ entrenadorId, categoriaId })),
+    }),
+  ]);
+}

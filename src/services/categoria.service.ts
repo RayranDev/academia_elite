@@ -30,6 +30,22 @@ export async function listarCategoriasEscuela(
   }));
 }
 
+/** Categorías de una escuela concreta para el panel global (Súper Admin). */
+export async function listarCategoriasAdmin(
+  ctx: AuthContext,
+  escuelaId: string,
+): Promise<CategoriaDTO[]> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const rows = await listarCategorias(escuelaId);
+  return rows.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    anioDesde: c.anioDesde,
+    anioHasta: c.anioHasta,
+    jugadores: c._count.jugadores,
+  }));
+}
+
 export async function crearCategoriaEscuela(
   ctx: AuthContext,
   data: z.infer<typeof categoriaSchema>,

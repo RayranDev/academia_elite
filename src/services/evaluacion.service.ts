@@ -6,16 +6,22 @@ import { categoriasDelDt } from "@/services/dt-scope";
 import { registrarAuditoria } from "@/services/audit.service";
 import { obtenerJugador } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
-import { obtenerParametroGlobal } from "@/repositories/parametro.repository";
+import {
+  obtenerParametroGlobal,
+  listarParametrosPorPrefijo,
+} from "@/repositories/parametro.repository";
 import {
   bonusPendientes,
   obtenerEvaluacion,
   marcarEvaluacionAnulada,
 } from "@/repositories/evaluacion.repository";
+import { listarConfigLogrosEscuela } from "@/repositories/logro.repository";
+import { logroDisponibleParaEscuela } from "@/lib/logros";
 import {
   computeStats,
   grupoEdadPorEdad,
   edadEnAnios,
+  rangosDesdeParametros,
   type BonusLogro,
   type MedidasEvaluacion,
   type ResultadoStats,
@@ -41,13 +47,28 @@ export async function crearEvaluacion(
     throw new ValidationError("Solo se evalúan jugadores activos.");
   }
 
-  const [escuela, paramMen, pendientes] = await Promise.all([
-    obtenerEscuela(escuelaId),
-    obtenerParametroGlobal("PESO_MEN_EN_OVR"),
-    bonusPendientes(jugador.id),
-  ]);
+  const [escuela, paramMen, pendientesTodos, configsLogros, paramsRango] =
+    await Promise.all([
+      obtenerEscuela(escuelaId),
+      obtenerParametroGlobal("PESO_MEN_EN_OVR"),
+      bonusPendientes(jugador.id),
+      listarConfigLogrosEscuela(escuelaId),
+      listarParametrosPorPrefijo("RANGO_"),
+    ]);
   const tope = escuela?.topeBonusEntreEvals ?? 3;
   const pesoMen = paramMen?.valor ?? 0.1;
+
+  // Solo cuentan logros activos y dentro de su ventana para la escuela (G6).
+  const configPorLogro = new Map(configsLogros.map((c) => [c.logroId, c]));
+  const ahora = new Date();
+  const pendientes = pendientesTodos.filter((lj) =>
+    logroDisponibleParaEscuela(
+      lj.logro,
+      escuelaId,
+      configPorLogro.get(lj.logroId) ?? null,
+      ahora,
+    ),
+  );
 
   // Capping de bonus en el servicio: decide qué logros se consumen (greedy
   // hasta el tope) y pasa solo esos al motor.
@@ -66,6 +87,11 @@ export async function crearEvaluacion(
   }
 
   const grupoEdad = grupoEdadPorEdad(edadEnAnios(jugador.fechaNacimiento));
+  // Rangos físicos editables por el Súper Admin (G8): BD con fallback embebido.
+  const valoresRango = Object.fromEntries(
+    paramsRango.map((p) => [p.clave, p.valor]),
+  );
+  const rangos = rangosDesdeParametros(valoresRango, grupoEdad);
   const medidas: MedidasEvaluacion = {
     sprint30mSeg: input.sprint30mSeg,
     saltoVerticalCm: input.saltoVerticalCm,
@@ -84,6 +110,7 @@ export async function crearEvaluacion(
   const resultado = computeStats(medidas, {
     posicion: jugador.posicion as Posicion,
     grupoEdad,
+    rangos,
     pesoMenEnOvr: pesoMen,
     topeBonus: tope,
     bonus,

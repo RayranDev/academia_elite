@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarEscuelas } from "@/services/escuela.service";
 import { Card } from "@/components/ui/Card";
@@ -35,12 +36,18 @@ export default async function EscuelasPage() {
                 <Badge>{e.jugadores} jugadores</Badge>
                 <Badge>{e.usuarios} usuarios</Badge>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex items-center justify-between">
                 {e.activa ? (
                   <Badge tono="pitch">Activa</Badge>
                 ) : (
                   <Badge tono="alerta">Inactiva</Badge>
                 )}
+                <Link
+                  href={`/admin/escuelas/${e.id}`}
+                  className="text-sm font-semibold text-brand hover:underline"
+                >
+                  Gestionar →
+                </Link>
               </div>
             </Card>
           ))}

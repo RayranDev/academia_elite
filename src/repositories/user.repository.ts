@@ -1,0 +1,71 @@
+import { db } from "@/lib/db";
+
+// Repositorio de usuarios (Capa 4). Nunca expone passwordHash hacia arriba.
+
+const SELECT_SEGURO = {
+  id: true,
+  email: true,
+  nombre: true,
+  rol: true,
+  escuelaId: true,
+  activo: true,
+  bloqueado: true,
+  bloqueoTipo: true,
+  bloqueoMensaje: true,
+  bloqueadoEn: true,
+  createdAt: true,
+} as const;
+
+export function obtenerUserSeguro(id: string) {
+  return db.user.findUnique({ where: { id }, select: SELECT_SEGURO });
+}
+
+/** Usuarios para el panel del Súper Admin, con filtros opcionales. */
+export function listarUsersAdmin(filtros: {
+  rol?: string;
+  escuelaId?: string;
+}) {
+  return db.user.findMany({
+    where: {
+      ...(filtros.rol ? { rol: filtros.rol } : {}),
+      ...(filtros.escuelaId ? { escuelaId: filtros.escuelaId } : {}),
+    },
+    select: { ...SELECT_SEGURO, escuela: { select: { nombre: true } } },
+    orderBy: [{ rol: "asc" }, { nombre: "asc" }],
+  });
+}
+
+export function actualizarUserDatos(
+  id: string,
+  data: { nombre?: string; email?: string; activo?: boolean },
+) {
+  return db.user.update({ where: { id }, data, select: { id: true } });
+}
+
+/** Aplica (o levanta) el bloqueo de acceso a un conjunto de usuarios. */
+export function actualizarBloqueoUsers(
+  ids: string[],
+  data: {
+    bloqueado: boolean;
+    bloqueoTipo: string | null;
+    bloqueoMensaje: string | null;
+    bloqueadoEn: Date | null;
+  },
+) {
+  return db.user.updateMany({ where: { id: { in: ids } }, data });
+}
+
+export function actualizarPasswordUser(id: string, passwordHash: string) {
+  return db.user.update({
+    where: { id },
+    data: { passwordHash },
+    select: { id: true },
+  });
+}
+
+export function obtenerPasswordHash(id: string) {
+  return db.user.findUnique({
+    where: { id },
+    select: { id: true, passwordHash: true },
+  });
+}

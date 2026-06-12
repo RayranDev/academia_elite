@@ -105,6 +105,29 @@ export async function actualizarBranding(
   });
 }
 
+/** Una escuela concreta para el panel global (Súper Admin). */
+export async function obtenerEscuelaAdmin(
+  ctx: AuthContext,
+  escuelaId: string,
+): Promise<{
+  id: string;
+  nombre: string;
+  slug: string;
+  colorPrimario: string;
+  activa: boolean;
+}> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const e = await obtenerEscuela(escuelaId);
+  if (!e) throw new NotFoundError("Escuela no encontrada.");
+  return {
+    id: e.id,
+    nombre: e.nombre,
+    slug: e.slug,
+    colorPrimario: e.colorPrimario,
+    activa: e.activa,
+  };
+}
+
 export async function listarEscuelas(ctx: AuthContext): Promise<EscuelaDTO[]> {
   requireRole(ctx, ["SUPER_ADMIN"]);
   const rows = await listarEscuelasGlobal();

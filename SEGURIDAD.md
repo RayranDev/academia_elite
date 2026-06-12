@@ -66,12 +66,43 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **jugador** · actualizarConsentimiento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **progreso** · validarSemana | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
+| **gestión** · editarJugador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **gestión** · cambiarEstadoJugador (inactivar/reactivar) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **gestión** · eliminarJugador (lógico, solo SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **gestión** · restaurarJugador (solo SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **bloqueo** · bloquear/desbloquearAcceso | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **gestión** · resetPasswordFamilia (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **gestión** · resetPasswordFamiliaDt (DT, sus categorías) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ |
+| **gestión** · actualizarDt / resetPasswordDt (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓⁵ |
+| **admin** · editarUsuario / resetPasswordUsuario (SA) | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓⁵ |
+| **admin** · editarEscuela (SA) | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | — |
+| **logro** · crear/editar/activar (catálogo global, SA) | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | — |
+| **logro** · crear/configurar/otorgar (DT, su escuela) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | — |
+| **cuenta** · cambiarMiPassword (todos) | ✓ | — | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 
 ¹ La longitud (≤2000) y la pertenencia del jugador acotan el abuso; rate limit
 de mensajes 30/h queda como refinamiento (Upstash en Fase 2).
 ² El `where` incluye `userId` del propio usuario: solo marca sus notificaciones.
 ³ Solo el responsable (padre/cuenta) del jugador; una validación por semana ISO
 (único `jugadorId+semana` también a nivel de BD).
+⁴ El DT solo opera sobre jugadores de **sus** categorías (`categoriasDelDt` +
+verificación de `categoriaId`); el logro debe estar disponible y dentro de
+ventana para su escuela (`logroDisponibleParaEscuela`).
+⁵ Rate limit compartido `resetpw:<userId>` 10/h y `cambiopw:<userId>` 5/h. Las
+contraseñas temporales se generan cripto-seguras y se muestran una sola vez;
+nunca se almacenan ni loguean en claro.
+
+### Bloqueo de acceso de familias (G2)
+- Lo aplican **ESCUELA_ADMIN** (su tenant) y **SUPER_ADMIN**; el DT solo lo ve.
+- Marca `User.bloqueado` de la cuenta de la familia (padre/cuenta del jugador).
+- `requireAuthContext`/`requirePanelUser` redirigen al JUGADOR bloqueado a
+  **`/bloqueado`**, que muestra el mensaje según el motivo (PAGO, COMPORTAMIENTO,
+  CONTACTA_DT o PERSONALIZADO). Los mensajes predefinidos viven en `lib/bloqueo`.
+
+### Eliminación lógica de jugadores (G3)
+- Solo **SUPER_ADMIN**; estado `ELIMINADO` (reversible con "restaurar").
+- La acción exige reescribir el nombre del jugador + motivo; auditada. Los
+  ELIMINADO se filtran de las listas (`listarHijos`, gestión por estado).
 
 ## Protección específica de menores (Sección 6.4)
 

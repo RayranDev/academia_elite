@@ -1,12 +1,33 @@
 import type { AuthContext } from "@/lib/auth/context";
 import type { TipoNotificacion } from "@/types";
 import {
+  registrarCanal,
+  despachar,
+  type MensajeNotificacion,
+} from "@/lib/notify/dispatcher";
+import {
   crearNotificaciones,
   listarNotificaciones,
   contarNoLeidas,
   marcarLeida,
   marcarTodasLeidas,
 } from "@/repositories/notificacion.repository";
+
+// Canal INAPP del despachador (G9): persiste en la tabla Notificacion.
+registrarCanal({
+  canal: "INAPP",
+  async enviar(userIds: string[], mensaje: MensajeNotificacion) {
+    await crearNotificaciones(
+      userIds.map((userId) => ({
+        userId,
+        tipo: mensaje.tipo,
+        titulo: mensaje.titulo,
+        cuerpo: mensaje.cuerpo ?? null,
+        url: mensaje.url ?? null,
+      })),
+    );
+  },
+});
 
 export interface NotificacionDTO {
   id: string;
@@ -18,21 +39,15 @@ export interface NotificacionDTO {
   createdAt: string;
 }
 
-/** Crea notificaciones in-app (uso interno del sistema; sin ctx). */
+/**
+ * Crea notificaciones (uso interno del sistema; sin ctx). Pasa por el
+ * despachador (G9): hoy solo INAPP; EMAIL/WHATSAPP se suman en Fase 2.
+ */
 export async function notificar(
   userIds: string[],
   data: { tipo: TipoNotificacion; titulo: string; cuerpo?: string; url?: string },
 ): Promise<void> {
-  const unicos = [...new Set(userIds.filter(Boolean))];
-  await crearNotificaciones(
-    unicos.map((userId) => ({
-      userId,
-      tipo: data.tipo,
-      titulo: data.titulo,
-      cuerpo: data.cuerpo ?? null,
-      url: data.url ?? null,
-    })),
-  );
+  await despachar(userIds, data, ["INAPP", "EMAIL", "WHATSAPP"]);
 }
 
 export async function listarMisNotificaciones(

@@ -26,6 +26,11 @@ model User {
   mensajesEnviados Mensaje[]      @relation("MensajesEnviados")
   notificaciones   Notificacion[]
   activo           Boolean        @default(true)
+  // Bloqueo de acceso (familias): lo gestionan Escuela y Súper Admin.
+  bloqueado        Boolean        @default(false)
+  bloqueoTipo      String? // enum: PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO
+  bloqueoMensaje   String? // solo PERSONALIZADO
+  bloqueadoEn      DateTime?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -323,7 +328,28 @@ model Logro {
   valorBonus  Int? // normalmente 1
   repetible   Boolean        @default(false)
   icono       String // nombre de icono/lottie
+  posicion    String? // enum: POR | DEF | MED | DEL · null = general
+  activo      Boolean        @default(true) // desactivado = no otorgable
+  escuelaId   String? // null = catálogo global; con valor = logro propio de la escuela
   jugadores   LogroJugador[]
+  escuelas    LogroEscuela[]
+
+  @@index([posicion, activo])
+}
+
+// Disponibilidad de un logro del catálogo por escuela: activación y ventana
+// programada (desde/hasta) que gestiona el DT.
+model LogroEscuela {
+  id        String    @id @default(cuid())
+  escuelaId String
+  logroId   String
+  logro     Logro     @relation(fields: [logroId], references: [id])
+  activo    Boolean   @default(true)
+  desde     DateTime?
+  hasta     DateTime?
+
+  @@unique([escuelaId, logroId])
+  @@index([escuelaId])
 }
 
 model LogroJugador {

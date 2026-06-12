@@ -7,8 +7,21 @@ export type Rol = (typeof ROLES)[number];
 export const POSICIONES = ["POR", "DEF", "MED", "DEL"] as const;
 export type Posicion = (typeof POSICIONES)[number];
 
-export const ESTADOS_JUGADOR = ["PENDIENTE", "ACTIVO", "INACTIVO"] as const;
+export const ESTADOS_JUGADOR = [
+  "PENDIENTE",
+  "ACTIVO",
+  "INACTIVO",
+  "ELIMINADO", // lógico, reversible, solo Súper Admin
+] as const;
 export type EstadoJugador = (typeof ESTADOS_JUGADOR)[number];
+
+export const TIPOS_BLOQUEO = [
+  "PAGO",
+  "COMPORTAMIENTO",
+  "CONTACTA_DT",
+  "PERSONALIZADO",
+] as const;
+export type TipoBloqueo = (typeof TIPOS_BLOQUEO)[number];
 
 export const NIVELES = ["BRONCE", "PLATA", "ORO", "HEROE"] as const;
 export type Nivel = (typeof NIVELES)[number];

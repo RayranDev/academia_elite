@@ -21,6 +21,8 @@ import {
   Medal,
   User,
   TrendingUp,
+  FlaskConical,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -47,6 +49,8 @@ const ICONOS: Record<string, LucideIcon> = {
   logros: Medal,
   perfil: User,
   progreso: TrendingUp,
+  simulador: FlaskConical,
+  cuenta: Settings,
 };
 
 export type IconKey = keyof typeof ICONOS;

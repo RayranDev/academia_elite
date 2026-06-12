@@ -22,6 +22,18 @@ export function obtenerEscuela(escuelaId: string) {
   return db.escuela.findUnique({ where: { id: escuelaId } });
 }
 
+/** Edición administrativa de una escuela (Súper Admin). */
+export function actualizarEscuelaAdmin(
+  escuelaId: string,
+  data: { nombre: string; slug: string; colorPrimario: string; activa: boolean },
+) {
+  return db.escuela.update({
+    where: { id: escuelaId },
+    data,
+    select: { id: true },
+  });
+}
+
 export function actualizarBrandingEscuela(
   escuelaId: string,
   data: {

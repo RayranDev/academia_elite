@@ -6,12 +6,14 @@ import type { NavItem } from "@/components/shell/Sidebar";
 
 const NAV: NavItem[] = [
   { href: "/escuela", label: "Resumen", icon: "dashboard" },
+  { href: "/escuela/jugadores", label: "Jugadores", icon: "plantilla" },
   { href: "/escuela/categorias", label: "Categorías", icon: "categorias" },
   { href: "/escuela/sedes", label: "Sedes", icon: "sedes" },
   { href: "/escuela/dts", label: "DTs", icon: "usuarios" },
   { href: "/escuela/codigos", label: "Códigos", icon: "codigos" },
   { href: "/escuela/anuncios", label: "Anuncios", icon: "anuncios" },
   { href: "/escuela/branding", label: "Branding", icon: "branding" },
+  { href: "/escuela/cuenta", label: "Mi cuenta", icon: "cuenta" },
 ];
 
 export default async function EscuelaLayout({

@@ -25,6 +25,7 @@ export default async function DtLayout({
   const nav: NavItem[] = [
     { href: "/dt", label: "Plantilla", icon: "plantilla" },
     { href: "/dt/calendario", label: "Calendario", icon: "calendario" },
+    { href: "/dt/logros", label: "Logros", icon: "logros" },
     { href: "/dt/mensajes", label: "Mensajes", icon: "mensajes" },
     {
       href: "/dt/solicitudes",
@@ -32,6 +33,7 @@ export default async function DtLayout({
       icon: "solicitudes",
       badge: solicitudes.length,
     },
+    { href: "/dt/cuenta", label: "Mi cuenta", icon: "cuenta" },
   ];
 
   return (

@@ -105,3 +105,28 @@ cambió de API, se adapta y se documenta aquí).
     `--color-*` de Tailwind v4; preferencia en `localStorage` (`fcm-tema`) con
     script inline anti-FOUC. Las cartas conservan sus materiales premium en
     ambos temas.
+
+### Sprint G (gestion y administracion)
+14. **Bloqueo de acceso a nivel de cuenta de familia.** Se marca User.bloqueado
+    del padre/cuenta (no del jugador), porque el acceso es de la familia. El
+    guard de sesion (requireAuthContext/requirePanelUser) desvia al JUGADOR
+    bloqueado a la pagina de bloqueo. Cuatro motivos (PAGO, COMPORTAMIENTO,
+    CONTACTA_DT, PERSONALIZADO) con mensajes predefinidos en lib/bloqueo.
+15. **Eliminacion de jugadores SOLO logica.** Estado ELIMINADO (reversible, solo
+    SUPER_ADMIN), nunca borrado fisico: preserva evaluaciones e historial y
+    permite restaurar. Los repos filtran ELIMINADO de las listas.
+16. **Logros con posicion + disponibilidad por escuela.** Logro.posicion
+    (null=general), Logro.escuelaId (null=catalogo global; con valor=propio del
+    DT) y Logro.activo. La tabla LogroEscuela activa/programa ventanas
+    (desde/hasta) por escuela. La disponibilidad es una funcion pura (lib/logros)
+    reutilizada al otorgar y al consumir bonus en evaluaciones.
+17. **Rangos fisicos por edad editables en BD (G8).** Migrados de ranges.ts a
+    ParametroFormula con claves RANGO_<PRUEBA>_<GRUPO>_<MIN|MAX>. El motor sigue
+    siendo puro: evaluacion.service lee los valores y arma los rangos con
+    rangosDesdeParametros (fallback al embebido). El simulador (G7) usa el mismo
+    helper, asi reproduce exactamente el OVR de una evaluacion real.
+18. **Despachador de notificaciones (G9).** lib/notify/dispatcher define
+    CanalNotificacion; hoy se registra solo el canal INAPP (desde
+    notificacion.service). notificar() despacha a INAPP/EMAIL/WHATSAPP; los
+    canales sin implementacion se ignoran en silencio. Email/WhatsApp se suman en
+    Fase 2 sin tocar a los llamadores.

@@ -15,7 +15,16 @@ export function listarEvaluacionesJugador(escuelaId: string, jugadorId: string) 
 export function bonusPendientes(jugadorId: string) {
   return db.logroJugador.findMany({
     where: { jugadorId, bonusConsumido: false, logro: { tipo: "BONUS" } },
-    include: { logro: { select: { statBonus: true, valorBonus: true } } },
+    include: {
+      logro: {
+        select: {
+          statBonus: true,
+          valorBonus: true,
+          activo: true,
+          escuelaId: true,
+        },
+      },
+    },
     orderBy: { otorgadoEn: "asc" },
   });
 }

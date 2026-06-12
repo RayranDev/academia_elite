@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Carta -->
+  <path d="M14 6h36a4 4 0 0 1 4 4v40l-8 8H14a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z" fill="#0d1322" stroke="#4ade80" stroke-width="3"/>
+  <!-- Balón -->
+  <circle cx="32" cy="30" r="11" fill="#f1f5f9"/>
+  <polygon points="32,24 37,28 35,34 29,34 27,28" fill="#070b14"/>
+  <!-- Stats -->
+  <rect x="20" y="46" width="14" height="3" rx="1.5" fill="#4ade80"/>
+  <rect x="20" y="52" width="20" height="3" rx="1.5" fill="#94a3b8"/>
+</svg>

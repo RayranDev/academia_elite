@@ -250,107 +250,107 @@ Archivos: `src/components/cards/PlayerCard.tsx` + keyframes en `globals.css`.
 # SPRINT G — Gestión y administración
 
 ## G1. Schema (una migración)
-- [ ] `User`: `bloqueado Boolean @default(false)`, `bloqueoTipo String?`
+- [x] `User`: `bloqueado Boolean @default(false)`, `bloqueoTipo String?`
       (PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO),
       `bloqueoMensaje String?`, `bloqueadoEn DateTime?`.
-- [ ] `Jugador.estado`: valor nuevo documentado `ELIMINADO` (string, sin
+- [x] `Jugador.estado`: valor nuevo documentado `ELIMINADO` (string, sin
       migración extra).
-- [ ] `Logro`: `posicion String?` (POR/DEF/MED/DEL, null = general),
+- [x] `Logro`: `posicion String?` (POR/DEF/MED/DEL, null = general),
       `activo Boolean`, `escuelaId String?` (null = catálogo global).
-- [ ] **Nueva tabla** `LogroEscuela` (escuelaId, logroId, activo, desde?,
+- [x] **Nueva tabla** `LogroEscuela` (escuelaId, logroId, activo, desde?,
       hasta?) — disponibilidad/activación programada por escuela.
 
 ## G2. Bloqueo de acceso de jugadores
-- [ ] Servicio bloquear/desbloquear el `User` del padre/cuenta: solo
+- [x] Servicio bloquear/desbloquear el `User` del padre/cuenta: solo
       `ESCUELA_ADMIN` (su tenant) y `SUPER_ADMIN`. Motivos predeterminados +
       personalizado. **Auditado**.
-- [ ] `requireAuthContext`/`requirePanelUser`: JUGADOR bloqueado →
+- [x] `requireAuthContext`/`requirePanelUser`: JUGADOR bloqueado →
       **`/bloqueado`** (página que muestra el mensaje según tipo: pago,
       comportamiento, "comunícate con tu DT" o personalizado).
-- [ ] UI: botón "Bloquear acceso" con modal de motivo en gestión de jugadores
+- [x] UI: botón "Bloquear acceso" con modal de motivo en gestión de jugadores
       (G3); el DT lo ve indicado en su plantilla.
 
 ## G3. CRUD de jugadores y DTs (Escuela + Súper Admin)
-- [ ] **Escuela** `/escuela/jugadores` (+ `/escuela/dts` ampliado): listar con
+- [x] **Escuela** `/escuela/jugadores` (+ `/escuela/dts` ampliado): listar con
       búsqueda y filtros (categoría/estado); **editar** datos (nombre,
       apellido, nacimiento, posición, dorsal, categoría);
       **inactivar/reactivar** con modal de confirmación + motivo (auditado);
       **bloquear/desbloquear** (G2); **reset de contraseña** de padres y DTs
       (temporal de un solo uso, auditado — reutiliza
       `generarPasswordTemporal`).
-- [ ] **Súper Admin**: lo mismo sobre cualquier escuela + **eliminar lógico**
+- [x] **Súper Admin**: lo mismo sobre cualquier escuela + **eliminar lógico**
       (estado ELIMINADO; modal que exige escribir el nombre del jugador +
       motivo obligatorio; auditado; reversible).
-- [ ] Filtrar ELIMINADO en todos los repos/listas/consultas.
+- [x] Filtrar ELIMINADO en todos los repos/listas/consultas.
 
 ## G4. Súper Admin: usuarios y escuelas (perfil profesional)
-- [ ] `/admin/usuarios`: tabla con búsqueda y filtros (rol, escuela, estado);
+- [x] `/admin/usuarios`: tabla con búsqueda y filtros (rol, escuela, estado);
       editar nombre/email; activar/desactivar; reset de contraseña; ver
       bloqueos. Todo auditado.
-- [ ] `/admin/escuelas`: ampliar con editar (nombre, slug, color) y
+- [x] `/admin/escuelas`: ampliar con editar (nombre, slug, color) y
       activar/desactivar escuela (auditado).
-- [ ] Estilo profesional: tablas limpias con lucide, confirmaciones en
+- [x] Estilo profesional: tablas limpias con lucide, confirmaciones en
       acciones destructivas.
 
 ## G5. DT: credenciales de jugadores
-- [ ] En la ficha del jugador: ver el email de la cuenta de la familia y botón
+- [x] En la ficha del jugador: ver el email de la cuenta de la familia y botón
       **"Resetear contraseña"** (temporal de un solo uso, modal, auditado).
       Solo jugadores de sus categorías.
 
 ## G6. Logros por posición (catálogo grande) + gestión
-- [ ] **Seed**: ampliar catálogo a ~50 logros enfocados por posición (10–12
+- [x] **Seed**: ampliar catálogo a ~50 logros enfocados por posición (10–12
       por POR/DEF/MED/DEL + generales/MEN/asistencia), mezcla INSIGNIA/BONUS
       con stat acorde a la posición.
-- [ ] **Súper Admin** `/admin/logros`: CRUD del catálogo global con filtros
+- [x] **Súper Admin** `/admin/logros`: CRUD del catálogo global con filtros
       por posición y tipo; activar/desactivar.
-- [ ] **DT** `/dt/logros`: ver catálogo aplicable; activar/desactivar para su
+- [x] **DT** `/dt/logros`: ver catálogo aplicable; activar/desactivar para su
       escuela; **programar ventanas** (desde/hasta) vía `LogroEscuela`;
       **crear logros propios** (con `escuelaId`); **otorgar manualmente** a un
       jugador de sus categorías (respeta la posición del logro).
-- [ ] `evaluacion.service`: al consumir bonus, considerar solo logros activos
+- [x] `evaluacion.service`: al consumir bonus, considerar solo logros activos
       y dentro de ventana para la escuela.
 
 ## G7. Simulador de carta (Súper Admin)
-- [ ] `/admin/simulador`: página client con las 12 medidas (sliders/inputs),
+- [x] `/admin/simulador`: página client con las 12 medidas (sliders/inputs),
       posición y grupo de edad → `computeStats` **en cliente** (el motor es TS
       puro) → `PlayerCard` en vivo + umbrales de nivel visibles (Bronce <65 ·
       Plata 65–74 · Oro 75–84 · Héroe ≥85). Permite saber qué evaluar para
       cada rango.
 
 ## G8. Parámetros de evaluación (Súper Admin, con explicación)
-- [ ] Mover los **rangos físicos por edad** de `ranges.ts` a
+- [x] Mover los **rangos físicos por edad** de `ranges.ts` a
       `ParametroFormula` (claves `RANGO_<PRUEBA>_<GRUPO>_MIN/MAX`; el motor ya
       acepta `opts.rangos` — `evaluacion.service` los lee de BD con fallback
       al embebido).
-- [ ] `/admin/parametros` rediseñado: agrupado por grupo de edad, con textos
+- [x] `/admin/parametros` rediseñado: agrupado por grupo de edad, con textos
       en lenguaje simple ("mejor marca ↔ peor marca"), peso de MEN, y enlace
       al simulador (G7). Cambios auditados (ya existe).
-- [ ] Ponderaciones por posición permanecen en código v1.1 (documentar en
+- [x] Ponderaciones por posición permanecen en código v1.1 (documentar en
       `DECISIONES.md`).
 
 ## G9. Notificaciones escalables (WhatsApp/email futuro)
-- [ ] **Nuevo** `src/lib/notify/dispatcher.ts`: interfaz `CanalNotificacion`
+- [x] **Nuevo** `src/lib/notify/dispatcher.ts`: interfaz `CanalNotificacion`
       (`enviar(destino, plantilla, datos)`) con canal `INAPP` implementado
       (delegando en `notificacion.service`) y stubs documentados
       `EMAIL`/`WHATSAPP` para Fase 2. `notificar()` pasa por el dispatcher.
-- [ ] Anotar la decisión en `DECISIONES.md`.
+- [x] Anotar la decisión en `DECISIONES.md`.
 
 ## G10. Mejoras adicionales (propuestas del asistente, aceptadas)
-- [ ] **"Mi cuenta"**: cambio de contraseña propio para todos los roles.
-- [ ] Favicon + manifest básico (PWA-lite; los niños lo usan en cel/tablet).
-- [ ] Búsqueda por nombre en plantilla DT y listas largas.
+- [x] **"Mi cuenta"**: cambio de contraseña propio para todos los roles.
+- [x] Favicon + manifest básico (PWA-lite; los niños lo usan en cel/tablet).
+- [x] Búsqueda por nombre en plantilla DT y listas largas.
 
 ### Checkpoint G
-- [ ] `npm run lint && npm run typecheck` limpios.
-- [ ] Unit existentes + nuevos (bloqueo, eliminación lógica, ventana de
+- [x] `npm run lint && npm run typecheck` limpios.
+- [x] Unit existentes + nuevos (bloqueo, eliminación lógica, ventana de
       logros) en verde.
-- [ ] 7 E2E + 1 spec nuevo (jugador bloqueado ve su mensaje) en verde.
-- [ ] `SEGURIDAD.md` actualizado con todos los endpoints nuevos.
-- [ ] Revisión manual: CRUDs con confirmaciones y auditoría; reset de
+- [x] 7 E2E + 1 spec nuevo (jugador bloqueado ve su mensaje) en verde.
+- [x] `SEGURIDAD.md` actualizado con todos los endpoints nuevos.
+- [x] Revisión manual: CRUDs con confirmaciones y auditoría; reset de
       contraseñas; el simulador reproduce exactamente el OVR del motor;
       cambiar un rango por edad afecta la siguiente evaluación; un logro
       programado solo aplica dentro de su ventana.
-- [ ] Commit + push. → Sprint 8 (producción).
+- [x] Commit + push. → Sprint 8 (producción).
 
 ---
 
@@ -381,4 +381,4 @@ Archivos: `src/components/cards/PlayerCard.tsx` + keyframes en `globals.css`.
 |---|---|---|
 | 2026-06-12 | **Sprint V completo** (V1–V10): fuente display, lucide, sidebar+shell, EmptyState, PlayerCard (bugs MEN/proporción, foto fundida, materiales, escudo, font), avatar SVG editable (migración `avatarConfig`), escudo de escuela PNG, iconos de calendario, login (ver/ocultar + volver + transición), filtros por categoría (plantilla y mensajes DT), hub estilo Modo Carrera | ✅ lint/typecheck/38 unit/7 E2E en verde |
 | 2026-06-12 | **Sprint V.1 completo**: carta premium (foil/reflejos/bisel), MEN arriba-derecha, avatar DiceBear local (fallback), nombre en 2 líneas, iconos en celdas del calendario, splash una vez por sesión, progreso personal (`ProgresoSemanal` + motor XP/Mentalidad/Disciplina + `/jugador/progreso`, auditado), tema claro/oscuro persistente | ✅ lint/typecheck/49 unit/7 E2E en verde |
-| — | Sprint G (gestión/CRUD/bloqueos/logros/simulador) | pendiente |
+| 2026-06-12 | **Sprint G completo** (G1–G10): schema bloqueo+logros+LogroEscuela, bloqueo de acceso + /bloqueado, CRUD jugadores/DTs con inactivar/eliminar lógico, gestión global de usuarios/escuelas, credenciales+reset por DT, catálogo de ~52 logros por posición + ventanas + otorgar, simulador de carta, rangos físicos editables en BD, despachador de notificaciones (INAPP + stubs), Mi cuenta + manifest + búsquedas | ✅ lint/typecheck/64 unit/8 E2E en verde |
