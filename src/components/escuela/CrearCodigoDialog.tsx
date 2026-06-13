@@ -68,12 +68,12 @@ export function CrearCodigoDialog({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1 block text-xs text-muted">Usos máximos</label>
-                <input name="usosMaximos" type="number" defaultValue={1} min={1} className={input} />
+                <label className="mb-1 block text-xs text-muted">Usos máximos (1–100)</label>
+                <input name="usosMaximos" type="number" defaultValue={1} min={1} max={100} required className={input} />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted">Validez (días)</label>
-                <input name="diasValidez" type="number" defaultValue={30} min={1} className={input} />
+                <label className="mb-1 block text-xs text-muted">Validez en días (1–365)</label>
+                <input name="diasValidez" type="number" defaultValue={30} min={1} max={365} required className={input} />
               </div>
             </div>
             {state && !state.ok && (

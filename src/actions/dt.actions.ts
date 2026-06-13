@@ -119,9 +119,12 @@ export async function importarEvaluacionesAction(
     if (archivo.size > MAX_XLSX_BYTES) {
       throw new ValidationError("El archivo supera 5 MB.");
     }
+    const escuelaIdRaw = formData.get("escuelaId");
+    const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;
     const buffer = Buffer.from(await archivo.arrayBuffer());
-    const data = await importarEvaluaciones(ctx, buffer);
+    const data = await importarEvaluaciones(ctx, buffer, escuelaId);
     revalidatePath("/dt");
+    revalidatePath("/admin/escuelas");
     return { ok: true, data };
   } catch (e) {
     return mapError(e);

@@ -266,15 +266,17 @@ export function PlayerCard({
             carta, no la foto); la foto se funde con una máscara. */}
         <div className="relative mt-1 flex flex-1 items-end justify-center overflow-hidden bg-transparent">
           {data.fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.fotoUrl}
-              alt={seedAvatar}
-              // object-top ancla la cabeza arriba (la foto ya viene recortada 3:4);
-              // el contenedor es transparente, el fondo lo pone la carta.
-              className="absolute inset-0 h-full w-full bg-transparent object-cover object-top"
-              style={{ WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
-            />
+            // Caja con la MISMA proporción que el recortador (3:4): así la carta
+            // muestra exactamente el recuadro recortado, sin zoom de más.
+            <div className="relative h-full aspect-3/4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={data.fotoUrl}
+                alt={seedAvatar}
+                className="absolute inset-0 h-full w-full bg-transparent object-cover object-top"
+                style={{ WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
+              />
+            </div>
           ) : (
             <PlayerAvatar
               config={data.avatarConfig}

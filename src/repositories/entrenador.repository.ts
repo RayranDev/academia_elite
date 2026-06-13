@@ -11,6 +11,17 @@ export async function categoriaIdsDeEntrenador(
   return rows.map((r) => r.categoriaId);
 }
 
+/** Un entrenador asignado a una categoría (para imputar evaluaciones del SA). */
+export async function entrenadorDeCategoria(
+  categoriaId: string,
+): Promise<string | null> {
+  const row = await db.entrenadorCategoria.findFirst({
+    where: { categoriaId },
+    select: { entrenadorId: true },
+  });
+  return row?.entrenadorId ?? null;
+}
+
 /** Categorías (id + nombre) asignadas a un entrenador. */
 export async function categoriasDeEntrenador(entrenadorId: string) {
   const rows = await db.entrenadorCategoria.findMany({

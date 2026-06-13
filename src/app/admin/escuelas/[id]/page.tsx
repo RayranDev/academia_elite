@@ -7,6 +7,7 @@ import { listarCategoriasAdmin } from "@/services/categoria.service";
 import { EscuelaEditarForm } from "@/components/gestion/EscuelaEditarForm";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
 import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
+import { ImportarEvaluacionesDialog } from "@/components/dt/ImportarEvaluacionesDialog";
 
 export default async function EscuelaDetalleAdminPage({
   params,
@@ -35,7 +36,16 @@ export default async function EscuelaDetalleAdminPage({
       <EscuelaEditarForm escuela={datos.escuela} />
       <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
         <h2 className="text-xl font-bold">Jugadores</h2>
-        <ImportarJugadoresDialog escuelaId={id} />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`/api/jugadores-export?escuelaId=${id}`}
+            className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+          >
+            Descargar jugadores
+          </a>
+          <ImportarEvaluacionesDialog escuelaId={id} />
+          <ImportarJugadoresDialog escuelaId={id} />
+        </div>
       </div>
       <JugadoresGestion
         jugadores={datos.jugadores}

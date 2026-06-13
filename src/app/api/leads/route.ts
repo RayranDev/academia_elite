@@ -25,13 +25,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false }, { status: 403 });
   }
 
-  // Rate limit: 3/hora por IP (Sección 6.6).
+  // Rate limit generoso: la defensa anti-bot real es el honeypot + tiempo mínimo,
+  // así que NO bloqueamos a un prospecto legítimo (perderíamos clientes). Solo
+  // frenamos abuso evidente: 8/hora por IP.
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-  const limit = rateLimit(`leads:${ip}`, 3, 60 * 60 * 1000);
+  const limit = rateLimit(`leads:${ip}`, 8, 60 * 60 * 1000);
   if (!limit.ok) {
     return NextResponse.json(
-      { ok: false, error: "Demasiadas solicitudes. Inténtalo más tarde." },
+      { ok: false, error: "Recibimos varias solicitudes desde tu red. Escríbenos directo y te atendemos." },
       { status: 429 },
     );
   }
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  const { website, renderizadoEn, ...lead } = parsed.data;
+  const { website, renderizadoEn, codigoPais, numeroTelefono, ...resto } = parsed.data;
 
   // Honeypot relleno -> bot. Respondemos OK sin crear nada.
   if (website) return okResponse();
@@ -58,6 +60,6 @@ export async function POST(req: Request) {
     return okResponse();
   }
 
-  await crearLead(lead);
+  await crearLead({ ...resto, telefono: `${codigoPais} ${numeroTelefono}` });
   return okResponse();
 }

@@ -46,6 +46,22 @@ export async function crearEvaluacion(
     throw new ValidationError("Solo se evalúan jugadores activos.");
   }
 
+  return evaluarJugadorCore(escuelaId, entrenadorId, jugador, input);
+}
+
+type JugadorEval = NonNullable<Awaited<ReturnType<typeof obtenerJugador>>>;
+
+/**
+ * Núcleo de la evaluación (sin auth): calcula stats y crea Evaluacion +
+ * StatsCalculados en una transacción. Lo usan el alta del DT y la jornada de
+ * medición masiva (DT y Súper Admin). El llamador ya validó rol/tenant/estado.
+ */
+export async function evaluarJugadorCore(
+  escuelaId: string,
+  entrenadorId: string,
+  jugador: JugadorEval,
+  input: EvaluacionInput,
+): Promise<ResultadoStats> {
   const [escuela, paramMen, pendientesTodos, configsLogros, valoresEfectivos] =
     await Promise.all([
       obtenerEscuela(escuelaId),

@@ -15,7 +15,15 @@ export default async function JugadoresEscuelaPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-3xl font-display italic uppercase">Jugadores</h1>
-        <ImportarJugadoresDialog />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/api/jugadores-export"
+            className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+          >
+            Descargar jugadores
+          </a>
+          <ImportarJugadoresDialog />
+        </div>
       </div>
       <p className="text-sm text-muted">
         Edita datos, inactiva/reactiva, bloquea el acceso de la familia y

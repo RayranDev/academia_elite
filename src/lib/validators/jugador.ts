@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { POSICIONES } from "@/types";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 export const jugadorSchema = z.object({
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(60),
-  apellido: z.string().trim().min(2, { error: "Apellido requerido." }).max(60),
+  nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }),
+  apellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }),
   fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
   posicion: z.enum(POSICIONES),
   categoriaId: z.string().min(1, { error: "Elige una categoría." }),

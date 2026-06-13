@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { POSICIONES } from "@/types";
 import { passwordSchema } from "@/lib/validators/auth";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 /**
  * Auto-registro del padre con código de invitación. Crea su cuenta (rol JUGADOR,
@@ -9,12 +10,12 @@ import { passwordSchema } from "@/lib/validators/auth";
 export const registroSchema = z.object({
   codigo: z.string().trim().toUpperCase().min(4).max(12),
   // Cuenta del padre/tutor
-  padreNombre: z.string().trim().min(2, { error: "Tu nombre es requerido." }).max(120),
+  padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }),
   padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
   password: passwordSchema,
   // Datos del hijo/a
-  jugadorNombre: z.string().trim().min(2, { error: "Nombre del jugador requerido." }).max(60),
-  jugadorApellido: z.string().trim().min(2, { error: "Apellido requerido." }).max(60),
+  jugadorNombre: textoSeguro({ min: 2, max: 60, error: "Nombre del jugador requerido." }),
+  jugadorApellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }),
   fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
   posicion: z.enum(POSICIONES),
 });
@@ -29,7 +30,7 @@ export type RegistroInput = z.infer<typeof registroSchema>;
 export const vincularHijoSchema = z.object({
   codigoEscuela: z.string().trim().toLowerCase().min(2, { error: "Código de escuela requerido." }).max(60),
   codigoJugador: z.string().trim().toUpperCase().min(4, { error: "Código de jugador requerido." }).max(12),
-  padreNombre: z.string().trim().min(2, { error: "Tu nombre es requerido." }).max(120),
+  padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }),
   padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
   password: passwordSchema,
 });

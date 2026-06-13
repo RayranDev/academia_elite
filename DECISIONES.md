@@ -245,3 +245,31 @@ cambió de API, se adapta y se documenta aquí).
 41. **Marca de agua en la descarga (fix).** Se montaba con opacity 0→100 +
     transition, así que html-to-image la capturaba casi transparente. Ahora se
     MONTA solo durante la exportación (opaca, sin transición).
+
+## Sprint M.5 (jornada SA, export, validaciones, modo claro, habeas data)
+
+42. **Jornada de medición desde SA/Escuela.** Se extrajo `evaluarJugadorCore` de
+    crearEvaluacion; el bulk importer resuelve el alcance (DT: sus categorías;
+    SA/Escuela: toda la escuela) e imputa cada evaluación al DT de la categoría
+    (entrenadorDeCategoria). Plantilla con TODOS los jugadores inscritos (ACTIVOS)
+    del alcance. Diálogo montado también en /admin/escuelas/[id].
+43. **Export de jugadores (DT/Escuela/SA).** export-jugadores.service genera .xlsx
+    con el total de jugadores del alcance; route /api/jugadores-export; botón
+    "Descargar jugadores" en /dt, /escuela/jugadores y /admin/escuelas/[id].
+44. **Anti inyección de scripts.** Helper lib/validators/sanitizar (textoSeguro /
+    tieneContenidoPeligroso) aplicado a campos de texto (lead, jugador, registro).
+    React ya escapa al render; esto es defensa en frontera. En exportaciones,
+    protegerCelda evita inyección de fórmulas (CSV/Excel injection).
+45. **Validación de límites del código.** usosMaximos 1–100 y diasValidez 1–365
+    con mensajes claros y max en los inputs.
+46. **Modo claro legible.** Tokens de claro con texto casi negro, muted slate-600
+    (~7:1), bordes más definidos y texto secundario en peso medio.
+47. **Formulario de contacto (leads).** Teléfono OBLIGATORIO con indicativo
+    (lista de países) + número (solo dígitos). Popups de éxito (con frase de marca
+    y "pronto te contactaremos") y de error (qué corregir). Rate limit de leads
+    pasa de 3/h a 8/h (la defensa real es honeypot + tiempo) para no perder
+    clientes legítimos.
+48. **Habeas Data (Colombia).** HABEAS-DATA.md: política de tratamiento conforme a
+    Ley 1581/2012 y Decreto 1377/2013, con foco en datos de menores y fotos, +
+    checklist de cumplimiento. Requiere revisión legal y completar datos del
+    Responsable.

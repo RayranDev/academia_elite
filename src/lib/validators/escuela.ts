@@ -45,8 +45,16 @@ export const dtSchema = z.object({
 
 export const codigoSchema = z.object({
   categoriaId: z.string().min(1, { error: "Elige una categoría." }),
-  usosMaximos: z.coerce.number().int().min(1).max(100),
-  diasValidez: z.coerce.number().int().min(1).max(365),
+  usosMaximos: z.coerce
+    .number({ error: "Indica un número." })
+    .int({ error: "Debe ser un número entero." })
+    .min(1, { error: "Mínimo 1 uso." })
+    .max(100, { error: "Máximo 100 usos." }),
+  diasValidez: z.coerce
+    .number({ error: "Indica un número." })
+    .int({ error: "Debe ser un número entero." })
+    .min(1, { error: "Mínimo 1 día de validez." })
+    .max(365, { error: "Máximo 365 días de validez." }),
 });
 
 export type BrandingInput = z.infer<typeof brandingSchema>;

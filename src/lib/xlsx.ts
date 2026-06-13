@@ -24,6 +24,16 @@ function celdaTexto(v: ExcelJS.CellValue): string {
   return String(v).trim();
 }
 
+/**
+ * Anti "CSV/Excel formula injection": una celda que empiece por = + - @ (o tab/
+ * CR) puede ejecutarse como fórmula al abrir el archivo. Se le antepone un
+ * apóstrofo para forzar que Excel la trate como texto. Usar al EXPORTAR datos
+ * de usuario.
+ */
+export function protegerCelda(valor: string): string {
+  return /^[=+\-@\t\r]/.test(valor) ? `'${valor}` : valor;
+}
+
 /** Lee la primera hoja de un .xlsx como matriz de filas/columnas (texto). */
 export async function parseXlsx(buffer: Buffer): Promise<string[][]> {
   const wb = new ExcelJS.Workbook();

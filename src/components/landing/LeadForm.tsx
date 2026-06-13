@@ -3,15 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Modal } from "@/components/ui/Modal";
+import { INDICATIVOS } from "@/lib/indicativos";
 
-type Estado = "idle" | "enviando" | "ok" | "error";
+type Estado = "idle" | "enviando";
+type Feedback = { tipo: "ok" | "error"; titulo: string; cuerpo: string } | null;
 
 const campo =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-foreground outline-none focus:border-pitch";
 
 export function LeadForm() {
   const [estado, setEstado] = useState<Estado>("idle");
-  const [mensaje, setMensaje] = useState("");
+  const [feedback, setFeedback] = useState<Feedback>(null);
+  const [codigoPais, setCodigoPais] = useState("+57");
+  const [numero, setNumero] = useState("");
   // Momento de montaje: el endpoint descarta envíos < 2s (bots).
   const renderizadoEn = useRef(0);
   useEffect(() => {
@@ -21,13 +26,25 @@ export function LeadForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
+
+    if (numero.length < 6) {
+      setFeedback({
+        tipo: "error",
+        titulo: "Falta tu teléfono",
+        cuerpo:
+          "El número de contacto es obligatorio. Elige tu indicativo de país y escribe el número (solo dígitos, mínimo 6).",
+      });
+      return;
+    }
+
     setEstado("enviando");
     const fd = new FormData(form);
     const payload = {
       nombreEscuela: fd.get("nombreEscuela"),
       contactoNombre: fd.get("contactoNombre"),
       contactoEmail: fd.get("contactoEmail"),
-      telefono: fd.get("telefono"),
+      codigoPais,
+      numeroTelefono: numero,
       ciudad: fd.get("ciudad"),
       mensaje: fd.get("mensaje"),
       website: fd.get("website"), // honeypot
@@ -41,19 +58,37 @@ export function LeadForm() {
         body: JSON.stringify(payload),
       });
       if (res.ok) {
-        setEstado("ok");
-        setMensaje("¡Gracias! Te contactaremos muy pronto.");
+        setFeedback({
+          tipo: "ok",
+          titulo: "¡Bienvenido a Academia Elite!",
+          cuerpo:
+            "Donde nacen las estrellas ⚽. Recibimos tus datos y muy pronto te contactaremos para mostrarte la plataforma con tus categorías.",
+        });
         form.reset();
+        setNumero("");
       } else if (res.status === 429) {
-        setEstado("error");
-        setMensaje("Demasiadas solicitudes. Inténtalo más tarde.");
+        setFeedback({
+          tipo: "error",
+          titulo: "Inténtalo en un momento",
+          cuerpo:
+            "Recibimos varias solicitudes desde tu red. Espera un momento y vuelve a enviar, o escríbenos directo y te atendemos enseguida.",
+        });
       } else {
-        setEstado("error");
-        setMensaje("Revisa los datos e inténtalo de nuevo.");
+        setFeedback({
+          tipo: "error",
+          titulo: "Revisa tus datos",
+          cuerpo:
+            "Algún dato no quedó bien. Verifica el email y el teléfono (solo dígitos) e inténtalo de nuevo.",
+        });
       }
     } catch {
-      setEstado("error");
-      setMensaje("No se pudo enviar. Revisa tu conexión.");
+      setFeedback({
+        tipo: "error",
+        titulo: "Sin conexión",
+        cuerpo: "No pudimos enviar tu solicitud. Revisa tu conexión e inténtalo de nuevo.",
+      });
+    } finally {
+      setEstado("idle");
     }
   }
 
@@ -78,65 +113,77 @@ export function LeadForm() {
             <div className="hidden" aria-hidden>
               <label>
                 No rellenar
-                <input
-                  type="text"
-                  name="website"
-                  tabIndex={-1}
-                  autoComplete="off"
-                />
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" />
               </label>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Input name="nombreEscuela" label="Nombre de la escuela" required />
               <Input name="contactoNombre" label="Tu nombre" required />
-              <Input
-                name="contactoEmail"
-                label="Email"
-                type="email"
-                required
-              />
-              <Input name="telefono" label="Teléfono (opcional)" />
+              <Input name="contactoEmail" label="Email" type="email" required />
               <Input name="ciudad" label="Ciudad (opcional)" />
             </div>
 
+            {/* Teléfono OBLIGATORIO: indicativo (lista) + número (solo dígitos) */}
             <div>
-              <label
-                htmlFor="mensaje"
-                className="mb-1 block text-sm font-medium text-muted"
-              >
-                Mensaje (opcional)
+              <label className="mb-1 block text-sm font-medium text-muted">
+                Teléfono de contacto <span className="text-alerta">*</span>
               </label>
-              <textarea
-                id="mensaje"
-                name="mensaje"
-                rows={3}
-                className={campo}
-              />
+              <div className="flex gap-2">
+                <select
+                  aria-label="Indicativo de país"
+                  value={codigoPais}
+                  onChange={(e) => setCodigoPais(e.target.value)}
+                  className={`${campo} w-auto shrink-0`}
+                >
+                  {INDICATIVOS.map((i) => (
+                    <option key={i.codigo} value={i.codigo}>
+                      {i.bandera} {i.codigo}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-label="Número de teléfono"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="Número (solo dígitos)"
+                  value={numero}
+                  onChange={(e) => setNumero(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                  required
+                  className={campo}
+                />
+              </div>
             </div>
 
-            {estado !== "idle" && estado !== "enviando" && (
-              <p
-                role="status"
-                className={
-                  estado === "ok" ? "text-sm text-pitch" : "text-sm text-alerta"
-                }
-              >
-                {mensaje}
-              </p>
-            )}
+            <div>
+              <label htmlFor="mensaje" className="mb-1 block text-sm font-medium text-muted">
+                Mensaje (opcional)
+              </label>
+              <textarea id="mensaje" name="mensaje" rows={3} className={campo} />
+            </div>
 
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={estado === "enviando"}
-            >
+            <Button type="submit" size="lg" className="w-full" disabled={estado === "enviando"}>
               {estado === "enviando" ? "Enviando…" : "Solicitar demo"}
             </Button>
           </form>
         </Card>
       </div>
+
+      {/* Popup de resultado (éxito o error) */}
+      <Modal
+        open={feedback !== null}
+        onClose={() => setFeedback(null)}
+        title={feedback?.titulo}
+      >
+        <div className="space-y-4">
+          <p className={feedback?.tipo === "ok" ? "text-pitch" : "text-foreground"}>
+            {feedback?.cuerpo}
+          </p>
+          <Button className="w-full" onClick={() => setFeedback(null)}>
+            {feedback?.tipo === "ok" ? "¡Genial!" : "Entendido"}
+          </Button>
+        </div>
+      </Modal>
     </section>
   );
 }
@@ -154,10 +201,7 @@ function Input({
 }) {
   return (
     <div>
-      <label
-        htmlFor={name}
-        className="mb-1 block text-sm font-medium text-muted"
-      >
+      <label htmlFor={name} className="mb-1 block text-sm font-medium text-muted">
         {label}
       </label>
       <input id={name} name={name} type={type} required={required} className={campo} />

@@ -13,13 +13,17 @@ import type { ResultadoImportEval } from "@/services/importacion-evaluaciones.se
  * evaluar jugadores existentes (con su código) y crear+evaluar nuevos. El estado
  * se reinicia al cerrar el modal.
  */
-export function ImportarEvaluacionesDialog() {
+export function ImportarEvaluacionesDialog({ escuelaId }: { escuelaId?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [resultado, setResultado] = useState<ResultadoImportEval | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const plantillaHref = escuelaId
+    ? `/api/plantilla-evaluaciones?escuelaId=${encodeURIComponent(escuelaId)}`
+    : "/api/plantilla-evaluaciones";
 
   function reset() {
     setResultado(null);
@@ -48,6 +52,7 @@ export function ImportarEvaluacionesDialog() {
     }
     const fd = new FormData();
     fd.set("archivo", archivo);
+    if (escuelaId) fd.set("escuelaId", escuelaId);
     startTransition(async () => {
       const res = await importarEvaluacionesAction(undefined, fd);
       if (res.ok) {
@@ -69,7 +74,7 @@ export function ImportarEvaluacionesDialog() {
       <Modal open={open} onClose={cerrar} title="Jornada de medición (Excel)">
         <div className="space-y-4">
           <a
-            href="/api/plantilla-evaluaciones"
+            href={plantillaHref}
             className="inline-flex items-center gap-2 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
           >
             <Download className="h-4 w-4" aria-hidden /> Descargar plantilla (.xlsx)

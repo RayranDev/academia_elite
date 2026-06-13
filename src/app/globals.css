@@ -49,11 +49,18 @@
 html.light {
   --color-base: #eef2f7;
   --color-surface: #ffffff;
-  --color-surface-2: #e7edf5;
-  --color-subtle: #c8d3e2;
-  --color-foreground: #0f172a;
-  --color-muted: #5b6b80;
-  --color-pitch: #16a34a;
+  --color-surface-2: #eaeff6;
+  --color-subtle: #cbd5e1;
+  --color-foreground: #0b1220; /* casi negro: máximo contraste */
+  --color-muted: #475569; /* slate-600: ~7:1 sobre blanco, legible */
+  --color-pitch: #15803d; /* verde más oscuro para texto/acento en claro */
+  --color-info: #2563eb;
+  --color-alerta: #dc2626;
+}
+
+/* En claro, el texto secundario lleva algo más de peso para verse profesional. */
+html.light .text-muted {
+  font-weight: 500;
 }
 
 body {
