@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { INDICATIVOS } from "@/lib/indicativos";
+import { leadFormSchema } from "@/lib/validators/lead";
 
 type Estado = "idle" | "enviando";
 type Feedback = { tipo: "ok" | "error"; titulo: string; cuerpo: string } | null;
+type Errores = Partial<Record<string, string>>;
 
-const campo =
-  "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-foreground outline-none focus:border-pitch";
+const campoBase =
+  "rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-foreground outline-none focus:border-pitch";
+const campo = `${campoBase} w-full`;
 
 export function LeadForm() {
   const [estado, setEstado] = useState<Estado>("idle");
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [errores, setErrores] = useState<Errores>({});
   const [codigoPais, setCodigoPais] = useState("+57");
   const [numero, setNumero] = useState("");
   // Momento de montaje: el endpoint descarta envíos < 2s (bots).
@@ -26,30 +30,35 @@ export function LeadForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
-
-    if (numero.length < 6) {
-      setFeedback({
-        tipo: "error",
-        titulo: "Falta tu teléfono",
-        cuerpo:
-          "El número de contacto es obligatorio. Elige tu indicativo de país y escribe el número (solo dígitos, mínimo 6).",
-      });
-      return;
-    }
-
-    setEstado("enviando");
     const fd = new FormData(form);
-    const payload = {
-      nombreEscuela: fd.get("nombreEscuela"),
-      contactoNombre: fd.get("contactoNombre"),
-      contactoEmail: fd.get("contactoEmail"),
+
+    const candidato = {
+      nombreEscuela: String(fd.get("nombreEscuela") ?? ""),
+      contactoNombre: String(fd.get("contactoNombre") ?? ""),
+      contactoEmail: String(fd.get("contactoEmail") ?? ""),
       codigoPais,
       numeroTelefono: numero,
-      ciudad: fd.get("ciudad"),
-      mensaje: fd.get("mensaje"),
-      website: fd.get("website"), // honeypot
+      ciudad: String(fd.get("ciudad") ?? ""),
+      mensaje: String(fd.get("mensaje") ?? ""),
+      website: String(fd.get("website") ?? ""), // honeypot
       renderizadoEn: renderizadoEn.current,
     };
+
+    // Validación cliente con el MISMO schema que usa el servidor.
+    const parsed = leadFormSchema.safeParse(candidato);
+    if (!parsed.success) {
+      const next: Errores = {};
+      for (const issue of parsed.error.issues) {
+        const campo = String(issue.path[0] ?? "");
+        if (campo && !next[campo]) next[campo] = issue.message;
+      }
+      setErrores(next);
+      return;
+    }
+    setErrores({});
+
+    setEstado("enviando");
+    const payload = parsed.data;
 
     try {
       const res = await fetch("/api/leads", {
@@ -118,10 +127,28 @@ export function LeadForm() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input name="nombreEscuela" label="Nombre de la escuela" required />
-              <Input name="contactoNombre" label="Tu nombre" required />
-              <Input name="contactoEmail" label="Email" type="email" required />
-              <Input name="ciudad" label="Ciudad (opcional)" />
+              <Input
+                name="nombreEscuela"
+                label="Nombre de la escuela"
+                maxLength={50}
+                error={errores.nombreEscuela}
+                requerido
+              />
+              <Input
+                name="contactoNombre"
+                label="Tu nombre"
+                maxLength={120}
+                error={errores.contactoNombre}
+                requerido
+              />
+              <Input
+                name="contactoEmail"
+                label="Email"
+                type="email"
+                error={errores.contactoEmail}
+                requerido
+              />
+              <Input name="ciudad" label="Ciudad (opcional)" maxLength={80} />
             </div>
 
             {/* Teléfono OBLIGATORIO: indicativo (lista) + número (solo dígitos) */}
@@ -134,7 +161,7 @@ export function LeadForm() {
                   aria-label="Indicativo de país"
                   value={codigoPais}
                   onChange={(e) => setCodigoPais(e.target.value)}
-                  className={`${campo} w-auto shrink-0`}
+                  className={`${campoBase} w-auto shrink-0`}
                 >
                   {INDICATIVOS.map((i) => (
                     <option key={i.codigo} value={i.codigo}>
@@ -148,18 +175,31 @@ export function LeadForm() {
                   autoComplete="tel-national"
                   placeholder="Número (solo dígitos)"
                   value={numero}
-                  onChange={(e) => setNumero(e.target.value.replace(/\D/g, "").slice(0, 15))}
-                  required
-                  className={campo}
+                  onChange={(e) => setNumero(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  aria-invalid={errores.numeroTelefono ? true : undefined}
+                  className={`${campo} ${errores.numeroTelefono ? "border-alerta" : ""}`}
                 />
               </div>
+              {errores.numeroTelefono && (
+                <p className="mt-1 text-sm text-alerta">{errores.numeroTelefono}</p>
+              )}
             </div>
 
             <div>
               <label htmlFor="mensaje" className="mb-1 block text-sm font-medium text-muted">
                 Mensaje (opcional)
               </label>
-              <textarea id="mensaje" name="mensaje" rows={3} className={campo} />
+              <textarea
+                id="mensaje"
+                name="mensaje"
+                rows={3}
+                maxLength={100}
+                aria-invalid={errores.mensaje ? true : undefined}
+                className={`${campo} ${errores.mensaje ? "border-alerta" : ""}`}
+              />
+              {errores.mensaje && (
+                <p className="mt-1 text-sm text-alerta">{errores.mensaje}</p>
+              )}
             </div>
 
             <Button type="submit" size="lg" className="w-full" disabled={estado === "enviando"}>
@@ -192,19 +232,36 @@ function Input({
   name,
   label,
   type = "text",
-  required = false,
+  maxLength,
+  error,
+  requerido = false,
 }: {
   name: string;
   label: string;
   type?: string;
-  required?: boolean;
+  maxLength?: number;
+  error?: string;
+  requerido?: boolean;
 }) {
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-sm font-medium text-muted">
-        {label}
+        {label} {requerido && <span className="text-alerta">*</span>}
       </label>
-      <input id={name} name={name} type={type} required={required} className={campo} />
+      <input
+        id={name}
+        name={name}
+        type={type}
+        maxLength={maxLength}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${name}-error` : undefined}
+        className={`${campo} ${error ? "border-alerta" : ""}`}
+      />
+      {error && (
+        <p id={`${name}-error`} className="mt-1 text-sm text-alerta">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
