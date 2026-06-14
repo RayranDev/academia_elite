@@ -12,6 +12,7 @@ import {
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
+import { evaluacionVencida } from "@/lib/evaluacion";
 import type { JugadorInput } from "@/lib/validators/jugador";
 import type { PlayerCardData, Posicion } from "@/types";
 
@@ -36,8 +37,6 @@ export interface SolicitudDTO {
   padreEmail: string | null;
   fechaNacimiento: string;
 }
-
-const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** Categorías (id + nombre) del DT, para formularios de alta/código. */
 export async function listarCategoriasDelDt(
@@ -74,8 +73,7 @@ export async function listarPlantillaDt(
 
   return jugadores.map((j) => {
     const stats = j.stats[0] ?? null;
-    const vencida =
-      !stats || ahora - stats.createdAt.getTime() > frecuencia * DIA_MS;
+    const vencida = !stats || evaluacionVencida(stats.createdAt, frecuencia, ahora);
     return {
       id: j.id,
       nombre: j.nombre,

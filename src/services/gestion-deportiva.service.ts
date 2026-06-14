@@ -8,6 +8,7 @@ import {
   asistenciaPorJugador,
   estadisticasGoleadoresByEscuela,
 } from "@/repositories/gestion-deportiva.repository";
+import { porcentaje } from "@/lib/evaluacion";
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────
 
@@ -45,13 +46,6 @@ export interface RankingEscuelaDTO {
     goles: number;
     asistencias: number;
   }[];
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Calcula porcentaje con un decimal; evita división por cero. */
-function calcularPorcentaje(presentes: number, total: number): number {
-  return total === 0 ? 0 : Math.round((presentes / total) * 1000) / 10;
 }
 
 // ─── Servicio: asistencia ─────────────────────────────────────────────────────
@@ -98,7 +92,7 @@ export async function asistenciaEscuela(
     .filter((row) => catsMap.has(row.categoriaId))
     .map((row) => ({
       categoriaNombre: catsMap.get(row.categoriaId)!,
-      porcentaje: calcularPorcentaje(row.presentes, row.total),
+      porcentaje: porcentaje(row.presentes, row.total),
       presentes: row.presentes,
       total: row.total,
     }))
@@ -121,7 +115,7 @@ export async function asistenciaEscuela(
           categoriaNombre,
           presentes: asistencia.presentes,
           total: asistencia.total,
-          porcentaje: calcularPorcentaje(asistencia.presentes, asistencia.total),
+          porcentaje: porcentaje(asistencia.presentes, asistencia.total),
         },
       ];
     })

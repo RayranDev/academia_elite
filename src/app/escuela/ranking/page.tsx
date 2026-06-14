@@ -2,23 +2,10 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { rankingEscuela } from "@/services/gestion-deportiva.service";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { colorNivel } from "@/lib/nivel";
 import { Trophy, Star } from "lucide-react";
 
 export const metadata = { title: "Ranking" };
-
-/** Mapea nivel a clase de color Tailwind. */
-function colorNivel(nivel: string): string {
-  switch (nivel) {
-    case "HEROE":
-      return "text-heroe font-bold";
-    case "ORO":
-      return "text-oro font-semibold";
-    case "PLATA":
-      return "text-plata font-semibold";
-    default:
-      return "text-bronce";
-  }
-}
 
 export default async function RankingPage() {
   const ctx = await requireAuthContext();
@@ -65,12 +52,12 @@ export default async function RankingPage() {
                     </td>
                     <td className="px-4 py-3 text-muted">{j.categoriaNombre}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={colorNivel(j.nivel)}>
+                      <span className={`${colorNivel(j.nivel)} font-semibold`}>
                         {j.nivel.charAt(0) + j.nivel.slice(1).toLowerCase()}
                       </span>
                     </td>
                     <td className="tabular px-4 py-3 text-right">
-                      <span className={colorNivel(j.nivel)}>{j.ovr}</span>
+                      <span className={`${colorNivel(j.nivel)} font-semibold`}>{j.ovr}</span>
                     </td>
                   </tr>
                 ))}

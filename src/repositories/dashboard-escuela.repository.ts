@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { porcentaje } from "@/lib/evaluacion";
 
 // Repositorio de lectura para el dashboard del ESCUELA_ADMIN (Capa 4).
 // Solo operaciones de lectura; sin lógica de negocio.
@@ -59,6 +60,5 @@ export async function calcularAsistenciaMes(escuelaId: string): Promise<number> 
     }),
   ]);
 
-  if (total === 0) return 0;
-  return Math.round((presentes / total) * 100);
+  return porcentaje(presentes, total);
 }

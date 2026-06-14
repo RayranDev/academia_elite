@@ -6,10 +6,9 @@ import {
   listarPlantillaEscuela,
   calcularAsistenciaMes,
 } from "@/repositories/dashboard-escuela.repository";
+import { evaluacionVencida } from "@/lib/evaluacion";
 
 // Servicio del dashboard deportivo del ESCUELA_ADMIN (Capa 3).
-
-const DIA_MS = 24 * 60 * 60 * 1000;
 
 /** Jugador con evaluación pendiente (vencida o sin evaluar). */
 export interface PendienteDTO {
@@ -98,8 +97,8 @@ export async function resumenEscuela(
         distribucionNivel[nivelNorm]++;
       }
 
-      // Verificar vencimiento (misma lógica que listarPlantillaDt).
-      const vencida = ahora - stats.createdAt.getTime() > frecuencia * DIA_MS;
+      // Verificar vencimiento (helper compartido con listarPlantillaDt).
+      const vencida = evaluacionVencida(stats.createdAt, frecuencia, ahora);
       if (vencida) {
         evaluacionesVencidas++;
         pendientes.push({

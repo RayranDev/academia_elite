@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { cartaDemo, NIVELES_ORDEN } from "@/lib/demo-card";
+import { colorNivel } from "@/lib/nivel";
 
-// Color de cada nivel para los nodos del selector.
-const COLOR_NIVEL = ["text-bronce", "text-plata", "text-oro", "text-heroe"];
 const MS_AUTOPLAY = 1500;
 
 /**
@@ -111,7 +110,7 @@ export function LiveDemo() {
                       />
                       <span
                         className={`text-xs font-bold ${
-                          activo ? COLOR_NIVEL[i] : "text-muted"
+                          activo ? colorNivel(n) : "text-muted"
                         }`}
                       >
                         {n}
