@@ -37,8 +37,56 @@ export function obtenerEvento(escuelaId: string, id: string) {
         },
       },
       asistencias: true,
+      estadisticas: true,
     },
   });
+}
+
+export function editarEvento(
+  escuelaId: string,
+  id: string,
+  data: {
+    titulo?: string;
+    canchaId?: string | null;
+    rival?: string | null;
+    esLocal?: boolean | null;
+    inicio?: Date;
+    fin?: Date;
+    notas?: string | null;
+  },
+) {
+  return db.evento.updateMany({ where: { id, escuelaId }, data });
+}
+
+export function cancelarEvento(escuelaId: string, id: string) {
+  return db.evento.updateMany({
+    where: { id, escuelaId },
+    data: { cancelado: true },
+  });
+}
+
+/** Upsert de la estadística individual de cada jugador en un partido. */
+export async function registrarEstadisticas(
+  escuelaId: string,
+  eventoId: string,
+  registros: {
+    jugadorId: string;
+    titular: boolean;
+    minutos: number;
+    goles: number;
+    asistencias: number;
+    amarillas: number;
+    roja: boolean;
+  }[],
+) {
+  for (const r of registros) {
+    const { jugadorId, ...stats } = r;
+    await db.estadisticaPartido.upsert({
+      where: { eventoId_jugadorId: { eventoId, jugadorId } },
+      update: stats,
+      create: { escuelaId, eventoId, jugadorId, ...stats },
+    });
+  }
 }
 
 export function listarEventosCategorias(
@@ -139,6 +187,87 @@ export function ultimoPartidoDeCategoria(
       resultadoLocal: { not: null },
     },
     orderBy: { inicio: "desc" },
+  });
+}
+
+// --- Resumen de partidos del jugador ---
+
+/** Totales acumulados de un jugador (goles, asistencias, etc.). */
+export async function resumenEstadisticasJugador(
+  escuelaId: string,
+  jugadorId: string,
+) {
+  const [agg, rojas] = await Promise.all([
+    db.estadisticaPartido.aggregate({
+      where: { escuelaId, jugadorId },
+      _sum: { goles: true, asistencias: true, minutos: true, amarillas: true },
+      _count: { _all: true },
+    }),
+    db.estadisticaPartido.count({ where: { escuelaId, jugadorId, roja: true } }),
+  ]);
+  return {
+    partidos: agg._count._all,
+    goles: agg._sum.goles ?? 0,
+    asistencias: agg._sum.asistencias ?? 0,
+    minutos: agg._sum.minutos ?? 0,
+    amarillas: agg._sum.amarillas ?? 0,
+    rojas,
+  };
+}
+
+/** Últimos partidos con la línea individual del jugador. */
+export function ultimasEstadisticasJugador(
+  escuelaId: string,
+  jugadorId: string,
+  limite = 5,
+) {
+  return db.estadisticaPartido.findMany({
+    where: { escuelaId, jugadorId },
+    include: {
+      evento: {
+        select: {
+          titulo: true,
+          rival: true,
+          inicio: true,
+          esLocal: true,
+          resultadoLocal: true,
+          resultadoVisitante: true,
+        },
+      },
+    },
+    orderBy: { evento: { inicio: "desc" } },
+    take: limite,
+  });
+}
+
+// --- Curva de desarrollo: asistencia reciente ---
+
+/** Asistencias de UN jugador desde una fecha: entrenos/partidos presentes + ausencias. */
+export async function contarAsistenciasJugador(
+  escuelaId: string,
+  jugadorId: string,
+  desde: Date,
+): Promise<{ entrenos: number; partidos: number; ausencias: number }> {
+  const rows = await db.asistencia.findMany({
+    where: { escuelaId, jugadorId, evento: { inicio: { gte: desde } } },
+    select: { presente: true, evento: { select: { tipo: true } } },
+  });
+  let entrenos = 0;
+  let partidos = 0;
+  let ausencias = 0;
+  for (const r of rows) {
+    if (!r.presente) ausencias++;
+    else if (r.evento.tipo === "PARTIDO") partidos++;
+    else if (r.evento.tipo === "ENTRENAMIENTO") entrenos++;
+  }
+  return { entrenos, partidos, ausencias };
+}
+
+/** Asistencias de TODA la plataforma desde una fecha (para el cron diario). */
+export function asistenciasRecientesGlobal(desde: Date) {
+  return db.asistencia.findMany({
+    where: { evento: { inicio: { gte: desde } } },
+    select: { jugadorId: true, presente: true, evento: { select: { tipo: true } } },
   });
 }
 

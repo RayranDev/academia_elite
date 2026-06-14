@@ -11,7 +11,15 @@ import {
   equiparFondoJugador,
   logrosCodigosDeJugador,
   logrosPorCodigos,
+  codigoFondoExiste,
+  crearFondo,
+  actualizarFondo,
+  eliminarFondo,
+  fondoEnUso,
 } from "@/repositories/fondo.repository";
+import { codigoLogroExiste } from "@/repositories/logro.repository";
+import { registrarAuditoria } from "@/services/audit.service";
+import type { FondoCrearInput, FondoEditarInput } from "@/lib/validators/fondo";
 import {
   HABITOS,
   xpTotal,
@@ -172,4 +180,122 @@ export async function estiloFondoEquipado(hijo: Hijo): Promise<string | null> {
   if (!hijo.fondoEquipadoId) return null;
   const fondo = await obtenerFondo(hijo.fondoEquipadoId);
   return fondo?.estilo ?? null;
+}
+
+// --- Laboratorio de fondos (Súper Admin) ---
+
+export interface FondoAdminDTO {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  estilo: string;
+  colorTexto: string | null;
+  requisitoTipo: string;
+  requisitoValor: string | null;
+  orden: number;
+}
+
+/** Catálogo completo de fondos para administrarlos (solo Súper Admin). */
+export async function listarFondosAdmin(ctx: AuthContext): Promise<FondoAdminDTO[]> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const fondos = await listarFondos();
+  return fondos.map((f) => ({
+    id: f.id,
+    codigo: f.codigo,
+    nombre: f.nombre,
+    descripcion: f.descripcion,
+    estilo: f.estilo,
+    colorTexto: f.colorTexto,
+    requisitoTipo: f.requisitoTipo,
+    requisitoValor: f.requisitoValor,
+    orden: f.orden,
+  }));
+}
+
+/** Si el requisito es LOGRO, el código debe existir en el catálogo de logros. */
+async function validarRequisitoLogro(
+  requisitoTipo: string,
+  requisitoValor: string | null,
+): Promise<void> {
+  if (requisitoTipo === "LOGRO") {
+    if (!requisitoValor || !(await codigoLogroExiste(requisitoValor))) {
+      throw new ValidationError("El logro indicado no existe en el catálogo.");
+    }
+  }
+}
+
+/** Crea un fondo en el catálogo global (Súper Admin). */
+export async function crearFondoAdmin(
+  ctx: AuthContext,
+  data: FondoCrearInput,
+): Promise<void> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  if (await codigoFondoExiste(data.codigo)) {
+    throw new ValidationError("Ya existe un fondo con ese código.");
+  }
+  await validarRequisitoLogro(data.requisitoTipo, data.requisitoValor);
+  const creado = await crearFondo({
+    codigo: data.codigo,
+    nombre: data.nombre,
+    descripcion: data.descripcion,
+    estilo: data.estilo,
+    colorTexto: data.colorTexto,
+    requisitoTipo: data.requisitoTipo,
+    requisitoValor: data.requisitoTipo === "SIEMPRE" ? null : data.requisitoValor,
+    orden: data.orden,
+  });
+  await registrarAuditoria(ctx, {
+    accion: "FONDO_CREAR",
+    entidad: "FondoCarta",
+    entidadId: creado.id,
+    motivo: data.codigo,
+  });
+}
+
+/** Edita un fondo existente (Súper Admin). El código es inmutable. */
+export async function editarFondoAdmin(
+  ctx: AuthContext,
+  data: FondoEditarInput,
+): Promise<void> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const fondo = await obtenerFondo(data.fondoId);
+  if (!fondo) throw new NotFoundError("Fondo no encontrado.");
+  await validarRequisitoLogro(data.requisitoTipo, data.requisitoValor);
+  await actualizarFondo(data.fondoId, {
+    nombre: data.nombre,
+    descripcion: data.descripcion,
+    estilo: data.estilo,
+    colorTexto: data.colorTexto,
+    requisitoTipo: data.requisitoTipo,
+    requisitoValor: data.requisitoTipo === "SIEMPRE" ? null : data.requisitoValor,
+    orden: data.orden,
+  });
+  await registrarAuditoria(ctx, {
+    accion: "FONDO_EDITAR",
+    entidad: "FondoCarta",
+    entidadId: data.fondoId,
+  });
+}
+
+/** Elimina un fondo. Se bloquea si algún jugador lo usa (equipado o desbloqueado). */
+export async function eliminarFondoAdmin(
+  ctx: AuthContext,
+  fondoId: string,
+): Promise<void> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  const fondo = await obtenerFondo(fondoId);
+  if (!fondo) throw new NotFoundError("Fondo no encontrado.");
+  if (await fondoEnUso(fondoId)) {
+    throw new ValidationError(
+      "No se puede eliminar: hay jugadores que lo tienen equipado o desbloqueado.",
+    );
+  }
+  await eliminarFondo(fondoId);
+  await registrarAuditoria(ctx, {
+    accion: "FONDO_ELIMINAR",
+    entidad: "FondoCarta",
+    entidadId: fondoId,
+    motivo: fondo.codigo,
+  });
 }

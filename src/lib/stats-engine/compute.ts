@@ -4,7 +4,7 @@ import { RANGOS_POR_GRUPO } from "./ranges";
 import { normalizaFisica, normalizaNota, TECHO, PISO_TECNICA } from "./normalize";
 import { derivaStats, PESOS_POSICION, type MedidasNormalizadas } from "./weights";
 import { nivelPorOvr } from "./levels";
-import type { StatCarta } from "@/types";
+import type { StatCarta, Posicion } from "@/types";
 
 const PESO_MEN_DEFECTO = 0.1;
 const TOPE_BONUS_DEFECTO = 3;
@@ -14,6 +14,28 @@ function clamp(v: number, min: number, max: number): number {
 }
 function entero(v: number): number {
   return clamp(Math.round(v), PISO_TECNICA, TECHO);
+}
+
+/**
+ * Recalcula el OVR a partir de los 6 stats ya calculados + un MEN distinto, sin
+ * re-evaluar las medidas. Útil para reflejar el MEN "en vivo" (base + bonus de
+ * la curva de desarrollo) en la carta del jugador. Función PURA.
+ */
+export function ovrConMen(
+  stats: { rit: number; tir: number; pas: number; reg: number; def: number; fis: number },
+  posicion: Posicion,
+  pesoMen: number,
+  men: number,
+): number {
+  const w = PESOS_POSICION[posicion];
+  const sumaPos =
+    stats.rit * w.rit +
+    stats.tir * w.tir +
+    stats.pas * w.pas +
+    stats.reg * w.reg +
+    stats.def * w.def +
+    stats.fis * w.fis;
+  return entero((1 - pesoMen) * sumaPos + pesoMen * men);
 }
 
 /**

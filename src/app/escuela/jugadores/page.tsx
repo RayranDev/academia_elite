@@ -22,6 +22,12 @@ export default async function JugadoresEscuelaPage() {
           >
             Descargar jugadores
           </a>
+          <a
+            href="/api/evaluaciones-export"
+            className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+          >
+            Descargar evaluaciones
+          </a>
           <ImportarJugadoresDialog />
         </div>
       </div>

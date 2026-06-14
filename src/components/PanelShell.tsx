@@ -1,11 +1,12 @@
-import { Bell } from "lucide-react";
 import { logout } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/Button";
 import { Sidebar, type NavItem } from "@/components/shell/Sidebar";
 import { SplashScreen } from "@/components/shell/SplashScreen";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
+import { NotificacionesMenu } from "@/components/shell/NotificacionesMenu";
+import { LoginNotifToast } from "@/components/shell/LoginNotifToast";
 import { getAuthContext } from "@/lib/auth/session";
-import { contarMisNoLeidas } from "@/services/notificacion.service";
+import { listarMisNotificaciones } from "@/services/notificacion.service";
 import type { Rol } from "@/types";
 
 const ETIQUETA_ROL: Record<Rol, string> = {
@@ -33,11 +34,12 @@ export async function PanelShell({
   children: React.ReactNode;
 }) {
   const ctx = await getAuthContext();
-  const noLeidas = ctx ? await contarMisNoLeidas(ctx) : 0;
+  const notificaciones = ctx ? await listarMisNotificaciones(ctx) : [];
 
   return (
     <div className="flex min-h-dvh flex-col">
       <SplashScreen marca={marca} />
+      <LoginNotifToast notificaciones={notificaciones} />
       <header className="flex items-center justify-between border-b border-subtle bg-surface px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           {escudoUrl ? (
@@ -57,15 +59,7 @@ export async function PanelShell({
         </div>
         <div className="flex items-center gap-3 sm:gap-4">
           <ThemeToggle />
-          {noLeidas > 0 && (
-            <span
-              className="flex items-center gap-1 rounded-full bg-brand/15 px-2 py-1 text-xs font-bold text-brand"
-              title="Notificaciones sin leer"
-            >
-              <Bell className="h-3.5 w-3.5" aria-hidden />
-              {noLeidas}
-            </span>
-          )}
+          <NotificacionesMenu inicial={notificaciones} />
           <span className="hidden text-sm text-muted sm:inline">
             Hola, <span className="text-foreground">{nombre}</span>
           </span>

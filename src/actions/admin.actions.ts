@@ -12,6 +12,10 @@ import {
 import { actualizarEstadoLead } from "@/services/lead.service";
 import { convertirLeadEnEscuela } from "@/services/escuela.service";
 import { actualizarParametro } from "@/services/parametro.service";
+import {
+  fijarMetricaEscuelaAdmin,
+  quitarMetricaEscuelaAdmin,
+} from "@/services/parametro-escuela.service";
 
 // Acción de formulario (fire-and-forget): mueve el lead en el pipeline.
 // revalidatePath refresca la vista; los errores de dominio se propagan al
@@ -74,4 +78,50 @@ export async function actualizarParametroAction(
   await actualizarParametro(ctx, parsed.data.clave, parsed.data.valor);
   revalidatePath("/admin/parametros");
   revalidatePath("/admin/auditoria");
+}
+
+/** Fija un override de métrica para una escuela puntual (SUPER_ADMIN). */
+export async function fijarMetricaEscuelaAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const escuelaId = formData.get("escuelaId");
+    const clave = formData.get("clave");
+    const valor = Number(formData.get("valor"));
+    if (typeof escuelaId !== "string" || !escuelaId) {
+      throw new ValidationError("Falta la escuela.");
+    }
+    if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
+    if (!Number.isFinite(valor)) throw new ValidationError("Valor inválido.");
+    await fijarMetricaEscuelaAdmin(ctx, escuelaId, clave, valor);
+    revalidatePath("/admin/parametros");
+    revalidatePath("/admin/auditoria");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Quita el override de una escuela (vuelve al global). (SUPER_ADMIN). */
+export async function quitarMetricaEscuelaAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const escuelaId = formData.get("escuelaId");
+    const clave = formData.get("clave");
+    if (typeof escuelaId !== "string" || !escuelaId) {
+      throw new ValidationError("Falta la escuela.");
+    }
+    if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
+    await quitarMetricaEscuelaAdmin(ctx, escuelaId, clave);
+    revalidatePath("/admin/parametros");
+    revalidatePath("/admin/auditoria");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }

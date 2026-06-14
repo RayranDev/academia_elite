@@ -9,15 +9,21 @@ import {
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
 import { noticiasDeJugador } from "@/repositories/anuncio.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { obtenerParametroGlobal } from "@/repositories/parametro.repository";
+import { contarAsistenciasJugador } from "@/repositories/evento.repository";
 import {
   proximosEventosJugador,
   ultimoPartidoJugador,
+  resumenPartidosJugador,
   type ProximoEventoDTO,
   type UltimoPartidoDTO,
+  type ResumenPartidosDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
 import { obtenerFondo } from "@/repositories/fondo.repository";
 import { parseAvatarConfig } from "@/lib/avatar/config";
+import { ovrConMen } from "@/lib/stats-engine";
+import { CURVA, proyeccionMen, type ProyeccionCurva } from "@/lib/curva";
 import type { PlayerCardData, Posicion, AvatarConfig } from "@/types";
 
 export interface NoticiaDTO {
@@ -85,6 +91,10 @@ export interface HubDTO {
   avatarConfig: AvatarConfig | null;
   proximos: ProximoEventoDTO[];
   ultimoPartido: UltimoPartidoDTO | null;
+  resumenPartidos: ResumenPartidosDTO;
+  // Curva de desarrollo: asistencia reciente + proyección del crecimiento de MEN.
+  asistenciasCurva: { entrenos: number; partidos: number; ausencias: number };
+  proyeccionCurva: ProyeccionCurva;
   noticias: NoticiaDTO[];
 }
 
@@ -104,15 +114,19 @@ export async function obtenerHub(
   if (!elegido) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, elegido.escuelaId);
 
-  const [full, evals, catalogo, proximos, ultimoPartido, noticiasRows, escuela] =
+  const desdeCurva = new Date(Date.now() - CURVA.VENTANA_DIAS * 24 * 60 * 60 * 1000);
+  const [full, evals, catalogo, proximos, ultimoPartido, resumenPartidos, noticiasRows, escuela, paramMen, asistenciasCurva] =
     await Promise.all([
       obtenerJugadorHub(elegido.id),
       listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
       db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
       proximosEventosJugador(elegido.escuelaId, elegido.categoriaId, elegido.id),
       ultimoPartidoJugador(elegido.escuelaId, elegido.categoriaId),
+      resumenPartidosJugador(elegido.escuelaId, elegido.id),
       noticiasDeJugador(elegido.escuelaId, elegido.categoriaId),
       obtenerEscuela(elegido.escuelaId),
+      obtenerParametroGlobal("PESO_MEN_EN_OVR"),
+      contarAsistenciasJugador(elegido.escuelaId, elegido.id, desdeCurva),
     ]);
   if (!full) throw new NotFoundError("Jugador no encontrado.");
 
@@ -134,6 +148,17 @@ export async function obtenerHub(
     card.fondoEstilo = fondo?.estilo ?? null;
     card.fondoTexto = fondo?.colorTexto ?? null;
     card.heroeEquipado = fondo?.codigo === "LEYENDA";
+  }
+
+  // Curva de desarrollo: la carta del HUB refleja el MEN "en vivo" (base medido
+  // + bonus por asistencia) y recalcula el OVR. Las vistas oficiales/admin
+  // siguen usando el OVR medido de StatsCalculados (comparabilidad intacta).
+  const proyeccionCurva = proyeccionMen(asistenciasCurva);
+  if (card && stats) {
+    const pesoMen = paramMen?.valor ?? 0.1;
+    const menEfectivo = Math.min(99, stats.men + Math.round(full.menBonus));
+    card.men = menEfectivo;
+    card.ovr = ovrConMen(stats, full.posicion as Posicion, pesoMen, menEfectivo);
   }
 
   const evolucion: EvolucionPunto[] = evals
@@ -232,6 +257,9 @@ export async function obtenerHub(
     avatarConfig: parseAvatarConfig(full.avatarConfig),
     proximos,
     ultimoPartido,
+    resumenPartidos,
+    asistenciasCurva,
+    proyeccionCurva,
     noticias: noticiasRows.map((n) => ({
       id: n.id,
       titulo: n.titulo,

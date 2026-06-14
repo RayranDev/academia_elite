@@ -100,6 +100,41 @@ export async function jugadorIdsDeCategorias(
 }
 
 /** Datos mínimos de varios jugadores (para etiquetar conversaciones). */
+// --- Curva de desarrollo (cron diario de MEN) ---
+
+/** IDs y escuela de todos los jugadores ACTIVO (para el cron de MEN). */
+export function idsJugadoresActivos() {
+  return db.jugador.findMany({
+    where: { estado: "ACTIVO" },
+    select: { id: true, escuelaId: true },
+  });
+}
+
+/** Persiste el bonus de MEN calculado por la curva de desarrollo. */
+export function actualizarMenBonus(jugadorId: string, menBonus: number, ahora: Date) {
+  return db.jugador.update({
+    where: { id: jugadorId },
+    data: { menBonus, menBonusActualizado: ahora },
+  });
+}
+
+/**
+ * Última StatsCalculados de cada jugador indicado (para reportes de toda la
+ * escuela, incluidos INACTIVO/PENDIENTE que no aparecen en listarPlantilla).
+ */
+export function ultimasStatsPorJugadores(escuelaId: string, jugadorIds: string[]) {
+  if (jugadorIds.length === 0) {
+    return Promise.resolve(
+      [] as { jugadorId: string; ovr: number; nivel: string; createdAt: Date }[],
+    );
+  }
+  return db.statsCalculados.findMany({
+    where: { escuelaId, jugadorId: { in: jugadorIds } },
+    orderBy: { createdAt: "desc" },
+    select: { jugadorId: true, ovr: true, nivel: true, createdAt: true },
+  });
+}
+
 export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
   return db.jugador.findMany({
     where: { escuelaId, id: { in: ids } },

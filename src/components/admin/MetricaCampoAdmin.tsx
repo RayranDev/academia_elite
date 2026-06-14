@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { fijarMetricaAction, quitarMetricaAction } from "@/actions/escuela.actions";
+import {
+  fijarMetricaEscuelaAction,
+  quitarMetricaEscuelaAction,
+} from "@/actions/admin.actions";
 import { Button } from "@/components/ui/Button";
 import type { FilaParametro } from "@/lib/parametros";
 
@@ -10,10 +13,19 @@ const input =
   "w-24 rounded-lg border border-subtle bg-surface-2 px-2 py-1.5 text-sm tabular outline-none focus:border-brand";
 
 /**
- * Edita un override de métrica de la escuela: muestra el valor global y permite
- * fijar uno propio o volver al global. El valor efectivo se resalta.
+ * Edita un override de métrica de UNA escuela puntual (panel del SUPER_ADMIN).
+ * Muestra el valor global de referencia y permite fijar uno propio para esa
+ * escuela o volver al global. No afecta a las demás escuelas.
  */
-export function MetricaCampo({ clave, fila }: { clave: string; fila: FilaParametro }) {
+export function MetricaCampoAdmin({
+  escuelaId,
+  clave,
+  fila,
+}: {
+  escuelaId: string;
+  clave: string;
+  fila: FilaParametro;
+}) {
   const router = useRouter();
   const [valor, setValor] = useState(String(fila.valorEfectivo ?? ""));
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +34,11 @@ export function MetricaCampo({ clave, fila }: { clave: string; fila: FilaParamet
 
   function fijar() {
     const fd = new FormData();
+    fd.set("escuelaId", escuelaId);
     fd.set("clave", clave);
     fd.set("valor", valor);
     startTransition(async () => {
-      const res = await fijarMetricaAction(undefined, fd);
+      const res = await fijarMetricaEscuelaAction(undefined, fd);
       if (res.ok) {
         setError(null);
         router.refresh();
@@ -35,9 +48,10 @@ export function MetricaCampo({ clave, fila }: { clave: string; fila: FilaParamet
 
   function quitar() {
     const fd = new FormData();
+    fd.set("escuelaId", escuelaId);
     fd.set("clave", clave);
     startTransition(async () => {
-      const res = await quitarMetricaAction(undefined, fd);
+      const res = await quitarMetricaEscuelaAction(undefined, fd);
       if (res.ok) {
         setError(null);
         router.refresh();

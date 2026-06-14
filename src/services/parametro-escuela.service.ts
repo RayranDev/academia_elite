@@ -1,7 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
-import { ValidationError } from "@/lib/errors";
+import { requireRole } from "@/lib/auth/guards";
+import { ValidationError, NotFoundError } from "@/lib/errors";
 import { listarParametrosPorPrefijo } from "@/repositories/parametro.repository";
+import { obtenerEscuela } from "@/repositories/escuela.repository";
 import {
   listarOverrides,
   upsertOverride,
@@ -82,12 +83,19 @@ async function cargarValores(escuelaId: string): Promise<{
   };
 }
 
-/** Métricas de la escuela: global + override por clave (rangos y umbrales). */
-export async function listarMetricasEscuela(
+/**
+ * Métricas de una escuela: global + override por clave (rangos y umbrales).
+ * Exclusivo del SUPER_ADMIN; la escuela se selecciona explícitamente (la lógica
+ * de evaluación la gestionamos nosotros, no las escuelas).
+ */
+export async function listarMetricasEscuelaAdmin(
   ctx: AuthContext,
+  escuelaId: string,
 ): Promise<MetricasEscuelaDTO> {
-  requireRole(ctx, ["ESCUELA_ADMIN"]);
-  const escuelaId = requireEscuela(ctx);
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  if (!(await obtenerEscuela(escuelaId))) {
+    throw new NotFoundError("Escuela no encontrada.");
+  }
   const { global, override } = await cargarValores(escuelaId);
 
   const grupos: MetricaGrupoDTO[] = GRUPOS.map((grupo) => {
@@ -146,14 +154,17 @@ function validarCoherencia(
   }
 }
 
-/** Fija un override de métrica para la escuela. Auditado. */
-export async function fijarMetrica(
+/** Fija un override de métrica para una escuela (SUPER_ADMIN). Auditado. */
+export async function fijarMetricaEscuelaAdmin(
   ctx: AuthContext,
+  escuelaId: string,
   clave: string,
   valor: number,
 ): Promise<void> {
-  requireRole(ctx, ["ESCUELA_ADMIN"]);
-  const escuelaId = requireEscuela(ctx);
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  if (!(await obtenerEscuela(escuelaId))) {
+    throw new NotFoundError("Escuela no encontrada.");
+  }
   if (!claveOverrideable(clave)) {
     throw new ValidationError("Esa métrica no se puede configurar por escuela.");
   }
@@ -173,10 +184,13 @@ export async function fijarMetrica(
   });
 }
 
-/** Quita el override (vuelve al valor global). Auditado. */
-export async function quitarMetrica(ctx: AuthContext, clave: string): Promise<void> {
-  requireRole(ctx, ["ESCUELA_ADMIN"]);
-  const escuelaId = requireEscuela(ctx);
+/** Quita el override de una escuela (vuelve al valor global). Auditado. */
+export async function quitarMetricaEscuelaAdmin(
+  ctx: AuthContext,
+  escuelaId: string,
+  clave: string,
+): Promise<void> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
   if (!claveOverrideable(clave)) {
     throw new ValidationError("Esa métrica no se puede configurar por escuela.");
   }

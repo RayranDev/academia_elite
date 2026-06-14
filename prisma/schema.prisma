@@ -139,12 +139,17 @@ model Jugador {
   stats                   StatsCalculados[]
   asistencias             Asistencia[]
   convocatorias           JugadorConvocado[]
+  estadisticasPartido     EstadisticaPartido[]
   logros                  LogroJugador[]
   objetivos               ObjetivoJugador[]
   progresos               ProgresoSemanal[]
   fondosDesbloqueados     FondoDesbloqueado[]
   fondoEquipadoId         String?
   fondoEquipado           FondoCarta?        @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
+  // Curva de desarrollo: bonus de MEN ganado por asistencia entre evaluaciones
+  // (lo recalcula a diario el cron; acotado y recuperable, ver src/lib/curva.ts).
+  menBonus                Float              @default(0)
+  menBonusActualizado     DateTime?
   createdAt               DateTime           @default(now())
 
   @@index([escuelaId, categoriaId])
@@ -233,13 +238,36 @@ model Evento {
   inicio             DateTime
   fin                DateTime
   notas              String?
+  cancelado          Boolean            @default(false)
   resultadoLocal     Int? // carga post-partido (opcional, para el hub)
   resultadoVisitante Int?
   convocados         JugadorConvocado[]
   asistencias        Asistencia[]
+  estadisticas       EstadisticaPartido[]
   createdAt          DateTime           @default(now())
 
   @@index([escuelaId, categoriaId, inicio])
+}
+
+// Estadística individual de un jugador en un PARTIDO (la carga el DT junto al
+// marcador). Una fila por (evento, jugador). Es informativa hoy; en una fase
+// posterior puede alimentar la curva de desarrollo.
+model EstadisticaPartido {
+  id          String  @id @default(cuid())
+  escuelaId   String
+  eventoId    String
+  evento      Evento  @relation(fields: [eventoId], references: [id])
+  jugadorId   String
+  jugador     Jugador @relation(fields: [jugadorId], references: [id])
+  titular     Boolean @default(false)
+  minutos     Int     @default(0)
+  goles       Int     @default(0)
+  asistencias Int     @default(0)
+  amarillas   Int     @default(0)
+  roja        Boolean @default(false)
+
+  @@unique([eventoId, jugadorId])
+  @@index([escuelaId, jugadorId])
 }
 
 model JugadorConvocado {
@@ -484,10 +512,13 @@ model AuditLog {
 }
 
 model Membresia {
-  id        String @id @default(cuid()) // Fase 2 — sin UI en Fase 1
+  id        String @id @default(cuid())
   escuelaId String
   jugadorId String
   periodo   String // "2026-06"
   estado    String @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
   monto     Float?
+
+  @@unique([escuelaId, jugadorId, periodo])
+  @@index([escuelaId])
 }

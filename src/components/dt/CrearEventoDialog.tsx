@@ -20,9 +20,11 @@ interface Jugador {
 export function CrearEventoDialog({
   categorias,
   jugadores,
+  canchas,
 }: {
   categorias: { id: string; nombre: string }[];
   jugadores: Jugador[];
+  canchas: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -93,6 +95,18 @@ export function CrearEventoDialog({
             <label className="mb-1 block text-xs text-muted">Título</label>
             <input name="titulo" required className={input} placeholder={tipo === "PARTIDO" ? "vs. Academia Sur" : "Entrenamiento técnico"} />
           </div>
+
+          {canchas.length > 0 && (
+            <div>
+              <label className="mb-1 block text-xs text-muted">Cancha (opcional)</label>
+              <select name="canchaId" defaultValue="" className={input}>
+                <option value="">Sin cancha</option>
+                {canchas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.nombre}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
