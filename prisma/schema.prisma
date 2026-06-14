@@ -146,6 +146,10 @@ model Jugador {
   fondosDesbloqueados     FondoDesbloqueado[]
   fondoEquipadoId         String?
   fondoEquipado           FondoCarta?        @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
+  // Curva de desarrollo: bonus de MEN ganado por asistencia entre evaluaciones
+  // (lo recalcula a diario el cron; acotado y recuperable, ver src/lib/curva.ts).
+  menBonus                Float              @default(0)
+  menBonusActualizado     DateTime?
   createdAt               DateTime           @default(now())
 
   @@index([escuelaId, categoriaId])

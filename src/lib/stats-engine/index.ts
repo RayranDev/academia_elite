@@ -1,5 +1,5 @@
 // Motor de stats v1.1 — librería PURA (sin Prisma, sin React).
-export { computeStats } from "./compute";
+export { computeStats, ovrConMen } from "./compute";
 export {
   nivelPorOvr,
   umbralesDesdeParametros,

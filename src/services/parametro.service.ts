@@ -8,6 +8,8 @@ import {
   listarParametrosPorPrefijo,
 } from "@/repositories/parametro.repository";
 import { registrarAuditoria } from "@/services/audit.service";
+import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { resolverParametrosEscuela } from "@/services/parametro-escuela.service";
 import {
   rangosDesdeParametros,
   umbralesDesdeParametros,
@@ -16,6 +18,12 @@ import {
   type RangosFisicos,
   type UmbralesNivel,
 } from "@/lib/stats-engine";
+
+export interface ConfigSimulador {
+  rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
+  pesoMen: number;
+  umbrales: UmbralesNivel;
+}
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
@@ -55,11 +63,9 @@ export async function listarParametros(
 }
 
 /** Rangos por grupo + peso de MEN + umbrales de nivel, para el simulador (G7/M8). */
-export async function obtenerConfigSimulador(ctx: AuthContext): Promise<{
-  rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
-  pesoMen: number;
-  umbrales: UmbralesNivel;
-}> {
+export async function obtenerConfigSimulador(
+  ctx: AuthContext,
+): Promise<ConfigSimulador> {
   requireRole(ctx, ["SUPER_ADMIN"]);
   const [paramsRango, paramsUmbral, paramMen] = await Promise.all([
     listarParametrosPorPrefijo("RANGO_"),
@@ -76,6 +82,32 @@ export async function obtenerConfigSimulador(ctx: AuthContext): Promise<{
     ) as Record<GrupoEdad, RangosFisicos>,
     pesoMen: paramMen?.valor ?? 0.1,
     umbrales: umbralesDesdeParametros(valoresUmbral),
+  };
+}
+
+/**
+ * Igual que `obtenerConfigSimulador` pero con los parámetros EFECTIVOS de una
+ * escuela (global + sus overrides). El peso de MEN se mantiene global (no es
+ * overrideable por escuela). Solo SUPER_ADMIN.
+ */
+export async function obtenerConfigSimuladorEscuela(
+  ctx: AuthContext,
+  escuelaId: string,
+): Promise<ConfigSimulador> {
+  requireRole(ctx, ["SUPER_ADMIN"]);
+  if (!(await obtenerEscuela(escuelaId))) {
+    throw new NotFoundError("Escuela no encontrada.");
+  }
+  const [valores, paramMen] = await Promise.all([
+    resolverParametrosEscuela(escuelaId),
+    obtenerParametroGlobal("PESO_MEN_EN_OVR"),
+  ]);
+  return {
+    rangosPorGrupo: Object.fromEntries(
+      GRUPOS.map((g) => [g, rangosDesdeParametros(valores, g)]),
+    ) as Record<GrupoEdad, RangosFisicos>,
+    pesoMen: paramMen?.valor ?? 0.1,
+    umbrales: umbralesDesdeParametros(valores),
   };
 }
 

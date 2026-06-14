@@ -240,6 +240,37 @@ export function ultimasEstadisticasJugador(
   });
 }
 
+// --- Curva de desarrollo: asistencia reciente ---
+
+/** Asistencias de UN jugador desde una fecha: entrenos/partidos presentes + ausencias. */
+export async function contarAsistenciasJugador(
+  escuelaId: string,
+  jugadorId: string,
+  desde: Date,
+): Promise<{ entrenos: number; partidos: number; ausencias: number }> {
+  const rows = await db.asistencia.findMany({
+    where: { escuelaId, jugadorId, evento: { inicio: { gte: desde } } },
+    select: { presente: true, evento: { select: { tipo: true } } },
+  });
+  let entrenos = 0;
+  let partidos = 0;
+  let ausencias = 0;
+  for (const r of rows) {
+    if (!r.presente) ausencias++;
+    else if (r.evento.tipo === "PARTIDO") partidos++;
+    else if (r.evento.tipo === "ENTRENAMIENTO") entrenos++;
+  }
+  return { entrenos, partidos, ausencias };
+}
+
+/** Asistencias de TODA la plataforma desde una fecha (para el cron diario). */
+export function asistenciasRecientesGlobal(desde: Date) {
+  return db.asistencia.findMany({
+    where: { evento: { inicio: { gte: desde } } },
+    select: { jugadorId: true, presente: true, evento: { select: { tipo: true } } },
+  });
+}
+
 /** Padres (userId) de los jugadores convocados, para notificar. */
 export async function padresDeJugadores(jugadorIds: string[]) {
   const jugadores = await db.jugador.findMany({

@@ -1,4 +1,4 @@
-import { CalendarClock, Newspaper, LineChart, History, Megaphone, Trophy } from "lucide-react";
+import { CalendarClock, Newspaper, LineChart, History, Megaphone, Trophy, TrendingUp } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerHub, type HubDTO } from "@/services/player.service";
 import { DomainError } from "@/lib/errors";
@@ -55,6 +55,10 @@ export default async function JugadorHubPage() {
           {partido ? (
             <ProximoPartidoTile evento={partido} jugadorId={hub.jugadorId} />
           ) : null}
+          <CrecimientoTile
+            asistencias={hub.asistenciasCurva}
+            proyeccion={hub.proyeccionCurva}
+          />
           <ObjetivosList objetivos={hub.objetivos} />
         </div>
       </div>
@@ -152,6 +156,49 @@ function ResumenStat({ label, value }: { label: string; value: number }) {
       <dd className="text-2xl font-bold tabular">{value}</dd>
       <dt className="text-[10px] uppercase tracking-wide text-muted">{label}</dt>
     </div>
+  );
+}
+
+/** Mensaje motivacional: cómo el esfuerzo reciente hace crecer la carta (MEN). */
+function CrecimientoTile({
+  asistencias,
+  proyeccion,
+}: {
+  asistencias: HubDTO["asistenciasCurva"];
+  proyeccion: HubDTO["proyeccionCurva"];
+}) {
+  return (
+    <Card className="border-pitch/40">
+      <h2 className="flex items-center gap-2 text-lg font-bold">
+        <TrendingUp className="h-5 w-5 text-pitch" aria-hidden />
+        Tu carta crece con tu esfuerzo
+      </h2>
+      <p className="mt-2 text-sm text-muted">
+        Últimos 30 días:{" "}
+        <span className="font-bold text-foreground">{asistencias.entrenos}</span>{" "}
+        entrenamientos y{" "}
+        <span className="font-bold text-foreground">{asistencias.partidos}</span>{" "}
+        partidos.
+      </p>
+      <p className="mt-1 text-sm">
+        Llevás{" "}
+        <span className="font-bold text-pitch">+{proyeccion.bonusActual}</span> de
+        MEN ganados por asistir{" "}
+        <span className="text-muted">(tope +{proyeccion.tope}, ya incluido en tu carta)</span>.
+      </p>
+      {proyeccion.frenadoPorAusencias ? (
+        <p className="mt-2 text-sm text-alerta">
+          Tus faltas están frenando tu crecimiento. Volvé a entrenar y lo
+          recuperás enseguida.
+        </p>
+      ) : (
+        <p className="mt-2 text-sm text-muted">
+          Cada entrenamiento suma +{proyeccion.gananciaProximoEntreno} y cada
+          partido +{proyeccion.gananciaProximoPartido} a tu MEN. ¡No faltes y
+          tu carta sigue subiendo sin esperar a la próxima medición!
+        </p>
+      )}
+    </Card>
   );
 }
 
