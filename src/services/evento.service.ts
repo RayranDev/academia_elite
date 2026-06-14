@@ -95,7 +95,7 @@ export async function crearEventoDt(
       tipo: "CONVOCATORIA",
       titulo: "Nueva convocatoria",
       cuerpo: `Tu hijo/a fue convocado para "${input.titulo}".`,
-      url: "/jugador",
+      url: "/jugador/calendario",
     });
   }
 
@@ -284,7 +284,7 @@ export async function cargarResultadoDt(
     tipo: "SISTEMA",
     titulo: "Resultado del partido",
     cuerpo: `${e.titulo}: ${marcador}`,
-    url: "/jugador",
+    url: "/jugador/calendario",
   });
 }
 

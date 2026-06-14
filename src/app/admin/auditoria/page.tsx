@@ -9,7 +9,15 @@ export default async function AuditoriaPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black italic uppercase">Auditoría</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-black italic uppercase">Auditoría</h1>
+        <a
+          href="/api/auditoria-export"
+          className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+        >
+          Descargar Excel
+        </a>
+      </div>
       <p className="text-sm text-muted">
         Registro append-only de acciones sensibles (últimos {registros.length}).
       </p>

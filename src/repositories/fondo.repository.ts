@@ -6,6 +6,44 @@ export function listarFondos() {
   return db.fondoCarta.findMany({ orderBy: { orden: "asc" } });
 }
 
+// --- CRUD del catálogo (laboratorio del Súper Admin) ---
+
+interface DatosFondo {
+  codigo: string;
+  nombre: string;
+  descripcion: string;
+  estilo: string;
+  colorTexto: string | null;
+  requisitoTipo: string;
+  requisitoValor: string | null;
+  orden: number;
+}
+
+export function codigoFondoExiste(codigo: string) {
+  return db.fondoCarta.findUnique({ where: { codigo }, select: { id: true } });
+}
+
+export function crearFondo(data: DatosFondo) {
+  return db.fondoCarta.create({ data, select: { id: true } });
+}
+
+export function actualizarFondo(id: string, data: Omit<DatosFondo, "codigo">) {
+  return db.fondoCarta.update({ where: { id }, data, select: { id: true } });
+}
+
+export function eliminarFondo(id: string) {
+  return db.fondoCarta.delete({ where: { id }, select: { id: true } });
+}
+
+/** ¿Algún jugador lo tiene equipado o desbloqueado? Bloquea el borrado. */
+export async function fondoEnUso(fondoId: string): Promise<boolean> {
+  const [desbloqueos, equipados] = await Promise.all([
+    db.fondoDesbloqueado.count({ where: { fondoId } }),
+    db.jugador.count({ where: { fondoEquipadoId: fondoId } }),
+  ]);
+  return desbloqueos > 0 || equipados > 0;
+}
+
 export function fondosDesbloqueadosDe(jugadorId: string) {
   return db.fondoDesbloqueado.findMany({
     where: { jugadorId },

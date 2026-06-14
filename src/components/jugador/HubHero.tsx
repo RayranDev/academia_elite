@@ -57,19 +57,22 @@ export function HubHero({ card }: { card: PlayerCardData }) {
   return (
     <div className="flex flex-col items-center gap-3">
       {/* Mismo wrapper y misma config que la carta de la landing (size hero +
-          interactive + perspective) para que se vean idénticas. */}
-      <div ref={cartaRef} className="relative flex justify-center perspective-[1000px]">
-        <PlayerCard data={card} size="hero" interactive reveal />
-        {/* Marca de agua: se MONTA solo durante la exportación (opaca, sin
-            transición) para que html-to-image la capture; no se ve en la web. */}
+          interactive + perspective) para que se vean idénticas. La marca de agua
+          va en una franja DEBAJO de la carta (no encima), por lo que nunca tapa
+          los stats. Vive dentro de `cartaRef` para que html-to-image la capture. */}
+      <div ref={cartaRef} className="flex flex-col items-center">
+        <div className="relative flex justify-center perspective-[1000px]">
+          <PlayerCard data={card} size="hero" interactive reveal />
+        </div>
+        {/* Se MONTA solo durante la exportación (opaca, sin transición) para que
+            html-to-image la capture; no se ve en la web. */}
         {exportando && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 px-2 pb-1.5 pt-6 text-center"
-            style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }}
+            className="mt-2 w-72 max-w-[82vw] rounded-lg bg-[#0b0f14] px-3 py-2 text-center sm:w-80"
           >
-            <p className="text-[11px] font-bold leading-tight text-white drop-shadow">{MARCA_AGUA}</p>
-            <p className="text-[10px] leading-tight text-white">{WEB}</p>
+            <p className="text-[11px] font-bold leading-tight text-white">{MARCA_AGUA}</p>
+            <p className="text-[10px] leading-tight text-white/70">{WEB}</p>
           </div>
         )}
       </div>

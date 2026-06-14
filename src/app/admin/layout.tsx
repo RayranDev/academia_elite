@@ -8,6 +8,7 @@ const NAV: NavItem[] = [
   { href: "/admin/escuelas", label: "Escuelas", icon: "escuelas" },
   { href: "/admin/usuarios", label: "Usuarios", icon: "usuarios" },
   { href: "/admin/logros", label: "Logros", icon: "logros" },
+  { href: "/admin/fondos", label: "Fondos", icon: "fondos" },
   { href: "/admin/parametros", label: "Parámetros", icon: "parametros" },
   { href: "/admin/simulador", label: "Simulador", icon: "simulador" },
   { href: "/admin/auditoria", label: "Auditoría", icon: "auditoria" },
