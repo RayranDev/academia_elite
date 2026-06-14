@@ -24,6 +24,9 @@ import {
   FlaskConical,
   Settings,
   Image,
+  ClipboardCheck,
+  Trophy,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -52,6 +55,9 @@ const ICONOS: Record<string, LucideIcon> = {
   progreso: TrendingUp,
   simulador: FlaskConical,
   fondos: Image,
+  asistencia: ClipboardCheck,
+  ranking: Trophy,
+  membresias: Wallet,
   cuenta: Settings,
 };
 

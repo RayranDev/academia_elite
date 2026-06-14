@@ -508,10 +508,13 @@ model AuditLog {
 }
 
 model Membresia {
-  id        String @id @default(cuid()) // Fase 2 — sin UI en Fase 1
+  id        String @id @default(cuid())
   escuelaId String
   jugadorId String
   periodo   String // "2026-06"
   estado    String @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
   monto     Float?
+
+  @@unique([escuelaId, jugadorId, periodo])
+  @@index([escuelaId])
 }

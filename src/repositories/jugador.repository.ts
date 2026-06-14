@@ -100,6 +100,23 @@ export async function jugadorIdsDeCategorias(
 }
 
 /** Datos mínimos de varios jugadores (para etiquetar conversaciones). */
+/**
+ * Última StatsCalculados de cada jugador indicado (para reportes de toda la
+ * escuela, incluidos INACTIVO/PENDIENTE que no aparecen en listarPlantilla).
+ */
+export function ultimasStatsPorJugadores(escuelaId: string, jugadorIds: string[]) {
+  if (jugadorIds.length === 0) {
+    return Promise.resolve(
+      [] as { jugadorId: string; ovr: number; nivel: string; createdAt: Date }[],
+    );
+  }
+  return db.statsCalculados.findMany({
+    where: { escuelaId, jugadorId: { in: jugadorIds } },
+    orderBy: { createdAt: "desc" },
+    select: { jugadorId: true, ovr: true, nivel: true, createdAt: true },
+  });
+}
+
 export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
   return db.jugador.findMany({
     where: { escuelaId, id: { in: ids } },
