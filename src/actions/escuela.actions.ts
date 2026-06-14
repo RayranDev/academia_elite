@@ -21,7 +21,6 @@ import {
   crearCodigoEscuela,
   desactivarCodigoEscuela,
 } from "@/services/codigo.service";
-import { fijarMetrica, quitarMetrica } from "@/services/parametro-escuela.service";
 
 function primerError(issues: { message: string }[]): string {
   return issues[0]?.message ?? "Datos inválidos.";
@@ -157,38 +156,5 @@ export async function desactivarCodigoAction(
   revalidatePath("/escuela/codigos");
 }
 
-// --- M9: métricas de evaluación por escuela ---
-
-export async function fijarMetricaAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  try {
-    const ctx = await requireAuthContext();
-    const clave = formData.get("clave");
-    const valor = Number(formData.get("valor"));
-    if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
-    if (!Number.isFinite(valor)) throw new ValidationError("Valor inválido.");
-    await fijarMetrica(ctx, clave, valor);
-    revalidatePath("/escuela/metricas");
-    return { ok: true };
-  } catch (e) {
-    return mapError(e);
-  }
-}
-
-export async function quitarMetricaAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  try {
-    const ctx = await requireAuthContext();
-    const clave = formData.get("clave");
-    if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
-    await quitarMetrica(ctx, clave);
-    revalidatePath("/escuela/metricas");
-    return { ok: true };
-  } catch (e) {
-    return mapError(e);
-  }
-}
+// Las métricas de evaluación se gestionan solo desde el panel del SUPER_ADMIN
+// (con selección explícita de escuela). La escuela ya no puede moverlas.
