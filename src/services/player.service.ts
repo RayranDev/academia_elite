@@ -12,8 +12,10 @@ import { obtenerEscuela } from "@/repositories/escuela.repository";
 import {
   proximosEventosJugador,
   ultimoPartidoJugador,
+  resumenPartidosJugador,
   type ProximoEventoDTO,
   type UltimoPartidoDTO,
+  type ResumenPartidosDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
 import { obtenerFondo } from "@/repositories/fondo.repository";
@@ -85,6 +87,7 @@ export interface HubDTO {
   avatarConfig: AvatarConfig | null;
   proximos: ProximoEventoDTO[];
   ultimoPartido: UltimoPartidoDTO | null;
+  resumenPartidos: ResumenPartidosDTO;
   noticias: NoticiaDTO[];
 }
 
@@ -104,13 +107,14 @@ export async function obtenerHub(
   if (!elegido) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, elegido.escuelaId);
 
-  const [full, evals, catalogo, proximos, ultimoPartido, noticiasRows, escuela] =
+  const [full, evals, catalogo, proximos, ultimoPartido, resumenPartidos, noticiasRows, escuela] =
     await Promise.all([
       obtenerJugadorHub(elegido.id),
       listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
       db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
       proximosEventosJugador(elegido.escuelaId, elegido.categoriaId, elegido.id),
       ultimoPartidoJugador(elegido.escuelaId, elegido.categoriaId),
+      resumenPartidosJugador(elegido.escuelaId, elegido.id),
       noticiasDeJugador(elegido.escuelaId, elegido.categoriaId),
       obtenerEscuela(elegido.escuelaId),
     ]);
@@ -232,6 +236,7 @@ export async function obtenerHub(
     avatarConfig: parseAvatarConfig(full.avatarConfig),
     proximos,
     ultimoPartido,
+    resumenPartidos,
     noticias: noticiasRows.map((n) => ({
       id: n.id,
       titulo: n.titulo,

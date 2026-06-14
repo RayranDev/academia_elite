@@ -2,14 +2,23 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { requireAuthContext } from "@/lib/auth/session";
-import { obtenerDetalleEventoDt } from "@/services/evento.service";
+import { obtenerDetalleEventoDt, listarCanchasDt } from "@/services/evento.service";
 import { DomainError } from "@/lib/errors";
-import { pasarListaAction, cargarResultadoAction } from "@/actions/evento.actions";
+import {
+  pasarListaAction,
+  cargarResultadoAction,
+  cargarEstadisticasAction,
+  cancelarEventoAction,
+} from "@/actions/evento.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { EditarEventoDialog } from "@/components/dt/EditarEventoDialog";
 import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
+
+const numInput =
+  "w-16 rounded-lg border border-subtle bg-surface-2 px-2 py-1.5 text-sm tabular outline-none focus:border-brand";
 
 export default async function EventoDetallePage({
   params,
@@ -20,8 +29,12 @@ export default async function EventoDetallePage({
   const ctx = await requireAuthContext();
 
   let ev;
+  let canchas;
   try {
-    ev = await obtenerDetalleEventoDt(ctx, id);
+    [ev, canchas] = await Promise.all([
+      obtenerDetalleEventoDt(ctx, id),
+      listarCanchasDt(ctx),
+    ]);
   } catch (e) {
     if (e instanceof DomainError) notFound();
     throw e;
@@ -55,7 +68,39 @@ export default async function EventoDetallePage({
             {ev.esLocal ? "Local" : "Visitante"} ante {ev.rival}
           </p>
         )}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <EditarEventoDialog
+            evento={{
+              id: ev.id,
+              tipo: ev.tipo,
+              titulo: ev.titulo,
+              canchaId: ev.canchaId,
+              rival: ev.rival,
+              esLocal: ev.esLocal,
+              inicio: ev.inicio,
+              fin: ev.fin,
+              notas: ev.notas,
+            }}
+            canchas={canchas}
+          />
+          {!ev.cancelado && (
+            <form action={cancelarEventoAction}>
+              <input type="hidden" name="eventoId" value={ev.id} />
+              <Button type="submit" size="sm" variant="ghost">
+                Cancelar evento
+              </Button>
+            </form>
+          )}
+        </div>
       </div>
+
+      {ev.cancelado && (
+        <Card className="border-alerta">
+          <p className="text-sm font-semibold text-alerta">
+            Este evento fue cancelado. Las familias fueron notificadas.
+          </p>
+        </Card>
+      )}
 
       {ev.convocados.length > 0 && (
         <Card>
@@ -142,6 +187,65 @@ export default async function EventoDetallePage({
             Al cargar el resultado se genera una noticia del club y se notifica a
             las familias.
           </p>
+        </Card>
+      )}
+
+      {ev.tipo === "PARTIDO" && ev.convocados.length > 0 && (
+        <Card className="overflow-x-auto">
+          <h2 className="mb-1 text-lg font-bold">Estadística individual</h2>
+          <p className="mb-3 text-xs text-muted">
+            Carga la línea de cada jugador en el partido. Se guarda todo junto.
+          </p>
+          <form action={cargarEstadisticasAction} className="space-y-2">
+            <input type="hidden" name="eventoId" value={ev.id} />
+            <table className="w-full text-left text-sm">
+              <thead className="text-xs uppercase text-muted">
+                <tr>
+                  <th className="py-1 pr-2">Jugador</th>
+                  <th className="px-1 text-center">Titular</th>
+                  <th className="px-1 text-center">Min</th>
+                  <th className="px-1 text-center">Goles</th>
+                  <th className="px-1 text-center">Asist.</th>
+                  <th className="px-1 text-center">Amar.</th>
+                  <th className="px-1 text-center">Roja</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ev.convocados.map((c) => {
+                  const s = c.estadistica;
+                  return (
+                    <tr key={c.jugadorId} className="border-t border-subtle/50">
+                      <td className="py-2 pr-2">
+                        <input type="hidden" name="jugadores" value={c.jugadorId} />
+                        {c.nombre} {c.apellido}
+                      </td>
+                      <td className="px-1 text-center">
+                        <input type="checkbox" name={`titular_${c.jugadorId}`} defaultChecked={s?.titular ?? false} className="accent-[color:var(--brand)]" />
+                      </td>
+                      <td className="px-1">
+                        <input name={`minutos_${c.jugadorId}`} type="number" min={0} max={200} defaultValue={s?.minutos ?? 0} aria-label={`Minutos ${c.nombre}`} className={numInput} />
+                      </td>
+                      <td className="px-1">
+                        <input name={`goles_${c.jugadorId}`} type="number" min={0} max={99} defaultValue={s?.goles ?? 0} aria-label={`Goles ${c.nombre}`} className={numInput} />
+                      </td>
+                      <td className="px-1">
+                        <input name={`asistencias_${c.jugadorId}`} type="number" min={0} max={99} defaultValue={s?.asistencias ?? 0} aria-label={`Asistencias ${c.nombre}`} className={numInput} />
+                      </td>
+                      <td className="px-1">
+                        <input name={`amarillas_${c.jugadorId}`} type="number" min={0} max={2} defaultValue={s?.amarillas ?? 0} aria-label={`Amarillas ${c.nombre}`} className={numInput} />
+                      </td>
+                      <td className="px-1 text-center">
+                        <input type="checkbox" name={`roja_${c.jugadorId}`} defaultChecked={s?.roja ?? false} className="accent-[color:var(--brand)]" />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <Button type="submit" size="sm">
+              Guardar estadística
+            </Button>
+          </form>
         </Card>
       )}
     </div>

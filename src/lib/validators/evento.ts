@@ -34,3 +34,34 @@ export const resultadoSchema = z.object({
   resultadoLocal: z.coerce.number().int().min(0).max(99),
   resultadoVisitante: z.coerce.number().int().min(0).max(99),
 });
+
+/** Edición de un evento: mismos campos que el alta salvo categoría/convocados/recurrencia. */
+export const editarEventoSchema = z
+  .object({
+    eventoId: z.string().min(1),
+    titulo: z.string().trim().min(2, { error: "Título requerido." }).max(120),
+    canchaId: z.string().optional().or(z.literal("")),
+    rival: z.string().trim().max(120).optional().or(z.literal("")),
+    esLocal: z.coerce.boolean().optional(),
+    inicio: z.coerce.date({ error: "Fecha de inicio inválida." }),
+    fin: z.coerce.date({ error: "Fecha de fin inválida." }),
+    notas: z.string().trim().max(2000).optional().or(z.literal("")),
+  })
+  .refine((d) => d.fin >= d.inicio, {
+    error: "El fin debe ser posterior al inicio.",
+    path: ["fin"],
+  });
+
+export type EditarEventoInput = z.infer<typeof editarEventoSchema>;
+
+/** Estadística individual de un jugador en un partido. */
+export const estadisticaSchema = z.object({
+  titular: z.coerce.boolean().optional().default(false),
+  minutos: z.coerce.number().int().min(0).max(200).default(0),
+  goles: z.coerce.number().int().min(0).max(99).default(0),
+  asistencias: z.coerce.number().int().min(0).max(99).default(0),
+  amarillas: z.coerce.number().int().min(0).max(2).default(0),
+  roja: z.coerce.boolean().optional().default(false),
+});
+
+export type EstadisticaInput = z.infer<typeof estadisticaSchema>;

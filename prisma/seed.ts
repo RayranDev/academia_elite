@@ -41,6 +41,7 @@ async function limpiar() {
   await db.conversacion.deleteMany();
   await db.anuncio.deleteMany();
   await db.asistencia.deleteMany();
+  await db.estadisticaPartido.deleteMany();
   await db.jugadorConvocado.deleteMany();
   await db.evento.deleteMany();
   await db.statsCalculados.deleteMany();
@@ -436,6 +437,22 @@ async function main() {
       jugadorId,
       presente: i !== 4, // todos menos uno
     })),
+  });
+  // Estadística individual del partido pasado (demo del resumen del jugador).
+  await db.estadisticaPartido.createMany({
+    data: sub10Ids
+      .filter((_, i) => i !== 4) // los que estuvieron presentes
+      .map((jugadorId, i) => ({
+        escuelaId: escuela.id,
+        eventoId: partidoPasado.id,
+        jugadorId,
+        titular: i < 4,
+        minutos: i < 4 ? 60 : 20,
+        goles: i === 0 ? 2 : i === 1 ? 1 : 0,
+        asistencias: i === 2 ? 1 : 0,
+        amarillas: i === 3 ? 1 : 0,
+        roja: false,
+      })),
   });
 
   // 9.f) Conversación DT ↔ padre sobre Lucas, con 3 mensajes.

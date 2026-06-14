@@ -15,8 +15,8 @@ export default async function CalendarioJugadorPage() {
       <p className="text-sm text-muted">
         Entrenamientos, partidos y eventos de la categoría de tu hijo/a.
       </p>
-      {/* Sin eventoHref: la familia no abre el detalle de gestión del DT. */}
-      <MonthGrid eventos={eventos} />
+      {/* La familia abre su propio detalle (confirmar convocatoria, ver resultado). */}
+      <MonthGrid eventos={eventos} eventoBase="/jugador/eventos/" />
     </div>
   );
 }

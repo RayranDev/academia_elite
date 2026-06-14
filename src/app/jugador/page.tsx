@@ -1,4 +1,4 @@
-import { CalendarClock, Newspaper, LineChart, History, Megaphone } from "lucide-react";
+import { CalendarClock, Newspaper, LineChart, History, Megaphone, Trophy } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerHub, type HubDTO } from "@/services/player.service";
 import { DomainError } from "@/lib/errors";
@@ -105,10 +105,52 @@ export default async function JugadorHubPage() {
         </Card>
       )}
 
+      {hub.resumenPartidos.partidos > 0 && (
+        <Card>
+          <Encabezado icon={Trophy} titulo="Resumen de partidos" />
+          <dl className="grid grid-cols-3 gap-3 text-center sm:grid-cols-6">
+            <ResumenStat label="Partidos" value={hub.resumenPartidos.partidos} />
+            <ResumenStat label="Goles" value={hub.resumenPartidos.goles} />
+            <ResumenStat label="Asistencias" value={hub.resumenPartidos.asistencias} />
+            <ResumenStat label="Minutos" value={hub.resumenPartidos.minutos} />
+            <ResumenStat label="Amarillas" value={hub.resumenPartidos.amarillas} />
+            <ResumenStat label="Rojas" value={hub.resumenPartidos.rojas} />
+          </dl>
+          {hub.resumenPartidos.ultimos.length > 0 && (
+            <ul className="mt-4 space-y-2">
+              {hub.resumenPartidos.ultimos.map((p, i) => (
+                <li
+                  key={i}
+                  className="flex items-center justify-between border-b border-subtle pb-2 text-sm last:border-0"
+                >
+                  <span>
+                    {p.titulo}
+                    {p.rival ? <span className="text-muted"> · {p.rival}</span> : null}
+                  </span>
+                  <span className="text-muted">
+                    {p.goles}G · {p.asistencias}A ·{" "}
+                    {new Date(p.inicio).toLocaleDateString("es")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
+
       <Card>
         <Encabezado icon={LineChart} titulo="Evolución" />
         <EvolutionChart datos={hub.evolucion} />
       </Card>
+    </div>
+  );
+}
+
+function ResumenStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg bg-surface-2 py-2">
+      <dd className="text-2xl font-bold tabular">{value}</dd>
+      <dt className="text-[10px] uppercase tracking-wide text-muted">{label}</dt>
     </div>
   );
 }
