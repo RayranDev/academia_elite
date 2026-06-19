@@ -76,6 +76,7 @@ export function obtenerJugadorPorCodigo(escuelaId: string, codigoJugador: string
 }
 
 export function vincularPadre(jugadorId: string, padreUserId: string) {
+  // tenant-global: vinculación por id de jugador (flujo de registro); sin call sites actuales
   return db.jugador.update({ where: { id: jugadorId }, data: { padreUserId } });
 }
 
@@ -104,6 +105,7 @@ export async function jugadorIdsDeCategorias(
 
 /** IDs y escuela de todos los jugadores ACTIVO (para el cron de MEN). */
 export function idsJugadoresActivos() {
+  // tenant-global: cron diario de MEN; lista jugadores ACTIVO de todas las escuelas
   return db.jugador.findMany({
     where: { estado: "ACTIVO" },
     select: { id: true, escuelaId: true },
@@ -112,6 +114,7 @@ export function idsJugadoresActivos() {
 
 /** Persiste el bonus de MEN calculado por la curva de desarrollo. */
 export function actualizarMenBonus(jugadorId: string, menBonus: number, ahora: Date) {
+  // tenant-global: cron diario de MEN; escribe por id de jugador (cross-tenant)
   return db.jugador.update({
     where: { id: jugadorId },
     data: { menBonus, menBonusActualizado: ahora },
@@ -150,6 +153,7 @@ export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
 
 /** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
 export function listarHijos(userId: string) {
+  // tenant-global: lookup por propiedad del usuario (padre/cuenta), no por escuela
   return db.jugador.findMany({
     where: {
       OR: [{ padreUserId: userId }, { cuentaUserId: userId }],
@@ -185,9 +189,10 @@ export function listarJugadoresGestion(
   });
 }
 
-export function obtenerJugadorGestion(id: string) {
-  return db.jugador.findUnique({
-    where: { id },
+export function obtenerJugadorGestion(escuelaId: string | null, id: string) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.findFirst({
+    where: { id, ...scope },
     include: {
       categoria: { select: { id: true, nombre: true } },
       padre: {
@@ -198,7 +203,8 @@ export function obtenerJugadorGestion(id: string) {
   });
 }
 
-export function actualizarJugadorDatos(
+export async function actualizarJugadorDatos(
+  escuelaId: string | null,
   id: string,
   data: {
     nombre: string;
@@ -209,13 +215,15 @@ export function actualizarJugadorDatos(
     categoriaId: string;
   },
 ) {
-  return db.jugador.update({ where: { id }, data, select: { id: true } });
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({ where: { id, ...scope }, data });
 }
 
 /** Jugador con todo lo necesario para el hub (carta, logros, objetivos). */
-export function obtenerJugadorHub(id: string) {
-  return db.jugador.findUnique({
-    where: { id },
+export function obtenerJugadorHub(escuelaId: string | null, id: string) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.findFirst({
+    where: { id, ...scope },
     include: {
       categoria: { select: { nombre: true } },
       stats: statsLatest,
@@ -226,9 +234,10 @@ export function obtenerJugadorHub(id: string) {
 }
 
 /** Datos mínimos para control de acceso a la foto (serving y gestión). */
-export function obtenerJugadorParaFoto(id: string) {
-  return db.jugador.findUnique({
-    where: { id },
+export function obtenerJugadorParaFoto(escuelaId: string | null, id: string) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.findFirst({
+    where: { id, ...scope },
     select: {
       id: true,
       escuelaId: true,
@@ -241,20 +250,32 @@ export function obtenerJugadorParaFoto(id: string) {
   });
 }
 
-export function actualizarFotoJugador(id: string, fotoUrl: string) {
-  return db.jugador.update({ where: { id }, data: { fotoUrl } });
+export async function actualizarFotoJugador(
+  escuelaId: string | null,
+  id: string,
+  fotoUrl: string,
+) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({ where: { id, ...scope }, data: { fotoUrl } });
 }
 
-export function actualizarAvatarJugador(id: string, avatarConfig: string) {
-  return db.jugador.update({ where: { id }, data: { avatarConfig } });
+export async function actualizarAvatarJugador(
+  escuelaId: string | null,
+  id: string,
+  avatarConfig: string,
+) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({ where: { id, ...scope }, data: { avatarConfig } });
 }
 
-export function actualizarConsentimientoJugador(
+export async function actualizarConsentimientoJugador(
+  escuelaId: string | null,
   id: string,
   consiente: boolean,
 ) {
-  return db.jugador.update({
-    where: { id },
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({
+    where: { id, ...scope },
     data: {
       consentimientoFoto: consiente,
       consentimientoFotoFecha: consiente ? new Date() : null,

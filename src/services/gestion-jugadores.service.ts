@@ -90,7 +90,7 @@ export async function listarJugadoresGestion(
 
 async function cargarJugador(ctx: AuthContext, jugadorId: string) {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
-  const jugador = await obtenerJugadorGestion(jugadorId);
+  const jugador = await obtenerJugadorGestion(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   return jugador;
@@ -108,7 +108,7 @@ export async function editarJugador(
   if (cuenta !== 1) {
     throw new ValidationError("Esa categoría no pertenece a la escuela.");
   }
-  await actualizarJugadorDatos(jugador.id, {
+  const res = await actualizarJugadorDatos(ctx.escuelaId, jugador.id, {
     nombre: data.nombre,
     apellido: data.apellido,
     fechaNacimiento: data.fechaNacimiento,
@@ -116,6 +116,7 @@ export async function editarJugador(
     dorsal: data.dorsal ?? null,
     categoriaId: data.categoriaId,
   });
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
   await registrarAuditoria(ctx, {
     accion: "EDITAR_JUGADOR",
     entidad: "Jugador",
@@ -227,7 +228,7 @@ export async function resetPasswordFamiliaDt(
   jugadorId: string,
 ): Promise<{ email: string; passwordTemporal: string }> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
-  const jugador = await obtenerJugadorGestion(jugadorId);
+  const jugador = await obtenerJugadorGestion(escuelaId, jugadorId);
   if (
     !jugador ||
     jugador.escuelaId !== escuelaId ||
@@ -247,7 +248,7 @@ export async function credencialesFamiliaDt(
   jugadorId: string,
 ): Promise<{ email: string | null; bloqueado: boolean }> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
-  const jugador = await obtenerJugadorGestion(jugadorId);
+  const jugador = await obtenerJugadorGestion(escuelaId, jugadorId);
   if (
     !jugador ||
     jugador.escuelaId !== escuelaId ||

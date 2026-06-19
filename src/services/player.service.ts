@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError } from "@/lib/errors";
@@ -7,6 +6,7 @@ import {
   obtenerJugadorHub,
 } from "@/repositories/jugador.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
+import { listarInsignias } from "@/repositories/logro.repository";
 import { noticiasDeJugador } from "@/repositories/anuncio.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { obtenerParametroGlobal } from "@/repositories/parametro.repository";
@@ -117,9 +117,9 @@ export async function obtenerHub(
   const desdeCurva = new Date(Date.now() - CURVA.VENTANA_DIAS * 24 * 60 * 60 * 1000);
   const [full, evals, catalogo, proximos, ultimoPartido, resumenPartidos, noticiasRows, escuela, paramMen, asistenciasCurva] =
     await Promise.all([
-      obtenerJugadorHub(elegido.id),
+      obtenerJugadorHub(ctx.escuelaId, elegido.id),
       listarEvaluacionesJugador(elegido.escuelaId, elegido.id),
-      db.logro.findMany({ where: { tipo: "INSIGNIA" }, orderBy: { codigo: "asc" } }),
+      listarInsignias(elegido.escuelaId),
       proximosEventosJugador(elegido.escuelaId, elegido.categoriaId, elegido.id),
       ultimoPartidoJugador(elegido.escuelaId, elegido.categoriaId),
       resumenPartidosJugador(elegido.escuelaId, elegido.id),

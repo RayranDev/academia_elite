@@ -39,6 +39,7 @@ export function eliminarFondo(id: string) {
 export async function fondoEnUso(fondoId: string): Promise<boolean> {
   const [desbloqueos, equipados] = await Promise.all([
     db.fondoDesbloqueado.count({ where: { fondoId } }),
+    // tenant-global: catálogo global de fondos; cuenta uso cross-tenant antes de borrar (Súper Admin)
     db.jugador.count({ where: { fondoEquipadoId: fondoId } }),
   ]);
   return desbloqueos > 0 || equipados > 0;
@@ -63,14 +64,20 @@ export function obtenerFondo(fondoId: string) {
   return db.fondoCarta.findUnique({ where: { id: fondoId } });
 }
 
-export function equiparFondoJugador(jugadorId: string, fondoEquipadoId: string | null) {
-  return db.jugador.update({
-    where: { id: jugadorId },
+export async function equiparFondoJugador(
+  escuelaId: string | null,
+  jugadorId: string,
+  fondoEquipadoId: string | null,
+) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({
+    where: { id: jugadorId, ...scope },
     data: { fondoEquipadoId },
   });
 }
 
 export function logrosCodigosDeJugador(jugadorId: string) {
+  // tenant-global: filtrado por jugadorId; propiedad y tenant verificados en cargarHijo
   return db.logroJugador.findMany({
     where: { jugadorId },
     select: { logro: { select: { codigo: true } } },

@@ -134,7 +134,8 @@ export async function equiparFondo(
   const hijo = await cargarHijo(ctx, jugadorId);
 
   if (fondoId === null) {
-    await equiparFondoJugador(hijo.id, null);
+    const res = await equiparFondoJugador(ctx.escuelaId, hijo.id, null);
+    if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
     return;
   }
 
@@ -151,7 +152,8 @@ export async function equiparFondo(
     throw new ValidationError("Aún no has desbloqueado ese fondo.");
   }
 
-  await equiparFondoJugador(hijo.id, fondoId);
+  const res = await equiparFondoJugador(ctx.escuelaId, hijo.id, fondoId);
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
 }
 
 export interface FondoCatalogoDTO {

@@ -13,7 +13,7 @@ import { TIPOS_BLOQUEO, type TipoBloqueo } from "@/types";
 
 async function cargarVinculos(ctx: AuthContext, jugadorId: string) {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   const userIds = [

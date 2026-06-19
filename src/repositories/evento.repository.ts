@@ -81,6 +81,7 @@ export async function registrarEstadisticas(
 ) {
   for (const r of registros) {
     const { jugadorId, ...stats } = r;
+    // tenant-global: upsert por clave única evento+jugador; evento ya tenant-scoped en el service
     await db.estadisticaPartido.upsert({
       where: { eventoId_jugadorId: { eventoId, jugadorId } },
       update: stats,
@@ -130,6 +131,7 @@ export async function registrarAsistencias(
 ) {
   // upsert por (eventoId, jugadorId)
   for (const r of registros) {
+    // tenant-global: upsert por clave única evento+jugador; evento ya tenant-scoped en el service
     await db.asistencia.upsert({
       where: { eventoId_jugadorId: { eventoId, jugadorId: r.jugadorId } },
       update: { presente: r.presente },
@@ -265,6 +267,7 @@ export async function contarAsistenciasJugador(
 
 /** Asistencias de TODA la plataforma desde una fecha (para el cron diario). */
 export function asistenciasRecientesGlobal(desde: Date) {
+  // tenant-global: cron diario de curva; agrega asistencias de todas las escuelas
   return db.asistencia.findMany({
     where: { evento: { inicio: { gte: desde } } },
     select: { jugadorId: true, presente: true, evento: { select: { tipo: true } } },
@@ -273,6 +276,7 @@ export function asistenciasRecientesGlobal(desde: Date) {
 
 /** Padres (userId) de los jugadores convocados, para notificar. */
 export async function padresDeJugadores(jugadorIds: string[]) {
+  // tenant-global: ids ya tenant-scoped por la convocatoria; solo lee contactos para notificar
   const jugadores = await db.jugador.findMany({
     where: { id: { in: jugadorIds } },
     select: { id: true, padreUserId: true, cuentaUserId: true },

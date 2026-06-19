@@ -271,7 +271,7 @@ export async function confirmarConvocatoria(
   confirmacion: Confirmacion,
 ): Promise<void> {
   requireRole(ctx, ["JUGADOR"]);
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   if (ctx.userId !== jugador.padreUserId && ctx.userId !== jugador.cuentaUserId) {
