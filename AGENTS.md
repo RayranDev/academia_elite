@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 > Reglas para agentes que trabajan en **Fútbol Career Mode** (`academia_elite`).
 > Esto es el contrato operativo. Para el estado integral del producto (qué hay,
-> qué falta, fases) leé **[ESTADO-DEL-PROYECTO.md](ESTADO-DEL-PROYECTO.md)**.
+> qué falta, fases) leé **[ESTADO-DEL-PROYECTO.md](docs/ESTADO-DEL-PROYECTO.md)**.
 > `CLAUDE.md` solo reexporta este archivo (`@AGENTS.md`): editá AQUÍ.
 
 ---
@@ -123,7 +123,7 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   tras un mensaje genérico.
 - **AuditLog** para acciones sensibles.
 
-Detalle por endpoint en **[SEGURIDAD.md](SEGURIDAD.md)** y **[HABEAS-DATA.md](HABEAS-DATA.md)**.
+Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.md](docs/HABEAS-DATA.md)**.
 
 ---
 
