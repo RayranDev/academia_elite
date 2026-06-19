@@ -4,6 +4,7 @@ import {
   assertTenant,
   requireEscuela,
   assertMotivoSoporte,
+  assertSoportePuedeEscribir,
 } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
@@ -108,6 +109,7 @@ export async function editarJugador(
   motivo?: string,
 ): Promise<void> {
   assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, data.jugadorId);
   const cuenta = await contarCategoriasDeEscuela(jugador.escuelaId, [
     data.categoriaId,
@@ -141,6 +143,7 @@ export async function cambiarEstadoJugadorGestion(
   motivo: string,
 ): Promise<void> {
   assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);
   if (jugador.estado === "ELIMINADO") {
     throw new NotFoundError("Jugador no encontrado.");
@@ -167,6 +170,7 @@ export async function eliminarJugadorLogico(
 ): Promise<void> {
   requireRole(ctx, ["SUPER_ADMIN"]);
   assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);
   const nombreCompleto = `${jugador.nombre} ${jugador.apellido}`.toLowerCase();
   if (confirmacion.trim().toLowerCase() !== nombreCompleto) {
@@ -192,6 +196,7 @@ export async function restaurarJugador(
 ): Promise<void> {
   requireRole(ctx, ["SUPER_ADMIN"]);
   assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);
   if (jugador.estado !== "ELIMINADO") {
     throw new ValidationError("El jugador no está eliminado.");
@@ -235,6 +240,7 @@ export async function resetPasswordFamilia(
   motivo?: string,
 ): Promise<{ email: string; passwordTemporal: string }> {
   assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);
   return resetFamilia(ctx, jugador, motivo);
 }

@@ -10,4 +10,7 @@ export interface AuthContext {
   escuelaId: string | null; // null SOLO para SUPER_ADMIN
   entrenadorId?: string; // presente si rol === "DT"
   jugadorId?: string; // presente si rol === "JUGADOR"
+  // Presente solo si un SUPER_ADMIN tiene una sesión de soporte activa (M2).
+  // Es la puerta explícita por la que accede a los datos de una escuela.
+  soporte?: { sesionId: string; escuelaId: string; soloLectura: boolean };
 }

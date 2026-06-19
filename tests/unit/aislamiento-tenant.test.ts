@@ -34,11 +34,12 @@ for (const m of SCHEMA.matchAll(/model\s+(\w+)\s*\{([^}]*)\}/g)) {
 }
 
 // Modelos con rutas globales legítimas por identidad/catálogo (no son fugas):
-//   user      -> se busca por su propio id desde la sesión
-//   auditLog  -> append-only, global para SUPER_ADMIN
-//   logro     -> catálogo global (escuelaId nullable)
-//   lead      -> existe antes de que haya escuela
-const EXCLUDE = new Set(["user", "auditLog", "logro", "lead"]);
+//   user          -> se busca por su propio id desde la sesión
+//   auditLog      -> append-only, global para SUPER_ADMIN
+//   logro         -> catálogo global (escuelaId nullable)
+//   lead          -> existe antes de que haya escuela
+//   soporteSesion -> sesión del SUPER_ADMIN; se consulta por superAdminId/id, no por tenant
+const EXCLUDE = new Set(["user", "auditLog", "logro", "lead", "soporteSesion"]);
 
 const METODOS =
   "findUnique|findFirst|findMany|update|updateMany|delete|deleteMany|count|aggregate|groupBy|upsert";

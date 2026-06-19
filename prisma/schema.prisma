@@ -522,3 +522,19 @@ model Membresia {
   @@unique([escuelaId, jugadorId, periodo])
   @@index([escuelaId])
 }
+
+// Sesión de soporte: puerta explícita, temporal y auditada por la que el
+// SUPER_ADMIN accede a los datos operativos de una escuela (ROL-SUPER-ADMIN.md M2).
+// Sin sesión activa, assertTenant le niega el detalle de un tenant.
+model SoporteSesion {
+  id           String    @id @default(cuid())
+  superAdminId String
+  escuelaId    String
+  motivo       String
+  soloLectura  Boolean   @default(true)
+  iniciadaEn   DateTime  @default(now())
+  finalizadaEn DateTime?
+
+  @@index([superAdminId, finalizadaEn])
+  @@index([escuelaId])
+}

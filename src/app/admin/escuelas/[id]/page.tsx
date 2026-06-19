@@ -8,6 +8,7 @@ import { EscuelaEditarForm } from "@/components/gestion/EscuelaEditarForm";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
 import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
 import { ImportarEvaluacionesDialog } from "@/components/dt/ImportarEvaluacionesDialog";
+import { EntrarSoporteDialog } from "@/components/admin/EntrarSoporteDialog";
 
 export default async function EscuelaDetalleAdminPage({
   params,
@@ -32,7 +33,10 @@ export default async function EscuelaDetalleAdminPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-display italic uppercase">{datos.escuela.nombre}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-display italic uppercase">{datos.escuela.nombre}</h1>
+        <EntrarSoporteDialog escuelaId={id} escuelaNombre={datos.escuela.nombre} />
+      </div>
       <EscuelaEditarForm escuela={datos.escuela} />
       <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
         <h2 className="text-xl font-bold">Jugadores</h2>
