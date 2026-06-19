@@ -1,5 +1,10 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, assertTenant, requireEscuela } from "@/lib/auth/guards";
+import {
+  requireRole,
+  assertTenant,
+  requireEscuela,
+  assertMotivoSoporte,
+} from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarJugadoresGestion as repoListar,
@@ -100,7 +105,9 @@ async function cargarJugador(ctx: AuthContext, jugadorId: string) {
 export async function editarJugador(
   ctx: AuthContext,
   data: JugadorEditarInput,
+  motivo?: string,
 ): Promise<void> {
+  assertMotivoSoporte(ctx, motivo);
   const jugador = await cargarJugador(ctx, data.jugadorId);
   const cuenta = await contarCategoriasDeEscuela(jugador.escuelaId, [
     data.categoriaId,
@@ -122,6 +129,7 @@ export async function editarJugador(
     entidad: "Jugador",
     entidadId: jugador.id,
     escuelaId: jugador.escuelaId,
+    motivo,
   });
 }
 
@@ -132,6 +140,7 @@ export async function cambiarEstadoJugadorGestion(
   estado: "ACTIVO" | "INACTIVO",
   motivo: string,
 ): Promise<void> {
+  assertMotivoSoporte(ctx, motivo);
   const jugador = await cargarJugador(ctx, jugadorId);
   if (jugador.estado === "ELIMINADO") {
     throw new NotFoundError("Jugador no encontrado.");
@@ -157,6 +166,7 @@ export async function eliminarJugadorLogico(
   motivo: string,
 ): Promise<void> {
   requireRole(ctx, ["SUPER_ADMIN"]);
+  assertMotivoSoporte(ctx, motivo);
   const jugador = await cargarJugador(ctx, jugadorId);
   const nombreCompleto = `${jugador.nombre} ${jugador.apellido}`.toLowerCase();
   if (confirmacion.trim().toLowerCase() !== nombreCompleto) {
@@ -178,8 +188,10 @@ export async function eliminarJugadorLogico(
 export async function restaurarJugador(
   ctx: AuthContext,
   jugadorId: string,
+  motivo?: string,
 ): Promise<void> {
   requireRole(ctx, ["SUPER_ADMIN"]);
+  assertMotivoSoporte(ctx, motivo);
   const jugador = await cargarJugador(ctx, jugadorId);
   if (jugador.estado !== "ELIMINADO") {
     throw new ValidationError("El jugador no está eliminado.");
@@ -190,6 +202,7 @@ export async function restaurarJugador(
     entidad: "Jugador",
     entidadId: jugador.id,
     escuelaId: jugador.escuelaId,
+    motivo,
   });
 }
 
@@ -197,6 +210,7 @@ export async function restaurarJugador(
 async function resetFamilia(
   ctx: AuthContext,
   jugador: JugadorGestionRow,
+  motivo?: string,
 ): Promise<{ email: string; passwordTemporal: string }> {
   const familia = jugador.cuentaUser ?? jugador.padre;
   if (!familia) {
@@ -209,6 +223,7 @@ async function resetFamilia(
     entidad: "Jugador",
     entidadId: jugador.id,
     escuelaId: jugador.escuelaId,
+    motivo,
   });
   return { email: familia.email, passwordTemporal };
 }
@@ -217,9 +232,11 @@ async function resetFamilia(
 export async function resetPasswordFamilia(
   ctx: AuthContext,
   jugadorId: string,
+  motivo?: string,
 ): Promise<{ email: string; passwordTemporal: string }> {
+  assertMotivoSoporte(ctx, motivo);
   const jugador = await cargarJugador(ctx, jugadorId);
-  return resetFamilia(ctx, jugador);
+  return resetFamilia(ctx, jugador, motivo);
 }
 
 /** Reset de contraseña por el DT: solo familias de SUS categorías (G5). */

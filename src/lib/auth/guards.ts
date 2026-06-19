@@ -1,6 +1,6 @@
 import type { AuthContext } from "@/lib/auth/context";
 import type { Rol } from "@/types";
-import { ForbiddenError, TenantMismatchError } from "@/lib/errors";
+import { ForbiddenError, TenantMismatchError, ValidationError } from "@/lib/errors";
 
 /**
  * Guards de RBAC (Barrera 2 — la seguridad real). Funciones puras, 100% testeadas.
@@ -47,4 +47,16 @@ export function assertOwnPlayer(
 export function requireEscuela(ctx: AuthContext): string {
   if (!ctx.escuelaId) throw new ForbiddenError();
   return ctx.escuelaId;
+}
+
+/**
+ * Acceso de soporte (ROL-SUPER-ADMIN.md M1). Cuando un SUPER_ADMIN escribe sobre
+ * datos operativos de un tenant, debe justificarlo con un motivo (que luego se
+ * audita). Sin motivo, la acción se rechaza: el cruce de tenant nunca es silencioso.
+ * Para el resto de los roles es un no-op (operan en su propia escuela).
+ */
+export function assertMotivoSoporte(ctx: AuthContext, motivo?: string | null): void {
+  if (ctx.rol === "SUPER_ADMIN" && !motivo?.trim()) {
+    throw new ValidationError("El soporte requiere un motivo.");
+  }
 }
