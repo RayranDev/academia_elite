@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarParametrosGlobal,
@@ -52,7 +52,7 @@ export interface ParametroDTO {
 export async function listarParametros(
   ctx: AuthContext,
 ): Promise<ParametroDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   const rows = await listarParametrosGlobal();
   return rows.map((p) => ({
     clave: p.clave,
@@ -66,7 +66,7 @@ export async function listarParametros(
 export async function obtenerConfigSimulador(
   ctx: AuthContext,
 ): Promise<ConfigSimulador> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   const [paramsRango, paramsUmbral, paramMen] = await Promise.all([
     listarParametrosPorPrefijo("RANGO_"),
     listarParametrosPorPrefijo("UMBRAL_"),
@@ -94,7 +94,7 @@ export async function obtenerConfigSimuladorEscuela(
   ctx: AuthContext,
   escuelaId: string,
 ): Promise<ConfigSimulador> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }
@@ -117,7 +117,7 @@ export async function actualizarParametro(
   clave: string,
   valor: number,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   const actual = await obtenerParametroGlobal(clave);
   // Las claves nuevas (no sembradas) solo se permiten si son de un grupo conocido.
   if (!actual && !claveEditablePermitida(clave)) {

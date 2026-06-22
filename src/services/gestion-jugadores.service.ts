@@ -5,6 +5,7 @@ import {
   requireEscuela,
   assertMotivoSoporte,
   assertSoportePuedeEscribir,
+  requirePermiso,
 } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
@@ -168,7 +169,7 @@ export async function eliminarJugadorLogico(
   confirmacion: string,
   motivo: string,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "SOPORTE_TENANT");
   assertMotivoSoporte(ctx, motivo);
   assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);
@@ -194,7 +195,7 @@ export async function restaurarJugador(
   jugadorId: string,
   motivo?: string,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "SOPORTE_TENANT");
   assertMotivoSoporte(ctx, motivo);
   assertSoportePuedeEscribir(ctx);
   const jugador = await cargarJugador(ctx, jugadorId);

@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
+import { requireRole, requireEscuela, requirePermiso } from "@/lib/auth/guards";
 import {
   listarCategorias,
   crearCategoria,
@@ -35,7 +35,7 @@ export async function listarCategoriasAdmin(
   ctx: AuthContext,
   escuelaId: string,
 ): Promise<CategoriaDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const rows = await listarCategorias(escuelaId);
   return rows.map((c) => ({
     id: c.id,

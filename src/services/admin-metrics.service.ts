@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import {
   contarEscuelas,
   contarAltasEscuelas,
@@ -52,7 +52,7 @@ function periodoActual(): string {
 export async function saludPlataforma(
   ctx: AuthContext,
 ): Promise<SaludPlataformaDTO> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "VER_AUDITORIA");
 
   const [escuelas, altas, leads, jugadores, evals, eventos, morosidad, soporte, audit] =
     await Promise.all([

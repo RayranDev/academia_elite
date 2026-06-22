@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import {
   crearLeadGlobal,
   listarLeadsGlobal,
@@ -30,7 +30,7 @@ export async function crearLead(input: LeadInput): Promise<{ id: string }> {
 
 /** Listar leads (solo SUPER_ADMIN). */
 export async function listarLeads(ctx: AuthContext): Promise<LeadDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_LEADS");
   const rows = await listarLeadsGlobal();
   return rows.map(mapLead);
 }
@@ -41,7 +41,7 @@ export async function actualizarEstadoLead(
   leadId: string,
   estado: EstadoLead,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_LEADS");
   const lead = await obtenerLeadGlobal(leadId);
   if (!lead) throw new NotFoundError();
   await actualizarEstadoLeadGlobal(leadId, estado);

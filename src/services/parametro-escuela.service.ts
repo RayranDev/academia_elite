@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 import { listarParametrosPorPrefijo } from "@/repositories/parametro.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
@@ -92,7 +92,7 @@ export async function listarMetricasEscuelaAdmin(
   ctx: AuthContext,
   escuelaId: string,
 ): Promise<MetricasEscuelaDTO> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }
@@ -161,7 +161,7 @@ export async function fijarMetricaEscuelaAdmin(
   clave: string,
   valor: number,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }
@@ -190,7 +190,7 @@ export async function quitarMetricaEscuelaAdmin(
   escuelaId: string,
   clave: string,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   if (!claveOverrideable(clave)) {
     throw new ValidationError("Esa métrica no se puede configurar por escuela.");
   }

@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import type { Rol } from "@/types";
+import { PERMISOS, type Permiso, type Rol } from "@/types";
 import { ForbiddenError, TenantMismatchError, ValidationError } from "@/lib/errors";
 
 /**
@@ -77,5 +77,35 @@ export function requireEscuela(ctx: AuthContext): string {
 export function assertMotivoSoporte(ctx: AuthContext, motivo?: string | null): void {
   if (ctx.rol === "SUPER_ADMIN" && !motivo?.trim()) {
     throw new ValidationError("El soporte requiere un motivo.");
+  }
+}
+
+/**
+ * Mapa rol → permisos (ROL-SUPER-ADMIN.md M4). Hoy el SUPER_ADMIN concentra todos
+ * los permisos de plataforma (derivados de `PERMISOS`, así hereda los nuevos); el
+ * resto de los roles operan dentro de su escuela por rol/tenant y no tienen
+ * permisos de plataforma. Para partir el rol mañana, basta crear un rol acotado
+ * acá: las acciones ya consultan permisos, no el string del rol.
+ */
+const PERMISOS_POR_ROL: Record<Rol, readonly Permiso[]> = {
+  SUPER_ADMIN: PERMISOS,
+  ESCUELA_ADMIN: [],
+  DT: [],
+  JUGADOR: [],
+};
+
+/** ¿El rol del usuario tiene el permiso de plataforma indicado? */
+export function tienePermiso(ctx: AuthContext, permiso: Permiso): boolean {
+  return PERMISOS_POR_ROL[ctx.rol].includes(permiso);
+}
+
+/**
+ * Exige un permiso de plataforma (M4). 403 si el rol no lo tiene. Reemplaza a
+ * `requireRole(ctx, ["SUPER_ADMIN"])` en las acciones de plataforma, para no atar
+ * cada guard al string del rol.
+ */
+export function requirePermiso(ctx: AuthContext, permiso: Permiso): void {
+  if (!tienePermiso(ctx, permiso)) {
+    throw new ForbiddenError();
   }
 }

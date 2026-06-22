@@ -4,9 +4,12 @@ import {
   assertTenant,
   assertOwnPlayer,
   assertSoportePuedeEscribir,
+  requirePermiso,
+  tienePermiso,
 } from "@/lib/auth/guards";
 import { ForbiddenError, TenantMismatchError } from "@/lib/errors";
 import type { AuthContext } from "@/lib/auth/context";
+import { PERMISOS } from "@/types";
 
 const dt: AuthContext = {
   userId: "u1",
@@ -85,6 +88,24 @@ describe("assertSoportePuedeEscribir", () => {
 
   it("permite la escritura si la sesión de soporte la tiene habilitada", () => {
     expect(() => assertSoportePuedeEscribir(saSoporteEscritura)).not.toThrow();
+  });
+});
+
+describe("permisos (M4)", () => {
+  it("el SUPER_ADMIN tiene todos los permisos de plataforma", () => {
+    for (const p of PERMISOS) {
+      expect(tienePermiso(superAdmin, p)).toBe(true);
+      expect(() => requirePermiso(superAdmin, p)).not.toThrow();
+    }
+  });
+
+  it("los demás roles no tienen permisos de plataforma (403)", () => {
+    for (const p of PERMISOS) {
+      expect(tienePermiso(dt, p)).toBe(false);
+      expect(tienePermiso(padre, p)).toBe(false);
+      expect(() => requirePermiso(dt, p)).toThrow(ForbiddenError);
+      expect(() => requirePermiso(padre, p)).toThrow(ForbiddenError);
+    }
   });
 });
 

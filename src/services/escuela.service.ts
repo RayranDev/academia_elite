@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
+import { requireRole, requireEscuela, requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import { detectarTipoImagen, procesarEscudo } from "@/lib/foto/process";
@@ -116,7 +116,7 @@ export async function obtenerEscuelaAdmin(
   colorPrimario: string;
   activa: boolean;
 }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const e = await obtenerEscuela(escuelaId);
   if (!e) throw new NotFoundError("Escuela no encontrada.");
   return {
@@ -129,7 +129,7 @@ export async function obtenerEscuelaAdmin(
 }
 
 export async function listarEscuelas(ctx: AuthContext): Promise<EscuelaDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const rows = await listarEscuelasGlobal();
   return rows.map((e) => ({
     id: e.id,
@@ -153,7 +153,7 @@ export async function convertirLeadEnEscuela(
   ctx: AuthContext,
   input: ConvertirLeadInput,
 ): Promise<{ escuelaId: string; adminEmail: string; passwordTemporal: string }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
 
   const lead = await obtenerLeadGlobal(input.leadId);
   if (!lead) throw new NotFoundError("Lead no encontrado.");

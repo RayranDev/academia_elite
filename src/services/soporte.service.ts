@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   sesionActivaDe,
@@ -47,7 +47,7 @@ export async function iniciarSoporte(
   ctx: AuthContext,
   input: { escuelaId: string; motivo: string; soloLectura: boolean },
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "SOPORTE_TENANT");
   const motivo = input.motivo.trim();
   if (!motivo) throw new ValidationError("El soporte requiere un motivo.");
   const escuela = await obtenerEscuela(input.escuelaId);
@@ -71,7 +71,7 @@ export async function iniciarSoporte(
 
 /** Finaliza la sesión de soporte activa del SA (auditado). */
 export async function finalizarSoporte(ctx: AuthContext): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "SOPORTE_TENANT");
   const sesion = await sesionActivaDe(ctx.userId);
   if (!sesion) return;
   await finalizarSesion(sesion.id, ctx.userId);
@@ -92,7 +92,7 @@ export async function habilitarEscrituraSoporte(
   ctx: AuthContext,
   motivo: string,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "SOPORTE_TENANT");
   const razon = motivo.trim();
   if (!razon) throw new ValidationError("El soporte requiere un motivo.");
   const sesion = await sesionActivaDe(ctx.userId);
