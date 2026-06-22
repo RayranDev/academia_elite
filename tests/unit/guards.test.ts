@@ -23,13 +23,13 @@ const saSoporteLectura: AuthContext = {
   userId: "u0",
   rol: "SUPER_ADMIN",
   escuelaId: null,
-  soporte: { sesionId: "s1", escuelaId: "esc1", soloLectura: true },
+  soporte: { sesionId: "s1", escuelaId: "esc1", soloLectura: true, motivo: "soporte" },
 };
 const saSoporteEscritura: AuthContext = {
   userId: "u0",
   rol: "SUPER_ADMIN",
   escuelaId: null,
-  soporte: { sesionId: "s1", escuelaId: "esc1", soloLectura: false },
+  soporte: { sesionId: "s1", escuelaId: "esc1", soloLectura: false, motivo: "soporte" },
 };
 const padre: AuthContext = {
   userId: "u2",

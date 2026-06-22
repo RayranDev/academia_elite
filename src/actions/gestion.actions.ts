@@ -68,7 +68,8 @@ export async function editarJugadorAction(
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
-    await editarJugador(ctx, parsed.data);
+    // En modo soporte el motivo de la sesión justifica y audita la escritura.
+    await editarJugador(ctx, parsed.data, ctx.soporte?.motivo);
     revalidarGestion();
     return { ok: true };
   } catch (e) {
@@ -140,7 +141,7 @@ export async function restaurarJugadorAction(
     if (typeof jugadorId !== "string" || !jugadorId) {
       throw new ValidationError("Jugador inválido.");
     }
-    await restaurarJugador(ctx, jugadorId);
+    await restaurarJugador(ctx, jugadorId, ctx.soporte?.motivo);
     revalidarGestion();
     return { ok: true };
   } catch (e) {
@@ -185,7 +186,7 @@ export async function desbloquearAccesoAction(
     if (typeof jugadorId !== "string" || !jugadorId) {
       throw new ValidationError("Jugador inválido.");
     }
-    await desbloquearAccesoJugador(ctx, jugadorId);
+    await desbloquearAccesoJugador(ctx, jugadorId, ctx.soporte?.motivo);
     revalidarGestion();
     return { ok: true };
   } catch (e) {
@@ -205,7 +206,7 @@ export async function resetPasswordFamiliaAction(
     if (typeof jugadorId !== "string" || !jugadorId) {
       throw new ValidationError("Jugador inválido.");
     }
-    const data = await resetPasswordFamilia(ctx, jugadorId);
+    const data = await resetPasswordFamilia(ctx, jugadorId, ctx.soporte?.motivo);
     return { ok: true, data };
   } catch (e) {
     return mapError(e);

@@ -46,6 +46,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
         sesionId: sesion.id,
         escuelaId: sesion.escuelaId,
         soloLectura: sesion.soloLectura,
+        motivo: sesion.motivo,
       };
     }
   }
