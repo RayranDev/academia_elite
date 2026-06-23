@@ -111,6 +111,7 @@ export async function crearEventoDt(
       titulo: "Nueva convocatoria",
       cuerpo: `Tu hijo/a fue convocado para "${input.titulo}".`,
       url: "/jugador/calendario",
+      prioridad: "alta",
     });
   }
 

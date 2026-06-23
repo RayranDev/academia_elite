@@ -9,6 +9,13 @@ import {
 } from "@/actions/notificacion.actions";
 import type { NotificacionDTO } from "@/services/notificacion.service";
 
+/** Color del indicador según la prioridad de la notificación (no leída). */
+function colorPrioridad(prioridad: string): string {
+  if (prioridad === "critica") return "bg-alerta";
+  if (prioridad === "alta") return "bg-oro";
+  return "bg-brand";
+}
+
 /**
  * Campana de notificaciones: muestra el contador de no leídas y, al desplegarse,
  * la lista. Cada ítem con `url` navega a la sección donde se evidencia la
@@ -107,7 +114,7 @@ export function NotificacionesMenu({
                       <span
                         aria-hidden
                         className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                          n.leida ? "bg-transparent" : "bg-brand"
+                          n.leida ? "bg-transparent" : colorPrioridad(n.prioridad)
                         }`}
                       />
                       <span className="min-w-0 flex-1">

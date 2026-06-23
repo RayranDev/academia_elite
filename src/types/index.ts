@@ -21,6 +21,10 @@ export const PERMISOS = [
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];
 
+// Prioridad de una notificación: gobierna el destaque visual en la campana.
+export const PRIORIDADES = ["baja", "media", "alta", "critica"] as const;
+export type Prioridad = (typeof PRIORIDADES)[number];
+
 export const POSICIONES = ["POR", "DEF", "MED", "DEL"] as const;
 export type Posicion = (typeof POSICIONES)[number];
 

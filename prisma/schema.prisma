@@ -345,6 +345,7 @@ model Notificacion {
   titulo    String
   cuerpo    String?
   url       String? // deep-link interno
+  prioridad String   @default("media") // enum: baja | media | alta | critica
   leida     Boolean  @default(false)
   createdAt DateTime @default(now())
 
