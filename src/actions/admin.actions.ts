@@ -7,10 +7,11 @@ import { ValidationError } from "@/lib/errors";
 import {
   actualizarEstadoLeadSchema,
   convertirLeadSchema,
+  crearEscuelaSchema,
   actualizarParametroSchema,
 } from "@/lib/validators/admin";
 import { actualizarEstadoLead } from "@/services/lead.service";
-import { convertirLeadEnEscuela } from "@/services/escuela.service";
+import { convertirLeadEnEscuela, crearEscuelaDirecta } from "@/services/escuela.service";
 import { actualizarParametro } from "@/services/parametro.service";
 import {
   fijarMetricaEscuelaAdmin,
@@ -54,6 +55,36 @@ export async function convertirLeadAction(
     }
     const res = await convertirLeadEnEscuela(ctx, parsed.data);
     revalidatePath("/admin/leads");
+    revalidatePath("/admin/escuelas");
+    revalidatePath("/admin/auditoria");
+    return {
+      ok: true,
+      data: { adminEmail: res.adminEmail, passwordTemporal: res.passwordTemporal },
+    };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Alta directa de escuela + ESCUELA_ADMIN inicial (SUPER_ADMIN, sin pasar por lead). */
+export async function crearEscuelaAction(
+  _prev: ActionResult<{ adminEmail: string; passwordTemporal: string }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ adminEmail: string; passwordTemporal: string }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = crearEscuelaSchema.safeParse({
+      nombreEscuela: formData.get("nombreEscuela"),
+      slug: formData.get("slug"),
+      adminNombre: formData.get("adminNombre"),
+      adminEmail: formData.get("adminEmail"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    const res = await crearEscuelaDirecta(ctx, parsed.data);
     revalidatePath("/admin/escuelas");
     revalidatePath("/admin/auditoria");
     return {

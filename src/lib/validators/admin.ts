@@ -26,9 +26,13 @@ export const convertirLeadSchema = z.object({
   adminEmail: z.email({ error: "Email del admin inválido." }).trim().toLowerCase(),
 });
 
+// Alta directa de escuela: mismos campos que la conversión de lead, sin leadId.
+export const crearEscuelaSchema = convertirLeadSchema.omit({ leadId: true });
+
 export const actualizarParametroSchema = z.object({
   clave: z.string().min(1),
   valor: z.coerce.number().finite({ error: "Valor numérico inválido." }),
 });
 
 export type ConvertirLeadInput = z.infer<typeof convertirLeadSchema>;
+export type CrearEscuelaInput = z.infer<typeof crearEscuelaSchema>;
