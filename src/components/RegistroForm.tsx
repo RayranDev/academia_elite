@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import Link from "next/link";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { registrarConCodigoAction } from "@/actions/registro.actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,24 +12,33 @@ const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-pitch";
 
 export function RegistroForm({ codigo }: { codigo: string }) {
+  const router = useRouter();
   const [state, action, pending] = useActionState<
-    ActionResult | undefined,
+    ActionResult<{ redirectTo: string }> | undefined,
     FormData
   >(registrarConCodigoAction, undefined);
+
+  // Auto-login: tras crear la cuenta el padre ya queda con sesión; lo llevamos a su hub.
+  useEffect(() => {
+    if (!state?.ok || !state.data?.redirectTo) return;
+    const destino = state.data.redirectTo;
+    const t = setTimeout(() => {
+      router.push(destino);
+      router.refresh();
+    }, 900);
+    return () => clearTimeout(t);
+  }, [state, router]);
 
   if (state?.ok) {
     return (
       <Card className="w-full max-w-md text-center">
         <h1 className="text-2xl font-black italic uppercase text-pitch">
-          ¡Registro enviado!
+          ¡Cuenta creada!
         </h1>
         <p className="mt-3 text-muted">
-          Tu solicitud quedó <b>pendiente</b> hasta que el entrenador la apruebe.
-          Cuando lo haga, podrás entrar y ver la carta de tu hijo/a.
+          Tu jugador/a quedó <b>pendiente</b> de aprobación del entrenador.
+          Te llevamos a tu espacio…
         </p>
-        <Link href="/login" className="mt-5 inline-block">
-          <Button>Ir a iniciar sesión</Button>
-        </Link>
       </Card>
     );
   }

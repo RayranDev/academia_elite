@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import Link from "next/link";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { vincularHijoAction } from "@/actions/registro.actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,10 +16,22 @@ const input =
  * jugador ya tiene un padre, no se crea ninguna cuenta y se avisa.
  */
 export function VincularHijoForm() {
+  const router = useRouter();
   const [state, action, pending] = useActionState<
-    ActionResult | undefined,
+    ActionResult<{ redirectTo: string }> | undefined,
     FormData
   >(vincularHijoAction, undefined);
+
+  // Auto-login: la cuenta queda con sesión activa; la llevamos directo a su hub.
+  useEffect(() => {
+    if (!state?.ok || !state.data?.redirectTo) return;
+    const destino = state.data.redirectTo;
+    const t = setTimeout(() => {
+      router.push(destino);
+      router.refresh();
+    }, 900);
+    return () => clearTimeout(t);
+  }, [state, router]);
 
   if (state?.ok) {
     return (
@@ -28,12 +40,9 @@ export function VincularHijoForm() {
           ¡Cuenta vinculada!
         </h1>
         <p className="mt-3 text-muted">
-          Tu cuenta quedó asociada al perfil de tu hijo/a. Inicia sesión para ver
-          su carta y sus estadísticas.
+          Tu cuenta quedó asociada al perfil de tu hijo/a. Te llevamos a ver su
+          carta y sus estadísticas…
         </p>
-        <Link href="/login" className="mt-5 inline-block">
-          <Button>Ir a iniciar sesión</Button>
-        </Link>
       </Card>
     );
   }
