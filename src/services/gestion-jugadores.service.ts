@@ -36,6 +36,7 @@ export interface JugadorGestionDTO {
   categoriaId: string;
   categoriaNombre: string;
   codigoJugador: string | null;
+  codigoRef: string | null;
   familiaEmail: string | null;
   familiaNombre: string | null;
   bloqueado: boolean;
@@ -59,6 +60,7 @@ function aDTO(j: JugadorGestionRow): JugadorGestionDTO {
     categoriaId: j.categoria.id,
     categoriaNombre: j.categoria.nombre,
     codigoJugador: j.codigoJugador,
+    codigoRef: j.codigoRef,
     familiaEmail: familia?.email ?? null,
     familiaNombre: j.padre?.nombre ?? null,
     bloqueado: familia?.bloqueado ?? false,
@@ -71,6 +73,9 @@ function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
   if (ctx.rol === "SUPER_ADMIN") {
     if (!escuelaId) throw new ValidationError("Falta la escuela.");
+    // El roster de un tenant (PII de menores) no es de acceso ambiental: el SA
+    // solo lo lee con una sesión de soporte activa para ESA escuela (M2).
+    assertTenant(ctx, escuelaId);
     return escuelaId;
   }
   return requireEscuela(ctx);

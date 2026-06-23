@@ -50,7 +50,13 @@ export function JugadoresGestion({
     return jugadores.filter((j) => {
       if (categoriaId && j.categoriaId !== categoriaId) return false;
       if (estado && j.estado !== estado) return false;
-      if (texto && !`${j.nombre} ${j.apellido}`.toLowerCase().includes(texto)) return false;
+      if (
+        texto &&
+        !`${j.nombre} ${j.apellido} ${j.codigoRef ?? ""}`
+          .toLowerCase()
+          .includes(texto)
+      )
+        return false;
       return true;
     });
   }, [jugadores, q, categoriaId, estado]);
@@ -77,7 +83,7 @@ export function JugadoresGestion({
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar por nombre…"
+            placeholder="Buscar por nombre o código…"
             aria-label="Buscar jugador"
             className={`${input} pl-8`}
           />
@@ -110,6 +116,14 @@ export function JugadoresGestion({
                 </p>
                 <p className="text-xs text-muted">
                   {j.categoriaNombre} · {j.posicion}
+                  {j.codigoRef && (
+                    <>
+                      {" · "}
+                      <span className="select-all font-mono text-foreground/80">
+                        {j.codigoRef}
+                      </span>
+                    </>
+                  )}
                   {j.familiaEmail ? (
                     <> · {j.familiaEmail}</>
                   ) : (

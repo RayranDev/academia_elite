@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { generarCodigoInvitacion } from "@/lib/codes";
+import { generarCodigoInvitacion, generarCodigoRef } from "@/lib/codes";
 
 // Repositorio de jugadores (Capa 4). Firma con escuelaId (multi-tenant).
 
@@ -54,9 +54,15 @@ export function crearJugador(
     estado: string;
   },
 ) {
-  // Cada jugador nace con su código propio (para que el padre lo vincule).
+  // Cada jugador nace con su código de vinculación (codigoJugador) y su código
+  // humano de referencia para soporte (codigoRef).
   return db.jugador.create({
-    data: { escuelaId, codigoJugador: generarCodigoInvitacion(), ...data },
+    data: {
+      escuelaId,
+      codigoJugador: generarCodigoInvitacion(),
+      codigoRef: generarCodigoRef("JUG"),
+      ...data,
+    },
   });
 }
 

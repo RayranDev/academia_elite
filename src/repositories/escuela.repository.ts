@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { generarCodigoRef } from "@/lib/codes";
 
 // Repositorio de escuelas (Capa 4).
 export function listarEscuelasGlobal() {
@@ -14,6 +15,7 @@ export function slugExisteGlobal(slug: string) {
   return db.escuela.findUnique({ where: { slug }, select: { id: true } });
 }
 
+// tenant-global: unicidad global de email antes de crear un admin (clave única).
 export function emailExisteGlobal(email: string) {
   return db.user.findUnique({ where: { email }, select: { id: true } });
 }
@@ -37,7 +39,11 @@ export function crearEscuelaConAdmin(input: {
 }): Promise<string> {
   return db.$transaction(async (tx) => {
     const escuela = await tx.escuela.create({
-      data: { nombre: input.nombreEscuela, slug: input.slug },
+      data: {
+        nombre: input.nombreEscuela,
+        slug: input.slug,
+        codigoRef: generarCodigoRef("ESC"),
+      },
     });
     await tx.user.create({
       data: {

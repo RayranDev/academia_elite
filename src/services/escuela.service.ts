@@ -113,6 +113,7 @@ export async function obtenerEscuelaAdmin(
   id: string;
   nombre: string;
   slug: string;
+  codigoRef: string | null;
   colorPrimario: string;
   activa: boolean;
 }> {
@@ -123,6 +124,7 @@ export async function obtenerEscuelaAdmin(
     id: e.id,
     nombre: e.nombre,
     slug: e.slug,
+    codigoRef: e.codigoRef,
     colorPrimario: e.colorPrimario,
     activa: e.activa,
   };

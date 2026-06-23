@@ -41,6 +41,7 @@ model Escuela {
   id                       String             @id @default(cuid())
   nombre                   String
   slug                     String             @unique
+  codigoRef                String?            @unique // código humano de referencia (soporte): "ESC-7F4A2"
   logoUrl                  String?
   colorPrimario            String             @default("#4ADE80")
   frecuenciaEvaluacionDias Int                @default(30)
@@ -125,6 +126,7 @@ model Jugador {
   cuentaUserId            String?            @unique
   cuentaUser              User?              @relation("CuentaJugador", fields: [cuentaUserId], references: [id])
   codigoJugador           String?            @unique // código propio del jugador para que el padre lo vincule
+  codigoRef               String?            @unique // código humano de referencia (soporte): "JUG-7F4A2"
   nombre                  String
   apellido                String
   fechaNacimiento         DateTime
