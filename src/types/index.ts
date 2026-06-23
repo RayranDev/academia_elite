@@ -81,11 +81,19 @@ export type StatObjetivo = (typeof STATS_OBJETIVO)[number];
 export const ESTADOS_OBJETIVO = ["ACTIVO", "CUMPLIDO", "VENCIDO"] as const;
 export type EstadoObjetivo = (typeof ESTADOS_OBJETIVO)[number];
 
+// Funnel comercial del lead (mini-CRM). CONVERTIDO y DESCARTADO conservan su
+// semántica/lógica previa; el resto son etapas intermedias del seguimiento.
 export const ESTADOS_LEAD = [
   "NUEVO",
   "CONTACTADO",
+  "EN_SEGUIMIENTO",
+  "RECONTACTAR",
+  "NEGOCIACION",
+  "PRUEBA_GRATUITA",
+  "PENDIENTE_PAGO",
   "CONVERTIDO",
   "DESCARTADO",
+  "NO_INTERESADO",
 ] as const;
 export type EstadoLead = (typeof ESTADOS_LEAD)[number];
 

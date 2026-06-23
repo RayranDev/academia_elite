@@ -436,15 +436,35 @@ model ProgresoSemanal {
 }
 
 model Lead {
-  id             String   @id @default(cuid())
-  nombreEscuela  String
-  contactoNombre String
-  contactoEmail  String
-  telefono       String?
-  ciudad         String?
-  mensaje        String?
-  estado         String   @default("NUEVO") // enum: NUEVO | CONTACTADO | CONVERTIDO | DESCARTADO
-  createdAt      DateTime @default(now())
+  id                   String     @id @default(cuid())
+  nombreEscuela        String
+  contactoNombre       String
+  contactoEmail        String
+  telefono             String?
+  ciudad               String?
+  mensaje              String?
+  // enum: NUEVO | CONTACTADO | EN_SEGUIMIENTO | RECONTACTAR | NEGOCIACION |
+  //       PRUEBA_GRATUITA | PENDIENTE_PAGO | CONVERTIDO | DESCARTADO | NO_INTERESADO
+  estado               String     @default("NUEVO")
+  origen               String? // de dónde vino el lead ("LANDING", "REFERIDO", ...)
+  responsableId        String? // userId del comercial a cargo del seguimiento
+  proximaAccion        String? // siguiente paso acordado
+  fechaProximoContacto DateTime?
+  observaciones        String?
+  notas                LeadNota[]
+  createdAt            DateTime   @default(now())
+}
+
+// Historial de seguimiento comercial de un lead (mini-CRM).
+model LeadNota {
+  id         String   @id @default(cuid())
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  usuarioId  String // userId del autor de la nota
+  comentario String
+  createdAt  DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 model ParametroFormula {

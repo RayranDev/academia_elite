@@ -3,6 +3,7 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { saludPlataforma } from "@/services/admin-metrics.service";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { LABEL_ESTADO_LEAD } from "@/components/admin/EstadoLeadBadge";
 import { ESTADOS_LEAD } from "@/types";
 
 // Dashboard de salud de la plataforma (SUPER_ADMIN). Solo métricas agregadas y de
@@ -78,7 +79,9 @@ export default async function AdminOverviewPage() {
               <div className="text-2xl font-black tabular">
                 {salud.leadsPorEstado[e] ?? 0}
               </div>
-              <Badge tono={e === "CONVERTIDO" ? "pitch" : "neutral"}>{e}</Badge>
+              <Badge tono={e === "CONVERTIDO" ? "pitch" : "neutral"}>
+                {LABEL_ESTADO_LEAD[e]}
+              </Badge>
             </div>
           ))}
         </div>
