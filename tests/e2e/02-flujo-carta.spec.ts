@@ -6,7 +6,8 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   browser,
 }) => {
   const ts = Date.now().toString().slice(-6);
-  const apellido = `E2E${ts}`;
+  // Marcador único estable bajo Title Case (formatearNombre): "Fam123456" no se altera.
+  const apellido = `Fam${ts}`;
   const email = `padre${ts}@e2e.test`;
 
   // 1) Escuela genera un código para Sub-12
