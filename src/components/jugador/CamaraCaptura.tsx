@@ -18,8 +18,9 @@ export function CamaraCaptura({
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
   const [procesando, setProcesando] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
-  // Abrir la stream de la cámara frontal
+  // Abrir la stream de la cámara frontal/trasera
   useEffect(() => {
     let cancelado = false;
 
@@ -29,9 +30,15 @@ export function CamaraCaptura({
         return;
       }
       try {
+        // Apagamos cualquier stream anterior para evitar bloqueos
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: "user",
+            facingMode: facingMode,
             width: { ideal: 1080 },
             height: { ideal: 1080 },
           },
@@ -60,7 +67,12 @@ export function CamaraCaptura({
       cancelado = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [facingMode]);
+
+  const toggleCámara = () => {
+    setListo(false);
+    setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+  };
 
   function detener() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -151,6 +163,9 @@ export function CamaraCaptura({
       <div className="flex justify-center gap-2">
         <Button onClick={capturar} disabled={!listo || procesando}>
           {procesando ? "Procesando..." : "Capturar"}
+        </Button>
+        <Button variant="secondary" onClick={toggleCámara} disabled={!listo || procesando}>
+          Cambiar cámara
         </Button>
         <Button variant="secondary" onClick={cancelar} disabled={procesando}>
           Cancelar
