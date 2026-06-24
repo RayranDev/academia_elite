@@ -539,7 +539,7 @@ export async function proximosEventosJugador(
   categoriaId: string,
   jugadorId: string,
 ): Promise<ProximoEventoDTO[]> {
-  const rows = await proximosEventosDeCategoria(escuelaId, categoriaId, jugadorId, 100);
+  const rows = await proximosEventosDeCategoria(escuelaId, categoriaId, jugadorId);
   return rows.map((e) => {
     const conv = e.convocados[0];
     return {

@@ -55,6 +55,6 @@ export function noticiasDeJugador(escuelaId: string, categoriaId: string) {
       OR: [{ categoriaId: null }, { categoriaId }],
     },
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 100,
   });
 }
