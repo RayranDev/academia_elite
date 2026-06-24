@@ -24,6 +24,7 @@ export function FotoCropper({
 }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [area, setArea] = useState<AreaPixels | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,7 +35,7 @@ export function FotoCropper({
   async function confirmar() {
     if (!area) return;
     try {
-      const blob = await recortarABlob(imagen, area);
+      const blob = await recortarABlob(imagen, area, 800, 0.85, rotation);
       onConfirmar(blob);
     } catch {
       setError("No se pudo recortar la imagen. Intenta con otra.");
@@ -60,25 +61,40 @@ export function FotoCropper({
             image={imagen}
             crop={crop}
             zoom={zoom}
+            rotation={rotation}
             aspect={ASPECTO_CARTA}
             onCropChange={setCrop}
             onZoomChange={setZoom}
+            onRotationChange={setRotation}
             onCropComplete={onCropComplete}
           />
         </div>
-        <label className="block text-xs text-muted">
-          Zoom
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={0.05}
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="mt-1 w-full accent-[var(--brand)]"
-            aria-label="Zoom de la foto"
-          />
-        </label>
+
+        <div className="flex gap-4 items-center">
+          <label className="flex-1 text-xs text-muted">
+            Zoom
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="mt-1 w-full accent-[var(--brand)]"
+              aria-label="Zoom de la foto"
+            />
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => setRotation((r) => (r + 90) % 360)}
+            className="shrink-0"
+          >
+            Girar 90°
+          </Button>
+        </div>
+
         {error && <p className="text-sm text-alerta">{error}</p>}
         <div className="flex gap-2">
           <Button className="flex-1" onClick={confirmar} disabled={procesando || !area}>

@@ -13,15 +13,22 @@ Reemplazamos MediaPipe Selfie Segmentation por la biblioteca especializada `@img
 *   **Simplificación de la Cámara:** Reescribimos y limpiamos completamente [CamaraCaptura.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/CamaraCaptura.tsx) eliminando los cargadores de scripts CDN, referencias a MediaPipe y lógica redundante de WASM. Ahora la cámara simplemente captura el cuadro centrado como un PNG y delega la remoción de fondo al flujo principal.
 *   **Flujo en Cámara:** Actualizamos [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) para invocar `removerFondoDeImagen` sobre la captura de la cámara antes de abrir el recortador.
 
-### 2. Paginación de "Noticias del Club" (de a 10)
+### 2. Rotación en el Recortador de Foto
+*   **Soporte de Rotación de Canvas:** Extendimos `recortarABlob` en [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) para soportar transformaciones de rotación en canvas mediante traslación de caja delimitadora (`rotateSize`).
+*   **Botón de Girar 90°:** Agregamos el estado de `rotation` y el botón **Girar 90°** en [FotoCropper.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoCropper.tsx) para permitir rotar la foto y aplicar el recorte correcto en cualquier orientación.
+
+### 3. Opción de Procesamiento Externo (`iloveimg.com`)
+*   Agregamos una sección de ayuda interactiva en [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) con un enlace directo a **iloveimg.com (Eliminar fondo)**. Esto le permite al usuario procesar externamente imágenes complejas con fondos difíciles, descargar el PNG transparente y subirlo directamente si la remoción local automática en el navegador no queda perfecta.
+
+### 4. Paginación de "Noticias del Club" (de a 10)
 *   **Ampliación del Repositorio de Anuncios:** Modificamos [anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts) para obtener hasta **100 anuncios** (en lugar de 20), permitiendo paginar un historial de noticias más extenso.
 *   **Nuevo Componente `NoticiasList`:** Creamos [NoticiasList.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/NoticiasList.tsx) como un componente de cliente (`"use client"`) que divide la lista de noticias en páginas de a 10 con controles interactivos de "Anterior" y "Siguiente".
 *   **Actualización de la Vista del Jugador:** Reemplazamos la renderización en línea de las noticias en la página del hub ([page.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/app/jugador/page.tsx)) por el nuevo componente `<NoticiasList />`.
 
-### 3. Transparencia de la Carta (Soporte PNG en el Cliente)
+### 5. Transparencia de la Carta (Soporte PNG en el Cliente)
 *   Modificamos las utilidades de [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) y [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) para que el formato de imagen intermedio y de subida sea **PNG** (`image/png`), garantizando soporte total de transparencia en dispositivos móviles (iOS/Safari) antes de la conversión final a WebP transparente que realiza `sharp` en el servidor.
 
-### 4. Redirección Dinámica de Logout
+### 6. Redirección Dinámica de Logout
 *   Modificamos la acción `logout` en `auth.actions.ts` usando la API de Next.js `headers()` asíncrona para obtener de forma dinámica el `host` y el protocolo (`x-forwarded-proto`), eliminando cualquier redirección harcodeada a `localhost:3000`.
 
 ---
@@ -39,6 +46,7 @@ Reemplazamos MediaPipe Selfie Segmentation por la biblioteca especializada `@img
 2. **[page.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/app/jugador/page.tsx)** (Modificado) - Integración del componente de noticias.
 3. **[anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts)** (Modificado) - Incremento del límite a 100 noticias.
 4. **[evento.service.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/services/evento.service.ts)** (Modificado) - Limpieza de cambios anteriores en agenda.
-5. **[cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts)** (Modificado) - Integración de `@imgly/background-removal` y formato PNG.
-6. **[CamaraCaptura.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/CamaraCaptura.tsx)** (Modificado) - Simplificación extrema de la cámara.
-7. **[FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx)** (Modificado) - Pipeline unificado para remover fondo en archivo y cámara, subiendo en PNG.
+5. **[cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts)** (Modificado) - Integración de `@imgly/background-removal`, formato PNG y rotación de canvas.
+6. **[FotoCropper.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoCropper.tsx)** (Modificado) - Añadido el control de rotación (Girar 90°) y pasaje de estado de rotación al crop.
+7. **[CamaraCaptura.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/CamaraCaptura.tsx)** (Modificado) - Simplificación extrema de la cámara.
+8. **[FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx)** (Modificado) - Pipeline unificado para remover fondo, subida en PNG, y bloque de ayuda para procesamiento externo con `iloveimg.com`.

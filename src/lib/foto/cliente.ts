@@ -48,6 +48,20 @@ export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<s
   }
 }
 
+function getRadianAngle(degreeValue: number) {
+  return (degreeValue * Math.PI) / 180;
+}
+
+function rotateSize(width: number, height: number, rotation: number) {
+  const rotRad = getRadianAngle(rotation);
+  return {
+    width:
+      Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height:
+      Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
 /**
  * Recorta el área seleccionada (en píxeles de la imagen mostrada) y devuelve un
  * Blob PNG optimizado (lado mayor ≤ `maxLado`).
@@ -57,19 +71,67 @@ export async function recortarABlob(
   area: AreaPixels,
   maxLado = 800,
   _calidad = 0.85,
+  rotation = 0,
 ): Promise<Blob> {
   const img = await cargarImagen(src);
-  const escala = Math.min(1, maxLado / Math.max(area.width, area.height));
-  const w = Math.max(1, Math.round(area.width * escala));
-  const h = Math.max(1, Math.round(area.height * escala));
+  
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas no disponible.");
-  ctx.drawImage(img, area.x, area.y, area.width, area.height, 0, 0, w, h);
+
+  const rotRad = getRadianAngle(rotation);
+  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(
+    img.width,
+    img.height,
+    rotation
+  );
+
+  // Set canvas size to match the bounding box
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
+
+  // Translate canvas context to center of the image to rotate and draw it
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  ctx.rotate(rotRad);
+  ctx.translate(-img.width / 2, -img.height / 2);
+
+  // Draw rotated image
+  ctx.drawImage(img, 0, 0);
+
+  // croppedAreaPixels values are bounding box relative
+  const data = ctx.getImageData(
+    area.x,
+    area.y,
+    area.width,
+    area.height
+  );
+
+  // Set canvas width to final desired crop size
+  canvas.width = area.width;
+  canvas.height = area.height;
+
+  // Paste image data with offset
+  ctx.putImageData(data, 0, 0);
+
+  // Scale the cropped canvas to maxLado if needed
+  let finalCanvas = canvas;
+  if (Math.max(area.width, area.height) > maxLado) {
+    const escala = Math.min(1, maxLado / Math.max(area.width, area.height));
+    const w = Math.max(1, Math.round(area.width * escala));
+    const h = Math.max(1, Math.round(area.height * escala));
+    finalCanvas = document.createElement("canvas");
+    finalCanvas.width = w;
+    finalCanvas.height = h;
+    const finalCtx = finalCanvas.getContext("2d");
+    if (finalCtx) {
+      finalCtx.drawImage(canvas, 0, 0, area.width, area.height, 0, 0, w, h);
+    } else {
+      finalCanvas = canvas;
+    }
+  }
+
   return new Promise((resolve, reject) => {
-    canvas.toBlob(
+    finalCanvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("No se pudo recortar la imagen."))),
       "image/png",
     );

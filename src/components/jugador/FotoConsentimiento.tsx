@@ -172,6 +172,22 @@ export function FotoConsentimiento({
         )}
         {error && <p className="text-sm text-alerta">{error}</p>}
         {ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
+
+        <div className="rounded-lg border border-subtle bg-surface-2 p-3 text-xs space-y-1.5 mt-2">
+          <p className="font-semibold text-foreground">💡 ¿Querés un mejor recorte de fondo?</p>
+          <p className="text-muted leading-relaxed">
+            Si la iluminación de la foto no es óptima y el recorte automático local no queda perfecto, podés usar una herramienta externa gratuita como{" "}
+            <a
+              href="https://www.iloveimg.com/es/eliminar-fondo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand hover:underline font-semibold"
+            >
+              iloveimg.com (Eliminar fondo)
+            </a>
+            . Subí tu foto ahí, descargá el resultado con transparencia (PNG) y luego cargalo acá con el botón <strong>Elegir foto...</strong>.
+          </p>
+        </div>
       </div>
 
       <form action={actualizarConsentimientoAction} className="border-t border-subtle pt-4">
