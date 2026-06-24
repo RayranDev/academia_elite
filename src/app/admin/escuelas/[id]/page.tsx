@@ -13,10 +13,14 @@ import { Card } from "@/components/ui/Card";
 
 export default async function EscuelaDetalleAdminPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string; q?: string; categoriaId?: string; estado?: string }>;
 }) {
   const { id } = await params;
+  const { page: pageStr, q, categoriaId, estado } = await searchParams;
+  const page = pageStr ? Math.max(1, parseInt(pageStr, 10)) : 1;
   const ctx = await requireAuthContext();
   // El detalle de un tenant (roster de menores) solo se ve con una sesión de
   // soporte activa para esta escuela. La ficha institucional sí es accesible
@@ -30,8 +34,15 @@ export default async function EscuelaDetalleAdminPage({
       listarCategoriasAdmin(ctx, id),
     ]);
     const jugadores = enSoporte
-      ? await listarJugadoresGestion(ctx, { escuelaId: id })
-      : [];
+      ? await listarJugadoresGestion(ctx, {
+          escuelaId: id,
+          page,
+          limit: 20,
+          search: q,
+          categoriaId,
+          estado,
+        })
+      : { items: [], total: 0, page: 1, limit: 20, totalPages: 0 };
     datos = { escuela, jugadores, categorias };
   } catch (e) {
     if (e instanceof DomainError) notFound();
@@ -73,7 +84,7 @@ export default async function EscuelaDetalleAdminPage({
             </div>
           </div>
           <JugadoresGestion
-            jugadores={datos.jugadores}
+            res={datos.jugadores}
             categorias={datos.categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}
             esSuperAdmin
           />

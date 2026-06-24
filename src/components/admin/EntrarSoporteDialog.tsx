@@ -27,6 +27,7 @@ export function EntrarSoporteDialog({
 
   useEffect(() => {
     if (state?.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpen(false);
       router.refresh();
     }

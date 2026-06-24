@@ -1,6 +1,23 @@
 import type { NextConfig } from "next";
+import os from "os";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+function getLocalIPs(): string[] {
+  const interfaces = os.networkInterfaces();
+  const ips: string[] = [];
+  for (const name of Object.keys(interfaces)) {
+    const iface = interfaces[name];
+    if (iface) {
+      for (const alias of iface) {
+        if (alias.family === "IPv4" && !alias.internal) {
+          ips.push(alias.address);
+        }
+      }
+    }
+  }
+  return ips;
+}
 
 /**
  * Content-Security-Policy (Sección 6.6). En desarrollo se permite 'unsafe-eval'
@@ -10,16 +27,16 @@ const isDev = process.env.NODE_ENV !== "production";
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  `connect-src 'self' https://cdn.jsdelivr.net${isDev ? " ws:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
+  ...(!isDev ? ["upgrade-insecure-requests"] : []),
 ]
   .join("; ")
   .concat(";");
@@ -31,7 +48,7 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value: "camera=(self), microphone=(), geolocation=(), interest-cohort=()",
   },
   ...(!isDev
     ? [
@@ -44,6 +61,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["localhost", "127.0.0.1", ...getLocalIPs()],
   experimental: {
     // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
     // Next ANTES de ejecutar la acción. Lo subimos para cubrir la importación

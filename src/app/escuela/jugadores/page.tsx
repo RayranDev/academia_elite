@@ -4,10 +4,23 @@ import { listarCategoriasEscuela } from "@/services/categoria.service";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
 import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
 
-export default async function JugadoresEscuelaPage() {
+export default async function JugadoresEscuelaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; q?: string; categoriaId?: string; estado?: string }>;
+}) {
   const ctx = await requireAuthContext();
-  const [jugadores, categorias] = await Promise.all([
-    listarJugadoresGestion(ctx),
+  const { page: pageStr, q, categoriaId, estado } = await searchParams;
+  const page = pageStr ? Math.max(1, parseInt(pageStr, 10)) : 1;
+
+  const [res, categorias] = await Promise.all([
+    listarJugadoresGestion(ctx, {
+      page,
+      limit: 20,
+      search: q,
+      categoriaId,
+      estado,
+    }),
     listarCategoriasEscuela(ctx),
   ]);
 
@@ -36,7 +49,7 @@ export default async function JugadoresEscuelaPage() {
         resetea contraseñas. Todas las acciones quedan auditadas.
       </p>
       <JugadoresGestion
-        jugadores={jugadores}
+        res={res}
         categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}
         esSuperAdmin={false}
       />

@@ -176,14 +176,31 @@ export function listarHijos(userId: string) {
 /** Jugadores para gestión (Escuela/Súper Admin), con vínculos de familia. */
 export function listarJugadoresGestion(
   escuelaId: string,
-  filtros: { categoriaId?: string; estados: string[] },
+  filtros: {
+    categoriaId?: string;
+    estados?: string[];
+    search?: string;
+    skip?: number;
+    take?: number;
+  },
 ) {
+  const condEstados = filtros.estados && filtros.estados.length > 0 ? { in: filtros.estados } : undefined;
+  const condCategoria = filtros.categoriaId || undefined;
+  const condSearch = filtros.search ? [
+    { nombre: { contains: filtros.search } },
+    { apellido: { contains: filtros.search } },
+    { codigoRef: { contains: filtros.search } },
+  ] : undefined;
+
   return db.jugador.findMany({
     where: {
       escuelaId,
-      estado: { in: filtros.estados },
-      ...(filtros.categoriaId ? { categoriaId: filtros.categoriaId } : {}),
+      estado: condEstados,
+      categoriaId: condCategoria,
+      OR: condSearch,
     },
+    skip: filtros.skip,
+    take: filtros.take,
     include: {
       categoria: { select: { id: true, nombre: true } },
       padre: {
@@ -192,6 +209,32 @@ export function listarJugadoresGestion(
       cuentaUser: { select: { id: true, email: true, bloqueado: true } },
     },
     orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+  });
+}
+
+export function contarJugadoresGestion(
+  escuelaId: string,
+  filtros: {
+    categoriaId?: string;
+    estados?: string[];
+    search?: string;
+  },
+) {
+  const condEstados = filtros.estados && filtros.estados.length > 0 ? { in: filtros.estados } : undefined;
+  const condCategoria = filtros.categoriaId || undefined;
+  const condSearch = filtros.search ? [
+    { nombre: { contains: filtros.search } },
+    { apellido: { contains: filtros.search } },
+    { codigoRef: { contains: filtros.search } },
+  ] : undefined;
+
+  return db.jugador.count({
+    where: {
+      escuelaId,
+      estado: condEstados,
+      categoriaId: condCategoria,
+      OR: condSearch,
+    },
   });
 }
 

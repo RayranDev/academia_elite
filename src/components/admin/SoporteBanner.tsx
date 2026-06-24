@@ -29,6 +29,7 @@ export function SoporteBanner({ sesion }: { sesion: SoporteSesionDTO | null }) {
 
   useEffect(() => {
     if (finState?.ok || habState?.ok) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHabOpen(false);
       router.refresh();
     }

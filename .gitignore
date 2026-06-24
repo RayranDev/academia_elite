@@ -55,3 +55,5 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+# Local AI runtime state
+.atl/
