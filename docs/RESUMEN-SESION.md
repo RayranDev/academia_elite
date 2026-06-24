@@ -6,28 +6,30 @@ Este archivo resume los cambios de arquitectura y componentes implementados en e
 
 ## 🚀 Cambios Implementados
 
-### 1. Paginación de "Noticias del Club" (de a 10)
-Anteriormente se había implementado paginación en la agenda de próximos eventos, pero tras la aclaración de que las notificaciones de resultados e información relevante se acumulan en **Noticias del club**, realizamos los siguientes ajustes:
-*   **Restauración de Próximos Eventos:** Devolvimos la consulta de próximos eventos en `evento.service.ts` a su estado original (sin forzar un límite de 100 de fondo), manteniendo el flujo liviano por defecto.
-*   **Ampliación del Repositorio de Anuncios:** Modificamos [anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts) para que la función `noticiasDeJugador` obtenga hasta **100 anuncios** (en lugar del límite anterior de 20), permitiendo acumular y paginar un historial de noticias más extenso.
+### 1. Remoción de Fondo con `@imgly/background-removal` (Mejora de Precisión)
+Reemplazamos MediaPipe Selfie Segmentation por la biblioteca especializada `@imgly/background-removal`, que ofrece un recorte de silueta mucho más preciso y corre 100% en el cliente (respetando Habeas Data).
+*   **Instalación:** Se instaló `@imgly/background-removal` en la raíz del proyecto.
+*   **Pipeline Unificado:** Modificamos [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) para importar dinámicamente y ejecutar `removeBackground` sobre los archivos/fotos procesadas.
+*   **Simplificación de la Cámara:** Reescribimos y limpiamos completamente [CamaraCaptura.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/CamaraCaptura.tsx) eliminando los cargadores de scripts CDN, referencias a MediaPipe y lógica redundante de WASM. Ahora la cámara simplemente captura el cuadro centrado como un PNG y delega la remoción de fondo al flujo principal.
+*   **Flujo en Cámara:** Actualizamos [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) para invocar `removerFondoDeImagen` sobre la captura de la cámara antes de abrir el recortador.
+
+### 2. Paginación de "Noticias del Club" (de a 10)
+*   **Ampliación del Repositorio de Anuncios:** Modificamos [anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts) para obtener hasta **100 anuncios** (en lugar de 20), permitiendo paginar un historial de noticias más extenso.
 *   **Nuevo Componente `NoticiasList`:** Creamos [NoticiasList.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/NoticiasList.tsx) como un componente de cliente (`"use client"`) que divide la lista de noticias en páginas de a 10 con controles interactivos de "Anterior" y "Siguiente".
-*   **Actualización de la Vista del Jugador:** Reemplazamos la renderización en línea de las noticias en la página principal del hub del jugador ([page.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/app/jugador/page.tsx)) por el nuevo componente `<NoticiasList />`.
+*   **Actualización de la Vista del Jugador:** Reemplazamos la renderización en línea de las noticias en la página del hub ([page.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/app/jugador/page.tsx)) por el nuevo componente `<NoticiasList />`.
 
-### 2. Transparencia de la Carta (Soporte PNG en el Cliente)
-Detectamos que algunos navegadores (como WebKit/Safari en iOS) pierden el canal de transparencia (alfa) al exportar el lienzo a WebP desde el lado del cliente (`toBlob("image/webp")`), rellenando el fondo con color negro o blanco.
-*   **Cambio a PNG en Cliente:** Modificamos las utilidades de [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) para que la previsualización (`prepararParaRecorte`) y el recorte (`recortarABlob`) devuelvan archivos con formato **PNG** nativo (`image/png`), el cual garantiza el soporte de transparencia en el 100% de los dispositivos.
-*   **Subida a Base de Datos:** Actualizamos [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) para subir el archivo como `.png` de tipo `image/png`. El backend se encarga de recibir este PNG con transparencia y hacer la conversión a WebP en el servidor con la librería `sharp` (Node.js), preservando la transparencia real.
+### 3. Transparencia de la Carta (Soporte PNG en el Cliente)
+*   Modificamos las utilidades de [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) y [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) para que el formato de imagen intermedio y de subida sea **PNG** (`image/png`), garantizando soporte total de transparencia en dispositivos móviles (iOS/Safari) antes de la conversión final a WebP transparente que realiza `sharp` en el servidor.
 
-### 3. Redirección Dinámica de Logout
-*   Modificamos la acción `logout` en `auth.actions.ts` usando la API de Next.js `headers()` asíncrona para obtener de forma dinámica el `host` y el protocolo (`x-forwarded-proto`), eliminando cualquier redirección harcodeada a `localhost:3000` y logrando que funcione correctamente a través de ngrok o en producción.
+### 4. Redirección Dinámica de Logout
+*   Modificamos la acción `logout` en `auth.actions.ts` usando la API de Next.js `headers()` asíncrona para obtener de forma dinámica el `host` y el protocolo (`x-forwarded-proto`), eliminando cualquier redirección harcodeada a `localhost:3000`.
 
 ---
 
 ## ⚠️ Nota Importante sobre la Foto y el Fondo
 
 > [!WARNING]
-> **Estado de la remoción de fondo:** A pesar de haber forzado la transferencia de canal alfa mediante PNG y la optimización en la cámara, en ciertas imágenes/entornos de iluminación la foto sigue subiéndose con parte del fondo original o con bordes imperfectos. La segmentación local mediante **MediaPipe Selfie Segmentation** está en funcionamiento local privado (cumpliendo Habeas Data), pero es sensible a la luz y contraste del entorno de captura.
-> *   **Próximo paso:** Estamos buscando mejorar la precisión de la máscara en la captura local o evaluar modelos más avanzados que se ejecuten en proceso sin comprometer la privacidad del menor.
+> **Estado de la remoción de fondo:** A pesar de haber implementado la nueva librería `@imgly/background-removal` y de configurar la subida en PNG, es posible que la foto siga quedando con el fondo en ciertos escenarios de iluminación deficiente, bajo contraste o en dispositivos donde el WebAssembly local falle en su carga inicial. Este comportamiento sigue bajo revisión activa y es algo que se busca solucionar de forma definitiva.
 
 ---
 
@@ -36,6 +38,7 @@ Detectamos que algunos navegadores (como WebKit/Safari en iOS) pierden el canal 
 1. **[NoticiasList.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/NoticiasList.tsx)** (Nuevo) - Componente cliente de paginación para noticias.
 2. **[page.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/app/jugador/page.tsx)** (Modificado) - Integración del componente de noticias.
 3. **[anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts)** (Modificado) - Incremento del límite a 100 noticias.
-4. **[evento.service.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/services/evento.service.ts)** (Modificado) - Restaurado el límite por defecto en la agenda de próximos eventos.
-5. **[cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts)** (Modificado) - Cambio de formatos de WebP a PNG en cliente.
-6. **[FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx)** (Modificado) - Cambio de metadatos de subida a PNG.
+4. **[evento.service.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/services/evento.service.ts)** (Modificado) - Limpieza de cambios anteriores en agenda.
+5. **[cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts)** (Modificado) - Integración de `@imgly/background-removal` y formato PNG.
+6. **[CamaraCaptura.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/CamaraCaptura.tsx)** (Modificado) - Simplificación extrema de la cámara.
+7. **[FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx)** (Modificado) - Pipeline unificado para remover fondo en archivo y cámara, subiendo en PNG.

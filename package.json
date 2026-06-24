@@ -20,6 +20,7 @@
   "dependencies": {
     "@dicebear/core": "^10.2.0",
     "@dicebear/styles": "^10.2.0",
+    "@imgly/background-removal": "^1.7.0",
     "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",

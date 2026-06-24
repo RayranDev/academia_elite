@@ -76,132 +76,31 @@ export async function recortarABlob(
   });
 }
 
-function cargarScript(src: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") {
-      resolve();
-      return;
-    }
-    if (document.querySelector(`script[src="${src}"]`)) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`No se pudo cargar el script: ${src}`));
-    document.body.appendChild(script);
-  });
-}
-
-interface SelfieSegmentationResults {
-  image: HTMLVideoElement | HTMLCanvasElement | HTMLImageElement;
-  segmentationMask: HTMLCanvasElement;
-}
-
-interface SelfieSegmentationInstance {
-  setOptions: (options: { modelSelection: number }) => void;
-  onResults: (callback: (results: SelfieSegmentationResults) => void) => void;
-  send: (input: { image: HTMLImageElement }) => Promise<void>;
-  close: () => void;
-}
-
-interface CustomWindow extends Window {
-  SelfieSegmentation: new (options: {
-    locateFile: (file: string) => string;
-  }) => SelfieSegmentationInstance;
-}
-
-/**
- * Procesa una imagen elegida por el usuario para remover su fondo localmente en el cliente
- * mediante MediaPipe Selfie Segmentation, devolviendo una dataURL PNG transparente.
- */
 export async function removerFondoDeImagen(src: string): Promise<string> {
   try {
-    await cargarScript(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"
-    );
-    const win = window as unknown as CustomWindow;
-    if (!win.SelfieSegmentation) {
-      return src; // Fallback sin cambios si el script no está listo
-    }
-
-    const img = await cargarImagen(src);
-
+    const { removeBackground } = await import("@imgly/background-removal");
+    
+    // Convertimos la dataURL en un Blob para procesarlo
+    const res = await fetch(src);
+    const blob = await res.blob();
+    
+    // Removemos el fondo
+    const processedBlob = await removeBackground(blob);
+    
     return new Promise((resolve) => {
-      const segmenter = new win.SelfieSegmentation({
-        locateFile: (file: string) =>
-          `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
-      });
-
-      segmenter.setOptions({
-        modelSelection: 1, // 1 = landscape (más rápido)
-      });
-
-      segmenter.onResults((results: SelfieSegmentationResults) => {
-        try {
-          if (!results.image || !results.segmentationMask) {
-            resolve(src);
-            segmenter.close();
-            return;
-          }
-
-          const w = img.width;
-          const h = img.height;
-          const canvas = document.createElement("canvas");
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            resolve(src);
-            segmenter.close();
-            return;
-          }
-
-          ctx.save();
-          ctx.clearRect(0, 0, w, h);
-
-          // 1. Dibujar la imagen original
-          ctx.drawImage(img, 0, 0, w, h);
-
-          const imgData = ctx.getImageData(0, 0, w, h);
-
-          // 2. Crear un canvas temporal para la máscara
-          const maskCanvas = document.createElement("canvas");
-          maskCanvas.width = w;
-          maskCanvas.height = h;
-          const maskCtx = maskCanvas.getContext("2d");
-          if (maskCtx) {
-            maskCtx.drawImage(results.segmentationMask, 0, 0, w, h);
-            const maskData = maskCtx.getImageData(0, 0, w, h);
-
-            // 3. Transferir el canal rojo de la máscara al alfa de la imagen
-            for (let i = 0; i < imgData.data.length; i += 4) {
-              imgData.data[i + 3] = maskData.data[i];
-            }
-            ctx.putImageData(imgData, 0, 0);
-          }
-          ctx.restore();
-
-          const dataUrl = canvas.toDataURL("image/png");
-          resolve(dataUrl);
-          segmenter.close();
-        } catch (err) {
-          console.error("Error procesando remoción de fondo:", err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result);
+        } else {
           resolve(src);
-          segmenter.close();
         }
-      });
-
-      segmenter.send({ image: img }).catch((err: unknown) => {
-        console.error("Error al enviar imagen al segmentador:", err);
-        resolve(src);
-        segmenter.close();
-      });
+      };
+      reader.onerror = () => resolve(src);
+      reader.readAsDataURL(processedBlob);
     });
   } catch (err) {
-    console.error("Error al cargar SelfieSegmentation para archivo:", err);
-    return src; // Fallback sin cambios
+    console.error("Error al remover fondo con @imgly/background-removal:", err);
+    return src; // Fallback al original si falla
   }
 }

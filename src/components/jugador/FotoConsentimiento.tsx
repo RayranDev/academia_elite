@@ -155,9 +155,17 @@ export function FotoConsentimiento({
         )}
         {camara && (
           <CamaraCaptura
-            onCapturar={(dataUrl) => {
+            onCapturar={async (dataUrl) => {
               setCamara(false);
-              setImagen(dataUrl);
+              setProcesandoFondo(true);
+              try {
+                const transparentDataUrl = await removerFondoDeImagen(dataUrl);
+                setImagen(transparentDataUrl);
+              } catch (e) {
+                setImagen(dataUrl);
+              } finally {
+                setProcesandoFondo(false);
+              }
             }}
             onCancelar={() => setCamara(false)}
           />
