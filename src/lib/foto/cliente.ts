@@ -163,12 +163,27 @@ export async function removerFondoDeImagen(src: string): Promise<string> {
 
           ctx.save();
           ctx.clearRect(0, 0, w, h);
-          // 1. Dibujar la máscara
-          ctx.drawImage(results.segmentationMask, 0, 0, w, h);
-          // 2. Aplicar composición source-in para recortar el fondo
-          ctx.globalCompositeOperation = "source-in";
-          // 3. Dibujar la imagen original
-          ctx.drawImage(results.image, 0, 0, w, h);
+
+          // 1. Dibujar la imagen original
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const imgData = ctx.getImageData(0, 0, w, h);
+
+          // 2. Crear un canvas temporal para la máscara
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = w;
+          maskCanvas.height = h;
+          const maskCtx = maskCanvas.getContext("2d");
+          if (maskCtx) {
+            maskCtx.drawImage(results.segmentationMask, 0, 0, w, h);
+            const maskData = maskCtx.getImageData(0, 0, w, h);
+
+            // 3. Transferir el canal rojo de la máscara al alfa de la imagen
+            for (let i = 0; i < imgData.data.length; i += 4) {
+              imgData.data[i + 3] = maskData.data[i];
+            }
+            ctx.putImageData(imgData, 0, 0);
+          }
           ctx.restore();
 
           const dataUrl = canvas.toDataURL("image/png");

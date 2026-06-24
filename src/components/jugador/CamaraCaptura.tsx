@@ -193,14 +193,26 @@ export function CamaraCaptura({
           ctx.save();
           ctx.clearRect(0, 0, lado, lado);
 
-          // 1. Dibujar la máscara de segmentación (recorte centrado)
-          ctx.drawImage(results.segmentationMask, sx, sy, lado, lado, 0, 0, lado, lado);
-
-          // 2. Cambiar modo de composición a 'source-in'
-          ctx.globalCompositeOperation = "source-in";
-
-          // 3. Dibujar la imagen original (recorte centrado)
+          // 1. Dibujar la imagen original (recorte centrado)
           ctx.drawImage(results.image, sx, sy, lado, lado, 0, 0, lado, lado);
+
+          const imgData = ctx.getImageData(0, 0, lado, lado);
+
+          // 2. Crear un canvas temporal para la máscara
+          const maskCanvas = document.createElement("canvas");
+          maskCanvas.width = lado;
+          maskCanvas.height = lado;
+          const maskCtx = maskCanvas.getContext("2d");
+          if (maskCtx) {
+            maskCtx.drawImage(results.segmentationMask, sx, sy, lado, lado, 0, 0, lado, lado);
+            const maskData = maskCtx.getImageData(0, 0, lado, lado);
+
+            // 3. Transferir el canal rojo de la máscara al alfa de la imagen
+            for (let i = 0; i < imgData.data.length; i += 4) {
+              imgData.data[i + 3] = maskData.data[i];
+            }
+            ctx.putImageData(imgData, 0, 0);
+          }
           ctx.restore();
 
           // Exportamos como PNG para preservar el canal alfa de transparencia
