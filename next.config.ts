@@ -31,7 +31,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' https://cdn.jsdelivr.net${isDev ? " ws:" : ""}`,
+  `connect-src 'self' https://cdn.jsdelivr.net${isDev ? " ws: wss:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -61,13 +61,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["localhost", "127.0.0.1", ...getLocalIPs()],
+  allowedDevOrigins: ["localhost", "127.0.0.1", "*.ngrok-free.dev", "*.ngrok.io", ...getLocalIPs()],
   experimental: {
     // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
     // Next ANTES de ejecutar la acción. Lo subimos para cubrir la importación
     // de jugadores (.xlsx) y la subida de foto (hasta ~5 MB antes de recortar).
     serverActions: {
       bodySizeLimit: "6mb",
+      allowedOrigins: ["*.ngrok-free.dev", "*.ngrok.io"],
     },
   },
   async headers() {
