@@ -24,14 +24,60 @@ export function obtenerUserSeguro(id: string) {
 export function listarUsersAdmin(filtros: {
   rol?: string;
   escuelaId?: string;
+  search?: string;
+  skip?: number;
+  take?: number;
 }) {
+  const searchFilter = filtros.search?.trim()
+    ? {
+        OR: [
+          { nombre: { contains: filtros.search.trim() } },
+          { email: { contains: filtros.search.trim() } },
+        ],
+      }
+    : {};
+
   return db.user.findMany({
     where: {
       ...(filtros.rol ? { rol: filtros.rol } : {}),
-      ...(filtros.escuelaId ? { escuelaId: filtros.escuelaId } : {}),
+      ...(filtros.escuelaId === "__sin__"
+        ? { escuelaId: null }
+        : filtros.escuelaId
+        ? { escuelaId: filtros.escuelaId }
+        : {}),
+      ...searchFilter,
     },
     select: { ...SELECT_SEGURO, escuela: { select: { nombre: true } } },
+    skip: filtros.skip,
+    take: filtros.take,
     orderBy: [{ rol: "asc" }, { nombre: "asc" }],
+  });
+}
+
+export function contarUsersAdmin(filtros: {
+  rol?: string;
+  escuelaId?: string;
+  search?: string;
+}) {
+  const searchFilter = filtros.search?.trim()
+    ? {
+        OR: [
+          { nombre: { contains: filtros.search.trim() } },
+          { email: { contains: filtros.search.trim() } },
+        ],
+      }
+    : {};
+
+  return db.user.count({
+    where: {
+      ...(filtros.rol ? { rol: filtros.rol } : {}),
+      ...(filtros.escuelaId === "__sin__"
+        ? { escuelaId: null }
+        : filtros.escuelaId
+        ? { escuelaId: filtros.escuelaId }
+        : {}),
+      ...searchFilter,
+    },
   });
 }
 

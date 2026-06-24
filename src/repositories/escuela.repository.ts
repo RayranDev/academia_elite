@@ -131,3 +131,10 @@ export function actualizarBrandingEscuela(
 ) {
   return db.escuela.update({ where: { id: escuelaId }, data });
 }
+
+export function obtenerEscuelasDropdown() {
+  return db.escuela.findMany({
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
+}

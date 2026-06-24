@@ -1,10 +1,37 @@
 import { requireAuthContext } from "@/lib/auth/session";
-import { listarUsuariosAdmin } from "@/services/admin-usuarios.service";
+import { listarUsuariosAdmin, listarEscuelasDropdown } from "@/services/admin-usuarios.service";
 import { UsuariosGestion } from "@/components/gestion/UsuariosGestion";
 
-export default async function UsuariosAdminPage() {
+interface PageProps {
+  searchParams: Promise<{
+    page?: string;
+    limit?: string;
+    q?: string;
+    rol?: string;
+    escuelaId?: string;
+  }>;
+}
+
+export default async function UsuariosAdminPage({ searchParams }: PageProps) {
   const ctx = await requireAuthContext();
-  const usuarios = await listarUsuariosAdmin(ctx);
+  const params = await searchParams;
+
+  const q = params.q || "";
+  const rol = params.rol || "";
+  const escuelaId = params.escuelaId || "";
+  const page = Math.max(1, parseInt(params.page || "1", 10));
+  const limit = Math.max(1, parseInt(params.limit || "10", 10));
+
+  const [res, schools] = await Promise.all([
+    listarUsuariosAdmin(ctx, {
+      rol: rol || undefined,
+      escuelaId: escuelaId || undefined,
+      search: q || undefined,
+      page,
+      limit,
+    }),
+    listarEscuelasDropdown(ctx),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -13,7 +40,14 @@ export default async function UsuariosAdminPage() {
         Gestión global de cuentas: edición, activación y reset de contraseñas.
         Todas las acciones quedan auditadas.
       </p>
-      <UsuariosGestion usuarios={usuarios} />
+      <UsuariosGestion
+        usuarios={res.items}
+        schools={schools}
+        page={res.page}
+        totalPages={res.totalPages}
+        totalItems={res.total}
+        limit={limit}
+      />
     </div>
   );
 }

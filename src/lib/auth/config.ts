@@ -7,6 +7,7 @@ import type { Rol } from "@/types";
  * acceso a BD) se añaden en src/auth.ts (runtime Node).
  */
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
