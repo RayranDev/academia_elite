@@ -70,7 +70,7 @@ export function FotoConsentimiento({
   function subir(blob: Blob) {
     const fd = new FormData();
     fd.set("jugadorId", jugadorId);
-    fd.set("foto", new File([blob], "foto.webp", { type: "image/webp" }));
+    fd.set("foto", new File([blob], "foto.png", { type: "image/png" }));
     startTransition(async () => {
       const res = await subirFotoAction(undefined, fd);
       if (res.ok) {

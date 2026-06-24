@@ -41,9 +41,8 @@ export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<s
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas no disponible.");
     ctx.drawImage(img, 0, 0, w, h);
-    // WebP conserva la transparencia (JPEG la rellenaría de NEGRO). Así un PNG/
-    // SVG sin fondo sigue sin fondo durante el recorte y al subir.
-    return canvas.toDataURL("image/webp", 0.92);
+    // Usamos PNG para preservar al 100% la transparencia en todos los navegadores
+    return canvas.toDataURL("image/png");
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -51,13 +50,13 @@ export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<s
 
 /**
  * Recorta el área seleccionada (en píxeles de la imagen mostrada) y devuelve un
- * Blob WebP optimizado (lado mayor ≤ `maxLado`).
+ * Blob PNG optimizado (lado mayor ≤ `maxLado`).
  */
 export async function recortarABlob(
   src: string,
   area: AreaPixels,
   maxLado = 800,
-  calidad = 0.85,
+  _calidad = 0.85,
 ): Promise<Blob> {
   const img = await cargarImagen(src);
   const escala = Math.min(1, maxLado / Math.max(area.width, area.height));
@@ -72,8 +71,7 @@ export async function recortarABlob(
   return new Promise((resolve, reject) => {
     canvas.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("No se pudo recortar la imagen."))),
-      "image/webp",
-      calidad,
+      "image/png",
     );
   });
 }
