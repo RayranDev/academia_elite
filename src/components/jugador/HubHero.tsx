@@ -72,16 +72,28 @@ export function HubHero({ card }: { card: PlayerCardData }) {
       const dataUrl = await capturarPng();
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], nombreArchivo(), { type: "image/png" });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: titulo, text: titulo });
-      } else if (navigator.share) {
-        await navigator.share({ title: titulo, text: `${titulo} — ${WEB}` });
-      } else {
-        setError("Tu dispositivo no permite compartir. Usá “Descargar carta”.");
+      
+      try {
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: titulo, text: titulo });
+        } else if (navigator.share) {
+          await navigator.share({ title: titulo, text: `${titulo} — ${WEB}` });
+        } else {
+          setError("Tu dispositivo no permite compartir. Usá “Descargar carta”.");
+        }
+      } catch (shareError) {
+        console.error("Fallo al compartir archivo, intentando solo texto:", shareError);
+        // Fallback: compartir solo texto/link si falla el archivo
+        if (navigator.share) {
+          await navigator.share({ title: titulo, text: `${titulo} — ${WEB}` });
+        } else {
+          throw shareError;
+        }
       }
     } catch (e) {
       // Cancelar el diálogo de compartir lanza AbortError: no es un error real.
       if ((e as Error)?.name !== "AbortError") {
+        console.error("Error al compartir:", e);
         setError("No se pudo compartir. Inténtalo de nuevo.");
       }
     } finally {
