@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarUsersAdmin,
@@ -39,7 +39,7 @@ export async function listarUsuariosAdmin(
   ctx: AuthContext,
   filtros: { rol?: string; escuelaId?: string } = {},
 ): Promise<UsuarioAdminDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const rows = await listarUsersAdmin(filtros);
   return rows.map((u) => ({
     id: u.id,
@@ -58,7 +58,7 @@ export async function editarUsuarioAdmin(
   ctx: AuthContext,
   data: UsuarioEditarInput,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const user = await obtenerUserSeguro(data.userId);
   if (!user) throw new NotFoundError("Usuario no encontrado.");
   if (user.id === ctx.userId && !data.activo) {
@@ -84,7 +84,7 @@ export async function resetPasswordUsuarioAdmin(
   ctx: AuthContext,
   userId: string,
 ): Promise<{ email: string; passwordTemporal: string }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const user = await obtenerUserSeguro(userId);
   if (!user) throw new NotFoundError("Usuario no encontrado.");
   if (user.id === ctx.userId) {
@@ -105,7 +105,7 @@ export async function editarEscuelaSuperAdmin(
   ctx: AuthContext,
   data: EscuelaEditarInput,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const escuela = await obtenerEscuela(data.escuelaId);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
   if (data.slug !== escuela.slug && (await slugExisteGlobal(data.slug))) {

@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import type { TipoNotificacion } from "@/types";
+import type { TipoNotificacion, Prioridad } from "@/types";
 import {
   registrarCanal,
   despachar,
@@ -24,6 +24,7 @@ registrarCanal({
         titulo: mensaje.titulo,
         cuerpo: mensaje.cuerpo ?? null,
         url: mensaje.url ?? null,
+        prioridad: mensaje.prioridad ?? "media",
       })),
     );
   },
@@ -35,6 +36,7 @@ export interface NotificacionDTO {
   titulo: string;
   cuerpo: string | null;
   url: string | null;
+  prioridad: string;
   leida: boolean;
   createdAt: string;
 }
@@ -45,7 +47,13 @@ export interface NotificacionDTO {
  */
 export async function notificar(
   userIds: string[],
-  data: { tipo: TipoNotificacion; titulo: string; cuerpo?: string; url?: string },
+  data: {
+    tipo: TipoNotificacion;
+    titulo: string;
+    cuerpo?: string;
+    url?: string;
+    prioridad?: Prioridad;
+  },
 ): Promise<void> {
   await despachar(userIds, data, ["INAPP", "EMAIL", "WHATSAPP"]);
 }
@@ -60,6 +68,7 @@ export async function listarMisNotificaciones(
     titulo: n.titulo,
     cuerpo: n.cuerpo,
     url: n.url,
+    prioridad: n.prioridad,
     leida: n.leida,
     createdAt: n.createdAt.toISOString(),
   }));

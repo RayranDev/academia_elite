@@ -6,6 +6,7 @@ export interface NotificacionData {
   titulo: string;
   cuerpo?: string | null;
   url?: string | null;
+  prioridad?: string;
 }
 
 export function crearNotificaciones(datos: NotificacionData[]) {

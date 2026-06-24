@@ -111,6 +111,7 @@ export async function crearEventoDt(
       titulo: "Nueva convocatoria",
       cuerpo: `Tu hijo/a fue convocado para "${input.titulo}".`,
       url: "/jugador/calendario",
+      prioridad: "alta",
     });
   }
 
@@ -271,7 +272,7 @@ export async function confirmarConvocatoria(
   confirmacion: Confirmacion,
 ): Promise<void> {
   requireRole(ctx, ["JUGADOR"]);
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   if (ctx.userId !== jugador.padreUserId && ctx.userId !== jugador.cuentaUserId) {

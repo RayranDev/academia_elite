@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import { toPng } from "html-to-image";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Button } from "@/components/ui/Button";
@@ -34,21 +34,56 @@ export function HubHero({ card }: { card: PlayerCardData }) {
     }
   }, []);
 
+  /** Captura la carta a PNG (con la marca de agua visible solo en la imagen). */
+  async function capturarPng(): Promise<string> {
+    setExportando(true); // muestra la marca de agua antes de capturar
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return toPng(cartaRef.current!, { pixelRatio: 2, cacheBust: true });
+  }
+
+  function nombreArchivo(): string {
+    const base =
+      `${card.nombre}-${card.apellido ?? ""}`.trim().replace(/\s+/g, "_") || "carta";
+    return `carta-${base}.png`;
+  }
+
   async function descargar() {
     if (!cartaRef.current) return;
     setError(null);
-    setExportando(true); // muestra la marca de agua antes de capturar
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     try {
-      const dataUrl = await toPng(cartaRef.current, { pixelRatio: 2, cacheBust: true });
-      const nombre =
-        `${card.nombre}-${card.apellido ?? ""}`.trim().replace(/\s+/g, "_") || "carta";
+      const dataUrl = await capturarPng();
       const a = document.createElement("a");
-      a.download = `carta-${nombre}.png`;
+      a.download = nombreArchivo();
       a.href = dataUrl;
       a.click();
     } catch {
       setError("No se pudo generar la imagen. Inténtalo de nuevo.");
+    } finally {
+      setExportando(false);
+    }
+  }
+
+  /** Comparte la carta como imagen (Web Share API); con fallbacks por dispositivo. */
+  async function compartir() {
+    if (!cartaRef.current) return;
+    setError(null);
+    const titulo = `Carta de ${card.nombre}`;
+    try {
+      const dataUrl = await capturarPng();
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], nombreArchivo(), { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: titulo, text: titulo });
+      } else if (navigator.share) {
+        await navigator.share({ title: titulo, text: `${titulo} — ${WEB}` });
+      } else {
+        setError("Tu dispositivo no permite compartir. Usá “Descargar carta”.");
+      }
+    } catch (e) {
+      // Cancelar el diálogo de compartir lanza AbortError: no es un error real.
+      if ((e as Error)?.name !== "AbortError") {
+        setError("No se pudo compartir. Inténtalo de nuevo.");
+      }
     } finally {
       setExportando(false);
     }
@@ -65,7 +100,9 @@ export function HubHero({ card }: { card: PlayerCardData }) {
           <PlayerCard data={card} size="hero" interactive reveal />
         </div>
         {/* Se MONTA solo durante la exportación (opaca, sin transición) para que
-            html-to-image la capture; no se ve en la web. */}
+            html-to-image la capture; no se ve en la web. Colores FIJOS a propósito
+            (no tokens de tema): la franja se hornea dentro del PNG descargado y
+            debe leerse igual sin importar si la app está en modo claro u oscuro. */}
         {exportando && (
           <div
             aria-hidden
@@ -76,10 +113,16 @@ export function HubHero({ card }: { card: PlayerCardData }) {
           </div>
         )}
       </div>
-      <Button variant="secondary" size="sm" onClick={descargar} disabled={exportando}>
-        <Download className="mr-1 h-4 w-4" aria-hidden />
-        {exportando ? "Generando…" : "Descargar carta"}
-      </Button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button variant="secondary" size="sm" onClick={descargar} disabled={exportando}>
+          <Download className="mr-1 h-4 w-4" aria-hidden />
+          {exportando ? "Generando…" : "Descargar carta"}
+        </Button>
+        <Button variant="primary" size="sm" onClick={compartir} disabled={exportando}>
+          <Share2 className="mr-1 h-4 w-4" aria-hidden />
+          Compartir
+        </Button>
+      </div>
       {error && <p className="text-sm text-alerta">{error}</p>}
     </div>
   );

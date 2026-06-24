@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
 import type { Rol } from "@/types";
+import { sesionActivaDe } from "@/repositories/soporte.repository";
 
 /**
  * Construye el AuthContext desde la sesión (Capa 2). NUNCA desde el body.
@@ -34,6 +35,20 @@ export async function getAuthContext(): Promise<AuthContext | null> {
       select: { id: true },
     });
     if (jugador) ctx.jugadorId = jugador.id;
+  }
+
+  // Modo soporte (M2): si el súper admin tiene una sesión de soporte abierta,
+  // se adjunta al contexto. assertTenant la exige para tocar datos de un tenant.
+  if (ctx.rol === "SUPER_ADMIN") {
+    const sesion = await sesionActivaDe(ctx.userId);
+    if (sesion) {
+      ctx.soporte = {
+        sesionId: sesion.id,
+        escuelaId: sesion.escuelaId,
+        soloLectura: sesion.soloLectura,
+        motivo: sesion.motivo,
+      };
+    }
   }
 
   return ctx;

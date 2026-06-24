@@ -10,3 +10,11 @@ export function generarCodigoInvitacion(longitud = 8): string {
   }
   return out;
 }
+
+/**
+ * Código humano de referencia para soporte/búsqueda (p. ej. "JUG-7F4A2"). Corto,
+ * inmutable y único (campo @unique en BD). Usa el alfabeto sin ambigüedades.
+ */
+export function generarCodigoRef(prefijo: string): string {
+  return `${prefijo}-${generarCodigoInvitacion(5)}`;
+}

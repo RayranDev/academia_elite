@@ -29,5 +29,6 @@ export function desactivarCodigo(escuelaId: string, id: string) {
 
 // Búsqueda global por código (registro público, antes de tener tenant).
 export function obtenerCodigoPorValor(codigo: string) {
+  // tenant-global: registro público por código único, antes de resolver el tenant
   return db.codigoInvitacion.findUnique({ where: { codigo } });
 }

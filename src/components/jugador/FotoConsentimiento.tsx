@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { FotoCropper } from "@/components/jugador/FotoCropper";
+import { CamaraCaptura } from "@/components/jugador/CamaraCaptura";
 import { prepararParaRecorte } from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
 
@@ -33,6 +34,7 @@ export function FotoConsentimiento({
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [version, setVersion] = useState(0); // cache-buster tras subir
+  const [camara, setCamara] = useState(false); // captura desde la cámara
   const [subiendo, startTransition] = useTransition();
 
   const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
@@ -126,9 +128,31 @@ export function FotoConsentimiento({
           onChange={alElegirArchivo}
           className="hidden"
         />
-        <Button onClick={() => inputRef.current?.click()} disabled={subiendo}>
-          Elegir foto…
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={() => inputRef.current?.click()} disabled={subiendo}>
+            Elegir foto…
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setError(null);
+              setOk(false);
+              setCamara(true);
+            }}
+            disabled={subiendo}
+          >
+            Tomar foto
+          </Button>
+        </div>
+        {camara && (
+          <CamaraCaptura
+            onCapturar={(dataUrl) => {
+              setCamara(false);
+              setImagen(dataUrl);
+            }}
+            onCancelar={() => setCamara(false)}
+          />
+        )}
         {error && <p className="text-sm text-alerta">{error}</p>}
         {ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
       </div>

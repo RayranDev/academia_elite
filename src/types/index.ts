@@ -6,6 +6,25 @@ import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
 export const ROLES = ["SUPER_ADMIN", "ESCUELA_ADMIN", "DT", "JUGADOR"] as const;
 export type Rol = (typeof ROLES)[number];
 
+// Permisos (ROL-SUPER-ADMIN.md M4): la indirección "acción → permiso requerido"
+// evita atar cada guard al string "SUPER_ADMIN". Hoy el SUPER_ADMIN tiene TODOS;
+// mañana se pueden crear roles acotados (p. ej. SOPORTE, FACTURACION) con un
+// subconjunto, sin tocar la lógica de cada acción.
+export const PERMISOS = [
+  "GESTIONAR_ESCUELAS", // crear/editar/suspender escuelas, categorías, usuarios admin
+  "EDITAR_PARAMETROS_GLOBALES", // parámetros de fórmula (globales y por escuela)
+  "EDITAR_CATALOGOS", // fondos, logros, simulador de carta
+  "GESTIONAR_LEADS", // pipeline comercial
+  "VER_FACTURACION", // membresías / morosidad
+  "SOPORTE_TENANT", // sesión de soporte y operaciones destructivas de tenant
+  "VER_AUDITORIA", // leer / exportar el AuditLog y el dashboard de plataforma
+] as const;
+export type Permiso = (typeof PERMISOS)[number];
+
+// Prioridad de una notificación: gobierna el destaque visual en la campana.
+export const PRIORIDADES = ["baja", "media", "alta", "critica"] as const;
+export type Prioridad = (typeof PRIORIDADES)[number];
+
 export const POSICIONES = ["POR", "DEF", "MED", "DEL"] as const;
 export type Posicion = (typeof POSICIONES)[number];
 
@@ -62,11 +81,19 @@ export type StatObjetivo = (typeof STATS_OBJETIVO)[number];
 export const ESTADOS_OBJETIVO = ["ACTIVO", "CUMPLIDO", "VENCIDO"] as const;
 export type EstadoObjetivo = (typeof ESTADOS_OBJETIVO)[number];
 
+// Funnel comercial del lead (mini-CRM). CONVERTIDO y DESCARTADO conservan su
+// semántica/lógica previa; el resto son etapas intermedias del seguimiento.
 export const ESTADOS_LEAD = [
   "NUEVO",
   "CONTACTADO",
+  "EN_SEGUIMIENTO",
+  "RECONTACTAR",
+  "NEGOCIACION",
+  "PRUEBA_GRATUITA",
+  "PENDIENTE_PAGO",
   "CONVERTIDO",
   "DESCARTADO",
+  "NO_INTERESADO",
 ] as const;
 export type EstadoLead = (typeof ESTADOS_LEAD)[number];
 

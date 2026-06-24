@@ -1,4 +1,4 @@
-import type { TipoNotificacion } from "@/types";
+import type { TipoNotificacion, Prioridad } from "@/types";
 
 /**
  * Despachador de notificaciones multicanal (G9).
@@ -19,6 +19,7 @@ export interface MensajeNotificacion {
   titulo: string;
   cuerpo?: string;
   url?: string;
+  prioridad?: Prioridad;
 }
 
 export interface CanalNotificacion {

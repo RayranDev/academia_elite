@@ -13,7 +13,7 @@ import {
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { CATALOGO_LOGROS } from "./seed-logros";
-import { generarCodigoInvitacion } from "../src/lib/codes";
+import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import type { Posicion } from "@/types";
 
 /**
@@ -94,6 +94,7 @@ async function main() {
       id: "demo-escuela",
       nombre: "Academia Demo",
       slug: "demo",
+      codigoRef: "ESC-DEMO1",
       colorPrimario: "#4ADE80",
       frecuenciaEvaluacionDias: 30,
     },
@@ -210,6 +211,7 @@ async function main() {
         escuelaId: escuela.id,
         categoriaId,
         codigoJugador: esCuentaDemo ? "LUCAS25" : generarCodigoInvitacion(),
+        codigoRef: esCuentaDemo ? "JUG-LUCAS" : generarCodigoRef("JUG"),
         nombre,
         apellido,
         fechaNacimiento,

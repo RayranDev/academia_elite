@@ -32,7 +32,7 @@ async function autorizarJugador(
   ctx: AuthContext,
   jugadorId: string,
 ): Promise<JugadorAcc> {
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
 
@@ -123,7 +123,7 @@ async function notificarOtros(
   jugadorId: string,
   asunto: string,
 ): Promise<void> {
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) return;
   const destinos: string[] = [];
   if (ctx.rol === "JUGADOR") {

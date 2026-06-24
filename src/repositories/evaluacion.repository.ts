@@ -13,6 +13,7 @@ export function listarEvaluacionesJugador(escuelaId: string, jugadorId: string) 
 
 /** Logros BONUS aún no consumidos de un jugador (para aplicarlos en la próxima eval). */
 export function bonusPendientes(jugadorId: string) {
+  // tenant-global: filtrado por jugadorId; tenant verificado aguas arriba en el service
   return db.logroJugador.findMany({
     where: { jugadorId, bonusConsumido: false, logro: { tipo: "BONUS" } },
     include: {

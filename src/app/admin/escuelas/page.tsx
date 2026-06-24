@@ -3,6 +3,7 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { listarEscuelas } from "@/services/escuela.service";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { NuevaEscuelaDialog } from "@/components/admin/NuevaEscuelaDialog";
 
 export default async function EscuelasPage() {
   const ctx = await requireAuthContext();
@@ -10,12 +11,15 @@ export default async function EscuelasPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black italic uppercase">Escuelas</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-black italic uppercase">Escuelas</h1>
+        <NuevaEscuelaDialog />
+      </div>
       {escuelas.length === 0 ? (
         <Card>
           <p className="text-muted">
-            Aún no hay escuelas. Convierte un lead desde el pipeline para crear
-            la primera.
+            Aún no hay escuelas. Creá la primera con “+ Nueva escuela”, o convertí
+            un lead desde el pipeline.
           </p>
         </Card>
       ) : (

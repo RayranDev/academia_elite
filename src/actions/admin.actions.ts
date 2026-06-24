@@ -5,34 +5,19 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import {
-  actualizarEstadoLeadSchema,
   convertirLeadSchema,
+  crearEscuelaSchema,
+  editarLeadSchema,
+  agregarNotaSchema,
   actualizarParametroSchema,
 } from "@/lib/validators/admin";
-import { actualizarEstadoLead } from "@/services/lead.service";
-import { convertirLeadEnEscuela } from "@/services/escuela.service";
+import { actualizarLead, agregarNotaLead } from "@/services/lead.service";
+import { convertirLeadEnEscuela, crearEscuelaDirecta } from "@/services/escuela.service";
 import { actualizarParametro } from "@/services/parametro.service";
 import {
   fijarMetricaEscuelaAdmin,
   quitarMetricaEscuelaAdmin,
 } from "@/services/parametro-escuela.service";
-
-// Acción de formulario (fire-and-forget): mueve el lead en el pipeline.
-// revalidatePath refresca la vista; los errores de dominio se propagan al
-// error boundary (entradas controladas por inputs ocultos).
-export async function actualizarEstadoLeadAction(
-  formData: FormData,
-): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = actualizarEstadoLeadSchema.safeParse({
-    leadId: formData.get("leadId"),
-    estado: formData.get("estado"),
-  });
-  if (!parsed.success) throw new ValidationError("Datos inválidos.");
-  await actualizarEstadoLead(ctx, parsed.data.leadId, parsed.data.estado);
-  revalidatePath("/admin/leads");
-  revalidatePath("/admin/auditoria");
-}
 
 export async function convertirLeadAction(
   _prev: ActionResult<{ adminEmail: string; passwordTemporal: string }> | undefined,
@@ -54,6 +39,93 @@ export async function convertirLeadAction(
     }
     const res = await convertirLeadEnEscuela(ctx, parsed.data);
     revalidatePath("/admin/leads");
+    revalidatePath("/admin/escuelas");
+    revalidatePath("/admin/auditoria");
+    return {
+      ok: true,
+      data: { adminEmail: res.adminEmail, passwordTemporal: res.passwordTemporal },
+    };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Edita estado + seguimiento del lead (mini-CRM). */
+export async function actualizarLeadAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const leadId = formData.get("leadId");
+    if (typeof leadId !== "string" || !leadId) {
+      throw new ValidationError("Lead inválido.");
+    }
+    const parsed = editarLeadSchema.safeParse({
+      estado: formData.get("estado"),
+      responsable: formData.get("responsable"),
+      proximaAccion: formData.get("proximaAccion") ?? "",
+      fechaProximoContacto: formData.get("fechaProximoContacto") ?? "",
+      observaciones: formData.get("observaciones") ?? "",
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    await actualizarLead(ctx, leadId, parsed.data);
+    revalidatePath(`/admin/leads/${leadId}`);
+    revalidatePath("/admin/leads");
+    revalidatePath("/admin/auditoria");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Agrega una nota de seguimiento a un lead. */
+export async function agregarNotaLeadAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = agregarNotaSchema.safeParse({
+      leadId: formData.get("leadId"),
+      comentario: formData.get("comentario"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    await agregarNotaLead(ctx, parsed.data.leadId, parsed.data.comentario);
+    revalidatePath(`/admin/leads/${parsed.data.leadId}`);
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Alta directa de escuela + ESCUELA_ADMIN inicial (SUPER_ADMIN, sin pasar por lead). */
+export async function crearEscuelaAction(
+  _prev: ActionResult<{ adminEmail: string; passwordTemporal: string }> | undefined,
+  formData: FormData,
+): Promise<ActionResult<{ adminEmail: string; passwordTemporal: string }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = crearEscuelaSchema.safeParse({
+      nombreEscuela: formData.get("nombreEscuela"),
+      slug: formData.get("slug"),
+      adminNombre: formData.get("adminNombre"),
+      adminEmail: formData.get("adminEmail"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    const res = await crearEscuelaDirecta(ctx, parsed.data);
     revalidatePath("/admin/escuelas");
     revalidatePath("/admin/auditoria");
     return {

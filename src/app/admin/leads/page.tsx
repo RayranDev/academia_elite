@@ -1,91 +1,120 @@
+import Link from "next/link";
 import { requireAuthContext } from "@/lib/auth/session";
-import { listarLeads, type LeadDTO } from "@/services/lead.service";
-import { actualizarEstadoLeadAction } from "@/actions/admin.actions";
-import { ConvertLeadDialog } from "@/components/admin/ConvertLeadDialog";
-import { Badge } from "@/components/ui/Badge";
+import { listarLeads } from "@/services/lead.service";
+import { Card } from "@/components/ui/Card";
+import {
+  EstadoLeadBadge,
+  LABEL_ESTADO_LEAD,
+} from "@/components/admin/EstadoLeadBadge";
 import { ESTADOS_LEAD, type EstadoLead } from "@/types";
 
-const TITULO: Record<EstadoLead, string> = {
-  NUEVO: "Nuevos",
-  CONTACTADO: "Contactados",
-  CONVERTIDO: "Convertidos",
-  DESCARTADO: "Descartados",
-};
-
-export default async function LeadsPage() {
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>;
+}) {
   const ctx = await requireAuthContext();
-  const leads = await listarLeads(ctx);
+  const { estado } = await searchParams;
+  const filtro = ESTADOS_LEAD.includes(estado as EstadoLead)
+    ? (estado as EstadoLead)
+    : undefined;
+  const leads = await listarLeads(ctx, filtro);
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black italic uppercase">Pipeline de leads</h1>
-      <div className="grid gap-4 lg:grid-cols-4">
-        {ESTADOS_LEAD.map((estado) => {
-          const items = leads.filter((l) => l.estado === estado);
-          return (
-            <div key={estado} className="rounded-xl border border-subtle bg-surface/50 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold uppercase tracking-wide">
-                  {TITULO[estado]}
-                </h2>
-                <Badge tono={estado === "CONVERTIDO" ? "pitch" : "neutral"}>
-                  {items.length}
-                </Badge>
-              </div>
-              <div className="space-y-3">
-                {items.length === 0 ? (
-                  <p className="text-xs text-muted">Vacío</p>
-                ) : (
-                  items.map((lead) => <LeadCard key={lead.id} lead={lead} />)
-                )}
-              </div>
-            </div>
-          );
-        })}
+      <h1 className="text-3xl font-black italic uppercase">Leads</h1>
+
+      <div className="flex flex-wrap gap-2 text-xs">
+        <FiltroLink href="/admin/leads" activo={!filtro}>
+          Todos
+        </FiltroLink>
+        {ESTADOS_LEAD.map((e) => (
+          <FiltroLink
+            key={e}
+            href={`/admin/leads?estado=${e}`}
+            activo={filtro === e}
+          >
+            {LABEL_ESTADO_LEAD[e]}
+          </FiltroLink>
+        ))}
       </div>
+
+      <Card className="overflow-x-auto p-0">
+        {leads.length === 0 ? (
+          <p className="p-6 text-sm text-muted">
+            No hay leads{filtro ? " en este estado" : " todavía"}.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="border-b border-subtle text-left text-xs uppercase text-muted">
+              <tr>
+                <th className="px-4 py-3">Escuela</th>
+                <th className="px-4 py-3">Contacto</th>
+                <th className="px-4 py-3">Estado</th>
+                <th className="px-4 py-3">Próxima acción</th>
+                <th className="px-4 py-3">Responsable</th>
+                <th className="px-4 py-3">Creado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((l) => (
+                <tr
+                  key={l.id}
+                  className="border-b border-subtle/50 hover:bg-surface-2"
+                >
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/leads/${l.id}`}
+                      className="font-semibold text-brand hover:underline"
+                    >
+                      {l.nombreEscuela}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div>{l.contactoNombre}</div>
+                    <div className="text-xs text-muted">{l.contactoEmail}</div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <EstadoLeadBadge estado={l.estado} />
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {l.proximaAccion ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-muted">
+                    {l.responsableNombre ?? "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted">
+                    {new Date(l.createdAt).toLocaleDateString("es")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }
 
-function LeadCard({ lead }: { lead: LeadDTO }) {
-  const otrosEstados = ESTADOS_LEAD.filter((e) => e !== lead.estado);
+function FiltroLink({
+  href,
+  activo,
+  children,
+}: {
+  href: string;
+  activo: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg border border-subtle bg-surface-2 p-3 text-sm">
-      <p className="font-bold">{lead.nombreEscuela}</p>
-      <p className="text-muted">{lead.contactoNombre}</p>
-      <p className="break-all text-xs text-muted">{lead.contactoEmail}</p>
-      {lead.ciudad && <p className="text-xs text-muted">{lead.ciudad}</p>}
-      {lead.mensaje && (
-        <p className="mt-2 line-clamp-3 text-xs text-foreground/80">
-          “{lead.mensaje}”
-        </p>
-      )}
-
-      <div className="mt-3 flex flex-wrap gap-1">
-        {otrosEstados.map((estado) => (
-          <form key={estado} action={actualizarEstadoLeadAction}>
-            <input type="hidden" name="leadId" value={lead.id} />
-            <input type="hidden" name="estado" value={estado} />
-            <button
-              type="submit"
-              className="rounded border border-subtle px-2 py-0.5 text-[11px] text-muted hover:border-pitch hover:text-foreground"
-            >
-              → {estado}
-            </button>
-          </form>
-        ))}
-      </div>
-
-      {lead.estado !== "CONVERTIDO" && (
-        <div className="mt-2">
-          <ConvertLeadDialog
-            leadId={lead.id}
-            nombreEscuela={lead.nombreEscuela}
-            contactoNombre={lead.contactoNombre}
-            contactoEmail={lead.contactoEmail}
-          />
-        </div>
-      )}
-    </div>
+    <Link
+      href={href}
+      className={`rounded-full px-3 py-1 transition ${
+        activo
+          ? "bg-brand font-semibold text-base"
+          : "bg-surface-2 text-muted hover:text-foreground"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }

@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, assertTenant } from "@/lib/auth/guards";
+import { requireRole, assertTenant, requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { listarHijos } from "@/repositories/jugador.repository";
 import { listarProgresosJugador } from "@/repositories/progreso.repository";
@@ -134,7 +134,8 @@ export async function equiparFondo(
   const hijo = await cargarHijo(ctx, jugadorId);
 
   if (fondoId === null) {
-    await equiparFondoJugador(hijo.id, null);
+    const res = await equiparFondoJugador(ctx.escuelaId, hijo.id, null);
+    if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
     return;
   }
 
@@ -151,7 +152,8 @@ export async function equiparFondo(
     throw new ValidationError("Aún no has desbloqueado ese fondo.");
   }
 
-  await equiparFondoJugador(hijo.id, fondoId);
+  const res = await equiparFondoJugador(ctx.escuelaId, hijo.id, fondoId);
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
 }
 
 export interface FondoCatalogoDTO {
@@ -165,7 +167,7 @@ export interface FondoCatalogoDTO {
 export async function listarCatalogoFondos(
   ctx: AuthContext,
 ): Promise<FondoCatalogoDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const fondos = await listarFondos();
   return fondos.map((f) => ({
     codigo: f.codigo,
@@ -198,7 +200,7 @@ export interface FondoAdminDTO {
 
 /** Catálogo completo de fondos para administrarlos (solo Súper Admin). */
 export async function listarFondosAdmin(ctx: AuthContext): Promise<FondoAdminDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const fondos = await listarFondos();
   return fondos.map((f) => ({
     id: f.id,
@@ -230,7 +232,7 @@ export async function crearFondoAdmin(
   ctx: AuthContext,
   data: FondoCrearInput,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   if (await codigoFondoExiste(data.codigo)) {
     throw new ValidationError("Ya existe un fondo con ese código.");
   }
@@ -258,7 +260,7 @@ export async function editarFondoAdmin(
   ctx: AuthContext,
   data: FondoEditarInput,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const fondo = await obtenerFondo(data.fondoId);
   if (!fondo) throw new NotFoundError("Fondo no encontrado.");
   await validarRequisitoLogro(data.requisitoTipo, data.requisitoValor);
@@ -283,7 +285,7 @@ export async function eliminarFondoAdmin(
   ctx: AuthContext,
   fondoId: string,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const fondo = await obtenerFondo(fondoId);
   if (!fondo) throw new NotFoundError("Fondo no encontrado.");
   if (await fondoEnUso(fondoId)) {

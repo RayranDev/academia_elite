@@ -1,5 +1,10 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, assertTenant } from "@/lib/auth/guards";
+import {
+  requireRole,
+  assertTenant,
+  assertMotivoSoporte,
+  assertSoportePuedeEscribir,
+} from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { actualizarBloqueoUsers } from "@/repositories/user.repository";
@@ -13,7 +18,7 @@ import { TIPOS_BLOQUEO, type TipoBloqueo } from "@/types";
 
 async function cargarVinculos(ctx: AuthContext, jugadorId: string) {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   const userIds = [
@@ -39,6 +44,9 @@ export async function bloquearAccesoJugador(
   if (tipo === "PERSONALIZADO" && !mensaje?.trim()) {
     throw new ValidationError("Escribe el mensaje personalizado.");
   }
+  // Nota: no usa assertMotivoSoporte como las demás escrituras del SA porque el
+  // tipo/mensaje del bloqueo ya es la justificación obligatoria que va al AuditLog.
+  assertSoportePuedeEscribir(ctx);
   const { jugador, userIds } = await cargarVinculos(ctx, jugadorId);
 
   await actualizarBloqueoUsers(userIds, {
@@ -59,7 +67,10 @@ export async function bloquearAccesoJugador(
 export async function desbloquearAccesoJugador(
   ctx: AuthContext,
   jugadorId: string,
+  motivo?: string,
 ): Promise<void> {
+  assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
   const { jugador, userIds } = await cargarVinculos(ctx, jugadorId);
 
   await actualizarBloqueoUsers(userIds, {
@@ -73,5 +84,6 @@ export async function desbloquearAccesoJugador(
     entidad: "Jugador",
     entidadId: jugadorId,
     escuelaId: jugador.escuelaId,
+    motivo,
   });
 }

@@ -69,3 +69,14 @@ export function obtenerPasswordHash(id: string) {
     select: { id: true, passwordHash: true },
   });
 }
+
+/** Nombres de un conjunto de usuarios por id (para resolver autores/responsables). */
+export function nombresDeUsuarios(ids: string[]) {
+  if (ids.length === 0) {
+    return Promise.resolve([] as { id: string; nombre: string }[]);
+  }
+  return db.user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, nombre: true },
+  });
+}

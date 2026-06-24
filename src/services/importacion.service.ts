@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
+import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 import { parseXlsx, plantillaJugadoresXlsx } from "@/lib/xlsx";
 import { jugadorSchema } from "@/lib/validators/jugador";
@@ -44,6 +44,8 @@ function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
   if (ctx.rol === "SUPER_ADMIN") {
     if (!escuelaId) throw new ValidationError("Falta la escuela.");
+    // PII de un tenant: el SA solo accede con sesión de soporte activa (M2).
+    assertTenant(ctx, escuelaId);
     return escuelaId;
   }
   return requireEscuela(ctx);

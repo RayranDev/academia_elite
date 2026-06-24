@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
+import { requireRole, requireEscuela, requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import { detectarTipoImagen, procesarEscudo } from "@/lib/foto/process";
@@ -12,10 +11,11 @@ import {
   emailExisteGlobal,
   obtenerEscuela,
   actualizarBrandingEscuela,
+  crearEscuelaConAdmin,
 } from "@/repositories/escuela.repository";
 import type { BrandingInput } from "@/lib/validators/escuela";
 import { obtenerLeadGlobal } from "@/repositories/lead.repository";
-import type { ConvertirLeadInput } from "@/lib/validators/admin";
+import type { ConvertirLeadInput, CrearEscuelaInput } from "@/lib/validators/admin";
 
 export interface EscuelaDTO {
   id: string;
@@ -113,23 +113,25 @@ export async function obtenerEscuelaAdmin(
   id: string;
   nombre: string;
   slug: string;
+  codigoRef: string | null;
   colorPrimario: string;
   activa: boolean;
 }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const e = await obtenerEscuela(escuelaId);
   if (!e) throw new NotFoundError("Escuela no encontrada.");
   return {
     id: e.id,
     nombre: e.nombre,
     slug: e.slug,
+    codigoRef: e.codigoRef,
     colorPrimario: e.colorPrimario,
     activa: e.activa,
   };
 }
 
 export async function listarEscuelas(ctx: AuthContext): Promise<EscuelaDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
   const rows = await listarEscuelasGlobal();
   return rows.map((e) => ({
     id: e.id,
@@ -153,7 +155,7 @@ export async function convertirLeadEnEscuela(
   ctx: AuthContext,
   input: ConvertirLeadInput,
 ): Promise<{ escuelaId: string; adminEmail: string; passwordTemporal: string }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
 
   const lead = await obtenerLeadGlobal(input.leadId);
   if (!lead) throw new NotFoundError("Lead no encontrado.");
@@ -170,35 +172,53 @@ export async function convertirLeadEnEscuela(
   const passwordTemporal = generarPasswordTemporal();
   const passwordHash = await hashPassword(passwordTemporal);
 
-  const escuelaId = await db.$transaction(async (tx) => {
-    const escuela = await tx.escuela.create({
-      data: { nombre: input.nombreEscuela, slug: input.slug },
-    });
-    await tx.user.create({
-      data: {
-        email: input.adminEmail,
-        passwordHash,
-        nombre: input.adminNombre,
-        rol: "ESCUELA_ADMIN",
-        escuelaId: escuela.id,
-      },
-    });
-    await tx.lead.update({
-      where: { id: input.leadId },
-      data: { estado: "CONVERTIDO" },
-    });
-    await tx.auditLog.create({
-      data: {
-        actorId: ctx.userId,
-        actorRol: ctx.rol,
-        accion: "CONVERTIR_LEAD",
-        entidad: "Escuela",
-        entidadId: escuela.id,
-        escuelaId: escuela.id,
-        motivo: `Lead ${input.leadId} → escuela "${input.nombreEscuela}"`,
-      },
-    });
-    return escuela.id;
+  const escuelaId = await crearEscuelaConAdmin({
+    nombreEscuela: input.nombreEscuela,
+    slug: input.slug,
+    adminEmail: input.adminEmail,
+    adminNombre: input.adminNombre,
+    passwordHash,
+    actorId: ctx.userId,
+    actorRol: ctx.rol,
+    accion: "CONVERTIR_LEAD",
+    motivo: `Lead ${input.leadId} → escuela "${input.nombreEscuela}"`,
+    leadId: input.leadId,
+  });
+
+  return { escuelaId, adminEmail: input.adminEmail, passwordTemporal };
+}
+
+/**
+ * Alta directa de una escuela con su ESCUELA_ADMIN inicial (sin pasar por leads).
+ * Operación de plataforma del SUPER_ADMIN; NO toca datos internos de un tenant.
+ * Devuelve la contraseña temporal del admin (se muestra UNA sola vez).
+ */
+export async function crearEscuelaDirecta(
+  ctx: AuthContext,
+  input: CrearEscuelaInput,
+): Promise<{ escuelaId: string; adminEmail: string; passwordTemporal: string }> {
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
+
+  if (await slugExisteGlobal(input.slug)) {
+    throw new ValidationError("Ese slug ya está en uso por otra escuela.");
+  }
+  if (await emailExisteGlobal(input.adminEmail)) {
+    throw new ValidationError("Ya existe un usuario con ese email.");
+  }
+
+  const passwordTemporal = generarPasswordTemporal();
+  const passwordHash = await hashPassword(passwordTemporal);
+
+  const escuelaId = await crearEscuelaConAdmin({
+    nombreEscuela: input.nombreEscuela,
+    slug: input.slug,
+    adminEmail: input.adminEmail,
+    adminNombre: input.adminNombre,
+    passwordHash,
+    actorId: ctx.userId,
+    actorRol: ctx.rol,
+    accion: "CREAR_ESCUELA",
+    motivo: `Alta directa de escuela "${input.nombreEscuela}"`,
   });
 
   return { escuelaId, adminEmail: input.adminEmail, passwordTemporal };

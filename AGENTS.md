@@ -6,7 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 > Reglas para agentes que trabajan en **Fútbol Career Mode** (`academia_elite`).
 > Esto es el contrato operativo. Para el estado integral del producto (qué hay,
-> qué falta, fases) leé **[ESTADO-DEL-PROYECTO.md](ESTADO-DEL-PROYECTO.md)**.
+> qué falta, fases) leé **[ESTADO-DEL-PROYECTO.md](docs/ESTADO-DEL-PROYECTO.md)**.
 > `CLAUDE.md` solo reexporta este archivo (`@AGENTS.md`): editá AQUÍ.
 
 ---
@@ -102,14 +102,23 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   - `requireRole(ctx, [roles])` — 403 si el rol no está permitido.
   - `assertTenant(ctx, recursoEscuelaId)` — cruce de tenant lanza
     `TenantMismatchError`. **El cruce de tenant devuelve 404, no 403**: no
-    confirmamos la existencia del recurso. `SUPER_ADMIN` (escuelaId `null`)
-    puede cruzar, y se audita aparte.
+    confirmamos la existencia del recurso. El `SUPER_ADMIN` **NO** tiene acceso
+    ambiental: solo accede al detalle de un tenant a través de una **sesión de
+    soporte** activa para esa escuela (M2). Sin sesión lanza `ForbiddenError`;
+    contra otra escuela, `TenantMismatchError`.
+  - `assertSoportePuedeEscribir(ctx)` — la sesión de soporte nace en solo-lectura;
+    escribir requiere habilitarla (acción consciente y auditada).
+  - `assertMotivoSoporte(ctx, motivo)` — toda escritura del `SUPER_ADMIN` sobre
+    datos de un tenant exige un `motivo` que va al `AuditLog` (M1).
   - `assertOwnPlayer(ctx, jugadorId, propios)` — el padre/jugador solo opera
     sobre sus jugadores.
   - `requireEscuela(ctx)` — devuelve el `escuelaId` garantizado para acotar
     queries de tenant.
-- **Multi-tenant**: toda entidad lleva `escuelaId` y toda query lo filtra. No
-  hay query sin scope de tenant (salvo SUPER_ADMIN, auditado).
+- **Multi-tenant**: toda entidad lleva `escuelaId` y toda query de repositorio lo
+  filtra. Las consultas legítimamente cross-tenant (crons, lookups por clave única,
+  catálogos globales, métricas de plataforma) se marcan con `// tenant-global:` y su
+  razón; un test guardián (`tests/unit/aislamiento-tenant.test.ts`) falla si una
+  query sobre un modelo con `escuelaId` no filtra ni se justifica.
 - **Fotos de menores nunca públicas**: servidas por API protegida
   (`/api/archivos/foto/[jugadorId]`), validadas por magic bytes, EXIF stripped,
   recomprimidas a WebP, nombre UUID, `no-store`. Nunca las pongas en `public/`.
@@ -123,7 +132,7 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   tras un mensaje genérico.
 - **AuditLog** para acciones sensibles.
 
-Detalle por endpoint en **[SEGURIDAD.md](SEGURIDAD.md)** y **[HABEAS-DATA.md](HABEAS-DATA.md)**.
+Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.md](docs/HABEAS-DATA.md)**.
 
 ---
 

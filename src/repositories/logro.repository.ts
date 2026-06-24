@@ -12,6 +12,17 @@ export function listarCatalogo(escuelaId?: string) {
   });
 }
 
+/** Insignias visibles para una escuela: catálogo global + las propias del tenant. */
+export function listarInsignias(escuelaId: string) {
+  return db.logro.findMany({
+    where: {
+      tipo: "INSIGNIA",
+      OR: [{ escuelaId: null }, { escuelaId }],
+    },
+    orderBy: { codigo: "asc" },
+  });
+}
+
 export function obtenerLogro(id: string) {
   return db.logro.findUnique({ where: { id } });
 }
@@ -71,6 +82,7 @@ export function otorgarLogroJugador(
 }
 
 export function jugadorTieneLogro(jugadorId: string, logroId: string) {
+  // tenant-global: filtrado por jugadorId; tenant verificado en el service de logros
   return db.logroJugador.findFirst({
     where: { jugadorId, logroId },
     select: { id: true },

@@ -24,6 +24,7 @@ export function agregarMensaje(
 ) {
   return db.$transaction([
     db.mensaje.create({ data: { conversacionId, remitenteId, cuerpo } }),
+    // tenant-global: bump de updatedAt; conversación ya autorizada por obtenerConversacion(escuelaId)
     db.conversacion.update({
       where: { id: conversacionId },
       data: { updatedAt: new Date() },

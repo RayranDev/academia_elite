@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarCatalogo,
@@ -66,7 +66,7 @@ function aDTO(l: LogroRow): LogroCatalogoDTO {
 export async function listarCatalogoAdmin(
   ctx: AuthContext,
 ): Promise<LogroCatalogoDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const rows = await listarCatalogo();
   return rows.map(aDTO);
 }
@@ -104,7 +104,7 @@ export async function crearLogroAdmin(
   ctx: AuthContext,
   data: LogroCrearInput,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   await crearLogroComun(ctx, data, null);
 }
 
@@ -113,7 +113,7 @@ export async function editarLogroAdmin(
   logroId: string,
   data: { nombre: string; descripcion: string },
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const logro = await obtenerLogro(logroId);
   if (!logro) throw new NotFoundError("Logro no encontrado.");
   await actualizarLogro(logroId, data);
@@ -130,7 +130,7 @@ export async function activarLogroAdmin(
   logroId: string,
   activo: boolean,
 ): Promise<void> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "EDITAR_CATALOGOS");
   const logro = await obtenerLogro(logroId);
   if (!logro) throw new NotFoundError("Logro no encontrado.");
   await actualizarLogro(logroId, { activo });

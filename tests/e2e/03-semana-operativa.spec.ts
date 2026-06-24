@@ -20,7 +20,9 @@ test("DT crea partido y carga resultado; la familia confirma y ve la noticia", a
   await pd.fill('input[name="inicio"]', futuroInput(3));
   await pd.fill('input[name="fin"]', futuroInput(5));
   await pd.fill('input[name="rival"]', "E2E Rival");
-  await pd.locator('input[name="convocados"]').first().check();
+  // Convoca al jugador de la familia demo (Lucas García). No usar .first(): la
+  // lista se ordena por apellido, así que el primer checkbox NO es Lucas.
+  await pd.getByRole("checkbox", { name: "Lucas García" }).check();
   await pd.getByRole("button", { name: "Crear evento" }).click();
 
   // 2) Navegar al evento desde "Próximos eventos" y cargar resultado

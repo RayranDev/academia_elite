@@ -29,7 +29,7 @@ async function cargarYAutorizarGestion(
   jugadorId: string,
 ): Promise<JugadorFoto> {
   requireRole(ctx, ["JUGADOR"]);
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
   if (!esResponsable(ctx, jugador)) {
@@ -53,7 +53,8 @@ export async function subirFoto(
   const procesada = await procesarFoto(original); // strip EXIF + resize + webp
   const nombre = `${randomUUID()}.webp`;
   await guardarFoto(nombre, procesada);
-  await actualizarFotoJugador(jugadorId, nombre);
+  const res = await actualizarFotoJugador(ctx.escuelaId, jugadorId, nombre);
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
 }
 
 /** Actualiza el avatar SVG del jugador (solo el responsable). */
@@ -63,7 +64,12 @@ export async function actualizarAvatar(
   config: AvatarConfigInput,
 ): Promise<void> {
   await cargarYAutorizarGestion(ctx, jugadorId);
-  await actualizarAvatarJugador(jugadorId, JSON.stringify(config));
+  const res = await actualizarAvatarJugador(
+    ctx.escuelaId,
+    jugadorId,
+    JSON.stringify(config),
+  );
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
 }
 
 /** Otorga o revoca el consentimiento de foto (solo el responsable). Auditado. */
@@ -73,7 +79,12 @@ export async function actualizarConsentimiento(
   consiente: boolean,
 ): Promise<void> {
   const jugador = await cargarYAutorizarGestion(ctx, jugadorId);
-  await actualizarConsentimientoJugador(jugadorId, consiente);
+  const res = await actualizarConsentimientoJugador(
+    ctx.escuelaId,
+    jugadorId,
+    consiente,
+  );
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
   await registrarAuditoria(ctx, {
     accion: consiente ? "OTORGAR_CONSENTIMIENTO" : "REVOCAR_CONSENTIMIENTO",
     entidad: "Jugador",

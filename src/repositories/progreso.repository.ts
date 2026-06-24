@@ -23,6 +23,7 @@ export function listarProgresosJugador(escuelaId: string, jugadorId: string) {
 }
 
 export function obtenerProgresoSemana(jugadorId: string, semana: string) {
+  // tenant-global: lookup por clave única (jugadorId+semana); jugador ya autorizado
   return db.progresoSemanal.findUnique({
     where: { jugadorId_semana: { jugadorId, semana } },
   });

@@ -1,12 +1,18 @@
 import { z } from "zod";
 import { POSICIONES, TIPOS_BLOQUEO } from "@/types";
+import { formatearNombre } from "@/lib/texto/formatear-nombre";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 // Validadores de la gestión administrativa (Sprint G).
 
 export const jugadorEditarSchema = z.object({
   jugadorId: z.string().min(1),
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(60),
-  apellido: z.string().trim().min(2, { error: "Apellido requerido." }).max(60),
+  nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }).transform(
+    formatearNombre,
+  ),
+  apellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(
+    formatearNombre,
+  ),
   fechaNacimiento: z.coerce.date(),
   posicion: z.enum(POSICIONES),
   dorsal: z
@@ -31,12 +37,14 @@ export const eliminarJugadorSchema = z.object({
 export const bloqueoSchema = z.object({
   jugadorId: z.string().min(1),
   tipo: z.enum(TIPOS_BLOQUEO),
-  mensaje: z.string().trim().max(300).optional(),
+  mensaje: textoSeguro({ max: 300 }).optional(),
 });
 
 export const dtEditarSchema = z.object({
   entrenadorId: z.string().min(1),
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(120),
+  nombre: textoSeguro({ min: 2, max: 120, error: "Nombre requerido." }).transform(
+    formatearNombre,
+  ),
   activo: z.boolean(),
   categoriaIds: z
     .array(z.string().min(1))
@@ -45,14 +53,16 @@ export const dtEditarSchema = z.object({
 
 export const usuarioEditarSchema = z.object({
   userId: z.string().min(1),
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(120),
+  nombre: textoSeguro({ min: 2, max: 120, error: "Nombre requerido." }).transform(
+    formatearNombre,
+  ),
   email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
   activo: z.boolean(),
 });
 
 export const escuelaEditarSchema = z.object({
   escuelaId: z.string().min(1),
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(120),
+  nombre: textoSeguro({ min: 2, max: 120, error: "Nombre requerido." }),
   slug: z
     .string()
     .trim()

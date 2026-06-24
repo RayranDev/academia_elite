@@ -19,7 +19,7 @@ export async function GET(
   const ctx = await getAuthContext();
   if (!ctx) return NO_ENCONTRADA();
 
-  const jugador = await obtenerJugadorParaFoto(jugadorId);
+  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador || !jugador.fotoUrl) return NO_ENCONTRADA();
 
   // Tenant

@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import { protegerCelda } from "@/lib/xlsx";
@@ -30,7 +30,7 @@ export async function exportarAuditoria(
   ctx: AuthContext,
   escuelaId?: string,
 ): Promise<{ filename: string; buffer: Buffer }> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "VER_AUDITORIA");
   const rows = await listarAuditGlobal({ escuelaId, take: TOPE_EXPORT });
 
   const wb = new ExcelJS.Workbook();

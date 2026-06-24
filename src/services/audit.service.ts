@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import {
   crearAuditGlobal,
   listarAuditGlobal,
@@ -34,7 +34,7 @@ export async function listarAuditoria(
   ctx: AuthContext,
   filtros: { escuelaId?: string } = {},
 ): Promise<AuditDTO[]> {
-  requireRole(ctx, ["SUPER_ADMIN"]);
+  requirePermiso(ctx, "VER_AUDITORIA");
   const rows = await listarAuditGlobal(filtros);
   return rows.map((r) => ({
     id: r.id,

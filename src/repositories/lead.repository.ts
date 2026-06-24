@@ -14,19 +14,50 @@ export function crearLeadGlobal(data: LeadInput) {
       ciudad: data.ciudad || null,
       mensaje: data.mensaje || null,
       estado: "NUEVO",
+      origen: "LANDING",
     },
     select: { id: true },
   });
 }
 
-export function listarLeadsGlobal() {
-  return db.lead.findMany({ orderBy: { createdAt: "desc" } });
+/** Lista leads, opcionalmente filtrados por estado del funnel. */
+export function listarLeadsGlobal(estado?: string) {
+  return db.lead.findMany({
+    where: estado ? { estado } : undefined,
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export function obtenerLeadGlobal(id: string) {
   return db.lead.findUnique({ where: { id } });
 }
 
-export function actualizarEstadoLeadGlobal(id: string, estado: string) {
-  return db.lead.update({ where: { id }, data: { estado } });
+/** Lead con su historial de notas (más reciente primero), para la vista detalle. */
+export function obtenerLeadConNotas(id: string) {
+  return db.lead.findUnique({
+    where: { id },
+    include: { notas: { orderBy: { createdAt: "desc" } } },
+  });
+}
+
+/** Actualiza los campos de seguimiento del lead (parcial). */
+export function actualizarLeadGlobal(
+  id: string,
+  data: {
+    estado?: string;
+    responsableId?: string | null;
+    proximaAccion?: string | null;
+    fechaProximoContacto?: Date | null;
+    observaciones?: string | null;
+  },
+) {
+  return db.lead.update({ where: { id }, data, select: { id: true } });
+}
+
+export function crearLeadNota(data: {
+  leadId: string;
+  usuarioId: string;
+  comentario: string;
+}) {
+  return db.leadNota.create({ data, select: { id: true } });
 }

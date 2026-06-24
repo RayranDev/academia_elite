@@ -6,7 +6,8 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   browser,
 }) => {
   const ts = Date.now().toString().slice(-6);
-  const apellido = `E2E${ts}`;
+  // Marcador único estable bajo Title Case (formatearNombre): "Fam123456" no se altera.
+  const apellido = `Fam${ts}`;
   const email = `padre${ts}@e2e.test`;
 
   // 1) Escuela genera un código para Sub-12
@@ -33,7 +34,8 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   await pf.fill('input[name="fechaNacimiento"]', "2013-05-10");
   await pf.locator('select[name="posicion"]').selectOption("DEL");
   await pf.getByRole("button", { name: "Crear cuenta" }).click();
-  await expect(pf.getByText("¡Registro enviado!")).toBeVisible();
+  // Auto-login: tras registrar con código válido, la familia entra directo a su hub.
+  await expect(pf).toHaveURL(/\/jugador/, { timeout: 10000 });
   await ctxFam.close();
 
   // 3) El DT aprueba la solicitud y evalúa
