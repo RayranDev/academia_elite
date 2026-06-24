@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { FotoCropper } from "@/components/jugador/FotoCropper";
 import { CamaraCaptura } from "@/components/jugador/CamaraCaptura";
-import { prepararParaRecorte } from "@/lib/foto/cliente";
+import { prepararParaRecorte, removerFondoDeImagen } from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
 
 export function FotoConsentimiento({
@@ -35,6 +35,7 @@ export function FotoConsentimiento({
   const [ok, setOk] = useState(false);
   const [version, setVersion] = useState(0); // cache-buster tras subir
   const [camara, setCamara] = useState(false); // captura desde la cámara
+  const [procesandoFondo, setProcesandoFondo] = useState(false); // remoción de fondo en carga
   const [subiendo, startTransition] = useTransition();
 
   const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
@@ -53,11 +54,14 @@ export function FotoConsentimiento({
       return;
     }
     try {
+      setProcesandoFondo(true);
       const dataUrl = await prepararParaRecorte(file);
-      setImagen(dataUrl); // abre el recortador
+      const transparentDataUrl = await removerFondoDeImagen(dataUrl);
+      setImagen(transparentDataUrl); // abre el recortador
     } catch {
       setError("No se pudo leer la imagen.");
     } finally {
+      setProcesandoFondo(false);
       // Permite volver a elegir el mismo archivo más tarde.
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -129,8 +133,8 @@ export function FotoConsentimiento({
           className="hidden"
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => inputRef.current?.click()} disabled={subiendo}>
-            Elegir foto…
+          <Button onClick={() => inputRef.current?.click()} disabled={subiendo || procesandoFondo}>
+            {procesandoFondo ? "Procesando fondo..." : "Elegir foto…"}
           </Button>
           <Button
             variant="secondary"
@@ -139,11 +143,16 @@ export function FotoConsentimiento({
               setOk(false);
               setCamara(true);
             }}
-            disabled={subiendo}
+            disabled={subiendo || procesandoFondo}
           >
             Tomar foto
           </Button>
         </div>
+        {procesandoFondo && (
+          <p className="text-xs text-muted animate-pulse">
+            Removiendo fondo localmente (100% privado)...
+          </p>
+        )}
         {camara && (
           <CamaraCaptura
             onCapturar={(dataUrl) => {
