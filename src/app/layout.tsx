@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Fútbol Career Mode",
   description:
     "Plataforma de formación en fútbol base: evalúa, evoluciona y vive tu carta como en el Modo Carrera.",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
