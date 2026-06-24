@@ -63,9 +63,5 @@ export async function login(
 }
 
 export async function logout(): Promise<void> {
-  const headersList = await headers();
-  const host = headersList.get("host") || "localhost:3000";
-  const proto = headersList.get("x-forwarded-proto") || "http";
-  const baseUrl = `${proto}://${host}`;
-  await signOut({ redirectTo: `${baseUrl}/login` });
+  await signOut({ redirectTo: "/login" });
 }

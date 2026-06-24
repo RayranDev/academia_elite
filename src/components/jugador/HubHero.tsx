@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
 import { Download, Share2 } from "lucide-react";
 import { toPng } from "html-to-image";
@@ -13,6 +13,25 @@ const MARCA_AGUA = "Academia Elite — Donde nacen las estrellas";
 const WEB = "academia-elite.app";
 
 /**
+ * Convierte una URL a una Data URL en base64 de forma local.
+ * Al hacer fetch del propio origen, incluye automáticamente las cookies de sesión.
+ */
+async function urlToDataUrl(url: string): Promise<string> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Error HTTP: ${res.status}`);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Formato de lectura inválido"));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * Carta protagonista del hub: revelación con count-up y confetti al entrar.
  * Incluye "Descargar carta": exporta la carta a PNG inyectando la marca de agua
  * (solo visible en el archivo descargado, nunca en la web).
@@ -22,6 +41,60 @@ export function HubHero({ card }: { card: PlayerCardData }) {
   const cartaRef = useRef<HTMLDivElement>(null);
   const [exportando, setExportando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cardConDataUrls, setCardConDataUrls] = useState<PlayerCardData>(card);
+  const [prevCard, setPrevCard] = useState<PlayerCardData>(card);
+
+  // Reiniciamos el estado de forma síncrona si la prop cambia (evita parpadeos y advertencias de useEffect)
+  if (card.id !== prevCard.id) {
+    setPrevCard(card);
+    setCardConDataUrls(card);
+  }
+
+  // Convierte las imágenes a Data URLs para evitar bloqueos de CORS,
+  // cookies ausentes o lienzos sucios (tainted canvas) al generar el PNG.
+  const obtenerCardConDataUrls = useCallback(async (): Promise<PlayerCardData> => {
+    let fotoDataUrl = card.fotoUrl;
+    let escudoDataUrl = card.escudoEscuelaUrl;
+
+    if (card.fotoUrl && !card.fotoUrl.startsWith("data:")) {
+      try {
+        fotoDataUrl = await urlToDataUrl(card.fotoUrl);
+      } catch (e) {
+        console.error("Fallo al pre-cargar foto para descarga:", e);
+      }
+    }
+
+    if (card.escudoEscuelaUrl && !card.escudoEscuelaUrl.startsWith("data:")) {
+      try {
+        escudoDataUrl = await urlToDataUrl(card.escudoEscuelaUrl);
+      } catch (e) {
+        console.error("Fallo al pre-cargar escudo para descarga:", e);
+      }
+    }
+
+    return {
+      ...card,
+      fotoUrl: fotoDataUrl,
+      escudoEscuelaUrl: escudoDataUrl,
+    };
+  }, [card]);
+
+  // Pre-carga asíncrona al montar o cambiar de carta
+  useEffect(() => {
+    let activo = true;
+
+    async function precargar() {
+      const lista = await obtenerCardConDataUrls();
+      if (activo) {
+        setCardConDataUrls(lista);
+      }
+    }
+
+    precargar();
+    return () => {
+      activo = false;
+    };
+  }, [card, obtenerCardConDataUrls]);
 
   useEffect(() => {
     if (disparado.current) return;
@@ -37,6 +110,10 @@ export function HubHero({ card }: { card: PlayerCardData }) {
   /** Captura la carta a PNG (con la marca de agua visible solo en la imagen). */
   async function capturarPng(): Promise<string> {
     setExportando(true); // muestra la marca de agua antes de capturar
+    const cardListilla = await obtenerCardConDataUrls();
+    setCardConDataUrls(cardListilla);
+
+    // Esperamos dos frames para asegurar que React renderice los nuevos src Base64
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     return toPng(cartaRef.current!, { pixelRatio: 2, cacheBust: true });
   }
@@ -56,7 +133,8 @@ export function HubHero({ card }: { card: PlayerCardData }) {
       a.download = nombreArchivo();
       a.href = dataUrl;
       a.click();
-    } catch {
+    } catch (e) {
+      console.error("Error al descargar:", e);
       setError("No se pudo generar la imagen. Inténtalo de nuevo.");
     } finally {
       setExportando(false);
@@ -91,8 +169,16 @@ export function HubHero({ card }: { card: PlayerCardData }) {
         }
       }
     } catch (e) {
-      // Cancelar el diálogo de compartir lanza AbortError: no es un error real.
-      if ((e as Error)?.name !== "AbortError") {
+      const err = e as Error;
+      // No mostrar error si el usuario simplemente canceló o cerró el diálogo de compartir
+      const isCancel =
+        err?.name === "AbortError" ||
+        err?.name === "NotAllowedError" ||
+        err?.message?.toLowerCase().includes("cancel") ||
+        err?.message?.toLowerCase().includes("abort") ||
+        err?.message?.toLowerCase().includes("dismiss");
+
+      if (!isCancel) {
         console.error("Error al compartir:", e);
         setError("No se pudo compartir. Inténtalo de nuevo.");
       }
@@ -109,7 +195,7 @@ export function HubHero({ card }: { card: PlayerCardData }) {
           los stats. Vive dentro de `cartaRef` para que html-to-image la capture. */}
       <div ref={cartaRef} className="flex flex-col items-center">
         <div className="relative flex justify-center perspective-[1000px]">
-          <PlayerCard data={card} size="hero" interactive reveal />
+          <PlayerCard data={cardConDataUrls} size="hero" interactive reveal />
         </div>
         {/* Se MONTA solo durante la exportación (opaca, sin transición) para que
             html-to-image la capture; no se ve en la web. Colores FIJOS a propósito

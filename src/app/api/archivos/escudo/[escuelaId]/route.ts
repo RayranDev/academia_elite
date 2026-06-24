@@ -31,6 +31,7 @@ export async function GET(
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "private, max-age=300",
+      "Access-Control-Allow-Origin": "*",
     },
   });
 }
