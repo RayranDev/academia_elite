@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { requirePanelUser, requireAuthContext } from "@/lib/auth/session";
 import { obtenerBrandingTenant } from "@/services/escuela.service";
 import { PanelShell } from "@/components/PanelShell";
+import { AvisoVerificarEmail } from "@/components/auth/AvisoVerificarEmail";
 import type { NavItem } from "@/components/shell/Sidebar";
 
 const NAV: NavItem[] = [
@@ -38,6 +39,7 @@ export default async function JugadorLayout({
         marca={branding.nombre}
         escudoUrl={escudoUrl}
       >
+        <AvisoVerificarEmail />
         {children}
       </PanelShell>
     </div>

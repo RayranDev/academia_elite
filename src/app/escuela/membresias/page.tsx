@@ -5,9 +5,9 @@ import { MembresiasPanel } from "@/components/escuela/MembresiasPanel";
 
 export default async function MembresiasPage() {
   const ctx = await requireAuthContext();
-  const [membresias, jugadores] = await Promise.all([
+  const [membresias, jugadoresRes] = await Promise.all([
     listarMembresiasEscuela(ctx),
-    listarJugadoresGestion(ctx),
+    listarJugadoresGestion(ctx, { limit: 10000 }),
   ]);
 
   return (
@@ -20,7 +20,7 @@ export default async function MembresiasPage() {
       </p>
       <MembresiasPanel
         membresias={membresias}
-        jugadores={jugadores.map((j) => ({
+        jugadores={jugadoresRes.items.map((j) => ({
           id: j.id,
           nombre: `${j.apellido}, ${j.nombre}`,
         }))}

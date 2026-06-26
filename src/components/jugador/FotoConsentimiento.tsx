@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { FotoCropper } from "@/components/jugador/FotoCropper";
 import { CamaraCaptura } from "@/components/jugador/CamaraCaptura";
-import { prepararParaRecorte } from "@/lib/foto/cliente";
+import { prepararParaRecorte, removerFondoDeImagen } from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
 
 export function FotoConsentimiento({
@@ -35,6 +35,8 @@ export function FotoConsentimiento({
   const [ok, setOk] = useState(false);
   const [version, setVersion] = useState(0); // cache-buster tras subir
   const [camara, setCamara] = useState(false); // captura desde la cámara
+  const [procesandoFondo, setProcesandoFondo] = useState(false); // remoción de fondo en carga
+  const [mensajeFondo, setMensajeFondo] = useState("Preparando…"); // progreso visible
   const [subiendo, startTransition] = useTransition();
 
   const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
@@ -53,11 +55,18 @@ export function FotoConsentimiento({
       return;
     }
     try {
+      setMensajeFondo("Preparando…");
+      setProcesandoFondo(true);
       const dataUrl = await prepararParaRecorte(file);
-      setImagen(dataUrl); // abre el recortador
+      const transparentDataUrl = await removerFondoDeImagen(
+        dataUrl,
+        setMensajeFondo,
+      );
+      setImagen(transparentDataUrl); // abre el recortador
     } catch {
       setError("No se pudo leer la imagen.");
     } finally {
+      setProcesandoFondo(false);
       // Permite volver a elegir el mismo archivo más tarde.
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -66,7 +75,7 @@ export function FotoConsentimiento({
   function subir(blob: Blob) {
     const fd = new FormData();
     fd.set("jugadorId", jugadorId);
-    fd.set("foto", new File([blob], "foto.webp", { type: "image/webp" }));
+    fd.set("foto", new File([blob], "foto.png", { type: "image/png" }));
     startTransition(async () => {
       const res = await subirFotoAction(undefined, fd);
       if (res.ok) {
@@ -129,8 +138,8 @@ export function FotoConsentimiento({
           className="hidden"
         />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => inputRef.current?.click()} disabled={subiendo}>
-            Elegir foto…
+          <Button onClick={() => inputRef.current?.click()} disabled={subiendo || procesandoFondo}>
+            {procesandoFondo ? "Procesando fondo..." : "Elegir foto…"}
           </Button>
           <Button
             variant="secondary"
@@ -139,22 +148,50 @@ export function FotoConsentimiento({
               setOk(false);
               setCamara(true);
             }}
-            disabled={subiendo}
+            disabled={subiendo || procesandoFondo}
           >
             Tomar foto
           </Button>
         </div>
+        {procesandoFondo && (
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-pitch border-t-transparent" />
+            <span>{mensajeFondo} · 100% en tu dispositivo</span>
+          </div>
+        )}
         {camara && (
           <CamaraCaptura
-            onCapturar={(dataUrl) => {
+            onCapturar={async (dataUrl) => {
               setCamara(false);
-              setImagen(dataUrl);
+              setMensajeFondo("Preparando…");
+              setProcesandoFondo(true);
+              try {
+                const transparentDataUrl = await removerFondoDeImagen(
+                  dataUrl,
+                  setMensajeFondo,
+                );
+                setImagen(transparentDataUrl);
+              } catch {
+                setImagen(dataUrl);
+              } finally {
+                setProcesandoFondo(false);
+              }
             }}
             onCancelar={() => setCamara(false)}
           />
         )}
         {error && <p className="text-sm text-alerta">{error}</p>}
         {ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
+
+        <div className="rounded-lg border border-subtle bg-surface-2 p-3 text-xs space-y-1.5 mt-2">
+          <p className="font-semibold text-foreground">🔒 Tu foto no sale del dispositivo</p>
+          <p className="text-muted leading-relaxed">
+            La compresión, el recorte y la remoción de fondo se hacen 100% en tu
+            navegador. Si la iluminación no es óptima y el recorte no queda
+            perfecto, probá con buena luz y un fondo claro o neutro, o usá el
+            avatar mientras tanto.
+          </p>
+        </div>
       </div>
 
       <form action={actualizarConsentimientoAction} className="border-t border-subtle pt-4">

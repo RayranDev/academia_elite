@@ -20,11 +20,49 @@ export function crearLeadGlobal(data: LeadInput) {
   });
 }
 
-/** Lista leads, opcionalmente filtrados por estado del funnel. */
-export function listarLeadsGlobal(estado?: string) {
+export function listarLeadsGlobal(opts?: {
+  skip?: number;
+  take?: number;
+  search?: string;
+  estado?: string;
+}) {
+  const where: Record<string, unknown> = {};
+  if (opts?.estado) {
+    where.estado = opts.estado;
+  }
+  if (opts?.search) {
+    where.OR = [
+      { nombreEscuela: { contains: opts.search } },
+      { contactoNombre: { contains: opts.search } },
+      { contactoEmail: { contains: opts.search } },
+      { telefono: { contains: opts.search } },
+    ];
+  }
+
   return db.lead.findMany({
-    where: estado ? { estado } : undefined,
+    where: Object.keys(where).length > 0 ? where : undefined,
+    skip: opts?.skip,
+    take: opts?.take,
     orderBy: { createdAt: "desc" },
+  });
+}
+
+export function contarLeadsGlobal(search?: string, estado?: string) {
+  const where: Record<string, unknown> = {};
+  if (estado) {
+    where.estado = estado;
+  }
+  if (search) {
+    where.OR = [
+      { nombreEscuela: { contains: search } },
+      { contactoNombre: { contains: search } },
+      { contactoEmail: { contains: search } },
+      { telefono: { contains: search } },
+    ];
+  }
+
+  return db.lead.count({
+    where: Object.keys(where).length > 0 ? where : undefined,
   });
 }
 

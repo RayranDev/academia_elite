@@ -2,6 +2,12 @@ import { z } from "zod";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+/** Envío de un código de invitación al correo de una familia. */
+export const enviarCodigoSchema = z.object({
+  codigoId: z.string().min(1, { error: "Código inválido." }),
+  email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+});
+
 export const brandingSchema = z.object({
   nombre: z.string().trim().min(2).max(120).optional(),
   colorPrimario: z.string().trim().regex(HEX, {

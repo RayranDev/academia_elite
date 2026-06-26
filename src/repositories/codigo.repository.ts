@@ -27,6 +27,18 @@ export function desactivarCodigo(escuelaId: string, id: string) {
   });
 }
 
+/** Código de la escuela (con nombre de escuela), para enviarlo por correo. */
+export function obtenerCodigoParaEnvio(escuelaId: string, id: string) {
+  return db.codigoInvitacion.findFirst({
+    where: { id, escuelaId },
+    select: {
+      codigo: true,
+      categoriaId: true,
+      escuela: { select: { nombre: true } },
+    },
+  });
+}
+
 // Búsqueda global por código (registro público, antes de tener tenant).
 export function obtenerCodigoPorValor(codigo: string) {
   // tenant-global: registro público por código único, antes de resolver el tenant

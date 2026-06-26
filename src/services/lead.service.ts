@@ -3,6 +3,7 @@ import { requirePermiso } from "@/lib/auth/guards";
 import {
   crearLeadGlobal,
   listarLeadsGlobal,
+  contarLeadsGlobal,
   obtenerLeadGlobal,
   obtenerLeadConNotas,
   actualizarLeadGlobal,
@@ -88,20 +89,50 @@ export async function crearLead(input: LeadInput): Promise<{ id: string }> {
   return crearLeadGlobal(input);
 }
 
-/** Listar leads, opcionalmente por estado (solo con permiso de leads). */
+export interface PaginatedLeadsDTO {
+  items: LeadDTO[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Listar leads paginados y filtrados por estado/búsqueda (solo con permiso de leads). */
 export async function listarLeads(
   ctx: AuthContext,
-  estado?: EstadoLead,
-): Promise<LeadDTO[]> {
+  opts?: { page?: number; limit?: number; search?: string; estado?: EstadoLead }
+): Promise<PaginatedLeadsDTO> {
   requirePermiso(ctx, "GESTIONAR_LEADS");
-  const rows = await listarLeadsGlobal(estado);
+  const page = Math.max(1, opts?.page ?? 1);
+  const limit = Math.max(1, opts?.limit ?? 10);
+  const skip = (page - 1) * limit;
+
+  const [rows, total] = await Promise.all([
+    listarLeadsGlobal({
+      skip,
+      take: limit,
+      search: opts?.search,
+      estado: opts?.estado,
+    }),
+    contarLeadsGlobal(opts?.search, opts?.estado),
+  ]);
+
   const ids = [
     ...new Set(rows.map((r) => r.responsableId).filter((v): v is string => !!v)),
   ];
   const nombres = new Map(
     (await nombresDeUsuarios(ids)).map((u) => [u.id, u.nombre]),
   );
-  return rows.map((r) => mapLead(r, nombres));
+
+  const items = rows.map((r) => mapLead(r, nombres));
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 /** Detalle del lead con su historial de notas (solo con permiso de leads). */

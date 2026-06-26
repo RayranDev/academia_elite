@@ -2,13 +2,42 @@ import { db } from "@/lib/db";
 import { generarCodigoRef } from "@/lib/codes";
 
 // Repositorio de escuelas (Capa 4).
-export function listarEscuelasGlobal() {
+export function listarEscuelasGlobal(opts?: {
+  skip?: number;
+  take?: number;
+  search?: string;
+}) {
+  const where = opts?.search
+    ? {
+        OR: [
+          { nombre: { contains: opts.search } },
+          { codigoRef: { contains: opts.search } },
+        ],
+      }
+    : undefined;
+
   return db.escuela.findMany({
+    where,
+    skip: opts?.skip,
+    take: opts?.take,
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { jugadores: true, categorias: true, users: true } },
     },
   });
+}
+
+export function contarEscuelasGlobal(search?: string) {
+  const where = search
+    ? {
+        OR: [
+          { nombre: { contains: search } },
+          { codigoRef: { contains: search } },
+        ],
+      }
+    : undefined;
+
+  return db.escuela.count({ where });
 }
 
 export function slugExisteGlobal(slug: string) {
@@ -101,4 +130,11 @@ export function actualizarBrandingEscuela(
   },
 ) {
   return db.escuela.update({ where: { id: escuelaId }, data });
+}
+
+export function obtenerEscuelasDropdown() {
+  return db.escuela.findMany({
+    select: { id: true, nombre: true },
+    orderBy: { nombre: "asc" },
+  });
 }

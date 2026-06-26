@@ -50,7 +50,7 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
 
         <div className="mb-6 text-center">
           <p className="text-xs font-bold uppercase tracking-widest text-pitch">
-            Fútbol Career Mode
+            Academia Elite
           </p>
           <h1 className="mt-1 text-2xl font-display italic uppercase">
             Iniciar sesión
@@ -105,6 +105,17 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
             {pending ? "Entrando…" : entrando ? "¡Adelante!" : "Entrar"}
           </Button>
         </form>
+
+        <p className="mt-4 text-center text-sm">
+          <Link href="/recuperar" className="text-muted hover:text-foreground">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
+        <p className="mt-1 text-center text-sm">
+          <Link href="/codigo" className="text-muted hover:text-foreground">
+            Entrar con un código por correo
+          </Link>
+        </p>
 
         <p className="mt-5 text-center text-sm text-muted">
           ¿Eres familia y aún no tienes cuenta?{" "}

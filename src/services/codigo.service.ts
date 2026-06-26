@@ -5,12 +5,14 @@ import {
   listarCodigos,
   crearCodigo,
   desactivarCodigo,
+  obtenerCodigoParaEnvio,
 } from "@/repositories/codigo.repository";
 import {
   listarCategorias,
   contarCategoriasDeEscuela,
 } from "@/repositories/categoria.repository";
 import { generarCodigoInvitacion } from "@/lib/codes";
+import { enviarCodigoInvitacion } from "@/services/email.service";
 
 export interface CodigoDTO {
   id: string;
@@ -77,4 +79,25 @@ export async function desactivarCodigoEscuela(
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
   await desactivarCodigo(escuelaId, id);
+}
+
+/** Envía un código de invitación de la escuela al correo de una familia. */
+export async function enviarCodigoPorCorreo(
+  ctx: AuthContext,
+  codigoId: string,
+  emailDestino: string,
+): Promise<void> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  const codigo = await obtenerCodigoParaEnvio(escuelaId, codigoId);
+  if (!codigo) throw new ValidationError("Código no encontrado.");
+  const categorias = await listarCategorias(escuelaId);
+  const categoriaNombre =
+    categorias.find((c) => c.id === codigo.categoriaId)?.nombre ?? "tu categoría";
+  await enviarCodigoInvitacion(
+    emailDestino,
+    codigo.codigo,
+    codigo.escuela.nombre,
+    categoriaNombre,
+  );
 }

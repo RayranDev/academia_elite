@@ -7,6 +7,17 @@ import { ValidationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
 import { registroSchema, vincularHijoSchema } from "@/lib/validators/registro";
 import { registrarConCodigo, registrarPadreYVincular } from "@/services/registro.service";
+import { emitirVerificacion } from "@/services/recuperacion.service";
+import { urlBase } from "@/lib/url";
+
+/** Envía (best-effort) el correo de verificación. No falla el registro. */
+async function avisarVerificacion(email: string): Promise<void> {
+  try {
+    await emitirVerificacion(email, await urlBase());
+  } catch (e) {
+    console.error("[registro] no se pudo enviar la verificación:", e);
+  }
+}
 
 // El registro con código es una pre-autorización: la familia ya trae un código
 // válido emitido por la escuela. Por eso, tras crear la cuenta, la dejamos dentro
@@ -38,6 +49,7 @@ export async function registrarConCodigoAction(
       throw new ValidationError(primerError(parsed.error.issues));
     }
     await registrarConCodigo(parsed.data);
+    await avisarVerificacion(parsed.data.padreEmail);
     await signIn("credentials", {
       email: parsed.data.padreEmail,
       password: parsed.data.password,
@@ -70,6 +82,7 @@ export async function vincularHijoAction(
       throw new ValidationError(primerError(parsed.error.issues));
     }
     await registrarPadreYVincular(parsed.data);
+    await avisarVerificacion(parsed.data.padreEmail);
     await signIn("credentials", {
       email: parsed.data.padreEmail,
       password: parsed.data.password,

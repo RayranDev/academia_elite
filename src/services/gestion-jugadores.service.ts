@@ -10,6 +10,7 @@ import {
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarJugadoresGestion as repoListar,
+  contarJugadoresGestion,
   obtenerJugadorGestion,
   actualizarJugadorDatos,
   actualizarEstadoJugador,
@@ -81,11 +82,30 @@ function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
   return requireEscuela(ctx);
 }
 
+export interface PaginatedJugadoresDTO {
+  items: JugadorGestionDTO[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export async function listarJugadoresGestion(
   ctx: AuthContext,
-  filtros: { escuelaId?: string; categoriaId?: string; estado?: string } = {},
-): Promise<JugadorGestionDTO[]> {
+  filtros: {
+    escuelaId?: string;
+    categoriaId?: string;
+    estado?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<PaginatedJugadoresDTO> {
   const escuelaId = escuelaObjetivo(ctx, filtros.escuelaId);
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 20);
+  const skip = (page - 1) * limit;
+
   // ELIMINADO solo lo ve el Súper Admin pidiéndolo explícitamente.
   const estados =
     filtros.estado === "ELIMINADO" && ctx.rol === "SUPER_ADMIN"
@@ -93,11 +113,31 @@ export async function listarJugadoresGestion(
       : filtros.estado && filtros.estado !== "ELIMINADO"
         ? [filtros.estado]
         : ["PENDIENTE", "ACTIVO", "INACTIVO"];
-  const rows = await repoListar(escuelaId, {
-    categoriaId: filtros.categoriaId,
-    estados,
-  });
-  return rows.map(aDTO);
+
+  const [rows, total] = await Promise.all([
+    repoListar(escuelaId, {
+      categoriaId: filtros.categoriaId,
+      estados,
+      search: filtros.search,
+      skip,
+      take: limit,
+    }),
+    contarJugadoresGestion(escuelaId, {
+      categoriaId: filtros.categoriaId,
+      estados,
+      search: filtros.search,
+    }),
+  ]);
+
+  const items = rows.map(aDTO);
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 async function cargarJugador(ctx: AuthContext, jugadorId: string) {

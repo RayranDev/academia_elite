@@ -48,10 +48,10 @@ export function SplashScreen({ marca }: { marca?: string }) {
 
       <div className="text-center">
         <p className="font-display text-2xl italic uppercase tracking-wide text-foreground">
-          {marca ?? "Fútbol Career Mode"}
+          {marca ?? "Academia Elite"}
         </p>
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-brand">
-          Career Mode
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-brand">
+          Donde nacen las estrellas
         </p>
       </div>
 

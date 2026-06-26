@@ -3,6 +3,7 @@ import { requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarUsersAdmin,
+  contarUsersAdmin,
   obtenerUserSeguro,
   actualizarUserDatos,
   actualizarPasswordUser,
@@ -12,6 +13,7 @@ import {
   slugExisteGlobal,
   emailExisteGlobal,
   actualizarEscuelaAdmin,
+  obtenerEscuelasDropdown,
 } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
@@ -28,6 +30,7 @@ export interface UsuarioAdminDTO {
   nombre: string;
   email: string;
   rol: Rol;
+  escuelaId: string | null;
   escuelaNombre: string | null;
   activo: boolean;
   bloqueado: boolean;
@@ -37,21 +40,68 @@ export interface UsuarioAdminDTO {
 
 export async function listarUsuariosAdmin(
   ctx: AuthContext,
-  filtros: { rol?: string; escuelaId?: string } = {},
-): Promise<UsuarioAdminDTO[]> {
+  filtros: {
+    rol?: string;
+    escuelaId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<{
+  items: UsuarioAdminDTO[];
+  total: number;
+  totalPages: number;
+  page: number;
+}> {
   requirePermiso(ctx, "GESTIONAR_ESCUELAS");
-  const rows = await listarUsersAdmin(filtros);
-  return rows.map((u) => ({
+
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 10);
+  const skip = (page - 1) * limit;
+
+  const repoFiltros = {
+    rol: filtros.rol,
+    escuelaId: filtros.escuelaId,
+    search: filtros.search,
+    skip,
+    take: limit,
+  };
+
+  const [rows, total] = await Promise.all([
+    listarUsersAdmin(repoFiltros),
+    contarUsersAdmin({
+      rol: filtros.rol,
+      escuelaId: filtros.escuelaId,
+      search: filtros.search,
+    }),
+  ]);
+
+  const items = rows.map((u) => ({
     id: u.id,
     nombre: u.nombre,
     email: u.email,
     rol: u.rol as Rol,
+    escuelaId: u.escuelaId,
     escuelaNombre: u.escuela?.nombre ?? null,
     activo: u.activo,
     bloqueado: u.bloqueado,
     bloqueoTipo: u.bloqueoTipo,
     createdAt: u.createdAt.toISOString(),
   }));
+
+  return {
+    items,
+    total,
+    totalPages: Math.ceil(total / limit),
+    page,
+  };
+}
+
+export async function listarEscuelasDropdown(
+  ctx: AuthContext,
+): Promise<{ id: string; nombre: string }[]> {
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
+  return obtenerEscuelasDropdown();
 }
 
 export async function editarUsuarioAdmin(

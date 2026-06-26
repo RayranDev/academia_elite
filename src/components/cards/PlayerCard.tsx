@@ -230,7 +230,7 @@ export function PlayerCard({
         <div className="absolute right-0 top-0 z-10 flex flex-col items-center gap-1">
           {data.escudoEscuelaUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={data.escudoEscuelaUrl} alt="" className={cn(size === "hero" ? "h-8 w-8" : "h-5 w-5", "object-contain")} />
+            <img src={data.escudoEscuelaUrl} alt="" crossOrigin="anonymous" className={cn(size === "hero" ? "h-8 w-8" : "h-5 w-5", "object-contain")} />
           )}
           {data.dorsal != null && <div className="text-xs font-bold opacity-80">#{data.dorsal}</div>}
           <div
@@ -273,6 +273,8 @@ export function PlayerCard({
               <img
                 src={data.fotoUrl}
                 alt={seedAvatar}
+                crossOrigin="anonymous"
+                data-foto-carta
                 className="absolute inset-0 h-full w-full bg-transparent object-cover object-top"
                 style={{ WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
               />

@@ -45,6 +45,7 @@ export async function GET(
       "Content-Type": "image/webp",
       // Datos sensibles de menores: nunca cachear en intermediarios.
       "Cache-Control": "private, no-store",
+      "Access-Control-Allow-Origin": "*",
     },
   });
 }

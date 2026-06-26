@@ -9,6 +9,7 @@ const SELECT_SEGURO = {
   rol: true,
   escuelaId: true,
   activo: true,
+  emailVerificado: true,
   bloqueado: true,
   bloqueoTipo: true,
   bloqueoMensaje: true,
@@ -24,14 +25,60 @@ export function obtenerUserSeguro(id: string) {
 export function listarUsersAdmin(filtros: {
   rol?: string;
   escuelaId?: string;
+  search?: string;
+  skip?: number;
+  take?: number;
 }) {
+  const searchFilter = filtros.search?.trim()
+    ? {
+        OR: [
+          { nombre: { contains: filtros.search.trim() } },
+          { email: { contains: filtros.search.trim() } },
+        ],
+      }
+    : {};
+
   return db.user.findMany({
     where: {
       ...(filtros.rol ? { rol: filtros.rol } : {}),
-      ...(filtros.escuelaId ? { escuelaId: filtros.escuelaId } : {}),
+      ...(filtros.escuelaId === "__sin__"
+        ? { escuelaId: null }
+        : filtros.escuelaId
+        ? { escuelaId: filtros.escuelaId }
+        : {}),
+      ...searchFilter,
     },
     select: { ...SELECT_SEGURO, escuela: { select: { nombre: true } } },
+    skip: filtros.skip,
+    take: filtros.take,
     orderBy: [{ rol: "asc" }, { nombre: "asc" }],
+  });
+}
+
+export function contarUsersAdmin(filtros: {
+  rol?: string;
+  escuelaId?: string;
+  search?: string;
+}) {
+  const searchFilter = filtros.search?.trim()
+    ? {
+        OR: [
+          { nombre: { contains: filtros.search.trim() } },
+          { email: { contains: filtros.search.trim() } },
+        ],
+      }
+    : {};
+
+  return db.user.count({
+    where: {
+      ...(filtros.rol ? { rol: filtros.rol } : {}),
+      ...(filtros.escuelaId === "__sin__"
+        ? { escuelaId: null }
+        : filtros.escuelaId
+        ? { escuelaId: filtros.escuelaId }
+        : {}),
+      ...searchFilter,
+    },
   });
 }
 
@@ -67,6 +114,31 @@ export function obtenerPasswordHash(id: string) {
   return db.user.findUnique({
     where: { id },
     select: { id: true, passwordHash: true },
+  });
+}
+
+// tenant-global: lookup por clave única (email) para flujos de correo
+// (recuperación, set-password, OTP). No expone passwordHash.
+export function buscarUserPorEmail(email: string) {
+  return db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      nombre: true,
+      rol: true,
+      escuelaId: true,
+      activo: true,
+      emailVerificado: true,
+    },
+  });
+}
+
+export function marcarEmailVerificado(id: string) {
+  return db.user.update({
+    where: { id },
+    data: { emailVerificado: true, emailVerificadoEn: new Date() },
+    select: { id: true },
   });
 }
 

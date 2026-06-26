@@ -52,7 +52,7 @@ export async function PanelShell({
           ) : null}
           <div className="leading-tight">
             <p className="text-xs font-bold uppercase tracking-widest text-brand">
-              {marca ?? "Fútbol Career Mode"}
+              {marca ?? "Academia Elite"}
             </p>
             <p className="text-xs text-muted">{ETIQUETA_ROL[rol]}</p>
           </div>
@@ -63,7 +63,9 @@ export async function PanelShell({
           <span className="hidden text-sm text-muted sm:inline">
             Hola, <span className="text-foreground">{nombre}</span>
           </span>
-          <form action={logout}>
+          {/* suppressHydrationWarning: algunas extensiones del navegador inyectan
+              atributos en los <form> (p. ej. __gcruniqueid) antes de hidratar. */}
+          <form action={logout} suppressHydrationWarning>
             <Button variant="ghost" size="sm" type="submit">
               Salir
             </Button>

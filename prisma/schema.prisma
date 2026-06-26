@@ -25,7 +25,11 @@ model User {
   jugadorCuenta    Jugador?       @relation("CuentaJugador")
   mensajesEnviados Mensaje[]      @relation("MensajesEnviados")
   notificaciones   Notificacion[]
+  tokensAuth       TokenAuth[]
   activo           Boolean        @default(true)
+  // Verificación de correo (G-email): el responsable confirma su correo.
+  emailVerificado    Boolean   @default(false)
+  emailVerificadoEn  DateTime?
   // Bloqueo de acceso (familias): lo gestionan Escuela y Súper Admin.
   bloqueado        Boolean        @default(false)
   bloqueoTipo      String? // enum: PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO
@@ -35,6 +39,23 @@ model User {
   updatedAt        DateTime       @updatedAt
 
   @@index([escuelaId])
+}
+
+// Token de un solo uso para flujos de correo (recuperación, set-password,
+// verificación de email, OTP). Se guarda el HASH SHA-256 del token/código, nunca
+// el texto. Por usuario (no por tenant): no lleva escuelaId.
+model TokenAuth {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo      String // enum: RECUPERACION | SET_PASSWORD | VERIFICACION_EMAIL | OTP
+  tokenHash String    @unique // SHA-256 del token/código (nunca el texto)
+  intentos  Int       @default(0) // guard anti-fuerza-bruta para OTP
+  expiraEn  DateTime
+  usadoEn   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, tipo])
 }
 
 model Escuela {

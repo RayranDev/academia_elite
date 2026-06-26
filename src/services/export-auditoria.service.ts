@@ -34,7 +34,7 @@ export async function exportarAuditoria(
   const rows = await listarAuditGlobal({ escuelaId, take: TOPE_EXPORT });
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Fútbol Career Mode";
+  wb.creator = "Academia Elite";
   wb.created = new Date();
   const ws = wb.addWorksheet("Auditoría");
   ws.addRow([...CABECERAS]);

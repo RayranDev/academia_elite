@@ -15,3 +15,17 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Pedir un código OTP por correo. */
+export const solicitarOtpSchema = z.object({
+  email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+});
+
+/** Iniciar sesión con el código OTP recibido. */
+export const otpLoginSchema = z.object({
+  email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+  codigo: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, { error: "El código son 6 dígitos." }),
+});

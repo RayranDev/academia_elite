@@ -63,7 +63,7 @@ export async function plantillaJugadoresXlsx(opts: {
   categorias: string[];
 }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Fútbol Career Mode";
+  wb.creator = "Academia Elite";
   wb.created = new Date();
 
   const ws = wb.addWorksheet("Jugadores");
@@ -96,7 +96,7 @@ export async function plantillaXlsx(opts: {
   instrucciones: string[];
 }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Fútbol Career Mode";
+  wb.creator = "Academia Elite";
   wb.created = new Date();
 
   const ws = wb.addWorksheet(opts.nombreHoja);

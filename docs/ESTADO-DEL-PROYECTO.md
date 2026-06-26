@@ -191,7 +191,7 @@ Fix `Body exceeded 1 MB` (`bodySizeLimit`) · importación migrada a **Excel
 (.xlsx)** con exceljs · **reset del modal** de importación al cerrar · stats en
 **6 columnas** · **foto con compresión + recorte 3:4** en cliente · **fondos de
 carta por méritos** (configurable). *(88 unit / 8 E2E)* — ver
-[CORRECCIONES-SPRINT-M1.md](CORRECCIONES-SPRINT-M1.md).
+[TRAZABILIDAD.md](TRAZABILIDAD.md).
 
 ### Sprint M.2 — Carta, foto y registro del padre (✅)
 Encuadre de la foto (cabeza completa) · reactividad al cambiar foto
@@ -199,7 +199,7 @@ Encuadre de la foto (cabeza completa) · reactividad al cambiar foto
 **registro/vinculación del padre por códigos** (`codigoJugador`, página
 `/registro`) · **descarga de la carta con marca de agua** · simulador del SA que
 prueba fondos/avatares/fotos. *(91 unit / 8 E2E)* — ver
-[CORRECCIONES-SPRINT-M2.md](CORRECCIONES-SPRINT-M2.md).
+[TRAZABILIDAD.md](TRAZABILIDAD.md).
 
 ### Próximo — Sprint 8 (producción)
 Despliegue, Postgres/Supabase + RLS, Upstash, emails/WhatsApp reales (ver §5).
@@ -244,7 +244,9 @@ Scripts: `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:e2e`,
 | `MANUAL-DE-USO.md` | Guía de uso por rol. |
 | `DECISIONES.md` | Registro de decisiones de arquitectura/producto. |
 | `SEGURIDAD.md` | Checklist de seguridad por endpoint. |
-| `PLAN-MEJORAS-VISUALES.md` | Plan vivo de mejoras visuales + registro. |
-| `PLAN-MEJORAS-2.md` | Plan del Sprint M. |
-| `CORRECCIONES-SPRINT-M1.md` | Detalle del Sprint M.1. |
+| `HABEAS-DATA.md` | Tratamiento de datos personales de menores. |
+| `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva de desarrollo. |
+| `PLAN-MAESTRO-v4.md` | Visión completa de producto. |
+| `TRAZABILIDAD.md` | Historial de todo lo hecho (sprints, correcciones, planes). |
+| `HOJA-DE-RUTA.md` | Próximos pasos y plan de migración (Sprint 8). |
 | `AGENTS.md` / `CLAUDE.md` | Notas para agentes (este Next tiene cambios). |

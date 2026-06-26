@@ -7,6 +7,7 @@ import { detectarTipoImagen, procesarEscudo } from "@/lib/foto/process";
 import { guardarFoto } from "@/lib/foto/storage";
 import {
   listarEscuelasGlobal,
+  contarEscuelasGlobal,
   slugExisteGlobal,
   emailExisteGlobal,
   obtenerEscuela,
@@ -144,6 +145,49 @@ export async function listarEscuelas(ctx: AuthContext): Promise<EscuelaDTO[]> {
     usuarios: e._count.users,
     createdAt: e.createdAt.toISOString(),
   }));
+}
+
+export interface PaginatedEscuelasDTO {
+  items: EscuelaDTO[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function listarEscuelasPaginado(
+  ctx: AuthContext,
+  opts?: { page?: number; limit?: number; search?: string }
+): Promise<PaginatedEscuelasDTO> {
+  requirePermiso(ctx, "GESTIONAR_ESCUELAS");
+  const page = Math.max(1, opts?.page ?? 1);
+  const limit = Math.max(1, opts?.limit ?? 10);
+  const skip = (page - 1) * limit;
+
+  const [rows, total] = await Promise.all([
+    listarEscuelasGlobal({ skip, take: limit, search: opts?.search }),
+    contarEscuelasGlobal(opts?.search),
+  ]);
+
+  const items = rows.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+    slug: e.slug,
+    colorPrimario: e.colorPrimario,
+    activa: e.activa,
+    jugadores: e._count.jugadores,
+    categorias: e._count.categorias,
+    usuarios: e._count.users,
+    createdAt: e.createdAt.toISOString(),
+  }));
+
+  return {
+    items,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 /**

@@ -1,4 +1,4 @@
-import { CalendarClock, Newspaper, LineChart, History, Megaphone, Trophy, TrendingUp } from "lucide-react";
+import { CalendarClock, Newspaper, LineChart, History, Trophy, TrendingUp } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerHub, type HubDTO } from "@/services/player.service";
 import { DomainError } from "@/lib/errors";
@@ -7,6 +7,7 @@ import { ObjetivosList } from "@/components/jugador/ObjetivosList";
 import { ProximoPartidoTile } from "@/components/jugador/ProximoPartidoTile";
 import { EvolutionChart } from "@/components/charts/EvolutionChart";
 import { UpcomingList } from "@/components/calendar/UpcomingList";
+import { NoticiasList } from "@/components/jugador/NoticiasList";
 import { Card } from "@/components/ui/Card";
 
 async function cargarHub(): Promise<HubDTO | null> {
@@ -71,24 +72,7 @@ export default async function JugadorHubPage() {
 
         <Card>
           <Encabezado icon={Newspaper} titulo="Noticias del club" />
-          {hub.noticias.length === 0 ? (
-            <p className="text-sm text-muted">Sin noticias por ahora.</p>
-          ) : (
-            <ul className="space-y-3">
-              {hub.noticias.map((n) => (
-                <li key={n.id} className="flex gap-3 border-b border-subtle pb-3">
-                  <Megaphone className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
-                  <div>
-                    <p className="text-sm font-semibold">{n.titulo}</p>
-                    <p className="text-sm text-muted">{n.cuerpo}</p>
-                    <p className="text-[11px] text-muted">
-                      {new Date(n.fecha).toLocaleDateString("es")}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <NoticiasList noticias={hub.noticias} />
         </Card>
       </div>
 

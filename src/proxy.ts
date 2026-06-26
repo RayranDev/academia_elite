@@ -3,6 +3,17 @@ import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/config";
 import type { Rol } from "@/types";
 
+// En desarrollo, eliminamos las URLs estáticas si apuntan a localhost para que
+// NextAuth detecte automáticamente el host real (ej. ngrok) gracias a trustHost: true.
+if (process.env.NODE_ENV === "development") {
+  if (process.env.AUTH_URL?.includes("localhost")) {
+    delete process.env.AUTH_URL;
+  }
+  if (process.env.NEXTAUTH_URL?.includes("localhost")) {
+    delete process.env.NEXTAUTH_URL;
+  }
+}
+
 // Instancia edge-safe (solo authConfig, sin Prisma/bcrypt) para el proxy.
 const { auth } = NextAuth(authConfig);
 
