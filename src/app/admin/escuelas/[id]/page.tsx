@@ -58,7 +58,7 @@ export default async function EscuelaDetalleAdminPage({
           </h1>
           {datos.escuela.codigoRef && (
             <p className="text-xs text-muted">
-              Código:{" "}
+              Código de escuela (para registro de familias):{" "}
               <span className="select-all font-mono text-foreground/80">
                 {datos.escuela.codigoRef}
               </span>

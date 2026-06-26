@@ -24,6 +24,23 @@ export default async function EscuelaDashboardPage() {
     <div className="space-y-8">
       <h1 className="text-3xl font-black italic uppercase">Dashboard</h1>
 
+      {/* Código de la escuela: el que las familias usan para registrarse/vincularse. */}
+      {resumen.codigoRef && (
+        <Card className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-muted">
+              Código de tu escuela
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              Dáselo a las familias para que registren o vinculen a su jugador.
+            </p>
+          </div>
+          <span className="select-all rounded-lg border border-subtle bg-surface-2 px-4 py-2 font-mono text-2xl font-black tracking-widest text-brand">
+            {resumen.codigoRef}
+          </span>
+        </Card>
+      )}
+
       {/* KPIs deportivos */}
       <section className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">

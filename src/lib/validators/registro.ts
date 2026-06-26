@@ -25,11 +25,12 @@ export type RegistroInput = z.infer<typeof registroSchema>;
 
 /**
  * Vinculación del padre con un hijo YA creado: el padre crea su cuenta e indica
- * el código de la escuela (slug) y el código del jugador. La BD vincula su
- * cuenta al perfil del hijo para que vea sus stats.
+ * el código de la escuela (slug o codigoRef "ESC-…") y el código del jugador. La
+ * BD vincula su cuenta al perfil del hijo para que vea sus stats.
  */
 export const vincularHijoSchema = z.object({
-  codigoEscuela: z.string().trim().toLowerCase().min(2, { error: "Código de escuela requerido." }).max(60),
+  // Sin lowercase: el codigoRef es en mayúsculas. El repo normaliza ambos casos.
+  codigoEscuela: z.string().trim().min(2, { error: "Código de escuela requerido." }).max(60),
   codigoJugador: z.string().trim().toUpperCase().min(4, { error: "Código de jugador requerido." }).max(12),
   padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
   padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),

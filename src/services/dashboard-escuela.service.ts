@@ -24,6 +24,8 @@ export interface PendienteDTO {
 
 /** DTO del resumen deportivo de la escuela. */
 export interface ResumenEscuelaDTO {
+  /** Código de escuela para compartir con las familias (registro/vinculación). */
+  codigoRef: string | null;
   jugadoresActivos: number;
   totalJugadores: number;
   evaluacionesVencidas: number;
@@ -120,6 +122,7 @@ export async function resumenEscuela(
     conteos.activos + conteos.pendientes + conteos.inactivos;
 
   return {
+    codigoRef: escuela?.codigoRef ?? null,
     jugadoresActivos: conteos.activos,
     totalJugadores,
     evaluacionesVencidas,

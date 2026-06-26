@@ -3,7 +3,10 @@ import { ValidationError } from "@/lib/errors";
 import { hashPassword } from "@/lib/auth/password";
 import { generarCodigoInvitacion } from "@/lib/codes";
 import { obtenerCodigoPorValor } from "@/repositories/codigo.repository";
-import { emailExisteGlobal, slugExisteGlobal } from "@/repositories/escuela.repository";
+import {
+  emailExisteGlobal,
+  buscarEscuelaPorSlugOCodigoRef,
+} from "@/repositories/escuela.repository";
 import { obtenerJugadorPorCodigo } from "@/repositories/jugador.repository";
 import type { RegistroInput, VincularHijoInput } from "@/lib/validators/registro";
 
@@ -75,7 +78,7 @@ export async function registrarConCodigo(input: RegistroInput): Promise<void> {
  * falla NO queda ninguna cuenta a medias (no hay borrado lógico que limpiar).
  */
 export async function registrarPadreYVincular(input: VincularHijoInput): Promise<void> {
-  const escuela = await slugExisteGlobal(input.codigoEscuela);
+  const escuela = await buscarEscuelaPorSlugOCodigoRef(input.codigoEscuela);
   if (!escuela) {
     throw new ValidationError("No encontramos esa escuela. Revisa el código de escuela.");
   }

@@ -44,6 +44,19 @@ export function slugExisteGlobal(slug: string) {
   return db.escuela.findUnique({ where: { slug }, select: { id: true } });
 }
 
+// tenant-global: registro público de familias por código de escuela, antes de
+// resolver el tenant. Acepta el slug (kebab, minúsculas) o el codigoRef humano
+// (p. ej. "ESC-SR5UE", mayúsculas), que es el que la escuela comparte.
+export function buscarEscuelaPorSlugOCodigoRef(codigo: string) {
+  const limpio = codigo.trim();
+  return db.escuela.findFirst({
+    where: {
+      OR: [{ slug: limpio.toLowerCase() }, { codigoRef: limpio.toUpperCase() }],
+    },
+    select: { id: true },
+  });
+}
+
 // tenant-global: unicidad global de email antes de crear un admin (clave única).
 export function emailExisteGlobal(email: string) {
   return db.user.findUnique({ where: { email }, select: { id: true } });

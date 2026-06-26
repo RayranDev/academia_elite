@@ -55,7 +55,8 @@ export function VincularHijoForm() {
         </p>
         <h1 className="mt-1 text-2xl font-black italic uppercase">Vincular a mi hijo</h1>
         <p className="mt-1 text-xs text-muted">
-          Pide a la escuela el <b>código de escuela</b> y el <b>código del
+          Pide a la escuela el <b>código de escuela</b> (por ejemplo{" "}
+          <span className="font-mono">ESC-XXXXX</span>) y el <b>código del
           jugador</b> de tu hijo/a.
         </p>
       </div>
