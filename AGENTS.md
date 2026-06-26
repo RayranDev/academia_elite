@@ -178,4 +178,8 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 | `DECISIONES.md` | Registro de decisiones de arquitectura/producto. |
 | `SEGURIDAD.md` | Checklist de seguridad por endpoint. |
 | `HABEAS-DATA.md` | Tratamiento de datos personales de menores. |
-| `PLAN-MEJORAS-*.md`, `CORRECCIONES-SPRINT-*.md` | Planes y bitácoras de sprint. |
+| `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva de desarrollo (MEN diario). |
+| `PLAN-MAESTRO-v4.md` | Visión completa de producto. |
+| `NGROK-PASO-A-PASO.md` | Exponer el dev local con ngrok (paso a paso). |
+| `TRAZABILIDAD.md` | **Historial** de todo lo hecho: sprints, correcciones, planes ejecutados. |
+| `HOJA-DE-RUTA.md` | **Próximos pasos** y plan de migración a producción (Sprint 8). |
