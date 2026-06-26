@@ -15,12 +15,15 @@
     "start:e2e": "next start -p 3100",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
-    "postinstall": "prisma generate"
+    "copy:imgly": "node scripts/copy-imgly-assets.mjs",
+    "prebuild": "node scripts/copy-imgly-assets.mjs",
+    "postinstall": "prisma generate && node scripts/copy-imgly-assets.mjs"
   },
   "dependencies": {
     "@dicebear/core": "^10.2.0",
     "@dicebear/styles": "^10.2.0",
-    "@imgly/background-removal": "^1.7.0",
+    "@imgly/background-removal": "1.4.5",
+    "@imgly/background-removal-data": "1.4.5",
     "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
@@ -39,6 +42,7 @@
     "react-dom": "19.2.4",
     "react-easy-crop": "^6.0.2",
     "recharts": "^3.8.1",
+    "resend": "^6.14.0",
     "sharp": "^0.35.0",
     "zod": "^4.4.3"
   },

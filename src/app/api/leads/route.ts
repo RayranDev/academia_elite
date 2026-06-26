@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { leadFormSchema } from "@/lib/validators/lead";
 import { crearLead } from "@/services/lead.service";
+import {
+  enviarConfirmacionLead,
+  enviarAvisoLeadEquipo,
+} from "@/services/email.service";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Respuesta genérica: nunca revelamos por qué se descartó (anti-bot/anti-enum).
@@ -60,6 +64,21 @@ export async function POST(req: Request) {
     return okResponse();
   }
 
-  await crearLead({ ...resto, telefono: `${codigoPais} ${numeroTelefono}` });
+  const telefono = `${codigoPais} ${numeroTelefono}`;
+  await crearLead({ ...resto, telefono });
+
+  // Correos best-effort: un fallo de email NO afecta el alta del lead.
+  await Promise.allSettled([
+    enviarConfirmacionLead(resto.contactoEmail, resto.contactoNombre),
+    enviarAvisoLeadEquipo({
+      nombreEscuela: resto.nombreEscuela,
+      contactoNombre: resto.contactoNombre,
+      contactoEmail: resto.contactoEmail,
+      telefono,
+      ciudad: resto.ciudad || undefined,
+      mensaje: resto.mensaje || undefined,
+    }),
+  ]);
+
   return okResponse();
 }

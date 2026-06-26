@@ -26,8 +26,13 @@ Reemplazamos MediaPipe Selfie Segmentation por la biblioteca especializada `@img
 *   **Soporte de Rotación de Canvas:** Extendimos `recortarABlob` en [cliente.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/lib/foto/cliente.ts) para soportar transformaciones de rotación en canvas mediante traslación de caja delimitadora (`rotateSize`).
 *   **Botón de Girar 90°:** Agregamos el estado de `rotation` y el botón **Girar 90°** en [FotoCropper.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoCropper.tsx) para permitir rotar la foto y aplicar el recorte correcto en cualquier orientación.
 
-### 5. Opción de Procesamiento Externo (`iloveimg.com`)
-*   Agregamos una sección de ayuda interactiva en [FotoConsentimiento.tsx](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/components/jugador/FotoConsentimiento.tsx) con un enlace directo a **iloveimg.com (Eliminar fondo)**. Esto le permite al usuario procesar externamente imágenes complejas con fondos difíciles, descargar el PNG transparente y subirlo directamente si la remoción local automática en el navegador no queda perfecta.
+### 5. ~~Opción de Procesamiento Externo (`iloveimg.com`)~~ — REVERTIDO
+*   **Revertido por Habeas Data.** Se había agregado un bloque que sugería subir
+    la foto a **iloveimg.com** (servicio externo) para remover el fondo. Esto
+    viola `AGENTS.md` §5 (datos de menores, sin API externa): la foto de un menor
+    NUNCA debe enviarse a un tercero. El bloque fue eliminado y reemplazado por una
+    nota que aclara que todo el procesado (compresión, recorte y remoción de fondo)
+    ocurre 100% en el navegador.
 
 ### 6. Paginación de "Noticias del Club" (de a 10)
 *   **Ampliación del Repositorio de Anuncios:** Modificamos [anuncio.repository.ts](file:///c:/Proyecto/ACADEMIA_ELITE/futbol-career-mode/src/repositories/anuncio.repository.ts) para obtener hasta **100 anuncios** (en lugar de 20), permitiendo paginar un historial de noticias más extenso.
@@ -44,8 +49,18 @@ Reemplazamos MediaPipe Selfie Segmentation por la biblioteca especializada `@img
 
 ## ⚠️ Nota Importante sobre la Foto y el Fondo
 
-> [!WARNING]
-> **Estado de la remoción de fondo:** A pesar de haber implementado la nueva librería `@imgly/background-removal` y de configurar la subida en PNG, es posible que la foto siga quedando con el fondo en ciertos escenarios de iluminación deficiente, bajo contraste o en dispositivos donde el WebAssembly local falle en su carga inicial. Este comportamiento sigue bajo revisión activa y es algo que se busca solucionar de forma definitiva.
+> [!NOTE]
+> **Estado de la remoción de fondo (corregido):** El error `no available backend
+> found / Importing a module script failed` se debía a tres causas: (1) versiones
+> incompatibles de `@imgly/background-removal` (main 1.7.0 con peer `onnxruntime-web`
+> sin instalar) y un paquete de datos que no matcheaba; (2) el CSP bloqueaba el
+> modelo y el worker WASM; (3) el modelo se bajaba de un CDN externo. Se fijó el par
+> consistente **main 1.4.5 + data 1.4.5** (onnxruntime bundled), se **auto-hostea**
+> el modelo en `public/imgly/` (script `scripts/copy-imgly-assets.mjs` en
+> postinstall, sin CDN externo), se abrió el CSP para `'wasm-unsafe-eval'` + `blob:`
+> y se agregó COOP/COEP solo en `/jugador/perfil` para multi-thread. La calidad del
+> recorte depende de la iluminación; con poca luz puede quedar imperfecto, pero la
+> foto **nunca sale del navegador**.
 
 ---
 

@@ -27,11 +27,18 @@ function getLocalIPs(): string[] {
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net${isDev ? " 'unsafe-eval'" : ""}`,
+  // 'wasm-unsafe-eval' permite compilar el modelo WASM de remocion de fondo
+  // (@imgly/background-removal) sin habilitar eval() de JS. blob: cubre los
+  // workers de onnxruntime-web. Ambos son necesarios tambien en produccion.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net${isDev ? " 'unsafe-eval'" : ""}`,
+  // onnxruntime-web instancia su runtime en un Web Worker (blob: URL).
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' https://cdn.jsdelivr.net${isDev ? " ws: wss:" : ""}`,
+  // El modelo se sirve desde el mismo origen (/imgly/, 'self'); blob: cubre el
+  // fetch de los binarios WASM que la libreria expone como object URLs.
+  `connect-src 'self' blob: https://cdn.jsdelivr.net${isDev ? " ws: wss:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -72,7 +79,22 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // Aislamiento de origen SOLO en la pantalla de foto (donde corre la
+        // remocion de fondo). Habilita crossOriginIsolated -> SharedArrayBuffer
+        // -> onnxruntime-web multi-thread (mas rapido). Si el navegador no lo
+        // soporta, la libreria cae a single-thread y sigue funcionando.
+        // Scope acotado: la pagina solo renderiza recursos del mismo origen, asi
+        // que 'credentialless' no rompe nada (y es menos estricto que require-corp).
+        source: "/jugador/perfil",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+        ],
+      },
+    ];
   },
 };
 

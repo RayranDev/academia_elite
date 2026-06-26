@@ -9,6 +9,7 @@ const SELECT_SEGURO = {
   rol: true,
   escuelaId: true,
   activo: true,
+  emailVerificado: true,
   bloqueado: true,
   bloqueoTipo: true,
   bloqueoMensaje: true,
@@ -113,6 +114,31 @@ export function obtenerPasswordHash(id: string) {
   return db.user.findUnique({
     where: { id },
     select: { id: true, passwordHash: true },
+  });
+}
+
+// tenant-global: lookup por clave única (email) para flujos de correo
+// (recuperación, set-password, OTP). No expone passwordHash.
+export function buscarUserPorEmail(email: string) {
+  return db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      nombre: true,
+      rol: true,
+      escuelaId: true,
+      activo: true,
+      emailVerificado: true,
+    },
+  });
+}
+
+export function marcarEmailVerificado(id: string) {
+  return db.user.update({
+    where: { id },
+    data: { emailVerificado: true, emailVerificadoEn: new Date() },
+    select: { id: true },
   });
 }
 

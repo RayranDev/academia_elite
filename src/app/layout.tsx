@@ -15,9 +15,9 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-  title: "Fútbol Career Mode",
+  title: "Academia Elite",
   description:
-    "Plataforma de formación en fútbol base: evalúa, evoluciona y vive tu carta como en el Modo Carrera.",
+    "Plataforma de formación en fútbol base: evalúa, evoluciona y vive tu carta de jugador.",
   formatDetection: {
     email: false,
     address: false,

@@ -48,107 +48,135 @@ export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<s
   }
 }
 
-function getRadianAngle(degreeValue: number) {
-  return (degreeValue * Math.PI) / 180;
+function aRadianes(grados: number) {
+  return (grados * Math.PI) / 180;
 }
 
-function rotateSize(width: number, height: number, rotation: number) {
-  const rotRad = getRadianAngle(rotation);
+/** Tamaño de la caja contenedora de una imagen tras rotarla `rotacion` grados. */
+function tamañoRotado(ancho: number, alto: number, rotacion: number) {
+  const rad = aRadianes(rotacion);
   return {
-    width:
-      Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-    height:
-      Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+    ancho: Math.abs(Math.cos(rad) * ancho) + Math.abs(Math.sin(rad) * alto),
+    alto: Math.abs(Math.sin(rad) * ancho) + Math.abs(Math.cos(rad) * alto),
   };
 }
 
 /**
  * Recorta el área seleccionada (en píxeles de la imagen mostrada) y devuelve un
- * Blob PNG optimizado (lado mayor ≤ `maxLado`).
+ * Blob PNG optimizado (lado mayor ≤ `maxLado`). Soporta rotación del recorte.
  */
 export async function recortarABlob(
   src: string,
   area: AreaPixels,
   maxLado = 800,
-  _calidad = 0.85,
-  rotation = 0,
+  rotacion = 0,
 ): Promise<Blob> {
   const img = await cargarImagen(src);
-  
+
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas no disponible.");
 
-  const rotRad = getRadianAngle(rotation);
-  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(
+  const rad = aRadianes(rotacion);
+  const { ancho: anchoCaja, alto: altoCaja } = tamañoRotado(
     img.width,
     img.height,
-    rotation
+    rotacion,
   );
 
-  // Set canvas size to match the bounding box
-  canvas.width = bBoxWidth;
-  canvas.height = bBoxHeight;
+  // El canvas toma el tamaño de la caja contenedora de la imagen rotada.
+  canvas.width = anchoCaja;
+  canvas.height = altoCaja;
 
-  // Translate canvas context to center of the image to rotate and draw it
-  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
-  ctx.rotate(rotRad);
+  // Trasladamos al centro, rotamos y dibujamos la imagen rotada.
+  ctx.translate(anchoCaja / 2, altoCaja / 2);
+  ctx.rotate(rad);
   ctx.translate(-img.width / 2, -img.height / 2);
-
-  // Draw rotated image
   ctx.drawImage(img, 0, 0);
 
-  // croppedAreaPixels values are bounding box relative
-  const data = ctx.getImageData(
-    area.x,
-    area.y,
-    area.width,
-    area.height
-  );
+  // El área de recorte viene en coordenadas de la caja contenedora.
+  const data = ctx.getImageData(area.x, area.y, area.width, area.height);
 
-  // Set canvas width to final desired crop size
+  // Reajustamos el canvas al tamaño final del recorte y pegamos los píxeles.
   canvas.width = area.width;
   canvas.height = area.height;
-
-  // Paste image data with offset
   ctx.putImageData(data, 0, 0);
 
-  // Scale the cropped canvas to maxLado if needed
-  let finalCanvas = canvas;
+  // Si el recorte supera maxLado, lo escalamos hacia abajo.
+  let canvasFinal = canvas;
   if (Math.max(area.width, area.height) > maxLado) {
     const escala = Math.min(1, maxLado / Math.max(area.width, area.height));
     const w = Math.max(1, Math.round(area.width * escala));
     const h = Math.max(1, Math.round(area.height * escala));
-    finalCanvas = document.createElement("canvas");
-    finalCanvas.width = w;
-    finalCanvas.height = h;
-    const finalCtx = finalCanvas.getContext("2d");
-    if (finalCtx) {
-      finalCtx.drawImage(canvas, 0, 0, area.width, area.height, 0, 0, w, h);
+    canvasFinal = document.createElement("canvas");
+    canvasFinal.width = w;
+    canvasFinal.height = h;
+    const ctxFinal = canvasFinal.getContext("2d");
+    if (ctxFinal) {
+      ctxFinal.drawImage(canvas, 0, 0, area.width, area.height, 0, 0, w, h);
     } else {
-      finalCanvas = canvas;
+      canvasFinal = canvas;
     }
   }
 
   return new Promise((resolve, reject) => {
-    finalCanvas.toBlob(
+    canvasFinal.toBlob(
       (b) => (b ? resolve(b) : reject(new Error("No se pudo recortar la imagen."))),
       "image/png",
     );
   });
 }
 
-export async function removerFondoDeImagen(src: string): Promise<string> {
+/** Convierte una dataURL en Blob sin usar fetch() (evita 'Failed to fetch' en data: URLs). */
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, base64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+}
+
+/**
+ * Quita el fondo de la imagen 100% en el navegador (modelo self-hosteado).
+ * `onEstado` recibe texto legible de progreso (descarga del modelo y procesado)
+ * para mostrar un indicador de carga. Si algo falla, devuelve la imagen original.
+ */
+export async function removerFondoDeImagen(
+  src: string,
+  onEstado?: (texto: string) => void,
+): Promise<string> {
   try {
     const { removeBackground } = await import("@imgly/background-removal");
-    
-    // Convertimos la dataURL en un Blob para procesarlo
-    const res = await fetch(src);
-    const blob = await res.blob();
-    
-    // Removemos el fondo
-    const processedBlob = await removeBackground(blob);
-    
+
+    // Convertimos la dataURL en un Blob directamente en memoria (sin fetch)
+    const blob = dataUrlToBlob(src);
+
+    // Modelo self-hosteado en /imgly/ (mismo origen, sin CDN externo): son
+    // fotos de menores y la foto nunca sale del navegador. publicPath debe ser
+    // una URL ABSOLUTA (new URL(x, base) exige base absoluta). Modelo "small"
+    // (~40 MB, suficiente para una foto que despues se recorta a la carta) y
+    // salida PNG para preservar la transparencia.
+    const processedBlob = await removeBackground(blob, {
+      publicPath: `${window.location.origin}/imgly/`,
+      model: "small",
+      output: { format: "image/png" },
+      progress: (key, current, total) => {
+        if (!onEstado) return;
+        // La primera vez descarga el modelo (lo pesado); luego procesa.
+        if (key.startsWith("fetch")) {
+          const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+          onEstado(`Descargando modelo… ${pct}%`);
+        } else {
+          onEstado("Quitando el fondo…");
+        }
+      },
+    });
+
+    onEstado?.("Quitando el fondo…");
+
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {

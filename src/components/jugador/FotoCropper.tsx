@@ -35,7 +35,7 @@ export function FotoCropper({
   async function confirmar() {
     if (!area) return;
     try {
-      const blob = await recortarABlob(imagen, area, 800, 0.85, rotation);
+      const blob = await recortarABlob(imagen, area, 800, rotation);
       onConfirmar(blob);
     } catch {
       setError("No se pudo recortar la imagen. Intenta con otra.");

@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
 import { panelPorRol } from "@/lib/auth/session";
+import { obtenerEstadoBloqueo } from "@/services/cuenta.service";
 import { mensajeDeBloqueo } from "@/lib/bloqueo";
 import { logout } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/Button";
@@ -16,10 +16,7 @@ export default async function BloqueadoPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { rol: true, bloqueado: true, bloqueoTipo: true, bloqueoMensaje: true },
-  });
+  const user = await obtenerEstadoBloqueo(session.user.id);
   if (!user) redirect("/api/salir");
   if (!user.bloqueado || user.rol !== "JUGADOR") {
     redirect(panelPorRol(user.rol as Rol));
@@ -35,7 +32,9 @@ export default async function BloqueadoPage() {
         <p className="mt-3 text-sm text-muted">
           {mensajeDeBloqueo(user.bloqueoTipo, user.bloqueoMensaje)}
         </p>
-        <form action={logout} className="mt-6">
+        {/* suppressHydrationWarning: extensiones del navegador pueden inyectar
+            atributos en el <form> (p. ej. __gcruniqueid) antes de hidratar. */}
+        <form action={logout} className="mt-6" suppressHydrationWarning>
           <Button variant="ghost" type="submit">
             Cerrar sesión
           </Button>

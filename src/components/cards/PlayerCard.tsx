@@ -274,6 +274,7 @@ export function PlayerCard({
                 src={data.fotoUrl}
                 alt={seedAvatar}
                 crossOrigin="anonymous"
+                data-foto-carta
                 className="absolute inset-0 h-full w-full bg-transparent object-cover object-top"
                 style={{ WebkitMaskImage: FOTO_MASK, maskImage: FOTO_MASK }}
               />

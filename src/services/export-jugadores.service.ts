@@ -107,7 +107,7 @@ export async function exportarJugadores(
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Fútbol Career Mode";
+  wb.creator = "Academia Elite";
   wb.created = new Date();
   const ws = wb.addWorksheet("Jugadores");
   ws.addRow([...CABECERAS]);

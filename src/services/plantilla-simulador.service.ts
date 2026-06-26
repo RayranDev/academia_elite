@@ -60,7 +60,7 @@ export async function generarPlantillaSimulador(
   const escuela = escuelaId ? await obtenerEscuela(escuelaId) : null;
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Fútbol Career Mode";
+  wb.creator = "Academia Elite";
   wb.created = new Date();
 
   // --- Hoja Parametros (fuente de los lookups de las fórmulas) ---

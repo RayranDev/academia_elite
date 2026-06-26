@@ -11,6 +11,7 @@ import {
   canchaSchema,
   dtSchema,
   codigoSchema,
+  enviarCodigoSchema,
 } from "@/lib/validators/escuela";
 import { actualizarBranding, subirEscudo } from "@/services/escuela.service";
 import { MAX_ESCUDO_BYTES } from "@/lib/foto/process";
@@ -20,6 +21,7 @@ import { crearDt } from "@/services/entrenador.service";
 import {
   crearCodigoEscuela,
   desactivarCodigoEscuela,
+  enviarCodigoPorCorreo,
 } from "@/services/codigo.service";
 
 function primerError(issues: { message: string }[]): string {
@@ -154,6 +156,29 @@ export async function desactivarCodigoAction(
   if (typeof id !== "string" || !id) throw new ValidationError("Código inválido.");
   await desactivarCodigoEscuela(ctx, id);
   revalidatePath("/escuela/codigos");
+}
+
+/** Envía un código de invitación al correo de una familia (ESCUELA_ADMIN). */
+export async function enviarCodigoInvitacionAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = enviarCodigoSchema.safeParse({
+      codigoId: formData.get("codigoId"),
+      email: formData.get("email"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    await enviarCodigoPorCorreo(ctx, parsed.data.codigoId, parsed.data.email);
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 // Las métricas de evaluación se gestionan solo desde el panel del SUPER_ADMIN

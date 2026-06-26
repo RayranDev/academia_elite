@@ -13,11 +13,26 @@ import {
 } from "@/lib/validators/admin";
 import { actualizarLead, agregarNotaLead } from "@/services/lead.service";
 import { convertirLeadEnEscuela, crearEscuelaDirecta } from "@/services/escuela.service";
+import { emitirSetPassword } from "@/services/recuperacion.service";
+import { urlBase } from "@/lib/url";
 import { actualizarParametro } from "@/services/parametro.service";
 import {
   fijarMetricaEscuelaAdmin,
   quitarMetricaEscuelaAdmin,
 } from "@/services/parametro-escuela.service";
+
+/**
+ * Envía (best-effort) al recién creado el link para fijar su contraseña. NO
+ * falla el alta si el correo no sale: la clave temporal en pantalla es el
+ * respaldo (clave mientras no haya dominio verificado en Resend).
+ */
+async function avisarSetPassword(email: string): Promise<void> {
+  try {
+    await emitirSetPassword(email, await urlBase());
+  } catch (e) {
+    console.error("[admin] no se pudo enviar el link de set-password:", e);
+  }
+}
 
 export async function convertirLeadAction(
   _prev: ActionResult<{ adminEmail: string; passwordTemporal: string }> | undefined,
@@ -38,6 +53,7 @@ export async function convertirLeadAction(
       );
     }
     const res = await convertirLeadEnEscuela(ctx, parsed.data);
+    await avisarSetPassword(res.adminEmail);
     revalidatePath("/admin/leads");
     revalidatePath("/admin/escuelas");
     revalidatePath("/admin/auditoria");
@@ -126,6 +142,7 @@ export async function crearEscuelaAction(
       );
     }
     const res = await crearEscuelaDirecta(ctx, parsed.data);
+    await avisarSetPassword(res.adminEmail);
     revalidatePath("/admin/escuelas");
     revalidatePath("/admin/auditoria");
     return {

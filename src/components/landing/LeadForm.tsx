@@ -117,12 +117,21 @@ export function LeadForm() {
         </div>
 
         <Card>
-          <form onSubmit={onSubmit} className="space-y-4">
+          {/* suppressHydrationWarning en el form y cada control: extensiones de
+              autofill/gestores de contraseñas inyectan atributos (p. ej.
+              __gcruniqueid) antes de hidratar y disparan un mismatch falso. */}
+          <form onSubmit={onSubmit} className="space-y-4" suppressHydrationWarning>
             {/* Honeypot: invisible para humanos, tentador para bots */}
             <div className="hidden" aria-hidden>
               <label>
                 No rellenar
-                <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  suppressHydrationWarning
+                />
               </label>
             </div>
 
@@ -162,6 +171,7 @@ export function LeadForm() {
                   value={codigoPais}
                   onChange={(e) => setCodigoPais(e.target.value)}
                   className={`${campoBase} w-auto shrink-0`}
+                  suppressHydrationWarning
                 >
                   {INDICATIVOS.map((i) => (
                     <option key={i.codigo} value={i.codigo}>
@@ -178,6 +188,7 @@ export function LeadForm() {
                   onChange={(e) => setNumero(e.target.value.replace(/\D/g, "").slice(0, 10))}
                   aria-invalid={errores.numeroTelefono ? true : undefined}
                   className={`${campo} ${errores.numeroTelefono ? "border-alerta" : ""}`}
+                  suppressHydrationWarning
                 />
               </div>
               {errores.numeroTelefono && (
@@ -196,6 +207,7 @@ export function LeadForm() {
                 maxLength={100}
                 aria-invalid={errores.mensaje ? true : undefined}
                 className={`${campo} ${errores.mensaje ? "border-alerta" : ""}`}
+                suppressHydrationWarning
               />
               {errores.mensaje && (
                 <p className="mt-1 text-sm text-alerta">{errores.mensaje}</p>
@@ -256,6 +268,7 @@ function Input({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
         className={`${campo} ${error ? "border-alerta" : ""}`}
+        suppressHydrationWarning
       />
       {error && (
         <p id={`${name}-error`} className="mt-1 text-sm text-alerta">
