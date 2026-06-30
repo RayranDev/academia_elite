@@ -11,17 +11,44 @@ import {
   editarFondoAction,
   eliminarFondoAction,
 } from "@/actions/fondo.actions";
+import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
 import type { FondoAdminDTO } from "@/services/fondo.service";
 import type { ActionResult } from "@/lib/action-result";
-import type { PlayerCardData } from "@/types";
+import {
+  EFECTOS_CARTA,
+  TINTAS_METAL,
+  TRAMAS_PATRON,
+  type PlayerCardData,
+  type EfectoCarta,
+  type EfectoParams,
+} from "@/types";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
 type LogroOpcion = { codigo: string; nombre: string };
 
-/** Carta de muestra para previsualizar el estilo del fondo en vivo. */
-function cartaPreview(estilo: string, colorTexto: string | null): PlayerCardData {
+// Etiquetas legibles para los selects del creador.
+const EFECTO_LABEL: Record<EfectoCarta, string> = {
+  NINGUNO: "Ninguno",
+  METALICO: "Metálico",
+  HIELO: "Hielo",
+  TRAMA: "Trama",
+  HOLOGRAFICO: "Holográfico",
+};
+const INTENSIDADES: { valor: string; label: string }[] = [
+  { valor: "0.3", label: "Sutil" },
+  { valor: "0.5", label: "Media" },
+  { valor: "0.7", label: "Intensa" },
+];
+
+/** Carta de muestra para previsualizar el estilo y el efecto del fondo en vivo. */
+function cartaPreview(
+  estilo: string,
+  colorTexto: string | null,
+  efecto: EfectoCarta,
+  efectoParams: EfectoParams | null,
+): PlayerCardData {
   return {
     nombre: "Vista",
     apellido: "Previa",
@@ -35,6 +62,8 @@ function cartaPreview(estilo: string, colorTexto: string | null): PlayerCardData
     avatarConfig: null,
     fondoEstilo: estilo || null,
     fondoTexto: colorTexto || null,
+    fondoEfecto: efecto,
+    fondoEfectoParams: efectoParams,
     heroeEquipado: false,
   };
 }
@@ -75,6 +104,7 @@ export function FondosAdmin({
                 <p className="mt-1 text-xs">
                   <span className="font-semibold text-brand">{f.requisitoTipo}</span>
                   {f.requisitoValor ? ` · ${f.requisitoValor}` : ""}
+                  {f.efecto !== "NINGUNO" ? ` · ${EFECTO_LABEL[f.efecto]}` : ""}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -152,6 +182,33 @@ function FondoFormModal({
   const [colorTexto, setColorTexto] = useState(fondo?.colorTexto ?? "");
   const [requisitoTipo, setRequisitoTipo] = useState(fondo?.requisitoTipo ?? "SIEMPRE");
   const [requisitoValor, setRequisitoValor] = useState(fondo?.requisitoValor ?? "");
+  // Efecto del motor de efectos + sus parámetros.
+  const [efecto, setEfecto] = useState<EfectoCarta>(fondo?.efecto ?? "NINGUNO");
+  const [tinte, setTinte] = useState<string>(fondo?.efectoParams?.tinte ?? "acero");
+  const [tramaPatron, setTramaPatron] = useState<string>(fondo?.efectoParams?.tramaPatron ?? "carbono");
+  const [intensidad, setIntensidad] = useState<string>(
+    fondo?.efectoParams?.intensidad != null ? String(fondo.efectoParams.intensidad) : "0.5",
+  );
+
+  // Parámetros del efecto según los controles activos (null si no hay efecto).
+  const efectoParams: EfectoParams | null =
+    efecto === "NINGUNO"
+      ? null
+      : {
+          intensidad: Number(intensidad),
+          ...(efecto === "METALICO" ? { tinte: tinte as EfectoParams["tinte"] } : {}),
+          ...(efecto === "TRAMA" ? { tramaPatron: tramaPatron as EfectoParams["tramaPatron"] } : {}),
+        };
+
+  // Aplica una plantilla: rellena estilo + colorTexto + efecto + sus params.
+  function aplicarPreset(p: (typeof FONDOS_PRESETS)[number]) {
+    setEstilo(p.estilo);
+    setColorTexto(p.colorTexto);
+    setEfecto(p.efecto);
+    if (p.efectoParams?.tinte) setTinte(p.efectoParams.tinte);
+    if (p.efectoParams?.tramaPatron) setTramaPatron(p.efectoParams.tramaPatron);
+    if (p.efectoParams?.intensidad != null) setIntensidad(String(p.efectoParams.intensidad));
+  }
 
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(
     async (prev, fd) => {
@@ -227,6 +284,67 @@ function FondoFormModal({
           />
         </div>
 
+        {/* Efecto del motor de efectos + sus parámetros */}
+        <input type="hidden" name="efecto" value={efecto} />
+        <input
+          type="hidden"
+          name="efectoParams"
+          value={efectoParams ? JSON.stringify(efectoParams) : ""}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-muted">Efecto</label>
+            <select
+              value={efecto}
+              onChange={(e) => setEfecto(e.target.value as EfectoCarta)}
+              className={input}
+            >
+              {EFECTOS_CARTA.map((ef) => (
+                <option key={ef} value={ef}>{EFECTO_LABEL[ef]}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            {efecto === "METALICO" && (
+              <>
+                <label className="mb-1 block text-xs text-muted">Tinte</label>
+                <select value={tinte} onChange={(e) => setTinte(e.target.value)} className={input}>
+                  {TINTAS_METAL.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            {efecto === "TRAMA" && (
+              <>
+                <label className="mb-1 block text-xs text-muted">Patrón</label>
+                <select
+                  value={tramaPatron}
+                  onChange={(e) => setTramaPatron(e.target.value)}
+                  className={input}
+                >
+                  {TRAMAS_PATRON.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            {(efecto === "HIELO" || efecto === "HOLOGRAFICO") && (
+              <p className="pt-6 text-xs text-muted">Sin opciones extra.</p>
+            )}
+          </div>
+        </div>
+        {efecto !== "NINGUNO" && (
+          <div>
+            <label className="mb-1 block text-xs text-muted">Intensidad</label>
+            <select value={intensidad} onChange={(e) => setIntensidad(e.target.value)} className={input}>
+              {INTENSIDADES.map((i) => (
+                <option key={i.valor} value={i.valor}>{i.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-1 block text-xs text-muted">Requisito</label>
@@ -289,10 +407,30 @@ function FondoFormModal({
           </div>
         </div>
 
-        {/* Vista previa en vivo del estilo aplicado a la carta */}
+        {/* Galería de plantillas: un click rellena estilo + efecto + params */}
+        <div>
+          <label className="mb-1 block text-xs text-muted">
+            Plantillas (un click las aplica)
+          </label>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            {FONDOS_PRESETS.map((p) => (
+              <button
+                key={p.codigo}
+                type="button"
+                onClick={() => aplicarPreset(p)}
+                title={`${p.nombre}${p.efecto !== "NINGUNO" ? ` · ${EFECTO_LABEL[p.efecto]}` : ""}`}
+                className="h-10 rounded-md border border-subtle outline-none transition hover:scale-105 focus:border-brand"
+                style={{ background: p.estilo }}
+                aria-label={`Aplicar plantilla ${p.nombre}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Vista previa en vivo del estilo y el efecto aplicados a la carta */}
         <div className="flex justify-center rounded-lg border border-subtle bg-surface-2 py-4">
           <div className="perspective-[1000px]">
-            <PlayerCard data={cartaPreview(estilo, colorTexto || null)} size="md" />
+            <PlayerCard data={cartaPreview(estilo, colorTexto || null, efecto, efectoParams)} size="md" />
           </div>
         </div>
 

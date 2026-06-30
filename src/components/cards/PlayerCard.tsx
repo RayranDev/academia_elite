@@ -11,7 +11,8 @@ import {
 import { cn } from "@/lib/cn";
 import { CountUp } from "@/components/cards/CountUp";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
-import type { PlayerCardData, Nivel } from "@/types";
+import { capasDeEfecto, suprimeNivel } from "@/lib/cartas/efectos";
+import type { PlayerCardData, Nivel, EfectoCarta } from "@/types";
 
 type Size = "sm" | "md" | "hero";
 
@@ -130,6 +131,15 @@ export function PlayerCard({
   const enableTilt = interactive && !reduce;
   const animarMaterial = size === "hero"; // efectos animados solo en la carta protagonista
   const foil = size !== "sm"; // textura/reflejos premium (estáticos) en md y hero
+  // Motor de efectos del fondo equipado. Sin efecto (NINGUNO) se conserva el foil
+  // genérico de siempre; con efecto, el pack reemplaza el foil y suprime el
+  // sheen/destellos por nivel para no duplicar texturas.
+  const efecto: EfectoCarta = data.fondoEfecto ?? "NINGUNO";
+  const conEfecto = efecto !== "NINGUNO";
+  const suprimir = conEfecto && suprimeNivel(efecto);
+  const capasEfecto = foil && conEfecto
+    ? capasDeEfecto(efecto, data.fondoEfectoParams ?? null, { animar: animarMaterial && !reduce })
+    : [];
   const [linea1, linea2] = lineasNombre(data);
   const seedAvatar = `${data.nombre} ${data.apellido ?? ""}`.trim();
 
@@ -180,7 +190,8 @@ export function PlayerCard({
             : {}),
         }}
       />
-      {foil && (
+      {/* Sin efecto: foil genérico (grano + reflejos), idéntico a siempre. */}
+      {foil && !conEfecto && (
         <>
           {/* Grano foil (textura metálica) */}
           <div
@@ -196,6 +207,21 @@ export function PlayerCard({
           />
         </>
       )}
+      {/* Con efecto: capas del pack (metálico/hielo/trama/holográfico). */}
+      {capasEfecto.map((c) => (
+        <div
+          key={c.key}
+          aria-hidden
+          className={cn("pointer-events-none absolute inset-0 overflow-hidden rounded-[14px]", c.animacion)}
+          style={{
+            background: c.background,
+            backgroundSize: c.backgroundSize,
+            mixBlendMode: c.blendMode,
+            opacity: c.opacity,
+            ...(c.duracionSeg ? { animationDuration: `${c.duracionSeg}s` } : {}),
+          }}
+        />
+      ))}
       {/* Bisel: filo de luz arriba, sombra interna abajo, anillo metálico */}
       <div
         aria-hidden
@@ -204,12 +230,12 @@ export function PlayerCard({
           boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 0 1px ${material.ring}59, inset 0 -16px 30px rgba(0,0,0,0.30), inset 0 18px 30px rgba(255,255,255,0.08)`,
         }}
       />
-      {/* Sheen especular (Oro/Héroe) */}
-      {animarMaterial && material.sheen && (
+      {/* Sheen especular (Oro/Héroe) — suprimido si el fondo trae su propio efecto */}
+      {animarMaterial && material.sheen && !suprimir && (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px] carta-sheen" />
       )}
-      {/* Destellos (Héroe) */}
-      {animarMaterial && material.heroe && (
+      {/* Destellos (Héroe) — suprimidos si el fondo trae su propio efecto */}
+      {animarMaterial && material.heroe && !suprimir && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-[14px] carta-sparkle"
