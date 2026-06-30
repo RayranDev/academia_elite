@@ -22,6 +22,8 @@ function campos(formData: FormData) {
     requisitoTipo: formData.get("requisitoTipo"),
     requisitoValor: formData.get("requisitoValor") ?? "",
     orden: formData.get("orden") ?? "",
+    efecto: formData.get("efecto") ?? "NINGUNO",
+    efectoParams: formData.get("efectoParams") ?? "",
   };
 }
 

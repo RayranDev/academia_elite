@@ -31,7 +31,7 @@ import {
   requisitoTexto,
   type EstadoMeritos,
 } from "@/lib/fondos";
-import type { Nivel } from "@/types";
+import type { Nivel, EfectoCarta, EfectoParams } from "@/types";
 
 type Hijo = Awaited<ReturnType<typeof listarHijos>>[number];
 
@@ -161,6 +161,8 @@ export interface FondoCatalogoDTO {
   nombre: string;
   estilo: string;
   colorTexto: string | null;
+  efecto: EfectoCarta;
+  efectoParams: EfectoParams | null;
 }
 
 /** Catálogo de fondos (estilos) para el simulador del Súper Admin. */
@@ -174,6 +176,8 @@ export async function listarCatalogoFondos(
     nombre: f.nombre,
     estilo: f.estilo,
     colorTexto: f.colorTexto,
+    efecto: f.efecto as EfectoCarta,
+    efectoParams: (f.efectoParams as EfectoParams | null) ?? null,
   }));
 }
 
@@ -196,6 +200,8 @@ export interface FondoAdminDTO {
   requisitoTipo: string;
   requisitoValor: string | null;
   orden: number;
+  efecto: EfectoCarta;
+  efectoParams: EfectoParams | null;
 }
 
 /** Catálogo completo de fondos para administrarlos (solo Súper Admin). */
@@ -212,6 +218,8 @@ export async function listarFondosAdmin(ctx: AuthContext): Promise<FondoAdminDTO
     requisitoTipo: f.requisitoTipo,
     requisitoValor: f.requisitoValor,
     orden: f.orden,
+    efecto: f.efecto as EfectoCarta,
+    efectoParams: (f.efectoParams as EfectoParams | null) ?? null,
   }));
 }
 
@@ -246,6 +254,8 @@ export async function crearFondoAdmin(
     requisitoTipo: data.requisitoTipo,
     requisitoValor: data.requisitoTipo === "SIEMPRE" ? null : data.requisitoValor,
     orden: data.orden,
+    efecto: data.efecto,
+    efectoParams: data.efectoParams,
   });
   await registrarAuditoria(ctx, {
     accion: "FONDO_CREAR",
@@ -272,6 +282,8 @@ export async function editarFondoAdmin(
     requisitoTipo: data.requisitoTipo,
     requisitoValor: data.requisitoTipo === "SIEMPRE" ? null : data.requisitoValor,
     orden: data.orden,
+    efecto: data.efecto,
+    efectoParams: data.efectoParams,
   });
   await registrarAuditoria(ctx, {
     accion: "FONDO_EDITAR",

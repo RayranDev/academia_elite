@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 
 // Repositorio de fondos de carta (Capa 4).
 
@@ -17,6 +18,15 @@ interface DatosFondo {
   requisitoTipo: string;
   requisitoValor: string | null;
   orden: number;
+  efecto: string;
+  efectoParams: Prisma.InputJsonValue | null;
+}
+
+// Prisma no acepta `null` literal para un campo `Json?`: hay que usar
+// `Prisma.JsonNull` para guardar ausencia de parámetros de efecto.
+function aDatosPrisma<T extends { efectoParams: Prisma.InputJsonValue | null }>(data: T) {
+  const { efectoParams, ...resto } = data;
+  return { ...resto, efectoParams: efectoParams ?? Prisma.JsonNull };
 }
 
 export function codigoFondoExiste(codigo: string) {
@@ -24,11 +34,11 @@ export function codigoFondoExiste(codigo: string) {
 }
 
 export function crearFondo(data: DatosFondo) {
-  return db.fondoCarta.create({ data, select: { id: true } });
+  return db.fondoCarta.create({ data: aDatosPrisma(data), select: { id: true } });
 }
 
 export function actualizarFondo(id: string, data: Omit<DatosFondo, "codigo">) {
-  return db.fondoCarta.update({ where: { id }, data, select: { id: true } });
+  return db.fondoCarta.update({ where: { id }, data: aDatosPrisma(data), select: { id: true } });
 }
 
 export function eliminarFondo(id: string) {

@@ -1,7 +1,8 @@
 # Hoja de ruta — Academia Elite
 
-> **Qué es este archivo.** El documento *forward-looking*: dónde estamos, qué
-> sigue y cómo es la migración a producción. Para el historial de lo ya hecho ver
+> **Qué es este archivo.** El documento *forward-looking* de **infra / migración
+> a producción**: dónde estamos y cómo se llega a producción. Para el **backlog de
+> features** de producto ver `PENDIENTES.md`; para el historial de lo ya hecho,
 > `TRAZABILIDAD.md`; para el estado integral, `ESTADO-DEL-PROYECTO.md`.
 >
 > Última actualización: 2026-06-26.

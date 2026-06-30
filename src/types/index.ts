@@ -97,6 +97,30 @@ export const ESTADOS_LEAD = [
 ] as const;
 export type EstadoLead = (typeof ESTADOS_LEAD)[number];
 
+// --- Motor de efectos de fondo de carta ---
+// El fondo equipado puede declarar un efecto que apila capas visuales sobre el
+// `estilo` base (grano metálico, escarcha de hielo, trama, holográfico). Los
+// tipos viven acá (no en `@/lib/cartas/efectos`) para que la capa de datos
+// (schema, DTOs, validadores) no dependa del registro visual.
+export const EFECTOS_CARTA = ["NINGUNO", "METALICO", "HIELO", "TRAMA", "HOLOGRAFICO"] as const;
+export type EfectoCarta = (typeof EFECTOS_CARTA)[number];
+
+// Tinte del efecto metálico (sesga la paleta de reflejos).
+export const TINTAS_METAL = ["acero", "oro", "cobre", "titanio"] as const;
+export type TintaMetal = (typeof TINTAS_METAL)[number];
+
+// Patrón del efecto trama (cada uno es un SVG que tilea).
+export const TRAMAS_PATRON = ["carbono", "espiga", "puntos", "rombos", "lineas", "hexagonos"] as const;
+export type TramaPatron = (typeof TRAMAS_PATRON)[number];
+
+// Parámetros que afinan un efecto. Todos opcionales: el motor aplica defaults.
+export interface EfectoParams {
+  intensidad?: number; // 0..1 — multiplica la opacidad de las capas
+  tinte?: TintaMetal; // solo METALICO
+  tramaPatron?: TramaPatron; // requerido si efecto === "TRAMA"
+  velocidad?: number; // segundos del ciclo de animación (solo en hero)
+}
+
 // DTO plano de la carta del jugador (nunca se expone el modelo Prisma a la UI).
 export interface PlayerCardData {
   nombre: string;
@@ -119,6 +143,8 @@ export interface PlayerCardData {
   avatarConfig?: AvatarConfigV2 | null;
   fondoEstilo?: string | null; // CSS del fondo equipado: ES el fondo/estilo de TODA la carta
   fondoTexto?: string | null; // color de texto para contraste sobre el fondo equipado
+  fondoEfecto?: EfectoCarta | null; // pack de efecto del fondo equipado (capas sobre el estilo base)
+  fondoEfectoParams?: EfectoParams | null; // afina el efecto (tinte/intensidad/tramaPatron/velocidad)
   heroeEquipado?: boolean; // el marco Héroe (morado) solo aplica si está desbloqueado y equipado
 }
 

@@ -511,6 +511,8 @@ model FondoCarta {
   requisitoTipo String // SIEMPRE | LOGRO | NIVEL_CARTA | NIVEL_PERSONAL
   requisitoValor String? // logro.codigo · nivel de carta · nivel personal (número)
   orden         Int                 @default(0)
+  efecto        String              @default("NINGUNO") // NINGUNO | METALICO | HIELO | TRAMA | HOLOGRAFICO
+  efectoParams  Json? // { intensidad?, tinte?, tramaPatron?, velocidad? } — afina el efecto
   desbloqueos   FondoDesbloqueado[]
   equipadoPor   Jugador[]           @relation("FondoEquipado")
 }

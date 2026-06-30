@@ -24,7 +24,13 @@ import { obtenerFondo } from "@/repositories/fondo.repository";
 import { parseAvatarConfig } from "@/lib/avatar/config";
 import { ovrConMen } from "@/lib/stats-engine";
 import { CURVA, proyeccionMen, type ProyeccionCurva } from "@/lib/curva";
-import type { PlayerCardData, Posicion, AvatarConfig } from "@/types";
+import type {
+  PlayerCardData,
+  Posicion,
+  AvatarConfig,
+  EfectoCarta,
+  EfectoParams,
+} from "@/types";
 
 export interface NoticiaDTO {
   id: string;
@@ -147,6 +153,8 @@ export async function obtenerHub(
     const fondo = await obtenerFondo(elegido.fondoEquipadoId);
     card.fondoEstilo = fondo?.estilo ?? null;
     card.fondoTexto = fondo?.colorTexto ?? null;
+    card.fondoEfecto = (fondo?.efecto as EfectoCarta) ?? null;
+    card.fondoEfectoParams = (fondo?.efectoParams as EfectoParams | null) ?? null;
     card.heroeEquipado = fondo?.codigo === "LEYENDA";
   }
 

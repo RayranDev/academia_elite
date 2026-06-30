@@ -1,9 +1,21 @@
 import { z } from "zod";
 import { ORDEN_NIVEL } from "@/lib/fondos";
+import { EFECTOS_CARTA, TINTAS_METAL, TRAMAS_PATRON } from "@/types";
 
 // Validadores del catálogo de fondos de carta (laboratorio del Súper Admin).
 
 const REQUISITOS = ["SIEMPRE", "LOGRO", "NIVEL_CARTA", "NIVEL_PERSONAL"] as const;
+
+// Parámetros del efecto. Llegan serializados como JSON en un input oculto del
+// formulario; acá se parsean y se validan campo a campo.
+const efectoParamsSchema = z
+  .object({
+    intensidad: z.coerce.number().min(0).max(1).optional(),
+    tinte: z.enum(TINTAS_METAL).optional(),
+    tramaPatron: z.enum(TRAMAS_PATRON).optional(),
+    velocidad: z.coerce.number().min(0.5).max(30).optional(),
+  })
+  .strict();
 
 const base = {
   nombre: z.string().trim().min(3, { error: "Nombre requerido." }).max(80),
@@ -23,6 +35,39 @@ const base = {
     .union([z.literal(""), z.coerce.number().int().min(0).max(9999)])
     .optional()
     .transform((v) => (v === "" || v == null ? 0 : v)),
+  // Pack de efecto del fondo (motor de efectos). NINGUNO = solo el `estilo` base.
+  efecto: z.enum(EFECTOS_CARTA).default("NINGUNO"),
+  // Llega como JSON serializado (o ""); se parsea a objeto o null.
+  efectoParams: z
+    .union([z.literal(""), z.string()])
+    .optional()
+    .transform((v, ctx) => {
+      if (!v) return null;
+      let crudo: unknown;
+      try {
+        crudo = JSON.parse(v);
+      } catch {
+        ctx.addIssue({ code: "custom", message: "Parámetros de efecto inválidos." });
+        return z.NEVER;
+      }
+      const r = efectoParamsSchema.safeParse(crudo);
+      if (!r.success) {
+        ctx.addIssue({ code: "custom", message: "Parámetros de efecto inválidos." });
+        return z.NEVER;
+      }
+      return r.data;
+    }),
+};
+
+// El efecto Trama necesita un patrón para saber qué SVG tilea.
+const tramaCoherente = (d: {
+  efecto: (typeof EFECTOS_CARTA)[number];
+  efectoParams: { tramaPatron?: string } | null;
+}): boolean => d.efecto !== "TRAMA" || Boolean(d.efectoParams?.tramaPatron);
+
+const refinarTrama = {
+  error: "El efecto Trama requiere un patrón.",
+  path: ["efectoParams"],
 };
 
 /**
@@ -57,11 +102,13 @@ export const fondoCrearSchema = z
       .regex(/^[A-Z0-9_]{3,60}$/, { error: "Código inválido (A-Z, 0-9 y _)." }),
     ...base,
   })
-  .refine(requisitoCoherente, refinarRequisito);
+  .refine(requisitoCoherente, refinarRequisito)
+  .refine(tramaCoherente, refinarTrama);
 
 export const fondoEditarSchema = z
   .object({ fondoId: z.string().min(1), ...base })
-  .refine(requisitoCoherente, refinarRequisito);
+  .refine(requisitoCoherente, refinarRequisito)
+  .refine(tramaCoherente, refinarTrama);
 
 export type FondoCrearInput = z.infer<typeof fondoCrearSchema>;
 export type FondoEditarInput = z.infer<typeof fondoEditarSchema>;

@@ -1,6 +1,6 @@
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaClient, Prisma } from "../src/generated/prisma/client";
 import {
   computeStats,
   grupoEdadPorEdad,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/stats-engine";
 import { CATALOGO_LOGROS } from "./seed-logros";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
+import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
 import type { Posicion } from "@/types";
 
 /**
@@ -267,6 +268,24 @@ async function main() {
       { codigo: "RUBI", nombre: "Rubí", descripcion: "Por tu liderazgo en el equipo.", estilo: "linear-gradient(160deg,#9f1239 0%,#e11d48 35%,#7f1d1d 70%,#3b0a18 100%)", colorTexto: "#ffe4e6", requisitoTipo: "LOGRO", requisitoValor: "CAPITAN_VESTUARIO", orden: 5 },
       { codigo: "LEYENDA", nombre: "Leyenda", descripcion: "Solo para héroes.", estilo: "conic-gradient(from 180deg at 50% 50%, #4c1d95, #7c3aed, #f0abfc, #6d4cdf, #4c1d95)", colorTexto: "#f5d0ff", requisitoTipo: "NIVEL_CARTA", requisitoValor: "HEROE", orden: 6 },
     ],
+  });
+
+  // 9.a.bis) Presets curados con efectos (metálico/hielo/trama) del motor de
+  //          efectos. Mismo catálogo que ofrece el creador como plantillas.
+  await db.fondoCarta.createMany({
+    data: FONDOS_PRESETS.map((p) => ({
+      codigo: p.codigo,
+      nombre: p.nombre,
+      descripcion: p.descripcion,
+      estilo: p.estilo,
+      colorTexto: p.colorTexto,
+      requisitoTipo: p.requisitoTipo,
+      requisitoValor: p.requisitoValor,
+      orden: p.orden,
+      efecto: p.efecto,
+      efectoParams:
+        p.efectoParams === null ? Prisma.JsonNull : (p.efectoParams as Prisma.InputJsonValue),
+    })),
   });
 
   // 9.b) Evaluaciones de ejemplo (calculadas con el motor) para que las cartas

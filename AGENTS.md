@@ -182,4 +182,5 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 | `PLAN-MAESTRO-v4.md` | Visión completa de producto. |
 | `NGROK-PASO-A-PASO.md` | Exponer el dev local con ngrok (paso a paso). |
 | `TRAZABILIDAD.md` | **Historial** de todo lo hecho: sprints, correcciones, planes ejecutados. |
-| `HOJA-DE-RUTA.md` | **Próximos pasos** y plan de migración a producción (Sprint 8). |
+| `PENDIENTES.md` | **Backlog de features** de producto: qué falta construir (primer lugar donde buscar pendientes). |
+| `HOJA-DE-RUTA.md` | Pendientes de **infra / migración a producción** (Sprint 8): base de datos, auth, storage, hosting. |
