@@ -75,6 +75,13 @@ const nextConfig: NextConfig = {
   // escuela.service/foto.service — layouts dt/escuela/jugador y admin). Marcarlo
   // como external hace que se cargue desde node_modules con su binario correcto.
   serverExternalPackages: ["sharp"],
+  // El `.node` de sharp carga libvips-cpp.so con dlopen en runtime; el análisis
+  // estático de Next NO lo ve y NO lo copia a la función serverless (ERR_DLOPEN
+  // en Vercel). Forzamos la inclusión de TODO el scope @img (binarios + libvips)
+  // en cada función para que el .so esté presente.
+  outputFileTracingIncludes: {
+    "/**": ["./node_modules/@img/**/*"],
+  },
   allowedDevOrigins: ["localhost", "127.0.0.1", "*.ngrok-free.dev", "*.ngrok.io", ...getLocalIPs()],
   experimental: {
     // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
