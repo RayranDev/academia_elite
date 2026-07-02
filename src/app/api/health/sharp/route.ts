@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 
 // Endpoint TEMPORAL de diagnóstico (Sprint 8 deploy): verifica que sharp y su
-// libvips nativo cargan en el runtime serverless de Vercel. Ejercita una
-// operación real para forzar el dlopen de libvips. No expone datos.
+// libvips nativo cargan en el runtime serverless de Vercel. Decodifica un PNG
+// 1x1 y lo recomprime a WebP, forzando el dlopen de libvips. No expone datos.
 // TODO: eliminar una vez confirmado el fix de sharp en producción.
+const PNG_1x1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
 export async function GET() {
   try {
-    const sharp = (await import("sharp")).default;
-    const buf = await sharp({
-      create: { width: 2, height: 2, channels: 3, background: "#000000" },
-    })
-      .webp()
-      .toBuffer();
-    return NextResponse.json({ ok: true, versions: sharp.versions, bytes: buf.length });
+    const buf = await sharp(PNG_1x1).webp().toBuffer();
+    return NextResponse.json({ ok: true, bytes: buf.length });
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 });
   }
