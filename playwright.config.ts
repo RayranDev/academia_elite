@@ -27,5 +27,11 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,
+    env: {
+      // El E2E no debe enviar correos reales: sin RESEND_API_KEY, Resend cae a
+      // modo consola. Evita inundar la casilla de EMAIL_DEV_TO en cada corrida
+      // y quita la latencia de red variable que desestabilizaba los flujos.
+      RESEND_API_KEY: "",
+    },
   },
 });

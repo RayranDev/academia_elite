@@ -12,7 +12,14 @@ async function logout(page: Page) {
 async function abrirFichaLucas(page: Page) {
   await page.goto("/escuela/jugadores");
   await page.getByLabel("Buscar jugador").fill("Lucas");
+  // La búsqueda tiene debounce (350ms) + filtrado server-side: hay que esperar
+  // a que la navegación con ?q=Lucas se asiente ANTES de interactuar, si no el
+  // refetch en vuelo re-renderiza la fila bajo el click (carrera que el SQLite
+  // local ocultaba por instantáneo; Postgres remoto la expone).
+  await page.waitForURL(/[?&]q=Lucas/, { timeout: 15000 });
   await expect(page.getByText("Lucas García").first()).toBeVisible();
+  // Solo Lucas en la lista filtrada: garantiza que el refetch terminó.
+  await expect(page.getByText("Lucas García")).toHaveCount(1);
 }
 
 test("una familia bloqueada ve su mensaje al entrar", async ({ page }) => {

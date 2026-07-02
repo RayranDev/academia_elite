@@ -26,7 +26,9 @@ function leerClaro() {
  * raíz la aplica antes del primer pintado (anti-FOUC).
  */
 export function ThemeToggle() {
-  const claro = useSyncExternalStore(suscribir, leerClaro, () => false);
+  // El default es claro (ver script anti-FOUC en el layout): el snapshot de
+  // servidor lo refleja para no parpadear el icono en la hidratación.
+  const claro = useSyncExternalStore(suscribir, leerClaro, () => true);
 
   function alternar() {
     const siguiente = !leerClaro();

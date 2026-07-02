@@ -37,10 +37,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Aplica el tema guardado antes del primer pintado (anti-FOUC). */}
+        {/* Tema por defecto: CLARO. Aplica el tema antes del primer pintado
+            (anti-FOUC): agrega `light` salvo que el usuario haya elegido oscuro. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("fcm-tema")==="light")document.documentElement.classList.add("light")}catch(e){}`,
+            __html: `try{if(localStorage.getItem("fcm-tema")!=="dark")document.documentElement.classList.add("light")}catch(e){document.documentElement.classList.add("light")}`,
           }}
         />
       </head>
