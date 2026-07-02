@@ -30,7 +30,9 @@ const csp = [
   // 'wasm-unsafe-eval' permite compilar el modelo WASM de remocion de fondo
   // (@imgly/background-removal) sin habilitar eval() de JS. blob: cubre los
   // workers de onnxruntime-web. Ambos son necesarios tambien en produccion.
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https://cdn.jsdelivr.net${isDev ? " 'unsafe-eval'" : ""}`,
+  // El modelo de remocion de fondo es 100% self-hosted (/imgly/): no hay CDN
+  // externo en la politica.
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:${isDev ? " 'unsafe-eval'" : ""}`,
   // onnxruntime-web instancia su runtime en un Web Worker (blob: URL).
   "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
@@ -38,7 +40,7 @@ const csp = [
   "font-src 'self' data:",
   // El modelo se sirve desde el mismo origen (/imgly/, 'self'); blob: cubre el
   // fetch de los binarios WASM que la libreria expone como object URLs.
-  `connect-src 'self' blob: https://cdn.jsdelivr.net${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' blob:${isDev ? " ws: wss:" : ""}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -72,9 +74,11 @@ const nextConfig: NextConfig = {
   experimental: {
     // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
     // Next ANTES de ejecutar la acción. Lo subimos para cubrir la importación
-    // de jugadores (.xlsx) y la subida de foto (hasta ~5 MB antes de recortar).
+    // de jugadores (.xlsx) y la subida de foto (el cliente recorta a ≤800px,
+    // así que el body real es chico). Tope en 4mb: Vercel rechaza cualquier
+    // request de más de 4.5 MB a nivel plataforma — ofrecer más sería mentir.
     serverActions: {
-      bodySizeLimit: "6mb",
+      bodySizeLimit: "4mb",
       allowedOrigins: ["*.ngrok-free.dev", "*.ngrok.io"],
     },
   },

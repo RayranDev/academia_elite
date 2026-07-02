@@ -32,7 +32,7 @@ export async function subirFotoAction(
       throw new ValidationError("Selecciona una imagen.");
     }
     if (file.size > MAX_FOTO_BYTES) {
-      throw new ValidationError("La imagen supera los 5 MB.");
+      throw new ValidationError("La imagen supera los 4 MB.");
     }
     const buf = Buffer.from(await file.arrayBuffer());
     await subirFoto(ctx, jugadorId, buf);

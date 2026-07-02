@@ -101,7 +101,7 @@ export async function crearEvaluacionAction(
   }
 }
 
-const MAX_XLSX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_XLSX_BYTES = 4 * 1024 * 1024; // 4 MB (tope de request en Vercel: 4.5 MB)
 
 export async function importarEvaluacionesAction(
   _prev: ActionResult<ResultadoImportEval> | undefined,
@@ -117,7 +117,7 @@ export async function importarEvaluacionesAction(
       throw new ValidationError("Adjunta un archivo Excel (.xlsx).");
     }
     if (archivo.size > MAX_XLSX_BYTES) {
-      throw new ValidationError("El archivo supera 5 MB.");
+      throw new ValidationError("El archivo supera 4 MB.");
     }
     const escuelaIdRaw = formData.get("escuelaId");
     const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;

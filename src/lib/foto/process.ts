@@ -1,6 +1,7 @@
 import sharp from "sharp";
 
-export const MAX_FOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+// Alineado con serverActions.bodySizeLimit (4mb) y el tope duro de Vercel (4.5 MB).
+export const MAX_FOTO_BYTES = 4 * 1024 * 1024; // 4 MB
 const MAX_LADO = 800;
 
 /**
