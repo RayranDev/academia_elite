@@ -70,6 +70,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // `sharp` es un módulo NATIVO: si Next lo bundlea, su binario rompe en el
+  // runtime serverless de Vercel (500 en toda función que lo importe vía
+  // escuela.service/foto.service — layouts dt/escuela/jugador y admin). Marcarlo
+  // como external hace que se cargue desde node_modules con su binario correcto.
+  serverExternalPackages: ["sharp"],
   allowedDevOrigins: ["localhost", "127.0.0.1", "*.ngrok-free.dev", "*.ngrok.io", ...getLocalIPs()],
   experimental: {
     // El límite por defecto de body de las Server Actions es 1 MB y lo lanza
