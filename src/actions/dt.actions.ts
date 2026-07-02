@@ -109,7 +109,7 @@ export async function importarEvaluacionesAction(
 ): Promise<ActionResult<ResultadoImportEval>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`import-eval:${ctx.userId}`, 5, 60 * 60 * 1000);
+    const limite = await rateLimit(`import-eval:${ctx.userId}`, 5, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiadas cargas. Espera un momento.");
 
     const archivo = formData.get("archivo");

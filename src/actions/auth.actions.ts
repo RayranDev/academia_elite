@@ -32,7 +32,7 @@ export async function login(
   const hdrs = await headers();
   const ip =
     hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-  const limit = rateLimit(`login:${ip}:${parsed.data.email}`, 5, 60_000);
+  const limit = await rateLimit(`login:${ip}:${parsed.data.email}`, 5, 60_000);
   if (!limit.ok) {
     return {
       ok: false,

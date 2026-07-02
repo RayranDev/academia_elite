@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   // frenamos abuso evidente: 8/hora por IP.
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-  const limit = rateLimit(`leads:${ip}`, 8, 60 * 60 * 1000);
+  const limit = await rateLimit(`leads:${ip}`, 8, 60 * 60 * 1000);
   if (!limit.ok) {
     return NextResponse.json(
       { ok: false, error: "Recibimos varias solicitudes desde tu red. Escríbenos directo y te atendemos." },

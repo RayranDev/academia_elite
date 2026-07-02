@@ -200,7 +200,7 @@ export async function resetPasswordFamiliaAction(
 ): Promise<ActionResult<Credenciales>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
+    const limite = await rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados resets. Espera un momento.");
     const jugadorId = formData.get("jugadorId");
     if (typeof jugadorId !== "string" || !jugadorId) {
@@ -219,7 +219,7 @@ export async function resetPasswordFamiliaDtAction(
 ): Promise<ActionResult<Credenciales>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
+    const limite = await rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados resets. Espera un momento.");
     const jugadorId = formData.get("jugadorId");
     if (typeof jugadorId !== "string" || !jugadorId) {
@@ -261,7 +261,7 @@ export async function resetPasswordDtAction(
 ): Promise<ActionResult<Credenciales>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
+    const limite = await rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados resets. Espera un momento.");
     const entrenadorId = formData.get("entrenadorId");
     if (typeof entrenadorId !== "string" || !entrenadorId) {
@@ -303,7 +303,7 @@ export async function resetPasswordUsuarioAction(
 ): Promise<ActionResult<Credenciales>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
+    const limite = await rateLimit(`resetpw:${ctx.userId}`, 10, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados resets. Espera un momento.");
     const userId = formData.get("userId");
     if (typeof userId !== "string" || !userId) {
@@ -346,7 +346,7 @@ export async function cambiarMiPasswordAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`cambiopw:${ctx.userId}`, 5, 60 * 60 * 1000);
+    const limite = await rateLimit(`cambiopw:${ctx.userId}`, 5, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados intentos. Espera un momento.");
     const parsed = cambiarPasswordSchema.safeParse({
       actual: formData.get("actual"),
@@ -371,7 +371,7 @@ export async function importarJugadoresAction(
 ): Promise<ActionResult<ResultadoImportacion>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`importar:${ctx.userId}`, 5, 60 * 60 * 1000);
+    const limite = await rateLimit(`importar:${ctx.userId}`, 5, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiadas importaciones. Espera un momento.");
 
     const archivo = formData.get("archivo");

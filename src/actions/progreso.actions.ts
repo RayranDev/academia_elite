@@ -14,7 +14,7 @@ export async function validarSemanaAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`progreso:${ctx.userId}`, 10, 60 * 60 * 1000);
+    const limite = await rateLimit(`progreso:${ctx.userId}`, 10, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados intentos. Espera un momento.");
 
     const parsed = progresoSemanaSchema.safeParse({
@@ -42,7 +42,7 @@ export async function validarSemanaDtAction(
 ): Promise<ActionResult<{ validados: number; omitidos: number }>> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`progreso-dt:${ctx.userId}`, 20, 60 * 60 * 1000);
+    const limite = await rateLimit(`progreso-dt:${ctx.userId}`, 20, 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiados intentos. Espera un momento.");
 
     let entradas: unknown;

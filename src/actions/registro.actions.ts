@@ -37,7 +37,7 @@ export async function registrarConCodigoAction(
     const hdrs = await headers();
     const ip =
       hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-    const limit = rateLimit(`registro:${ip}`, 5, 60 * 60 * 1000);
+    const limit = await rateLimit(`registro:${ip}`, 5, 60 * 60 * 1000);
     if (!limit.ok) {
       throw new ValidationError("Demasiados intentos. Inténtalo más tarde.");
     }
@@ -70,7 +70,7 @@ export async function vincularHijoAction(
     const hdrs = await headers();
     const ip =
       hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-    const limit = rateLimit(`vincular:${ip}`, 5, 60 * 60 * 1000);
+    const limit = await rateLimit(`vincular:${ip}`, 5, 60 * 60 * 1000);
     if (!limit.ok) {
       throw new ValidationError("Demasiados intentos. Inténtalo más tarde.");
     }

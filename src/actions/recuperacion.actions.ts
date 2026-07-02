@@ -33,7 +33,7 @@ export async function recuperarPasswordAction(
     const hdrs = await headers();
     const ip =
       hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-    const limit = rateLimit(
+    const limit = await rateLimit(
       `recuperar:${ip}:${parsed.data.email}`,
       3,
       15 * 60_000,
@@ -79,7 +79,7 @@ export async function fijarPasswordAction(
 export async function reenviarVerificacionAction(): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const limit = rateLimit(`reverif:${ctx.userId}`, 3, 30 * 60_000);
+    const limit = await rateLimit(`reverif:${ctx.userId}`, 3, 30 * 60_000);
     if (!limit.ok) {
       return { ok: false, error: "Esperá un momento antes de reenviar." };
     }

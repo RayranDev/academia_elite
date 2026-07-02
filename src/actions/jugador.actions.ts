@@ -20,7 +20,7 @@ export async function subirFotoAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const limite = rateLimit(`foto:${ctx.userId}`, 10, 24 * 60 * 60 * 1000);
+    const limite = await rateLimit(`foto:${ctx.userId}`, 10, 24 * 60 * 60 * 1000);
     if (!limite.ok) throw new ValidationError("Demasiadas subidas hoy.");
 
     const jugadorId = formData.get("jugadorId");

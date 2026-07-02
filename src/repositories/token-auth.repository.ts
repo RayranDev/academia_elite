@@ -28,6 +28,17 @@ export function buscarTokenVigente(tokenHash: string, tipo: TipoTokenAuth) {
   });
 }
 
+/**
+ * Token vigente de un usuario por tipo (sin hash). Permite contar intentos
+ * fallidos sobre el token aunque el código presentado no coincida.
+ */
+export function buscarTokenVigenteDe(userId: string, tipo: TipoTokenAuth) {
+  return db.tokenAuth.findFirst({
+    where: { userId, tipo, usadoEn: null, expiraEn: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export function marcarTokenUsado(id: string) {
   return db.tokenAuth.update({
     where: { id },

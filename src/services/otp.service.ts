@@ -1,9 +1,10 @@
 import { buscarUserPorEmail } from "@/repositories/user.repository";
 import {
   crearTokenAuth,
-  buscarTokenVigente,
+  buscarTokenVigenteDe,
   marcarTokenUsado,
   invalidarTokensDe,
+  incrementarIntentos,
 } from "@/repositories/token-auth.repository";
 import { generarOtp, hashToken } from "@/lib/tokens";
 import { enviarOtp } from "@/services/email.service";
@@ -17,6 +18,10 @@ import { enviarOtp } from "@/services/email.service";
  */
 
 const TTL_OTP = 10 * 60 * 1000; // 10 min
+// Intentos fallidos permitidos por código antes de invalidarlo de facto.
+// Segunda barrera anti-fuerza-bruta, persistida en DB (la primera es el rate
+// limit distribuido en la acción).
+const MAX_INTENTOS_OTP = 5;
 
 function hashOtp(userId: string, codigo: string): string {
   return hashToken(`${userId}:${codigo}`);
@@ -57,8 +62,9 @@ export interface UsuarioOtp {
 
 /**
  * Valida un OTP. Devuelve el usuario si el código es correcto y vigente (y lo
- * marca usado), o null. El anti-fuerza-bruta se hace por rate limit en la acción
- * que llama a `signIn` (acá no hay IP).
+ * marca usado), o null. Anti-fuerza-bruta en dos capas: rate limit en la acción
+ * que llama a `signIn` + contador de intentos persistido en el token — al
+ * agotar `MAX_INTENTOS_OTP` el código deja de aceptarse aunque sea correcto.
  */
 export async function verificarOtp(
   email: string,
@@ -67,8 +73,16 @@ export async function verificarOtp(
   const user = await buscarUserPorEmail(email);
   if (!user || !user.activo) return null;
 
-  const registro = await buscarTokenVigente(hashOtp(user.id, codigo), "OTP");
+  // Lookup por usuario (no por hash): así los códigos erróneos también
+  // cuentan intentos contra el token vigente.
+  const registro = await buscarTokenVigenteDe(user.id, "OTP");
   if (!registro) return null;
+  if (registro.intentos >= MAX_INTENTOS_OTP) return null;
+
+  if (registro.tokenHash !== hashOtp(user.id, codigo)) {
+    await incrementarIntentos(registro.id);
+    return null;
+  }
 
   await marcarTokenUsado(registro.id);
   return {

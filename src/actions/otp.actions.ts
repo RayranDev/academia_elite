@@ -28,7 +28,7 @@ export async function solicitarOtpAction(
 ): Promise<OtpResult> {
   const parsed = solicitarOtpSchema.safeParse({ email: formData.get("email") });
   if (parsed.success) {
-    const limit = rateLimit(
+    const limit = await rateLimit(
       `otp-pedir:${await ipDeRequest()}:${parsed.data.email}`,
       3,
       15 * 60_000,
@@ -60,7 +60,7 @@ export async function ingresarConOtpAction(
     return { ok: false, error: "Código inválido." };
   }
 
-  const limit = rateLimit(
+  const limit = await rateLimit(
     `otp-login:${await ipDeRequest()}:${parsed.data.email}`,
     5,
     15 * 60_000,
