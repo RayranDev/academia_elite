@@ -11,7 +11,7 @@ import {
 import type { AvatarConfigInput } from "@/lib/validators/avatar";
 import { registrarAuditoria } from "@/services/audit.service";
 import { detectarTipoImagen, procesarFoto } from "@/lib/foto/process";
-import { guardarFoto } from "@/lib/foto/storage";
+import { guardarFoto, borrarFoto } from "@/lib/foto/storage";
 
 type JugadorFoto = NonNullable<
   Awaited<ReturnType<typeof obtenerJugadorParaFoto>>
@@ -44,7 +44,7 @@ export async function subirFoto(
   jugadorId: string,
   original: Buffer,
 ): Promise<void> {
-  await cargarYAutorizarGestion(ctx, jugadorId);
+  const jugador = await cargarYAutorizarGestion(ctx, jugadorId);
 
   const tipo = detectarTipoImagen(original);
   if (!tipo) {
@@ -55,6 +55,10 @@ export async function subirFoto(
   await guardarFoto(nombre, procesada);
   const res = await actualizarFotoJugador(ctx.escuelaId, jugadorId, nombre);
   if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
+  // La foto anterior queda huérfana en el bucket: se borra best-effort.
+  if (jugador.fotoUrl && jugador.fotoUrl !== nombre) {
+    await borrarFoto(jugador.fotoUrl);
+  }
 }
 
 /** Actualiza el avatar SVG del jugador (solo el responsable). */

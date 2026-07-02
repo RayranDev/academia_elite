@@ -4,7 +4,7 @@ import { requireRole, requireEscuela, requirePermiso } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import { detectarTipoImagen, procesarEscudo } from "@/lib/foto/process";
-import { guardarFoto } from "@/lib/foto/storage";
+import { guardarFoto, borrarFoto } from "@/lib/foto/storage";
 import {
   listarEscuelasGlobal,
   contarEscuelasGlobal,
@@ -87,9 +87,14 @@ export async function subirEscudo(
     throw new ValidationError("El escudo debe ser un PNG.");
   }
   const procesado = await procesarEscudo(original);
+  const anterior = (await obtenerEscuela(escuelaId))?.logoUrl;
   const nombre = `escudo-${randomUUID()}.png`;
   await guardarFoto(nombre, procesado);
   await actualizarBrandingEscuela(escuelaId, { logoUrl: nombre });
+  // El escudo anterior queda huérfano en el bucket: se borra best-effort.
+  if (anterior && anterior !== nombre) {
+    await borrarFoto(anterior);
+  }
 }
 
 export async function actualizarBranding(
