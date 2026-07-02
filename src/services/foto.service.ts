@@ -12,17 +12,16 @@ import type { AvatarConfigInput } from "@/lib/validators/avatar";
 import { registrarAuditoria } from "@/services/audit.service";
 import { detectarTipoImagen, procesarFoto } from "@/lib/foto/process";
 import { guardarFoto, borrarFoto } from "@/lib/foto/storage";
+import { esResponsable } from "@/lib/foto/permisos";
+
+// Re-exportado para compatibilidad con quien lo importaba desde acá. La lógica
+// vive en `@/lib/foto/permisos` (pura, sin sharp) para que la ruta que sirve la
+// foto no arrastre el pipeline de procesamiento.
+export { esResponsable };
 
 type JugadorFoto = NonNullable<
   Awaited<ReturnType<typeof obtenerJugadorParaFoto>>
 >;
-
-/** ¿El usuario es el responsable (padre/tutor) del jugador? */
-export function esResponsable(ctx: AuthContext, jugador: JugadorFoto): boolean {
-  return (
-    ctx.userId === jugador.padreUserId || ctx.userId === jugador.cuentaUserId
-  );
-}
 
 async function cargarYAutorizarGestion(
   ctx: AuthContext,

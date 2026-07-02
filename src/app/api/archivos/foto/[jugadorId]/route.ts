@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/session";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
-import { esResponsable } from "@/services/foto.service";
+import { esResponsable } from "@/lib/foto/permisos";
 import { leerFoto } from "@/lib/foto/storage";
 
 const NO_ENCONTRADA = () => new NextResponse(null, { status: 404 });
