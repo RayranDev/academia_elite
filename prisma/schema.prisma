@@ -1,7 +1,12 @@
-// Schema Prisma — Fútbol Career Mode (Fase 1, SQLite)
-// SQLite vía Prisma NO soporta enums: los campos tipo enum son String
-// validados por Zod y tipados con union types en src/types/.
-// El comentario `// enum:` documenta los valores permitidos.
+// Schema Prisma — Fútbol Career Mode (producción: Supabase PostgreSQL)
+// Decisión §Sprint 8: los campos tipo enum se mantienen como String validados
+// por Zod y tipados con union types en src/types/ (migrar a enums nativos de
+// Postgres queda diferido). El comentario `// enum:` documenta los valores.
+//
+// Conexiones (Prisma 7: las URLs NO van en el schema):
+// - Runtime: adapter en `src/lib/db.ts` con DATABASE_URL = pooler de Supabase
+//   (transaction mode, puerto 6543, `?pgbouncer=true`).
+// - CLI (migrate/seed): `prisma.config.ts` con DIRECT_URL = conexión directa (5432).
 
 generator client {
   provider = "prisma-client"
@@ -9,7 +14,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
