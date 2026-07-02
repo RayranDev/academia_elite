@@ -18,10 +18,13 @@ let cliente: SupabaseClient | null = null;
 function storage() {
   if (!cliente) {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Proyectos nuevos de Supabase emiten "secret key" (sb_secret_...);
+    // los viejos, "service_role". Ambas sirven: acceso total server-only.
+    const key =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
     if (!url || !key) {
       throw new Error(
-        "SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY son requeridas para el storage.",
+        "SUPABASE_URL y SUPABASE_SECRET_KEY (o SUPABASE_SERVICE_ROLE_KEY) son requeridas para el storage.",
       );
     }
     cliente = createClient(url, key, {
