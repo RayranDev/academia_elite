@@ -111,15 +111,15 @@ const nextConfig: NextConfig = {
       },
       {
         // /jugador/perfil: la remoción de fondo (@imgly) necesita 'unsafe-eval'.
-        // Se sirve la CSP relajada SOLO acá + aislamiento de origen (COOP/COEP)
-        // para los threads WASM de onnxruntime. Página autenticada donde el
-        // padre procesa su propia foto en su dispositivo.
+        // Se sirve la CSP relajada SOLO acá. Página autenticada donde el padre
+        // procesa su propia foto en su dispositivo.
+        //
+        // NO se ponen COOP/COEP acá a propósito: al marcar la página como
+        // crossOriginIsolated, onnxruntime-web (motor de @imgly) intenta el
+        // camino multi-thread con SharedArrayBuffer/workers y FALLA. Sin ese
+        // aislamiento corre single-thread (unos segundos más lento) y funciona.
         source: "/jugador/perfil",
-        headers: [
-          ...securityHeadersPerfil,
-          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
-        ],
+        headers: securityHeadersPerfil,
       },
     ];
   },
