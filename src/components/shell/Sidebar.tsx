@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -27,6 +28,7 @@ import {
   ClipboardCheck,
   Trophy,
   Wallet,
+  ChevronDown,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -77,6 +79,14 @@ function esActivo(pathname: string, href: string, base: string): boolean {
 
 export function Sidebar({ items, base }: { items: NavItem[]; base: string }) {
   const pathname = usePathname();
+  // El menú móvil se cierra al tocar una opción (onNavigate en cada NavLink).
+  const [abierto, setAbierto] = useState(false);
+
+  const activo =
+    items.find((i) => esActivo(pathname, i.href, base)) ?? items[0];
+  const IconoActivo = activo ? ICONOS[activo.icon] ?? LayoutDashboard : LayoutDashboard;
+  const hayBadges = items.some((i) => (i.badge ?? 0) > 0);
+
   return (
     <>
       <aside className="hidden w-56 shrink-0 border-r border-subtle bg-surface/40 p-3 md:block">
@@ -87,11 +97,46 @@ export function Sidebar({ items, base }: { items: NavItem[]; base: string }) {
         </nav>
       </aside>
 
-      <nav className="flex gap-1 overflow-x-auto border-b border-subtle bg-surface/40 p-2 md:hidden">
-        {items.map((item) => (
-          <NavLink key={item.href} item={item} active={esActivo(pathname, item.href, base)} compact />
-        ))}
-      </nav>
+      {/* Móvil: la sección actual + botón "Menú" que despliega TODAS las opciones
+          como botones claros. Antes era una tira que scrolleaba de costado sin
+          ninguna pista de que había más. */}
+      <div className="border-b border-subtle bg-surface/40 md:hidden">
+        <button
+          type="button"
+          onClick={() => setAbierto((o) => !o)}
+          aria-expanded={abierto}
+          aria-controls="menu-movil"
+          className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold"
+        >
+          <span className="flex items-center gap-2 text-foreground">
+            <IconoActivo className="h-4 w-4 shrink-0" aria-hidden />
+            {activo?.label ?? "Menú"}
+          </span>
+          <span className="flex items-center gap-1.5 text-muted">
+            {hayBadges && !abierto && (
+              <span className="h-2 w-2 rounded-full bg-alerta" aria-hidden />
+            )}
+            Menú
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform", abierto && "rotate-180")}
+              aria-hidden
+            />
+          </span>
+        </button>
+
+        {abierto && (
+          <nav id="menu-movil" className="flex flex-col gap-1 border-t border-subtle p-2">
+            {items.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={esActivo(pathname, item.href, base)}
+                onNavigate={() => setAbierto(false)}
+              />
+            ))}
+          </nav>
+        )}
+      </div>
     </>
   );
 }
@@ -99,19 +144,19 @@ export function Sidebar({ items, base }: { items: NavItem[]; base: string }) {
 function NavLink({
   item,
   active,
-  compact = false,
+  onNavigate,
 }: {
   item: NavItem;
   active: boolean;
-  compact?: boolean;
+  onNavigate?: () => void;
 }) {
   const Icon = ICONOS[item.icon] ?? LayoutDashboard;
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={cn(
         "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-        compact ? "shrink-0" : "",
         active
           ? "bg-brand/15 text-brand"
           : "text-muted hover:bg-surface-2 hover:text-foreground",
