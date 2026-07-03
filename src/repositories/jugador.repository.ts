@@ -268,6 +268,24 @@ export async function actualizarJugadorDatos(
   return db.jugador.updateMany({ where: { id, ...scope }, data });
 }
 
+/**
+ * Actualiza SOLO la identidad (nombre/apellido) de un jugador VINCULADO al
+ * usuario (padre/tutor). La propiedad va en el `where` como defensa en
+ * profundidad: aunque el guard fallara, solo toca jugadores del propio usuario.
+ * No permite tocar datos deportivos (posición, categoría, dorsal): eso es del DT.
+ */
+export function actualizarIdentidadJugadorPropio(
+  userId: string,
+  id: string,
+  data: { nombre: string; apellido: string },
+) {
+  // tenant-global: propiedad por vínculo del usuario (padre/cuenta), no por escuela.
+  return db.jugador.updateMany({
+    where: { id, OR: [{ padreUserId: userId }, { cuentaUserId: userId }] },
+    data,
+  });
+}
+
 /** Jugador con todo lo necesario para el hub (carta, logros, objetivos). */
 export function obtenerJugadorHub(escuelaId: string | null, id: string) {
   const scope = escuelaId === null ? {} : { escuelaId };

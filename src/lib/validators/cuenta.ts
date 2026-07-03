@@ -21,3 +21,14 @@ export const confirmarCambioEmailSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, { error: "El código son 6 dígitos." }),
 });
+
+/** Corrección de identidad (nombre/apellido) de un jugador propio del tutor. */
+export const datosJugadorSchema = z.object({
+  jugadorId: z.string().min(1),
+  nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }).transform(
+    formatearNombre,
+  ),
+  apellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(
+    formatearNombre,
+  ),
+});

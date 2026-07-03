@@ -9,11 +9,13 @@ import {
   actualizarNombreSchema,
   solicitarCambioEmailSchema,
   confirmarCambioEmailSchema,
+  datosJugadorSchema,
 } from "@/lib/validators/cuenta";
 import {
   actualizarMiNombre,
   solicitarCambioEmail,
   confirmarCambioEmail,
+  actualizarDatosMiJugador,
 } from "@/services/cuenta.service";
 
 // Autoservicio de "Mi cuenta" (JUGADOR / DT). Frontera: sesión + Zod + rate
@@ -23,6 +25,36 @@ const RUTAS_CUENTA = ["/jugador/cuenta", "/dt/cuenta"];
 
 function revalidarCuenta() {
   for (const ruta of RUTAS_CUENTA) revalidatePath(ruta);
+}
+
+export async function actualizarMiJugadorAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = datosJugadorSchema.safeParse({
+      jugadorId: formData.get("jugadorId"),
+      nombre: formData.get("nombre"),
+      apellido: formData.get("apellido"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(
+        parsed.error.issues[0]?.message ?? "Datos inválidos.",
+      );
+    }
+    await actualizarDatosMiJugador(
+      ctx,
+      parsed.data.jugadorId,
+      parsed.data.nombre,
+      parsed.data.apellido,
+    );
+    revalidatePath("/jugador/cuenta");
+    revalidatePath("/jugador");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function actualizarMiNombreAction(

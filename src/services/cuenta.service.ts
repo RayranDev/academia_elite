@@ -1,5 +1,6 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { ValidationError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
+import { requireRole, assertOwnPlayer } from "@/lib/auth/guards";
 import {
   obtenerPasswordHash,
   actualizarPasswordUser,
@@ -7,6 +8,10 @@ import {
   actualizarEmailUser,
   obtenerUserSeguro,
 } from "@/repositories/user.repository";
+import {
+  listarHijos,
+  actualizarIdentidadJugadorPropio,
+} from "@/repositories/jugador.repository";
 import { emailExisteGlobal } from "@/repositories/escuela.repository";
 import {
   crearTokenAuth,
@@ -71,6 +76,49 @@ export async function obtenerMiCuenta(ctx: AuthContext): Promise<MiCuentaDTO> {
     email: user.email,
     emailVerificado: user.emailVerificado,
   };
+}
+
+export interface MiJugadorDTO {
+  id: string;
+  nombre: string;
+  apellido: string;
+}
+
+/** Jugadores (hijos/cuenta) vinculados al tutor, para editar su identidad. */
+export async function obtenerMisJugadores(
+  ctx: AuthContext,
+): Promise<MiJugadorDTO[]> {
+  requireRole(ctx, ["JUGADOR"]);
+  const hijos = await listarHijos(ctx.userId);
+  return hijos.map((h) => ({ id: h.id, nombre: h.nombre, apellido: h.apellido }));
+}
+
+/**
+ * Corrige la identidad (nombre/apellido) de un jugador propio del tutor. Solo
+ * sobre sus jugadores (assertOwnPlayer). Los datos deportivos (posición,
+ * categoría, dorsal) NO se tocan acá: los gestiona el DT. Auditado.
+ */
+export async function actualizarDatosMiJugador(
+  ctx: AuthContext,
+  jugadorId: string,
+  nombre: string,
+  apellido: string,
+): Promise<void> {
+  requireRole(ctx, ["JUGADOR"]);
+  const hijos = await listarHijos(ctx.userId);
+  assertOwnPlayer(ctx, jugadorId, hijos.map((h) => h.id));
+
+  const res = await actualizarIdentidadJugadorPropio(ctx.userId, jugadorId, {
+    nombre,
+    apellido,
+  });
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
+  await registrarAuditoria(ctx, {
+    accion: "EDITAR_DATOS_JUGADOR",
+    entidad: "Jugador",
+    entidadId: jugadorId,
+    escuelaId: ctx.escuelaId,
+  });
 }
 
 /** Cambia el nombre propio (autoservicio JUGADOR/DT). Auditado. */
