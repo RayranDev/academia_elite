@@ -59,6 +59,7 @@ export async function fijarPasswordAction(
   const parsed = fijarPasswordSchema.safeParse({
     token: formData.get("token"),
     password: formData.get("password"),
+    confirmacion: formData.get("confirmacion"),
   });
   if (!parsed.success) {
     return {

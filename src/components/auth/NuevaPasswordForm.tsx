@@ -87,6 +87,24 @@ export function NuevaPasswordForm({ token }: { token: string }) {
               </div>
             </div>
 
+            <div>
+              <label
+                htmlFor="confirmacion"
+                className="mb-1 block text-sm font-medium text-muted"
+              >
+                Repetí la contraseña
+              </label>
+              <input
+                id="confirmacion"
+                name="confirmacion"
+                type={verPass ? "text" : "password"}
+                autoComplete="new-password"
+                required
+                minLength={8}
+                className={input}
+              />
+            </div>
+
             {state && !state.ok && (
               <p className="text-sm text-alerta" role="alert">
                 {state.error}
