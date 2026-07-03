@@ -46,6 +46,16 @@ export function listarAnunciosEscuela(escuelaId: string) {
   });
 }
 
+/** Un anuncio por id, acotado al tenant. */
+export function obtenerAnuncio(escuelaId: string, id: string) {
+  return db.anuncio.findFirst({ where: { id, escuelaId } });
+}
+
+/** Borra un anuncio acotado al tenant (deleteMany: no lanza si no existe). */
+export function borrarAnuncio(escuelaId: string, id: string) {
+  return db.anuncio.deleteMany({ where: { id, escuelaId } });
+}
+
 /** Noticias del club visibles para un jugador (de su categoría o globales). */
 export function noticiasDeJugador(escuelaId: string, categoriaId: string) {
   return db.anuncio.findMany({

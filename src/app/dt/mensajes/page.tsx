@@ -1,5 +1,5 @@
 import { requireAuthContext } from "@/lib/auth/session";
-import { listarConversaciones } from "@/services/mensaje.service";
+import { listarConversaciones, listarAnuncios } from "@/services/mensaje.service";
 import {
   listarActivosDt,
   listarCategoriasDelDt,
@@ -7,6 +7,7 @@ import {
 import { publicarAnuncioAction } from "@/actions/mensaje.actions";
 import { MensajesDtFiltro } from "@/components/messages/MensajesDtFiltro";
 import { NuevaConversacionDialog } from "@/components/messages/NuevaConversacionDialog";
+import { ListaAnuncios } from "@/components/messages/ListaAnuncios";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -15,10 +16,11 @@ const input =
 
 export default async function DtMensajesPage() {
   const ctx = await requireAuthContext();
-  const [conversaciones, jugadores, categorias] = await Promise.all([
+  const [conversaciones, jugadores, categorias, anuncios] = await Promise.all([
     listarConversaciones(ctx),
     listarActivosDt(ctx),
     listarCategoriasDelDt(ctx),
+    listarAnuncios(ctx),
   ]);
 
   const nombreCat = new Map(categorias.map((c) => [c.id, c.nombre]));
@@ -40,34 +42,47 @@ export default async function DtMensajesPage() {
         <MensajesDtFiltro conversaciones={conversaciones} categorias={categorias} />
       </div>
 
-      <Card>
-        <h2 className="mb-3 text-lg font-bold">Publicar anuncio</h2>
-        <form action={publicarAnuncioAction} className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs text-muted">Categoría</label>
-            <select name="categoriaId" className={input} required>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted">Título</label>
-            <input name="titulo" required className={input} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted">Cuerpo</label>
-            <textarea name="cuerpo" rows={3} required className={input} />
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="visibleJugador" className="accent-[color:var(--brand)]" />
-            Mostrar también al jugador (noticia del club)
-          </label>
-          <Button type="submit">Publicar anuncio</Button>
-        </form>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <h2 className="mb-3 text-lg font-bold">Publicar anuncio</h2>
+          <form action={publicarAnuncioAction} className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs text-muted">Categoría</label>
+              <select name="categoriaId" className={input} required>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-muted">Título</label>
+              <input name="titulo" required className={input} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-muted">Cuerpo</label>
+              <textarea name="cuerpo" rows={3} required className={input} />
+            </div>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="visibleJugador" className="accent-[color:var(--brand)]" />
+              Mostrar también al jugador (noticia del club)
+            </label>
+            <Button type="submit">Publicar anuncio</Button>
+          </form>
+        </Card>
+
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold">Anuncios publicados</h2>
+          <p className="text-xs text-muted">
+            Así los ven las familias de tus categorías. Podés borrarlos.
+          </p>
+          <ListaAnuncios
+            anuncios={anuncios}
+            nombreCat={Object.fromEntries(nombreCat)}
+          />
+        </div>
+      </div>
     </div>
   );
 }

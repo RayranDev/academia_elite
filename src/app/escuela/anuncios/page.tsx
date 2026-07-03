@@ -2,9 +2,9 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { listarAnuncios } from "@/services/mensaje.service";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
 import { publicarAnuncioAction } from "@/actions/mensaje.actions";
+import { ListaAnuncios } from "@/components/messages/ListaAnuncios";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
@@ -55,28 +55,7 @@ export default async function AnunciosPage() {
 
       <div className="space-y-3">
         <h1 className="text-3xl font-black italic uppercase">Anuncios</h1>
-        {anuncios.length === 0 ? (
-          <Card>
-            <p className="text-muted">Aún no hay anuncios.</p>
-          </Card>
-        ) : (
-          anuncios.map((a) => (
-            <Card key={a.id}>
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold">{a.titulo}</h3>
-                <div className="flex gap-1">
-                  {a.fijado && <Badge tono="oro">Fijado</Badge>}
-                  {a.visibleJugador && <Badge tono="pitch">Visible al jugador</Badge>}
-                </div>
-              </div>
-              <p className="mt-1 text-sm text-muted">{a.cuerpo}</p>
-              <p className="mt-2 text-[11px] text-muted">
-                {a.categoriaId ? nombreCat.get(a.categoriaId) ?? "Categoría" : "Global"} ·{" "}
-                {new Date(a.createdAt).toLocaleDateString("es")}
-              </p>
-            </Card>
-          ))
-        )}
+        <ListaAnuncios anuncios={anuncios} nombreCat={Object.fromEntries(nombreCat)} />
       </div>
     </div>
   );

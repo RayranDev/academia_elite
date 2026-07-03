@@ -21,7 +21,10 @@ import {
   crearAnuncio,
   listarAnunciosParaCategorias,
   listarAnunciosEscuela,
+  obtenerAnuncio,
+  borrarAnuncio,
 } from "@/repositories/anuncio.repository";
+import { registrarAuditoria } from "@/services/audit.service";
 
 type JugadorAcc = NonNullable<
   Awaited<ReturnType<typeof obtenerJugadorParaFoto>>
@@ -252,6 +255,37 @@ export interface AnuncioDTO {
   visibleJugador: boolean;
   fijado: boolean;
   createdAt: string;
+}
+
+/**
+ * Elimina un anuncio. El DT solo puede borrar los de SUS categorías (no los
+ * globales de la escuela ni los de otras categorías); la escuela, cualquiera del
+ * tenant. Auditado.
+ */
+export async function eliminarAnuncio(
+  ctx: AuthContext,
+  anuncioId: string,
+): Promise<void> {
+  requireRole(ctx, ["DT", "ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  const anuncio = await obtenerAnuncio(escuelaId, anuncioId);
+  if (!anuncio) throw new NotFoundError("Anuncio no encontrado.");
+
+  if (ctx.rol === "DT") {
+    if (!ctx.entrenadorId) throw new ForbiddenError();
+    const cats = await categoriaIdsDeEntrenador(ctx.entrenadorId);
+    if (!anuncio.categoriaId || !cats.includes(anuncio.categoriaId)) {
+      throw new ForbiddenError();
+    }
+  }
+
+  await borrarAnuncio(escuelaId, anuncioId);
+  await registrarAuditoria(ctx, {
+    accion: "ELIMINAR_ANUNCIO",
+    entidad: "Anuncio",
+    entidadId: anuncioId,
+    escuelaId,
+  });
 }
 
 export async function listarAnuncios(ctx: AuthContext): Promise<AnuncioDTO[]> {

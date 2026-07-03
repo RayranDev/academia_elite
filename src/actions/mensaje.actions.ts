@@ -13,6 +13,7 @@ import {
   crearConversacion,
   responder,
   publicarAnuncio,
+  eliminarAnuncio,
 } from "@/services/mensaje.service";
 import { marcarNotificacionLeida } from "@/services/notificacion.service";
 
@@ -77,6 +78,25 @@ export async function publicarAnuncioAction(formData: FormData): Promise<void> {
   });
   revalidatePath("/dt/mensajes");
   revalidatePath("/escuela/anuncios");
+}
+
+export async function eliminarAnuncioAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const id = formData.get("anuncioId");
+    if (typeof id !== "string" || !id) {
+      throw new ValidationError("Anuncio inválido.");
+    }
+    await eliminarAnuncio(ctx, id);
+    revalidatePath("/dt/mensajes");
+    revalidatePath("/escuela/anuncios");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function marcarNotificacionLeidaAction(
