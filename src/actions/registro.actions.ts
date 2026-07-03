@@ -8,12 +8,11 @@ import { rateLimit } from "@/lib/rate-limit";
 import { registroSchema, vincularHijoSchema } from "@/lib/validators/registro";
 import { registrarConCodigo, registrarPadreYVincular } from "@/services/registro.service";
 import { emitirVerificacion } from "@/services/recuperacion.service";
-import { urlBase } from "@/lib/url";
 
-/** Envía (best-effort) el correo de verificación. No falla el registro. */
+/** Envía (best-effort) el código de verificación. No falla el registro. */
 async function avisarVerificacion(email: string): Promise<void> {
   try {
-    await emitirVerificacion(email, await urlBase());
+    await emitirVerificacion(email);
   } catch (e) {
     console.error("[registro] no se pudo enviar la verificación:", e);
   }

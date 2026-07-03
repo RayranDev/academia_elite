@@ -46,46 +46,57 @@ function enlaceCrudo(url: string): string {
   return `<p style="font-size:12px;color:#9ca3af;word-break:break-all;">${url}</p>`;
 }
 
-/** Alta de cuenta: link para que el responsable fije su propia contraseña. */
-export function setPassword(nombre: string, url: string): Plantilla {
+/** Muestra un código de 6 dígitos grande y legible. */
+function bloqueCodigo(codigo: string): string {
+  return `<p style="text-align:center;font-size:32px;font-weight:800;letter-spacing:8px;color:#4ade80;margin:16px 0;">${escapar(codigo)}</p>`;
+}
+
+/**
+ * Alta de cuenta: código para que el responsable fije su propia contraseña.
+ * `url` lleva a la página de activación con el correo precargado (comodidad); la
+ * seguridad la da el código, que hay que tipear (no es un enlace clickeable que
+ * abra la cuenta desde un buzón ajeno).
+ */
+export function setPassword(nombre: string, codigo: string, url: string): Plantilla {
   return {
-    subject: "Activá tu cuenta en Academia Elite",
+    subject: `${codigo} — Activá tu cuenta en Academia Elite`,
     html: layout(
       `Hola ${escapar(nombre)}, activá tu cuenta`,
-      `<p>Se creó una cuenta para vos en Academia Elite. Para empezar, fijá tu contraseña con este botón (el enlace vence en 24 horas y es de un solo uso):</p>
-       ${boton("Fijar mi contraseña", url)}
+      `<p>Se creó una cuenta para vos en Academia Elite. Ingresá este código para fijar tu contraseña (vence en 24 horas y es de un solo uso):</p>
+       ${bloqueCodigo(codigo)}
+       <p>Podés hacerlo desde este enlace (te lleva con el correo ya cargado; el código lo ingresás vos):</p>
+       ${boton("Activar mi cuenta", url)}
        ${enlaceCrudo(url)}`,
     ),
-    text: `Hola ${nombre}, activá tu cuenta en Academia Elite fijando tu contraseña:\n${url}\n(El enlace vence en 24 horas y es de un solo uso.)`,
+    text: `Hola ${nombre}, activá tu cuenta en Academia Elite.\nTu código para fijar la contraseña es: ${codigo}\n(Vence en 24 horas y es de un solo uso.)\nActivá acá: ${url}`,
   };
 }
 
-/** Recuperación: link para restablecer la contraseña. */
-export function recuperacion(url: string): Plantilla {
+/** Recuperación: código para restablecer la contraseña. */
+export function recuperacion(codigo: string): Plantilla {
   return {
-    subject: "Restablecé tu contraseña — Academia Elite",
+    subject: `${codigo} — Restablecé tu contraseña — Academia Elite`,
     html: layout(
       "Restablecé tu contraseña",
-      `<p>Pediste restablecer tu contraseña. Hacé clic abajo para elegir una nueva (el enlace vence en 30 minutos y es de un solo uso):</p>
-       ${boton("Cambiar mi contraseña", url)}
-       ${enlaceCrudo(url)}
+      `<p>Pediste restablecer tu contraseña. Ingresá este código para elegir una nueva (vence en 30 minutos y es de un solo uso):</p>
+       ${bloqueCodigo(codigo)}
        <p style="color:#9ca3af;">Si no fuiste vos, ignorá este correo: tu contraseña no cambia.</p>`,
     ),
-    text: `Restablecé tu contraseña en Academia Elite:\n${url}\n(El enlace vence en 30 minutos y es de un solo uso. Si no fuiste vos, ignoralo.)`,
+    text: `Restablecé tu contraseña en Academia Elite.\nTu código es: ${codigo}\n(Vence en 30 minutos y es de un solo uso. Si no fuiste vos, ignoralo.)`,
   };
 }
 
-/** Verificación de correo tras registro. */
-export function verificacion(nombre: string, url: string): Plantilla {
+/** Verificación de correo tras registro (código). */
+export function verificacion(nombre: string, codigo: string): Plantilla {
   return {
-    subject: "Verificá tu correo — Academia Elite",
+    subject: `${codigo} — Verificá tu correo — Academia Elite`,
     html: layout(
       `Hola ${escapar(nombre)}, confirmá tu correo`,
-      `<p>Gracias por registrarte. Confirmá que este correo es tuyo con el botón de abajo:</p>
-       ${boton("Verificar mi correo", url)}
-       ${enlaceCrudo(url)}`,
+      `<p>Gracias por registrarte. Ingresá este código en la app para confirmar que este correo es tuyo (vence en 48 horas):</p>
+       ${bloqueCodigo(codigo)}
+       <p style="color:#9ca3af;">Si no fuiste vos, ignorá este correo.</p>`,
     ),
-    text: `Hola ${nombre}, verificá tu correo en Academia Elite:\n${url}`,
+    text: `Hola ${nombre}, verificá tu correo en Academia Elite.\nTu código es: ${codigo}\n(Vence en 48 horas.)`,
   };
 }
 

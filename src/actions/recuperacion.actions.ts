@@ -2,17 +2,17 @@
 
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rate-limit";
-import { urlBase } from "@/lib/url";
 import { requireAuthContext } from "@/lib/auth/session";
 import {
   solicitarRecuperacion,
-  fijarPasswordConToken,
-  verificarEmailConToken,
+  fijarPasswordConCodigo,
+  verificarMiEmailConCodigo,
   reenviarVerificacion,
 } from "@/services/recuperacion.service";
 import {
   solicitarRecuperacionSchema,
   fijarPasswordSchema,
+  verificarCodigoSchema,
 } from "@/lib/validators/recuperacion";
 import { mapError, type ActionResult } from "@/lib/action-result";
 
@@ -40,7 +40,7 @@ export async function recuperarPasswordAction(
     );
     if (limit.ok) {
       try {
-        await solicitarRecuperacion(parsed.data.email, await urlBase());
+        await solicitarRecuperacion(parsed.data.email);
       } catch (e) {
         // No revelamos fallos internos: el flujo siempre responde genérico.
         console.error("[recuperar] error:", e);
@@ -51,13 +51,14 @@ export async function recuperarPasswordAction(
   return { ok: true };
 }
 
-/** Fija la nueva contraseña desde el enlace (recuperación o set-password). */
+/** Fija la nueva contraseña con el código (recuperación o alta de cuenta). */
 export async function fijarPasswordAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
   const parsed = fijarPasswordSchema.safeParse({
-    token: formData.get("token"),
+    email: formData.get("email"),
+    codigo: formData.get("codigo"),
     password: formData.get("password"),
     confirmacion: formData.get("confirmacion"),
   });
@@ -68,15 +69,32 @@ export async function fijarPasswordAction(
     };
   }
 
+  // Rate limit por IP+email: acota el intento de fuerza bruta del código además
+  // del contador de intentos por token.
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+  const limit = await rateLimit(
+    `fijarpw:${ip}:${parsed.data.email}`,
+    10,
+    15 * 60_000,
+  );
+  if (!limit.ok) {
+    return { ok: false, error: "Demasiados intentos. Esperá un momento." };
+  }
+
   try {
-    await fijarPasswordConToken(parsed.data.token, parsed.data.password);
+    await fijarPasswordConCodigo(
+      parsed.data.email,
+      parsed.data.codigo,
+      parsed.data.password,
+    );
     return { ok: true };
   } catch (e) {
     return mapError(e);
   }
 }
 
-/** Reenvía el correo de verificación al usuario logueado (rate-limited). */
+/** Reenvía el código de verificación al usuario logueado (rate-limited). */
 export async function reenviarVerificacionAction(): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
@@ -84,21 +102,36 @@ export async function reenviarVerificacionAction(): Promise<ActionResult> {
     if (!limit.ok) {
       return { ok: false, error: "Esperá un momento antes de reenviar." };
     }
-    await reenviarVerificacion(ctx.userId, await urlBase());
+    await reenviarVerificacion(ctx.userId);
     return { ok: true };
   } catch (e) {
     return mapError(e);
   }
 }
 
-/** Confirma el correo desde el enlace de verificación. */
-export async function verificarEmailAction(
-  token: string,
-): Promise<{ ok: boolean }> {
+/** Confirma el correo del usuario logueado con el código que recibió. */
+export async function verificarMiEmailAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
   try {
-    return { ok: await verificarEmailConToken(token) };
+    const ctx = await requireAuthContext();
+    const limit = await rateLimit(`verifemail:${ctx.userId}`, 10, 30 * 60_000);
+    if (!limit.ok) {
+      return { ok: false, error: "Demasiados intentos. Esperá un momento." };
+    }
+    const parsed = verificarCodigoSchema.safeParse({
+      codigo: formData.get("codigo"),
+    });
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Código inválido.",
+      };
+    }
+    await verificarMiEmailConCodigo(ctx.userId, parsed.data.codigo);
+    return { ok: true };
   } catch (e) {
-    console.error("[verificar] error:", e);
-    return { ok: false };
+    return mapError(e);
   }
 }

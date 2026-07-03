@@ -10,27 +10,28 @@ import * as plantillas from "@/lib/email/plantillas";
  * reenvíos) vive en sus acciones/servicios, no acá: este módulo solo envía.
  */
 
-/** Alta de cuenta: link de un solo uso para que el responsable fije su contraseña. */
+/** Alta de cuenta: código para que el responsable fije su contraseña (+ enlace de comodidad). */
 export async function enviarSetPassword(
   to: string,
   nombre: string,
+  codigo: string,
   url: string,
 ): Promise<void> {
-  await enviarEmail({ to, ...plantillas.setPassword(nombre, url) });
+  await enviarEmail({ to, ...plantillas.setPassword(nombre, codigo, url) });
 }
 
-/** Recuperación de contraseña. */
-export async function enviarRecuperacion(to: string, url: string): Promise<void> {
-  await enviarEmail({ to, ...plantillas.recuperacion(url) });
+/** Recuperación de contraseña (código). */
+export async function enviarRecuperacion(to: string, codigo: string): Promise<void> {
+  await enviarEmail({ to, ...plantillas.recuperacion(codigo) });
 }
 
-/** Verificación de correo tras el registro. */
+/** Verificación de correo tras el registro (código). */
 export async function enviarVerificacion(
   to: string,
   nombre: string,
-  url: string,
+  codigo: string,
 ): Promise<void> {
-  await enviarEmail({ to, ...plantillas.verificacion(nombre, url) });
+  await enviarEmail({ to, ...plantillas.verificacion(nombre, codigo) });
 }
 
 /** Código de un solo uso para login/acción sensible. */

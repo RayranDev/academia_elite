@@ -1,15 +1,21 @@
 import { z } from "zod";
 import { passwordSchema } from "@/lib/validators/auth";
 
-/** Pedir el enlace de recuperación: solo el email. */
+const codigoSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, { error: "El código son 6 dígitos." });
+
+/** Pedir el código de recuperación: solo el email. */
 export const solicitarRecuperacionSchema = z.object({
   email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
 });
 
-/** Fijar una contraseña nueva desde un enlace (recuperación o alta de cuenta). */
+/** Fijar una contraseña nueva con el código (recuperación o alta de cuenta). */
 export const fijarPasswordSchema = z
   .object({
-    token: z.string().min(10, { error: "Enlace inválido." }),
+    email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+    codigo: codigoSchema,
     password: passwordSchema,
     confirmacion: z.string(),
   })
@@ -17,3 +23,8 @@ export const fijarPasswordSchema = z
     error: "Las contraseñas no coinciden.",
     path: ["confirmacion"],
   });
+
+/** Confirmar el correo (usuario logueado) con su código. */
+export const verificarCodigoSchema = z.object({
+  codigo: codigoSchema,
+});

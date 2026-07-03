@@ -7,13 +7,14 @@ import {
 } from "@/repositories/user.repository";
 import {
   crearTokenAuth,
-  buscarTokenVigente,
+  buscarTokenVigenteDe,
   marcarTokenUsado,
   invalidarTokensDe,
+  incrementarIntentos,
   type TipoTokenAuth,
 } from "@/repositories/token-auth.repository";
 import { crearAuditGlobal } from "@/repositories/audit.repository";
-import { generarToken, hashToken } from "@/lib/tokens";
+import { generarOtp, hashToken } from "@/lib/tokens";
 import { hashPassword, isCommonPassword } from "@/lib/auth/password";
 import {
   enviarRecuperacion,
@@ -23,51 +24,58 @@ import {
 
 /**
  * Flujos de auth por correo (Capa 3): recuperación, alta de cuenta
- * (set-password) y verificación de email. Comparten la misma máquina de tokens
- * de un solo uso.
+ * (set-password) y verificación de email. Todos usan CÓDIGO OTP de 6 dígitos, no
+ * enlaces: un código hay que tipearlo de vuelta en el flujo, así un correo
+ * equivocado no deja un botón clickeable que tome control de la cuenta (dato
+ * sensible: son familias de menores).
  */
 
-type TipoEnlace = "RECUPERACION" | "SET_PASSWORD" | "VERIFICACION_EMAIL";
+type TipoCodigo = "RECUPERACION" | "SET_PASSWORD" | "VERIFICACION_EMAIL";
 
-const TTL: Record<TipoEnlace, number> = {
+const TTL: Record<TipoCodigo, number> = {
   RECUPERACION: 30 * 60 * 1000, // 30 min
   SET_PASSWORD: 24 * 60 * 60 * 1000, // 24 h
   VERIFICACION_EMAIL: 48 * 60 * 60 * 1000, // 48 h
 };
 
-/** Emite un token de enlace (invalidando los previos del mismo tipo). */
-async function emitirEnlace(
-  userId: string,
-  tipo: TipoEnlace,
-): Promise<string> {
+// Intentos fallidos por código antes de invalidarlo de facto (anti-fuerza-bruta,
+// persistido en el token; la primera barrera es el rate limit de la acción).
+const MAX_INTENTOS = 5;
+
+// El hash incluye el userId para que el tokenHash (@unique) no colisione entre
+// usuarios que reciban el mismo código de 6 dígitos.
+function hashCodigo(userId: string, codigo: string): string {
+  return hashToken(`${userId}:${codigo}`);
+}
+
+/** Emite un código (invalidando los previos del mismo tipo). Devuelve el código. */
+async function emitirCodigo(userId: string, tipo: TipoCodigo): Promise<string> {
   await invalidarTokensDe(userId, tipo);
-  const token = generarToken();
+  const codigo = generarOtp();
   await crearTokenAuth({
     userId,
     tipo,
-    tokenHash: hashToken(token),
+    tokenHash: hashCodigo(userId, codigo),
     expiraEn: new Date(Date.now() + TTL[tipo]),
   });
-  return token;
+  return codigo;
 }
 
 /**
  * "Olvidé mi contraseña". NO revela si el correo existe (anti-enumeración):
  * el llamador siempre responde con un mensaje genérico.
  */
-export async function solicitarRecuperacion(
-  email: string,
-  urlBase: string,
-): Promise<void> {
+export async function solicitarRecuperacion(email: string): Promise<void> {
   const user = await buscarUserPorEmail(email);
   if (!user || !user.activo) return;
-  const token = await emitirEnlace(user.id, "RECUPERACION");
-  await enviarRecuperacion(user.email, `${urlBase}/recuperar/${token}`);
+  const codigo = await emitirCodigo(user.id, "RECUPERACION");
+  await enviarRecuperacion(user.email, codigo);
 }
 
 /**
- * Alta de cuenta: envía un link para que el responsable fije su contraseña.
- * No revela nada al llamador (silencioso si el usuario no existe).
+ * Alta de cuenta: envía un código para que el responsable fije su contraseña,
+ * más un enlace de comodidad a la página de activación con el correo precargado
+ * (el código lo tipea el usuario). Silencioso si el usuario no existe.
  */
 export async function emitirSetPassword(
   email: string,
@@ -75,26 +83,22 @@ export async function emitirSetPassword(
 ): Promise<void> {
   const user = await buscarUserPorEmail(email);
   if (!user) return;
-  const token = await emitirEnlace(user.id, "SET_PASSWORD");
-  await enviarSetPassword(user.email, user.nombre, `${urlBase}/recuperar/${token}`);
+  const codigo = await emitirCodigo(user.id, "SET_PASSWORD");
+  const url = `${urlBase}/recuperar?paso=codigo&email=${encodeURIComponent(
+    user.email,
+  )}`;
+  await enviarSetPassword(user.email, user.nombre, codigo, url);
 }
 
 /**
- * Registro: envía un correo para verificar la dirección. Silencioso si el
+ * Registro: envía un código para verificar la dirección. Silencioso si el
  * usuario no existe o ya está verificado.
  */
-export async function emitirVerificacion(
-  email: string,
-  urlBase: string,
-): Promise<void> {
+export async function emitirVerificacion(email: string): Promise<void> {
   const user = await buscarUserPorEmail(email);
   if (!user || user.emailVerificado) return;
-  const token = await emitirEnlace(user.id, "VERIFICACION_EMAIL");
-  await enviarVerificacion(
-    user.email,
-    user.nombre,
-    `${urlBase}/verificar/${token}`,
-  );
+  const codigo = await emitirCodigo(user.id, "VERIFICACION_EMAIL");
+  await enviarVerificacion(user.email, user.nombre, codigo);
 }
 
 /** ¿El usuario tiene el correo verificado? (aviso suave del panel). */
@@ -104,29 +108,34 @@ export async function emailVerificadoDe(userId: string): Promise<boolean> {
   return user?.emailVerificado ?? true;
 }
 
-/** Reenvía el correo de verificación al usuario logueado (si falta verificar). */
-export async function reenviarVerificacion(
-  userId: string,
-  urlBase: string,
-): Promise<void> {
+/** Reenvía el código de verificación al usuario logueado (si falta verificar). */
+export async function reenviarVerificacion(userId: string): Promise<void> {
   const user = await obtenerUserSeguro(userId);
   if (!user || user.emailVerificado) return;
-  await emitirVerificacion(user.email, urlBase);
+  await emitirVerificacion(user.email);
 }
 
 /**
- * Confirma el correo a partir del token de verificación. Devuelve true si lo
- * verificó (o ya estaba), false si el enlace no sirve. No lanza para que la
- * página pueda mostrar un estado amable.
+ * Confirma el correo del usuario LOGUEADO con su código. Lanza ValidationError
+ * si el código es incorrecto o venció (contando intentos). Auditado.
  */
-export async function verificarEmailConToken(token: string): Promise<boolean> {
-  const registro = await buscarTokenVigente(
-    hashToken(token),
-    "VERIFICACION_EMAIL",
-  );
-  if (!registro) return false;
-  const user = await obtenerUserSeguro(registro.userId);
-  if (!user) return false;
+export async function verificarMiEmailConCodigo(
+  userId: string,
+  codigo: string,
+): Promise<void> {
+  const registro = await buscarTokenVigenteDe(userId, "VERIFICACION_EMAIL");
+  if (!registro || registro.intentos >= MAX_INTENTOS) {
+    throw new ValidationError(
+      "El código no es válido o venció. Pedí uno nuevo.",
+    );
+  }
+  if (registro.tokenHash !== hashCodigo(userId, codigo)) {
+    await incrementarIntentos(registro.id);
+    throw new ValidationError("Código incorrecto.");
+  }
+  const user = await obtenerUserSeguro(userId);
+  if (!user) throw new ValidationError("Sesión inválida.");
+
   await marcarEmailVerificado(user.id);
   await marcarTokenUsado(registro.id);
   await crearAuditGlobal({
@@ -137,44 +146,47 @@ export async function verificarEmailConToken(token: string): Promise<boolean> {
     entidadId: user.id,
     escuelaId: user.escuelaId,
   });
-  return true;
 }
 
 /**
- * Fija una contraseña nueva validando el token del enlace. Acepta tanto
- * recuperación como set-password. Marca el token usado y, como el usuario probó
- * acceso al correo, deja el email como verificado. Auditado (sin sesión: el
- * actor es el propio usuario).
+ * Fija una contraseña nueva validando el CÓDIGO (recuperación o alta de cuenta).
+ * Como el usuario probó acceso al correo (recibió el código), el email queda
+ * verificado. Anti-fuerza-bruta por intentos del token. Auditado.
  */
-export async function fijarPasswordConToken(
-  token: string,
+export async function fijarPasswordConCodigo(
+  email: string,
+  codigo: string,
   nueva: string,
 ): Promise<void> {
   if (isCommonPassword(nueva)) {
     throw new ValidationError("Esa contraseña es demasiado común, elige otra.");
   }
 
-  const hash = hashToken(token);
-  const tipos: TipoTokenAuth[] = ["RECUPERACION", "SET_PASSWORD"];
-  let registro: Awaited<ReturnType<typeof buscarTokenVigente>> = null;
-  for (const tipo of tipos) {
-    registro = await buscarTokenVigente(hash, tipo);
-    if (registro) break;
-  }
-  if (!registro) {
-    throw new ValidationError(
-      "El enlace no es válido o ya venció. Pedí uno nuevo.",
-    );
-  }
+  const user = await buscarUserPorEmail(email);
+  // Mensaje genérico e idéntico en todos los caminos: no revela si el correo
+  // existe ni por qué falla (anti-enumeración / anti-fuerza-bruta).
+  const invalido = new ValidationError(
+    "El código no es válido o venció. Pedí uno nuevo.",
+  );
+  if (!user || !user.activo) throw invalido;
 
-  const user = await obtenerUserSeguro(registro.userId);
-  if (!user || !user.activo) {
-    throw new ValidationError("La cuenta no está disponible.");
+  const hash = hashCodigo(user.id, codigo);
+  const tipos: TipoTokenAuth[] = ["SET_PASSWORD", "RECUPERACION"];
+  let registro: Awaited<ReturnType<typeof buscarTokenVigenteDe>> = null;
+  for (const tipo of tipos) {
+    const reg = await buscarTokenVigenteDe(user.id, tipo);
+    if (!reg || reg.intentos >= MAX_INTENTOS) continue;
+    if (reg.tokenHash === hash) {
+      registro = reg;
+      break;
+    }
+    await incrementarIntentos(reg.id);
   }
+  if (!registro) throw invalido;
 
   await actualizarPasswordUser(user.id, await hashPassword(nueva));
   await marcarTokenUsado(registro.id);
-  // El usuario probó acceso a su correo al abrir el enlace → email verificado.
+  // El usuario probó acceso a su correo al recibir el código → email verificado.
   await marcarEmailVerificado(user.id);
   await crearAuditGlobal({
     actorId: user.id,
