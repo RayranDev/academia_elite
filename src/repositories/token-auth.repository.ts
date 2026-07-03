@@ -10,13 +10,16 @@ export type TipoTokenAuth =
   | "RECUPERACION"
   | "SET_PASSWORD"
   | "VERIFICACION_EMAIL"
-  | "OTP";
+  | "OTP"
+  | "CAMBIO_EMAIL";
 
 export function crearTokenAuth(input: {
   userId: string;
   tipo: TipoTokenAuth;
   tokenHash: string;
   expiraEn: Date;
+  // Solo para CAMBIO_EMAIL: correo nuevo a aplicar al confirmar el código.
+  emailNuevo?: string;
 }) {
   return db.tokenAuth.create({ data: input });
 }

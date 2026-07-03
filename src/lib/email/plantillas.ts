@@ -103,6 +103,20 @@ export function otp(codigo: string): Plantilla {
   };
 }
 
+/** Código para confirmar un cambio de correo (se envía al correo NUEVO). */
+export function cambioEmail(codigo: string): Plantilla {
+  return {
+    subject: `${codigo} — Confirmá tu nuevo correo en Academia Elite`,
+    html: layout(
+      "Confirmá tu nuevo correo",
+      `<p>Pediste usar este correo en tu cuenta de Academia Elite. Ingresá este código para confirmarlo (vence en 10 minutos):</p>
+       <p style="text-align:center;font-size:32px;font-weight:800;letter-spacing:8px;color:#4ade80;margin:16px 0;">${escapar(codigo)}</p>
+       <p style="color:#9ca3af;">Si no lo solicitaste, ignorá este correo: tu cuenta sigue igual.</p>`,
+    ),
+    text: `Tu código para confirmar el nuevo correo en Academia Elite es: ${codigo}\n(Vence en 10 minutos. Si no lo solicitaste, ignoralo: tu cuenta sigue igual.)`,
+  };
+}
+
 /** Envío de un código de invitación a una familia. */
 export function codigoInvitacion(
   codigo: string,

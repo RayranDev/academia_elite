@@ -53,9 +53,12 @@ model TokenAuth {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tipo      String // enum: RECUPERACION | SET_PASSWORD | VERIFICACION_EMAIL | OTP
+  tipo      String // enum: RECUPERACION | SET_PASSWORD | VERIFICACION_EMAIL | OTP | CAMBIO_EMAIL
   tokenHash String    @unique // SHA-256 del token/código (nunca el texto)
   intentos  Int       @default(0) // guard anti-fuerza-bruta para OTP
+  // Correo pendiente de confirmar (solo tipo CAMBIO_EMAIL): el nuevo email al
+  // que se aplicará el cambio recién cuando el usuario confirme el código.
+  emailNuevo String?
   expiraEn  DateTime
   usadoEn   DateTime?
   createdAt DateTime  @default(now())

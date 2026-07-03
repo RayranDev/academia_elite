@@ -134,6 +134,18 @@ export function buscarUserPorEmail(email: string) {
   });
 }
 
+/**
+ * Aplica el nuevo email tras confirmarlo por código. El email queda verificado
+ * en el acto: el usuario probó que tiene acceso a ese buzón (recibió el código).
+ */
+export function actualizarEmailUser(id: string, email: string) {
+  return db.user.update({
+    where: { id },
+    data: { email, emailVerificado: true, emailVerificadoEn: new Date() },
+    select: { id: true },
+  });
+}
+
 export function marcarEmailVerificado(id: string) {
   return db.user.update({
     where: { id },

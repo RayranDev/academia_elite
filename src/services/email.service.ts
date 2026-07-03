@@ -38,6 +38,14 @@ export async function enviarOtp(to: string, codigo: string): Promise<void> {
   await enviarEmail({ to, ...plantillas.otp(codigo) });
 }
 
+/** Código para confirmar un cambio de correo. Se envía al correo NUEVO. */
+export async function enviarCodigoCambioEmail(
+  to: string,
+  codigo: string,
+): Promise<void> {
+  await enviarEmail({ to, ...plantillas.cambioEmail(codigo) });
+}
+
 /** Envío de un código de invitación a una familia. */
 export async function enviarCodigoInvitacion(
   to: string,
