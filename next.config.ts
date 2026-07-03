@@ -20,59 +20,31 @@ function getLocalIPs(): string[] {
 }
 
 /**
- * Content-Security-Policy (Sección 6.6). Producción es estricta: NUNCA
- * 'unsafe-eval' de forma global. La ÚNICA excepción es `/jugador/perfil`
- * (`allowEval: true`), donde @imgly/background-removal necesita evaluar JS para
- * decodificar la imagen; ahí se sirve una CSP relajada SOLO para esa página.
- * En desarrollo se agrega 'unsafe-eval' + websockets para el HMR de Next.
- * Next inyecta scripts inline, por eso script-src incluye 'unsafe-inline'.
+ * Cabeceras de seguridad NO-CSP (Sección 6.6), globales para todo el sitio.
+ *
+ * La Content-Security-Policy NO se define acá: `headers()` de next.config sólo
+ * ACUMULA cabeceras (no reemplaza), así que dos reglas que se solapan emiten dos
+ * CSP y el navegador se queda con la intersección (la más restrictiva). Eso
+ * rompía el 'unsafe-eval' que @imgly necesita en /jugador/perfil. La CSP se
+ * emite en UN solo lugar y por-ruta desde `src/proxy.ts` (ver ahí).
  */
-function buildCsp(allowEval: boolean): string {
-  const evalSrc = isDev || allowEval ? " 'unsafe-eval'" : "";
-  return [
-    "default-src 'self'",
-    // 'wasm-unsafe-eval' compila el WASM de la remoción de fondo sin habilitar
-    // eval() de JS. blob: cubre los workers de onnxruntime-web. El modelo es
-    // 100% self-hosted (/imgly/): no hay CDN externo.
-    `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:${evalSrc}`,
-    "worker-src 'self' blob:",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    `connect-src 'self' blob:${isDev ? " ws: wss:" : ""}`,
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    ...(!isDev ? ["upgrade-insecure-requests"] : []),
-  ]
-    .join("; ")
-    .concat(";");
-}
-
-function securityHeadersCon(cspValue: string) {
-  return [
-    { key: "Content-Security-Policy", value: cspValue },
-    { key: "X-Frame-Options", value: "DENY" },
-    { key: "X-Content-Type-Options", value: "nosniff" },
-    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-    {
-      key: "Permissions-Policy",
-      value: "camera=(self), microphone=(), geolocation=(), interest-cohort=()",
-    },
-    ...(!isDev
-      ? [
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
-          },
-        ]
-      : []),
-  ];
-}
-
-const securityHeaders = securityHeadersCon(buildCsp(false));
-const securityHeadersPerfil = securityHeadersCon(buildCsp(true));
+const securityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(self), microphone=(), geolocation=(), interest-cohort=()",
+  },
+  ...(!isDev
+    ? [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=63072000; includeSubDomains; preload",
+        },
+      ]
+    : []),
+];
 
 const nextConfig: NextConfig = {
   // `sharp` es un módulo NATIVO: si Next lo bundlea, su binario rompe en el
@@ -102,24 +74,10 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Todo el sitio EXCEPTO /jugador/perfil. Se excluye con negative
-        // lookahead: si /jugador/perfil recibiera TAMBIÉN la CSP estricta, el
-        // navegador combinaría ambas de forma restrictiva y anularía el
-        // 'unsafe-eval' de la CSP relajada.
-        source: "/((?!jugador/perfil).*)",
+        // Cabeceras de seguridad no-CSP para todo el sitio (incluidas rutas
+        // /api y estáticos). La CSP se emite aparte desde src/proxy.ts.
+        source: "/(.*)",
         headers: securityHeaders,
-      },
-      {
-        // /jugador/perfil: la remoción de fondo (@imgly) necesita 'unsafe-eval'.
-        // Se sirve la CSP relajada SOLO acá. Página autenticada donde el padre
-        // procesa su propia foto en su dispositivo.
-        //
-        // NO se ponen COOP/COEP acá a propósito: al marcar la página como
-        // crossOriginIsolated, onnxruntime-web (motor de @imgly) intenta el
-        // camino multi-thread con SharedArrayBuffer/workers y FALLA. Sin ese
-        // aislamiento corre single-thread (unos segundos más lento) y funciona.
-        source: "/jugador/perfil",
-        headers: securityHeadersPerfil,
       },
     ];
   },
