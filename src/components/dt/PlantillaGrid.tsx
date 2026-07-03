@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Users } from "lucide-react";
+import { Search, Users, Camera, CameraOff } from "lucide-react";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge } from "@/components/ui/Badge";
@@ -105,11 +105,49 @@ export function PlantillaGrid({
                 ) : (
                   <span className="text-[10px] text-muted">{j.categoriaNombre}</span>
                 )}
+                <ConsentimientoFoto tieneFoto={j.tieneFoto} consentimiento={j.consentimiento} />
               </div>
             </Link>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Estado del consentimiento de foto del responsable, para que el DT sepa de un
+ * vistazo de quién puede ver/usar la foto. Con consentimiento la carta muestra
+ * la foto real; sin él, el avatar.
+ */
+function ConsentimientoFoto({
+  tieneFoto,
+  consentimiento,
+}: {
+  tieneFoto: boolean;
+  consentimiento: boolean;
+}) {
+  if (consentimiento) {
+    return (
+      <div
+        className="mt-0.5 flex items-center justify-center gap-0.5 text-[10px] text-brand"
+        title="Foto autorizada por el responsable"
+      >
+        <Camera className="h-3 w-3" aria-hidden /> Autorizada
+      </div>
+    );
+  }
+  return (
+    <div
+      className="mt-0.5 flex items-center justify-center gap-0.5 text-[10px] text-muted"
+      title={
+        tieneFoto
+          ? "Hay foto cargada pero el responsable no autorizó mostrarla"
+          : "El responsable no autorizó la foto"
+      }
+    >
+      <CameraOff className="h-3 w-3" aria-hidden />{" "}
+      {tieneFoto ? "Sin autorizar" : "No autorizada"}
     </div>
   );
 }

@@ -26,6 +26,23 @@ export interface PlantillaItemDTO {
   card: PlayerCardData | null; // null si aún no tiene evaluación
   ultimaEvaluacion: string | null;
   vencida: boolean;
+  tieneFoto: boolean;
+  consentimiento: boolean;
+}
+
+/**
+ * URL de la foto para la carta, SOLO si el responsable dio consentimiento (la
+ * API `/api/archivos/foto` igual reautoriza al staff con consentimiento). Sin
+ * consentimiento devuelve null → la carta usa el avatar. `?v=` es cache-buster.
+ */
+function fotoCartaUrl(j: {
+  id: string;
+  fotoUrl: string | null;
+  consentimientoFoto: boolean;
+}): string | null {
+  return j.consentimientoFoto && j.fotoUrl
+    ? `/api/archivos/foto/${j.id}?v=${encodeURIComponent(j.fotoUrl)}`
+    : null;
 }
 
 export interface SolicitudDTO {
@@ -81,10 +98,12 @@ export async function listarPlantillaDt(
       posicion: j.posicion as Posicion,
       categoriaId: j.categoriaId,
       categoriaNombre: j.categoria.nombre,
-      // La foto se sirve por API protegida; en la mini-carta se usa avatar.
-      card: stats ? aPlayerCardData(j, stats, null) : null,
+      // Foto real si hay consentimiento; si no, avatar (fotoCartaUrl → null).
+      card: stats ? aPlayerCardData(j, stats, fotoCartaUrl(j)) : null,
       ultimaEvaluacion: stats ? stats.createdAt.toISOString() : null,
       vencida,
+      tieneFoto: !!j.fotoUrl,
+      consentimiento: j.consentimientoFoto,
     };
   });
 }
@@ -178,7 +197,7 @@ export async function obtenerDetalleJugadorDt(
     dorsal: jugador.dorsal,
     categoriaNombre: jugador.categoria.nombre,
     estado: jugador.estado,
-    card: stats ? aPlayerCardData(jugador, stats, null) : null,
+    card: stats ? aPlayerCardData(jugador, stats, fotoCartaUrl(jugador)) : null,
     historial: evaluaciones
       .filter((e) => e.statsCalculados)
       .map((e) => ({
