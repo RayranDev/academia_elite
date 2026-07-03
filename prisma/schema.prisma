@@ -35,6 +35,10 @@ model User {
   // Verificación de correo (G-email): el responsable confirma su correo.
   emailVerificado    Boolean   @default(false)
   emailVerificadoEn  DateTime?
+  // Habeas data: prueba de aceptación de la Política de Tratamiento de Datos al
+  // registrarse (art. 6 Ley 1581 — autorización conservada con fecha y versión).
+  terminosAceptadosEn DateTime?
+  terminosVersion     String?
   // Bloqueo de acceso (familias): lo gestionan Escuela y Súper Admin.
   bloqueado        Boolean        @default(false)
   bloqueoTipo      String? // enum: PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO

@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { vincularHijoAction } from "@/actions/registro.actions";
+import { AceptarTerminos } from "@/components/auth/AceptarTerminos";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { ActionResult } from "@/lib/action-result";
@@ -71,6 +72,8 @@ export function VincularHijoForm() {
         <Field name="padreNombre" label="Tu nombre" />
         <Field name="padreEmail" label="Email" type="email" />
         <Field name="password" label="Contraseña (mín. 8)" type="password" />
+
+        <AceptarTerminos />
 
         {state && !state.ok && (
           <p className="text-sm text-alerta" role="alert">

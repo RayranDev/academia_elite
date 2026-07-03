@@ -8,9 +8,14 @@ export function Footer() {
           Academia Elite
         </p>
         <p>Hecho para formar, no para rankear. Sin rankings entre niños.</p>
-        <Link href="/login" className="hover:text-foreground">
-          Iniciar sesión
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/legal" className="hover:text-foreground">
+            Tratamiento de datos
+          </Link>
+          <Link href="/login" className="hover:text-foreground">
+            Iniciar sesión
+          </Link>
+        </div>
       </div>
     </footer>
   );

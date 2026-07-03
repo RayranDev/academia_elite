@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { registrarConCodigoAction } from "@/actions/registro.actions";
+import { AceptarTerminos } from "@/components/auth/AceptarTerminos";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { POSICIONES } from "@/types";
@@ -83,6 +84,8 @@ export function RegistroForm({ codigo }: { codigo: string }) {
             </select>
           </div>
         </div>
+
+        <AceptarTerminos />
 
         {state && !state.ok && (
           <p className="text-sm text-alerta" role="alert">

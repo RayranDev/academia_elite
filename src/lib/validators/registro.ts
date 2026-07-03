@@ -4,6 +4,12 @@ import { passwordSchema } from "@/lib/validators/auth";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 import { formatearNombre } from "@/lib/texto/formatear-nombre";
 
+// Aceptación obligatoria de la Política de Tratamiento de Datos (habeas data). El
+// checkbox del formulario envía "on"; si falta, el registro se rechaza.
+const aceptaTerminosSchema = z.literal("on", {
+  error: "Debés aceptar la Política de Tratamiento de Datos para continuar.",
+});
+
 /**
  * Auto-registro del padre con código de invitación. Crea su cuenta (rol JUGADOR,
  * gestionada por el padre) y el jugador en estado PENDIENTE hasta que el DT apruebe.
@@ -19,6 +25,7 @@ export const registroSchema = z.object({
   jugadorApellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(formatearNombre),
   fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
   posicion: z.enum(POSICIONES),
+  aceptaTerminos: aceptaTerminosSchema,
 });
 
 export type RegistroInput = z.infer<typeof registroSchema>;
@@ -35,6 +42,7 @@ export const vincularHijoSchema = z.object({
   padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
   padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
   password: passwordSchema,
+  aceptaTerminos: aceptaTerminosSchema,
 });
 
 export type VincularHijoInput = z.infer<typeof vincularHijoSchema>;

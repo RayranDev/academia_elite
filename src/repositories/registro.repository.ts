@@ -26,6 +26,8 @@ export function crearPadreYJugadorConCodigo(input: {
   padreEmail: string;
   padrePasswordHash: string;
   padreNombre: string;
+  terminosAceptadosEn: Date;
+  terminosVersion: string;
   jugadorNombre: string;
   jugadorApellido: string;
   fechaNacimiento: Date;
@@ -48,6 +50,8 @@ export function crearPadreYJugadorConCodigo(input: {
         nombre: input.padreNombre,
         rol: "JUGADOR",
         escuelaId: input.escuelaId,
+        terminosAceptadosEn: input.terminosAceptadosEn,
+        terminosVersion: input.terminosVersion,
       },
     });
     await tx.jugador.create({
@@ -84,6 +88,8 @@ export function vincularPadreAJugador(input: {
   padreEmail: string;
   padrePasswordHash: string;
   padreNombre: string;
+  terminosAceptadosEn: Date;
+  terminosVersion: string;
 }): Promise<ResultadoVinculacion> {
   return db.$transaction(async (tx) => {
     const fresco = await tx.jugador.findFirst({
@@ -101,6 +107,8 @@ export function vincularPadreAJugador(input: {
         nombre: input.padreNombre,
         rol: "JUGADOR",
         escuelaId: input.escuelaId,
+        terminosAceptadosEn: input.terminosAceptadosEn,
+        terminosVersion: input.terminosVersion,
       },
     });
     // tenant-global: el jugador ya fue verificado por id + escuelaId en el

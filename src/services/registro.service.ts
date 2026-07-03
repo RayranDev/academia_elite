@@ -1,5 +1,6 @@
 import { ValidationError } from "@/lib/errors";
 import { hashPassword } from "@/lib/auth/password";
+import { TERMINOS_VERSION } from "@/lib/legal";
 import { obtenerCodigoPorValor } from "@/repositories/codigo.repository";
 import {
   emailExisteGlobal,
@@ -40,6 +41,8 @@ export async function registrarConCodigo(input: RegistroInput): Promise<void> {
     padreEmail: input.padreEmail,
     padrePasswordHash: await hashPassword(input.password),
     padreNombre: input.padreNombre,
+    terminosAceptadosEn: new Date(),
+    terminosVersion: TERMINOS_VERSION,
     jugadorNombre: input.jugadorNombre,
     jugadorApellido: input.jugadorApellido,
     fechaNacimiento: input.fechaNacimiento,
@@ -83,6 +86,8 @@ export async function registrarPadreYVincular(input: VincularHijoInput): Promise
     padreEmail: input.padreEmail,
     padrePasswordHash: await hashPassword(input.password),
     padreNombre: input.padreNombre,
+    terminosAceptadosEn: new Date(),
+    terminosVersion: TERMINOS_VERSION,
   });
   if (!resultado.ok) {
     throw new ValidationError("Ese jugador ya tiene un padre/tutor vinculado.");
