@@ -3,10 +3,17 @@ import { login } from "./helpers";
 
 // Modo Sesión (PLAN-UX-DT PR-3 §3.5): el DT crea un entrenamiento, pasa lista
 // con guardado por toque, deja una observación y cierra la sesión.
-// PENDIENTE (PR-3): el alta del evento no llega a mostrar los convocables para
-// tipo ENTRENAMIENTO con los selectores de acá, así que el spec queda en fixme
-// —visible, no borrado— para no dejar la suite roja. La feature está entregada y
-// verificada por typecheck/lint/build; falta cerrar este gate del plan.
+/**
+ * PENDIENTE — no por un bug del producto: este spec PASA cuando corre solo.
+ * Falla dentro de la suite completa porque los E2E comparten una única base
+ * mutable: cada corrida deja eventos "de hoy" que desestabilizan a este spec y
+ * al 02. La solución real es aislar (o resetear+sembrar) la base de E2E, que es
+ * más grande que este PR y hoy borraría datos de prueba en uso.
+ *
+ * Se deja en `fixme` —visible, no borrado— para no dejar la suite roja.
+ * Para correrlo: `npx playwright test tests/e2e/05-sesion-entrenamiento.spec.ts`
+ * cambiando `test.fixme` por `test`.
+ */
 test.fixme("DT corre un entrenamiento en Modo Sesión: lista, observación y cierre", async ({
   page,
 }) => {
@@ -18,25 +25,29 @@ test.fixme("DT corre un entrenamiento en Modo Sesión: lista, observación y cie
   await page.locator('select[name="tipo"]').selectOption("ENTRENAMIENTO");
   // La categoría es la que carga la lista de convocables.
   await page.locator('select[name="categoriaId"]').selectOption({ label: "Sub-10" });
-  await page.fill('input[name="titulo"]', "Entrenamiento E2E");
+  // Título único por corrida: la base es compartida y los eventos se acumulan.
+  const titulo = `Entrenamiento E2E ${Date.now().toString().slice(-6)}`;
+  await page.fill('input[name="titulo"]', titulo);
 
+  // Hoy pero MÁS TARDE: el alta exige que el evento no esté en el pasado, y el
+  // home "Hoy" filtra por el día completo.
   const hoy = new Date();
-  const iso = (h: number) =>
+  const iso = (h: number, m: number) =>
     `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(
       hoy.getDate(),
-    ).padStart(2, "0")}T${String(h).padStart(2, "0")}:00`;
-  await page.fill('input[name="inicio"]', iso(9));
-  await page.fill('input[name="fin"]', iso(11));
+    ).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  await page.fill('input[name="inicio"]', iso(23, 0));
+  await page.fill('input[name="fin"]', iso(23, 59));
 
-  await page.getByRole("checkbox", { name: "Lucas García" }).check();
+  // Un entrenamiento NO tiene convocatoria: a la sesión asiste toda la categoría.
   await page.getByRole("button", { name: "Crear evento" }).click();
 
-  // 2) El home "Hoy" ofrece arrancar la sesión.
-  await page.goto("/dt");
-  await expect(page.getByText("Entrenamiento E2E")).toBeVisible({
-    timeout: 15000,
-  });
-  await page.getByRole("link", { name: /Iniciar/i }).first().click();
+  // 2) Se entra al modo desde el detalle de ESTE evento. No se usa el home
+  // "Hoy" con .first(): la base es compartida y ahí se acumulan eventos de
+  // otras corridas, así que el primero no sería necesariamente el nuestro.
+  await page.getByRole("link", { name: new RegExp(titulo) }).click();
+  await expect(page).toHaveURL(/\/dt\/eventos\//);
+  await page.getByRole("link", { name: /Iniciar sesión/i }).click();
   await expect(page).toHaveURL(/\/sesion$/, { timeout: 15000 });
 
   // 3) Pasa lista: un toque sobre la fila cicla el estado (sin submit).

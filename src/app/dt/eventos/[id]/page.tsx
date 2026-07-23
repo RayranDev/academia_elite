@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -68,6 +69,16 @@ export default async function EventoDetallePage({
             {ev.esLocal ? "Local" : "Visitante"} ante {ev.rival}
           </p>
         )}
+        {/* Entrada al Modo Sesión (PLAN-UX-DT PR-3 §3.4): además del home "Hoy",
+            se entra desde acá. Un evento cancelado no se corre. */}
+        {!ev.cancelado && (
+          <Link href={`/dt/eventos/${ev.id}/sesion`} className="mt-3 block">
+            <Button size="lg" className="w-full sm:w-auto">
+              ▶ Iniciar sesión
+            </Button>
+          </Link>
+        )}
+
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <EditarEventoDialog
             evento={{

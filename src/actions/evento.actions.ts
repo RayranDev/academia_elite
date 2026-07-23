@@ -48,6 +48,8 @@ export async function crearEventoAction(
     if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
     await crearEventoDt(ctx, parsed.data);
     revalidatePath("/dt/calendario");
+    // El home "Hoy" lista los eventos del dia: tambien se invalida.
+    revalidatePath("/dt");
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -151,6 +153,8 @@ export async function editarEventoAction(
     await editarEventoDt(ctx, parsed.data.eventoId, parsed.data);
     revalidatePath(`/dt/eventos/${parsed.data.eventoId}`);
     revalidatePath("/dt/calendario");
+    // El home "Hoy" lista los eventos del dia: tambien se invalida.
+    revalidatePath("/dt");
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -166,4 +170,6 @@ export async function cancelarEventoAction(formData: FormData): Promise<void> {
   await cancelarEventoDt(ctx, eventoId);
   revalidatePath(`/dt/eventos/${eventoId}`);
   revalidatePath("/dt/calendario");
+  // El home "Hoy" lista los eventos del dia: tambien se invalida.
+  revalidatePath("/dt");
 }

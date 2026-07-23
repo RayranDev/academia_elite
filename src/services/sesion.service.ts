@@ -104,6 +104,29 @@ export async function obtenerSesionDt(
   const asistencias = new Map(evento.asistencias.map((a) => [a.jugadorId, a]));
   const convocadosIds = new Set(evento.convocados.map((c) => c.jugadorId));
 
+  /**
+   * A quién se le pasa lista:
+   *  - PARTIDO: a los convocados (la convocatoria es una decisión deportiva).
+   *  - Entrenamiento y demás: a TODA la categoría. Esos eventos no tienen
+   *    convocatoria (el alta ni la ofrece), y en un entrenamiento se espera al
+   *    plantel completo: sin esto la lista saldría vacía.
+   */
+  const esPartido = evento.tipo === "PARTIDO";
+  const base = esPartido
+    ? evento.convocados.map((c) => ({
+        jugadorId: c.jugadorId,
+        nombre: c.jugador.nombre,
+        apellido: c.jugador.apellido,
+        confirmacion: c.confirmacion,
+      }))
+    : plantilla.map((j) => ({
+        jugadorId: j.id,
+        nombre: j.nombre,
+        apellido: j.apellido,
+        // Sin convocatoria no hay confirmación de la familia que pre-llenar.
+        confirmacion: "PENDIENTE",
+      }));
+
   return {
     eventoId: evento.id,
     tipo: evento.tipo,
@@ -112,22 +135,22 @@ export async function obtenerSesionDt(
     sesionIniciadaAt: evento.sesionIniciadaAt?.toISOString() ?? null,
     sesionCerradaAt: evento.sesionCerradaAt?.toISOString() ?? null,
     notaSesion: evento.notaSesion,
-    convocados: evento.convocados.map((c) => {
+    convocados: base.map((c) => {
       const a = asistencias.get(c.jugadorId);
       return {
-        jugadorId: c.jugadorId,
-        nombre: c.jugador.nombre,
-        apellido: c.jugador.apellido,
-        confirmacion: c.confirmacion,
+        ...c,
         estado: a ? estadoDe(a) : null,
         llegoTarde: a?.llegoTarde ?? false,
         salioAntes: a?.salioAntes ?? false,
         agregadoEnCancha: a?.agregadoEnCancha ?? false,
       };
     }),
-    disponibles: plantilla
-      .filter((j) => !convocadosIds.has(j.id))
-      .map((j) => ({ id: j.id, nombre: j.nombre, apellido: j.apellido })),
+    // Solo tiene sentido sumar en cancha cuando hubo convocatoria previa.
+    disponibles: esPartido
+      ? plantilla
+          .filter((j) => !convocadosIds.has(j.id))
+          .map((j) => ({ id: j.id, nombre: j.nombre, apellido: j.apellido }))
+      : [],
   };
 }
 
