@@ -1,10 +1,15 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { requireAuthContext } from "@/lib/auth/session";
+import { obtenerSesionDt } from "@/services/sesion.service";
+import { DomainError } from "@/lib/errors";
+import { ModoSesion } from "@/components/dt/sesion/ModoSesion";
+
+export const metadata = { title: "Sesión — Academia Elite" };
 
 /**
- * Placeholder del Modo Sesión (PLAN-UX-DT PR-3). El home "Hoy" ya apunta acá,
- * así que hasta que exista el modo full-screen redirigimos al detalle del evento
- * en vez de servir un 404 en el botón principal del DT. PR-3 reemplaza este
- * archivo por la ruta real.
+ * Modo Sesión full-screen (PLAN-UX-DT PR-3 §3.2). El guard de rol del layout de
+ * /dt sigue aplicando; el servicio revalida que el evento sea de una categoría
+ * del DT.
  */
 export default async function SesionPage({
   params,
@@ -12,5 +17,15 @@ export default async function SesionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/dt/eventos/${id}`);
+  const ctx = await requireAuthContext();
+
+  let sesion;
+  try {
+    sesion = await obtenerSesionDt(ctx, id);
+  } catch (e) {
+    if (e instanceof DomainError) notFound();
+    throw e;
+  }
+
+  return <ModoSesion sesion={sesion} />;
 }

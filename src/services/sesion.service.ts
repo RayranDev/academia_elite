@@ -10,7 +10,10 @@ import {
   ajustarGolVivo,
   upsertTarjeta,
 } from "@/repositories/evento.repository";
-import { obtenerJugador } from "@/repositories/jugador.repository";
+import {
+  obtenerJugador,
+  listarPlantilla,
+} from "@/repositories/jugador.repository";
 import { crearObservacion as crearObservacionRepo } from "@/repositories/observacion.repository";
 import { publicarResultadoYNotificar } from "@/services/evento.service";
 
@@ -54,6 +57,78 @@ function exigirPartido(tipo: string): void {
   if (tipo !== "PARTIDO") {
     throw new ValidationError("Esta acción solo aplica a partidos.");
   }
+}
+
+export interface ConvocadoSesionDTO {
+  jugadorId: string;
+  nombre: string;
+  apellido: string;
+  confirmacion: string;
+  /** null = todavía sin marcar por el DT. */
+  estado: EstadoAsistencia | null;
+  llegoTarde: boolean;
+  salioAntes: boolean;
+  agregadoEnCancha: boolean;
+}
+
+export interface SesionDTO {
+  eventoId: string;
+  tipo: string;
+  titulo: string;
+  categoriaNombre: string;
+  sesionIniciadaAt: string | null;
+  sesionCerradaAt: string | null;
+  notaSesion: string | null;
+  convocados: ConvocadoSesionDTO[];
+  /** Jugadores de la categoría sin convocar, para sumarlos en cancha. */
+  disponibles: { id: string; nombre: string; apellido: string }[];
+}
+
+/** Estado de la asistencia guardada → estado de 3 posiciones de la UI. */
+function estadoDe(a: {
+  presente: boolean;
+  justificado: boolean;
+}): EstadoAsistencia {
+  if (a.presente) return "PRESENTE";
+  return a.justificado ? "JUSTIFICADO" : "AUSENTE";
+}
+
+/** Todo lo que el Modo Sesión necesita para arrancar (PLAN-UX-DT PR-3 §3.2). */
+export async function obtenerSesionDt(
+  ctx: AuthContext,
+  eventoId: string,
+): Promise<SesionDTO> {
+  const { evento, escuelaId } = await eventoDelDt(ctx, eventoId);
+  const plantilla = await listarPlantilla(escuelaId, [evento.categoriaId]);
+
+  const asistencias = new Map(evento.asistencias.map((a) => [a.jugadorId, a]));
+  const convocadosIds = new Set(evento.convocados.map((c) => c.jugadorId));
+
+  return {
+    eventoId: evento.id,
+    tipo: evento.tipo,
+    titulo: evento.titulo,
+    categoriaNombre: evento.categoria.nombre,
+    sesionIniciadaAt: evento.sesionIniciadaAt?.toISOString() ?? null,
+    sesionCerradaAt: evento.sesionCerradaAt?.toISOString() ?? null,
+    notaSesion: evento.notaSesion,
+    convocados: evento.convocados.map((c) => {
+      const a = asistencias.get(c.jugadorId);
+      return {
+        jugadorId: c.jugadorId,
+        nombre: c.jugador.nombre,
+        apellido: c.jugador.apellido,
+        confirmacion: c.confirmacion,
+        estado: a ? estadoDe(a) : null,
+        llegoTarde: a?.llegoTarde ?? false,
+        salioAntes: a?.salioAntes ?? false,
+        agregadoEnCancha: a?.agregadoEnCancha ?? false,
+      };
+    }),
+    disponibles: plantilla
+      .filter((j) => !convocadosIds.has(j.id))
+      .map((j) => ({ id: j.id, nombre: j.nombre, apellido: j.apellido })),
+  };
 }
 
 /**
