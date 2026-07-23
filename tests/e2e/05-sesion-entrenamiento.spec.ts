@@ -3,18 +3,7 @@ import { login } from "./helpers";
 
 // Modo Sesión (PLAN-UX-DT PR-3 §3.5): el DT crea un entrenamiento, pasa lista
 // con guardado por toque, deja una observación y cierra la sesión.
-/**
- * PENDIENTE — no por un bug del producto: este spec PASA cuando corre solo.
- * Falla dentro de la suite completa porque los E2E comparten una única base
- * mutable: cada corrida deja eventos "de hoy" que desestabilizan a este spec y
- * al 02. La solución real es aislar (o resetear+sembrar) la base de E2E, que es
- * más grande que este PR y hoy borraría datos de prueba en uso.
- *
- * Se deja en `fixme` —visible, no borrado— para no dejar la suite roja.
- * Para correrlo: `npx playwright test tests/e2e/05-sesion-entrenamiento.spec.ts`
- * cambiando `test.fixme` por `test`.
- */
-test.fixme("DT corre un entrenamiento en Modo Sesión: lista, observación y cierre", async ({
+test("DT corre un entrenamiento en Modo Sesión: lista, observación y cierre", async ({
   page,
 }) => {
   await login(page, "dt@demo.app", "Demo1234!");
