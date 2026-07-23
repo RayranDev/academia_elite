@@ -70,6 +70,8 @@ export interface NavItem {
   label: string;
   icon: string; // clave de ICONOS
   badge?: number;
+  /** Sección visual (encabezado) en el aside de escritorio. Opcional. */
+  grupo?: string;
 }
 
 export function esActivo(pathname: string, href: string, base: string): boolean {
@@ -100,9 +102,26 @@ export function Sidebar({
     <>
       <aside className="hidden w-56 shrink-0 border-r border-subtle bg-surface/40 p-3 md:block">
         <nav className="flex flex-col gap-1">
-          {items.map((item) => (
-            <NavLink key={item.href} item={item} active={esActivo(pathname, item.href, base)} />
-          ))}
+          {items.map((item, i) => {
+            // Encabezado de sección cuando arranca un grupo nuevo (C2.4).
+            const nuevoGrupo =
+              item.grupo && item.grupo !== items[i - 1]?.grupo;
+            return (
+              <div key={item.href}>
+                {nuevoGrupo && (
+                  <p
+                    className={cn(
+                      "px-3 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted",
+                      i > 0 && "pt-3",
+                    )}
+                  >
+                    {item.grupo}
+                  </p>
+                )}
+                <NavLink item={item} active={esActivo(pathname, item.href, base)} />
+              </div>
+            );
+          })}
         </nav>
       </aside>
 

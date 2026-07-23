@@ -9,6 +9,7 @@ import {
   ultimasStatsPorJugadores,
 } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { registrarAuditoria } from "@/services/audit.service";
 
 /**
  * Exporta el OVR y estado de evaluación de todos los jugadores de la escuela
@@ -67,6 +68,14 @@ export async function exportarEvaluaciones(
   ]);
 
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
+
+  // Descarga de datos de menores → AuditLog (§5.1).
+  await registrarAuditoria(ctx, {
+    accion: "EXPORT_EVALUACIONES",
+    entidad: "Evaluacion",
+    entidadId: id,
+    escuelaId: id,
+  });
 
   // Última carta de CADA jugador (incluye INACTIVO/PENDIENTE que sí fueron
   // evaluados y no aparecen en listarPlantilla). Como viene ordenado por

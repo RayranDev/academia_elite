@@ -7,6 +7,7 @@ import { protegerCelda } from "@/lib/xlsx";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { listarPlantilla, listarJugadoresGestion } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { registrarAuditoria } from "@/services/audit.service";
 
 /**
  * Exporta el total de jugadores a Excel. DT (sus categorías, solo ACTIVOS),
@@ -105,6 +106,14 @@ export async function exportarJugadores(
   const { escuelaId: id, filas } = await filasParaActor(ctx, escuelaId);
   const escuela = await obtenerEscuela(id);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
+
+  // Descarga de datos de menores → AuditLog (§5.1).
+  await registrarAuditoria(ctx, {
+    accion: "EXPORT_JUGADORES",
+    entidad: "Jugador",
+    entidadId: id,
+    escuelaId: id,
+  });
 
   const wb = new ExcelJS.Workbook();
   wb.creator = "Academia Elite";

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import { protegerCelda } from "@/lib/xlsx";
 import { listarAuditGlobal } from "@/repositories/audit.repository";
+import { registrarAuditoria } from "@/services/audit.service";
 
 /**
  * Exporta el AuditLog a Excel (solo SUPER_ADMIN; opcional filtrar por escuela).
@@ -31,6 +32,15 @@ export async function exportarAuditoria(
   escuelaId?: string,
 ): Promise<{ filename: string; buffer: Buffer }> {
   requirePermiso(ctx, "VER_AUDITORIA");
+
+  // Registrar quién descargó el log (§5.1). El propio export queda trazado.
+  await registrarAuditoria(ctx, {
+    accion: "EXPORT_AUDITORIA",
+    entidad: "AuditLog",
+    entidadId: escuelaId ?? "*",
+    escuelaId: escuelaId ?? null,
+  });
+
   const rows = await listarAuditGlobal({ escuelaId, take: TOPE_EXPORT });
 
   const wb = new ExcelJS.Workbook();

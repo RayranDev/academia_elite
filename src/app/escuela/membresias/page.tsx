@@ -12,7 +12,16 @@ export default async function MembresiasPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-black italic uppercase">Membresías</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-black italic uppercase">Membresías</h1>
+        {/* Export de cobranza (PR-5 §5.1): el listado para llamar a cobrar. */}
+        <a
+          href="/api/membresias-export"
+          className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+        >
+          Descargar cobranza
+        </a>
+      </div>
       <p className="max-w-2xl text-sm text-muted">
         Gestión de cuotas por jugador y período. Marca cada cuota como pagada,
         pendiente o vencida. El acceso por mora se gestiona desde la ficha del

@@ -59,23 +59,34 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   await expect(pd).toHaveURL(/\/dt\/jugadores\//);
   await pd.getByRole("link", { name: "Evaluar ahora" }).click();
 
-  // Cargar las 12 medidas
-  const medidas: Record<string, string> = {
+  // Las 4 físicas son medidas reales → siguen siendo inputs numéricos.
+  const fisicas: Record<string, string> = {
     sprint30mSeg: "5.0",
     saltoVerticalCm: "38",
     agilidadIllinoisSeg: "16.8",
     resistenciaYoyoNivel: "13",
-    controlBalon: "8",
-    pase: "8",
-    tiro: "7",
-    regate: "8",
-    actitud: "9",
-    concentracion: "8",
-    trabajoEquipo: "9",
-    resiliencia: "8",
   };
-  for (const [name, valor] of Object.entries(medidas)) {
+  for (const [name, valor] of Object.entries(fisicas)) {
     await pd.fill(`input[name="${name}"]`, valor);
+  }
+  // Las 8 notas (técnicas + mentalidad) ahora son botonera 1-10 (B5): se elige
+  // el botón dentro del grupo de cada nota, no se escribe un número.
+  const notas = [
+    "controlBalon",
+    "pase",
+    "tiro",
+    "regate",
+    "actitud",
+    "concentracion",
+    "trabajoEquipo",
+    "resiliencia",
+  ];
+  for (const name of notas) {
+    // Cada grupo de nota lleva data-nota; se toca el botón "8".
+    await pd
+      .locator(`[data-nota="${name}"]`)
+      .getByRole("button", { name: "8", exact: true })
+      .click();
   }
   await pd
     .getByRole("button", { name: "Guardar evaluación y generar carta" })
