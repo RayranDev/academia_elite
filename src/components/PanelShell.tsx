@@ -1,6 +1,8 @@
 import { logout } from "@/actions/auth.actions";
+import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
 import { Sidebar, type NavItem } from "@/components/shell/Sidebar";
+import { TabBarMovil } from "@/components/shell/TabBarMovil";
 import { SplashScreen } from "@/components/shell/SplashScreen";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { NotificacionesMenu } from "@/components/shell/NotificacionesMenu";
@@ -35,6 +37,9 @@ export async function PanelShell({
 }) {
   const ctx = await getAuthContext();
   const notificaciones = ctx ? await listarMisNotificaciones(ctx) : [];
+  // El DT trabaja en cancha, de pie y con una mano: barra inferior al alcance
+  // del pulgar en vez del desplegable de arriba (PLAN-UX-DT PR-2 · B6).
+  const conTabBar = rol === "DT";
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -74,9 +79,15 @@ export async function PanelShell({
       </header>
 
       <div className="flex flex-1 flex-col md:flex-row">
-        <Sidebar items={navItems} base={base} />
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <Sidebar items={navItems} base={base} ocultarMovil={conTabBar} />
+        <main
+          className={cn("flex-1 p-4 sm:p-6", conTabBar && "pb-20 md:pb-6")}
+        >
+          {children}
+        </main>
       </div>
+
+      {conTabBar && <TabBarMovil items={navItems} base={base} />}
     </div>
   );
 }

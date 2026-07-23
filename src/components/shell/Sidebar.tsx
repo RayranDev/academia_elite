@@ -35,7 +35,7 @@ import { cn } from "@/lib/cn";
 
 // Mapa de iconos: las claves (string) son serializables y se pueden pasar desde
 // un Server Component (layout). Las funciones de icono viven aquí (cliente).
-const ICONOS: Record<string, LucideIcon> = {
+export const ICONOS: Record<string, LucideIcon> = {
   dashboard: LayoutDashboard,
   leads: Inbox,
   escuelas: Building2,
@@ -72,12 +72,21 @@ export interface NavItem {
   badge?: number;
 }
 
-function esActivo(pathname: string, href: string, base: string): boolean {
+export function esActivo(pathname: string, href: string, base: string): boolean {
   if (href === base) return pathname === base;
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export function Sidebar({ items, base }: { items: NavItem[]; base: string }) {
+export function Sidebar({
+  items,
+  base,
+  ocultarMovil = false,
+}: {
+  items: NavItem[];
+  base: string;
+  /** El rol usa `TabBarMovil` abajo: no se duplica el desplegable de arriba. */
+  ocultarMovil?: boolean;
+}) {
   const pathname = usePathname();
   // El menú móvil se cierra al tocar una opción (onNavigate en cada NavLink).
   const [abierto, setAbierto] = useState(false);
@@ -100,7 +109,12 @@ export function Sidebar({ items, base }: { items: NavItem[]; base: string }) {
       {/* Móvil: la sección actual + botón "Menú" que despliega TODAS las opciones
           como botones claros. Antes era una tira que scrolleaba de costado sin
           ninguna pista de que había más. */}
-      <div className="border-b border-subtle bg-surface/40 md:hidden">
+      <div
+        className={cn(
+          "border-b border-subtle bg-surface/40 md:hidden",
+          ocultarMovil && "hidden",
+        )}
+      >
         <button
           type="button"
           onClick={() => setAbierto((o) => !o)}

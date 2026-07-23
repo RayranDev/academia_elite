@@ -141,8 +141,10 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
       </Card>
 
       <Card>
+        {/* Decía "privadas ... visibles solo para el padre y el DT": contradictorio.
+            Se nombra por quién las lee (PLAN-UX-DT PR-2). */}
         <label className="mb-1 block text-xs text-muted">
-          Observaciones privadas (visibles solo para el padre y el DT)
+          Observaciones para la familia (las verá el acudiente)
         </label>
         <textarea name="observacionesPrivadas" rows={3} className={input} />
       </Card>

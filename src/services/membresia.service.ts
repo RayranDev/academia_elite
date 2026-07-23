@@ -6,6 +6,8 @@ import {
   obtenerMembresia,
   upsertMembresia,
   cambiarEstadoMembresia,
+  contarMembresiasPorEstado,
+  contarFamiliasBloqueadas,
 } from "@/repositories/membresia.repository";
 import {
   obtenerJugador,
@@ -22,6 +24,42 @@ export interface MembresiaDTO {
   periodo: string;
   monto: number | null;
   estado: string;
+}
+
+/** Contadores de cobranza para el dashboard de la escuela. */
+export interface ResumenMembresiasDTO {
+  alDia: number;
+  pendientes: number;
+  vencidas: number;
+  bloqueados: number;
+}
+
+/**
+ * Resumen de administración (PLAN-UX-DT PR-2 · C2.3). El dashboard de la escuela
+ * era 100% deportivo: el dueño no veía la cobranza, que es lo que le paga las
+ * cuentas. Un solo groupBy + un count.
+ */
+export async function resumenMembresias(
+  ctx: AuthContext,
+): Promise<ResumenMembresiasDTO> {
+  // Solo la escuela: el SUPER_ADMIN no tiene acceso ambiental al tenant (§5) y
+  // los servicios hermanos de este archivo usan el mismo alcance.
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  const [porEstado, bloqueados] = await Promise.all([
+    contarMembresiasPorEstado(escuelaId),
+    contarFamiliasBloqueadas(escuelaId),
+  ]);
+
+  const de = (estado: string) =>
+    porEstado.find((p) => p.estado === estado)?._count._all ?? 0;
+
+  return {
+    alDia: de("PAGADA"),
+    pendientes: de("PENDIENTE"),
+    vencidas: de("VENCIDA"),
+    bloqueados,
+  };
 }
 
 /** Lista las cuotas de la escuela (opcional: filtrar por período AAAA-MM). */

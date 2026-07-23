@@ -83,7 +83,14 @@ export function PlantillaGrid({
           {visibles.map((j) => (
             <Link
               key={j.id}
-              href={`/dt/jugadores/${j.id}`}
+              // Filtrando por vencidas, la carta entera lleva a evaluar: es la
+              // acción obvia desde esa vista (PLAN-UX-DT PR-2 · B7). No se anida
+              // un botón porque la carta ya es un enlace.
+              href={
+                filtro === "VENCIDAS"
+                  ? `/dt/jugadores/${j.id}/evaluar`
+                  : `/dt/jugadores/${j.id}`
+              }
               className="group flex flex-col items-center gap-2"
             >
               {j.card ? (
@@ -100,7 +107,11 @@ export function PlantillaGrid({
                 <p className="text-xs font-semibold group-hover:text-brand">
                   {j.nombre} {j.apellido}
                 </p>
-                {j.vencida ? (
+                {filtro === "VENCIDAS" ? (
+                  <span className="inline-flex min-h-6 items-center rounded-full bg-brand/15 px-2 text-[10px] font-bold text-brand">
+                    Evaluar →
+                  </span>
+                ) : j.vencida ? (
                   <Badge tono="alerta">Vencida</Badge>
                 ) : (
                   <span className="text-[10px] text-muted">{j.categoriaNombre}</span>

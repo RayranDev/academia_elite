@@ -33,6 +33,22 @@ export function upsertMembresia(
 }
 
 /** Cambia el estado anclando escuelaId en el where (multi-tenant). */
+/** Cantidad de cuotas por estado en la escuela (un solo query, para el dashboard). */
+export function contarMembresiasPorEstado(escuelaId: string) {
+  return db.membresia.groupBy({
+    by: ["estado"],
+    where: { escuelaId },
+    _count: { _all: true },
+  });
+}
+
+/** Familias (rol JUGADOR) con el acceso bloqueado en la escuela. */
+export function contarFamiliasBloqueadas(escuelaId: string) {
+  return db.user.count({
+    where: { escuelaId, rol: "JUGADOR", bloqueado: true },
+  });
+}
+
 export function cambiarEstadoMembresia(escuelaId: string, id: string, estado: string) {
   return db.membresia.updateMany({ where: { id, escuelaId }, data: { estado } });
 }

@@ -150,6 +150,43 @@ export async function listarCalendarioDt(
   }));
 }
 
+/** Evento de hoy en el home del DT: lo justo para decidir si arrancar la sesión. */
+export interface EventoHoyDTO {
+  id: string;
+  tipo: TipoEvento;
+  titulo: string;
+  inicio: string;
+  categoriaNombre: string;
+  cancelado: boolean;
+  sesionCerradaAt: string | null;
+  convocados: number;
+}
+
+/**
+ * Eventos de HOY de las categorías del DT, ordenados por hora. Alimenta la
+ * sección 1 del home "Hoy" (PLAN-UX-DT PR-2 · B1): es lo primero que el DT
+ * necesita al abrir la app, no la plantilla.
+ */
+export async function eventosDeHoyDt(ctx: AuthContext): Promise<EventoHoyDTO[]> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const desde = new Date();
+  desde.setHours(0, 0, 0, 0);
+  const hasta = new Date(desde);
+  hasta.setHours(23, 59, 59, 999);
+
+  const rows = await listarEventosCategorias(escuelaId, categoriaIds, desde, hasta);
+  return rows.map((e) => ({
+    id: e.id,
+    tipo: e.tipo as TipoEvento,
+    titulo: e.titulo,
+    inicio: e.inicio.toISOString(),
+    categoriaNombre: e.categoria.nombre,
+    cancelado: e.cancelado,
+    sesionCerradaAt: e.sesionCerradaAt?.toISOString() ?? null,
+    convocados: e._count?.convocados ?? 0,
+  }));
+}
+
 /**
  * Calendario para la familia: eventos de las categorías de sus hijos en el
  * rango dado. Solo el responsable (rol JUGADOR) ve los eventos de su escuela.

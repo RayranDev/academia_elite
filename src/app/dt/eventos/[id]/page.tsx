@@ -8,12 +8,12 @@ import {
   pasarListaAction,
   cargarResultadoAction,
   cargarEstadisticasAction,
-  cancelarEventoAction,
 } from "@/actions/evento.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EditarEventoDialog } from "@/components/dt/EditarEventoDialog";
+import { CancelarEventoButton } from "@/components/dt/CancelarEventoButton";
 import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
@@ -84,12 +84,10 @@ export default async function EventoDetallePage({
             canchas={canchas}
           />
           {!ev.cancelado && (
-            <form action={cancelarEventoAction}>
-              <input type="hidden" name="eventoId" value={ev.id} />
-              <Button type="submit" size="sm" variant="ghost">
-                Cancelar evento
-              </Button>
-            </form>
+            <CancelarEventoButton
+              eventoId={ev.id}
+              familias={ev.convocados.length}
+            />
           )}
         </div>
       </div>

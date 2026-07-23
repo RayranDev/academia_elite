@@ -102,7 +102,11 @@ export function listarEventosCategorias(
       categoriaId: { in: categoriaIds },
       inicio: { gte: desde, lte: hasta },
     },
-    include: { categoria: { select: { nombre: true } } },
+    include: {
+      categoria: { select: { nombre: true } },
+      // El home "Hoy" muestra a cuántos convocó sin traerse la convocatoria.
+      _count: { select: { convocados: true } },
+    },
     orderBy: { inicio: "asc" },
   });
 }

@@ -5,18 +5,21 @@ import { listarCategoriasEscuela } from "@/services/categoria.service";
 import { listarSedesEscuela } from "@/services/sede.service";
 import { listarDts } from "@/services/entrenador.service";
 import { listarCodigosEscuela } from "@/services/codigo.service";
+import { resumenMembresias } from "@/services/membresia.service";
 import { Card } from "@/components/ui/Card";
 
 export default async function EscuelaDashboardPage() {
   const ctx = await requireAuthContext();
 
-  const [resumen, categorias, sedes, dts, codigos] = await Promise.all([
-    resumenEscuela(ctx),
-    listarCategoriasEscuela(ctx),
-    listarSedesEscuela(ctx),
-    listarDts(ctx),
-    listarCodigosEscuela(ctx),
-  ]);
+  const [resumen, categorias, sedes, dts, codigos, membresias] =
+    await Promise.all([
+      resumenEscuela(ctx),
+      listarCategoriasEscuela(ctx),
+      listarSedesEscuela(ctx),
+      listarDts(ctx),
+      listarCodigosEscuela(ctx),
+      resumenMembresias(ctx),
+    ]);
 
   const codigosVigentes = codigos.filter((c) => c.vigente).length;
 
@@ -60,11 +63,13 @@ export default async function EscuelaDashboardPage() {
             titulo="Evals vencidas"
             valor={resumen.evaluacionesVencidas}
             alerta={resumen.evaluacionesVencidas > 0}
+            href="/escuela/jugadores?evaluacion=VENCIDA"
           />
           <Kpi
             titulo="Sin evaluar"
             valor={resumen.sinEvaluacion}
             alerta={resumen.sinEvaluacion > 0}
+            href="/escuela/jugadores?evaluacion=SIN_EVALUAR"
           />
           <Kpi
             titulo="Asistencia (30 días)"
@@ -73,6 +78,38 @@ export default async function EscuelaDashboardPage() {
                 ? "—"
                 : `${resumen.asistenciaMesPorcentaje}%`
             }
+            href="/escuela/asistencia"
+          />
+        </div>
+      </section>
+
+      {/* Administración: la cobranza, que es lo que sostiene la escuela. */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
+          Administración
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Kpi
+            titulo="Cuotas al día"
+            valor={membresias.alDia}
+            href="/escuela/membresias?estado=PAGADA"
+          />
+          <Kpi
+            titulo="Cuotas pendientes"
+            valor={membresias.pendientes}
+            href="/escuela/membresias?estado=PENDIENTE"
+          />
+          <Kpi
+            titulo="Cuotas vencidas"
+            valor={membresias.vencidas}
+            alerta={membresias.vencidas > 0}
+            href="/escuela/membresias?estado=VENCIDA"
+          />
+          <Kpi
+            titulo="Familias bloqueadas"
+            valor={membresias.bloqueados}
+            alerta={membresias.bloqueados > 0}
+            href="/escuela/jugadores?bloqueado=1"
           />
         </div>
       </section>
@@ -84,25 +121,26 @@ export default async function EscuelaDashboardPage() {
             Distribución por nivel
           </p>
           <div className="flex flex-wrap gap-3">
+            {/* Tokens del tema (--color-bronce/plata/oro/heroe), no paleta cruda. */}
             <NivelBadge
               label="Bronce"
               count={resumen.distribucionNivel.bronce}
-              color="text-amber-600"
+              color="text-bronce"
             />
             <NivelBadge
               label="Plata"
               count={resumen.distribucionNivel.plata}
-              color="text-slate-400"
+              color="text-plata"
             />
             <NivelBadge
               label="Oro"
               count={resumen.distribucionNivel.oro}
-              color="text-yellow-400"
+              color="text-oro"
             />
             <NivelBadge
               label="Héroe"
               count={resumen.distribucionNivel.heroe}
-              color="text-brand"
+              color="text-heroe"
             />
           </div>
         </Card>
@@ -203,30 +241,49 @@ export default async function EscuelaDashboardPage() {
 
 // ─── Componentes locales ──────────────────────────────────────────────────────
 
+/**
+ * KPI del dashboard. Si recibe `href` y el valor es > 0, se vuelve navegable:
+ * antes informaban ("Evals vencidas: 12") sin decir cuáles (PR-2 · C2.1).
+ */
 function Kpi({
   titulo,
   valor,
   alerta,
   subtitulo,
+  href,
 }: {
   titulo: string;
   valor: number | string;
   alerta?: boolean;
   subtitulo?: string;
+  href?: string;
 }) {
-  return (
-    <Card className={alerta ? "border-alerta/50" : undefined}>
+  const navegable = href && typeof valor === "number" && valor > 0;
+  const cuerpo = (
+    <Card
+      className={[
+        alerta ? "border-alerta/50" : "",
+        navegable ? "transition-colors hover:border-brand/50" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div
         className={`text-3xl font-black tabular-nums ${alerta ? "text-alerta" : ""}`}
       >
         {valor}
       </div>
-      <div className="mt-1 text-sm text-muted">{titulo}</div>
+      <div className="mt-1 text-sm text-muted">
+        {titulo}
+        {navegable && <span className="ml-1 text-brand">→</span>}
+      </div>
       {subtitulo && (
         <div className="mt-0.5 text-xs text-muted opacity-70">{subtitulo}</div>
       )}
     </Card>
   );
+
+  return navegable ? <Link href={href}>{cuerpo}</Link> : cuerpo;
 }
 
 function NivelBadge({

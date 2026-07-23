@@ -53,7 +53,8 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
     pd.locator("div.rounded-2xl").filter({ hasText: apellido }),
   ).toHaveCount(0);
 
-  await pd.goto("/dt");
+  // La grilla vive en /dt/plantilla: /dt pasó a ser el home "Hoy" (PR-2 · B1).
+  await pd.goto("/dt/plantilla");
   await pd.getByRole("link", { name: new RegExp(apellido) }).first().click();
   await expect(pd).toHaveURL(/\/dt\/jugadores\//);
   await pd.getByRole("link", { name: "Evaluar ahora" }).click();
