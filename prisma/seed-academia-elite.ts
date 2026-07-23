@@ -73,11 +73,11 @@ const PLANTEL: DefJugador[] = [
   { nombre: "Ciro", apellido: "Herrera", cat: "sub12", posicion: "DEF", nivel: 0.48, anioNac: 2015 },
   // Sub-10
   { nombre: "Bruno", apellido: "Navarro", cat: "sub10", posicion: "DEL", nivel: 0.62, anioNac: 2016 },
-  { nombre: "Emilio", apellido: "Rojas", cat: "sub10", posicion: "MED", nivel: 0.44, anioNac: 2017 },
-  { nombre: "Gael", apellido: "Ortiz", cat: "sub10", posicion: "DEF", nivel: 0.5, anioNac: 2017 },
+  { nombre: "Emilio", apellido: "Rojas", cat: "sub10", posicion: "MED", nivel: 0.2, anioNac: 2017 },
+  { nombre: "Gael", apellido: "Ortiz", cat: "sub10", posicion: "DEF", nivel: 0.28, anioNac: 2017 },
   // Sub-8
-  { nombre: "Tobías", apellido: "Cabrera", cat: "sub8", posicion: "MED", nivel: 0.4, anioNac: 2018 },
-  { nombre: "León", apellido: "Ríos", cat: "sub8", posicion: "DEL", nivel: 0.35, anioNac: 2019, estado: "PENDIENTE" },
+  { nombre: "Tobías", apellido: "Cabrera", cat: "sub8", posicion: "MED", nivel: 0.15, anioNac: 2018 },
+  { nombre: "León", apellido: "Ríos", cat: "sub8", posicion: "DEL", nivel: 0.22, anioNac: 2019 },
 ];
 
 export async function crearAcademiaElite(
@@ -105,6 +105,8 @@ export async function crearAcademiaElite(
       rol: "ESCUELA_ADMIN",
       escuelaId: escuela.id,
       telefono: "+54 351 555 0100",
+      emailVerificado: true,
+      emailVerificadoEn: new Date(),
     },
   });
 
@@ -136,6 +138,8 @@ export async function crearAcademiaElite(
       rol: "DT",
       escuelaId: escuela.id,
       telefono: "+54 351 555 0111",
+      emailVerificado: true,
+      emailVerificadoEn: new Date(),
     },
   });
   const entrenador = await db.entrenador.create({
@@ -155,6 +159,8 @@ export async function crearAcademiaElite(
       rol: "JUGADOR",
       escuelaId: escuela.id,
       telefono: "+54 351 555 0199",
+      emailVerificado: true,
+      emailVerificadoEn: new Date(),
     },
   });
 
