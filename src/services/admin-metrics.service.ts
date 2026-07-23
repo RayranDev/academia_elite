@@ -81,7 +81,7 @@ export async function saludPlataforma(
     eventosProximos7d: eventos,
     morosidad,
     accionesSoporte7d: soporte,
-    ultimasAcciones: audit.map((a) => ({
+    ultimasAcciones: audit.rows.map((a) => ({
       id: a.id,
       actorRol: a.actorRol,
       accion: a.accion,
