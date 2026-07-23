@@ -8,7 +8,7 @@ import {
   cerrarSesionEvento,
   crearConvocadoSiFalta,
   ajustarGolVivo,
-  upsertTarjeta,
+  fijarTarjetas,
 } from "@/repositories/evento.repository";
 import {
   obtenerJugador,
@@ -130,13 +130,16 @@ export async function obtenerSesionDt(
 
   /**
    * A quién se le pasa lista:
-   *  - PARTIDO: a los convocados (la convocatoria es una decisión deportiva).
+   *  - PARTIDO con convocatoria: a los convocados (decisión deportiva).
+   *  - PARTIDO sin convocar a nadie: a TODA la categoría. Si se creó el partido
+   *    sin convocatoria, con los convocados la lista saldría VACÍA y el DT no
+   *    podría trabajar; caemos al plantel completo, como en un entrenamiento.
    *  - Entrenamiento y demás: a TODA la categoría. Esos eventos no tienen
-   *    convocatoria (el alta ni la ofrece), y en un entrenamiento se espera al
-   *    plantel completo: sin esto la lista saldría vacía.
+   *    convocatoria (el alta ni la ofrece) y se espera al plantel completo.
    */
   const esPartido = evento.tipo === "PARTIDO";
-  const base = esPartido
+  const usarConvocatoria = esPartido && evento.convocados.length > 0;
+  const base = usarConvocatoria
     ? evento.convocados.map((c) => ({
         jugadorId: c.jugadorId,
         nombre: c.jugador.nombre,
@@ -183,8 +186,9 @@ export async function obtenerSesionDt(
           : SIN_ESTADISTICA,
       };
     }),
-    // Solo tiene sentido sumar en cancha cuando hubo convocatoria previa.
-    disponibles: esPartido
+    // Solo tiene sentido sumar en cancha cuando hubo convocatoria previa. Si el
+    // partido cayó al plantel completo, ya están todos en la lista.
+    disponibles: usarConvocatoria
       ? plantilla
           .filter((j) => !convocadosIds.has(j.id))
           .map((j) => ({ id: j.id, nombre: j.nombre, apellido: j.apellido }))
@@ -325,16 +329,24 @@ export async function registrarGolVivo(
   });
 }
 
-/** Amarilla (tope 2) o roja de un jugador en el partido. */
-export async function marcarTarjeta(
+/**
+ * Fija las tarjetas de un jugador en el partido. El estado es absoluto (cuántas
+ * amarillas, si hay roja) para que el DT pueda AGREGAR o QUITAR en vivo. Regla
+ * de fútbol: dos amarillas equivalen a una roja, así que a partir de 2 amarillas
+ * la roja queda implícita.
+ */
+export async function fijarTarjetasJugador(
   ctx: AuthContext,
   input: {
     eventoId: string;
     jugadorId: string;
-    tipo: "AMARILLA" | "ROJA";
+    amarillas: number;
+    roja: boolean;
   },
 ): Promise<void> {
   const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
   exigirPartido(evento.tipo);
-  await upsertTarjeta(escuelaId, evento.id, input.jugadorId, input.tipo);
+  const amarillas = Math.min(Math.max(0, Math.trunc(input.amarillas)), 2);
+  const roja = input.roja || amarillas >= 2; // 2 amarillas = roja
+  await fijarTarjetas(escuelaId, evento.id, input.jugadorId, { amarillas, roja });
 }

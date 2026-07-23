@@ -128,16 +128,17 @@ export async function registrarGolAction(
 }
 
 const tarjetaSchema = idsSchema.extend({
-  tipo: z.enum(["AMARILLA", "ROJA"]),
+  amarillas: z.number().int().min(0).max(2),
+  roja: z.boolean(),
 });
 
-export async function marcarTarjetaAction(
+export async function fijarTarjetasAction(
   input: z.infer<typeof tarjetaSchema>,
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
     const datos = tarjetaSchema.parse(input);
-    await sesion.marcarTarjeta(ctx, datos);
+    await sesion.fijarTarjetasJugador(ctx, datos);
     revalidatePath(`/dt/eventos/${datos.eventoId}`);
     return { ok: true };
   } catch (e) {

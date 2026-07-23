@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { registrarGolAction, marcarTarjetaAction } from "@/actions/sesion.actions";
+import { registrarGolAction, fijarTarjetasAction } from "@/actions/sesion.actions";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { Cronometro } from "./Cronometro";
@@ -42,6 +42,48 @@ export function PartidoVivo({
   >([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Tarjetas en vivo. Estado local (amarillas + roja MANUAL) para poder AGREGAR
+  // y QUITAR sin esperar al cierre. Se siembra de lo cargado y prevalece sobre
+  // `estadistica`. La roja efectiva se deriva: manual o 2 amarillas.
+  const [tarjetas, setTarjetas] = useState<
+    Map<string, { amarillas: number; roja: boolean }>
+  >(
+    () =>
+      new Map(
+        presentes.map((p) => [
+          p.jugadorId,
+          { amarillas: p.estadistica.amarillas, roja: p.estadistica.roja },
+        ]),
+      ),
+  );
+
+  function tarjetaDe(p: ConvocadoSesionDTO) {
+    return (
+      tarjetas.get(p.jugadorId) ?? {
+        amarillas: p.estadistica.amarillas,
+        roja: p.estadistica.roja,
+      }
+    );
+  }
+
+  /** Fija el estado absoluto de tarjetas del jugador (optimista + persiste). */
+  function aplicarTarjeta(
+    jugadorId: string,
+    next: { amarillas: number; roja: boolean },
+  ) {
+    const amarillas = Math.min(Math.max(0, next.amarillas), 2);
+    setTarjetas((prev) => new Map(prev).set(jugadorId, { amarillas, roja: next.roja }));
+    startTransition(async () => {
+      const res = await fijarTarjetasAction({
+        eventoId,
+        jugadorId,
+        amarillas,
+        roja: next.roja,
+      });
+      if (!res.ok) setError(res.error);
+    });
+  }
 
   // El equipo propio va primero SIEMPRE: el DT lee su marcador, no el del acta.
   const propio = esLocal === false ? marcador.visitante : marcador.local;
@@ -124,25 +166,29 @@ export function PartidoVivo({
           Tocá un jugador para tarjeta u observación.
         </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {presentes.map((p) => (
-            <Button
-              key={p.jugadorId}
-              type="button"
-              variant="secondary"
-              className="min-h-16 flex-col whitespace-normal px-1 text-xs leading-tight"
-              onClick={() => {
-                setJugador(p);
-                setSheet("JUGADOR");
-              }}
-            >
-              <span className="font-bold">{p.nombre}</span>
-              <span className="opacity-70">
-                {p.estadistica.goles > 0 && `⚽${p.estadistica.goles} `}
-                {p.estadistica.amarillas > 0 && "🟨"}
-                {p.estadistica.roja && "🟥"}
-              </span>
-            </Button>
-          ))}
+          {presentes.map((p) => {
+            const t = tarjetaDe(p);
+            const rojaEfectiva = t.roja || t.amarillas >= 2;
+            return (
+              <Button
+                key={p.jugadorId}
+                type="button"
+                variant="secondary"
+                className="min-h-16 flex-col whitespace-normal px-1 text-xs leading-tight"
+                onClick={() => {
+                  setJugador(p);
+                  setSheet("JUGADOR");
+                }}
+              >
+                <span className="font-bold">{p.nombre}</span>
+                <span className="opacity-70">
+                  {p.estadistica.goles > 0 && `⚽${p.estadistica.goles} `}
+                  {t.amarillas > 0 && "🟨".repeat(t.amarillas)}
+                  {rojaEfectiva && "🟥"}
+                </span>
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -255,57 +301,80 @@ export function PartidoVivo({
         onClose={() => setSheet(null)}
         title={jugador ? `${jugador.nombre} ${jugador.apellido}` : "Jugador"}
       >
-        <div className="space-y-2">
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            disabled={pending}
-            onClick={() => {
-              if (!jugador) return;
-              startTransition(async () => {
-                await marcarTarjetaAction({
-                  eventoId,
-                  jugadorId: jugador.jugadorId,
-                  tipo: "AMARILLA",
-                });
-              });
-              setSheet(null);
-            }}
-          >
-            🟨 Amarilla
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            className="w-full"
-            disabled={pending}
-            onClick={() => {
-              if (!jugador) return;
-              startTransition(async () => {
-                await marcarTarjetaAction({
-                  eventoId,
-                  jugadorId: jugador.jugadorId,
-                  tipo: "ROJA",
-                });
-              });
-              setSheet(null);
-            }}
-          >
-            🟥 Roja
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={() => {
-              setSheet(null);
-              setObservando(true);
-            }}
-          >
-            📝 Observación
-          </Button>
-        </div>
+        {jugador &&
+          (() => {
+            const t = tarjetaDe(jugador);
+            const rojaEfectiva = t.roja || t.amarillas >= 2;
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg bg-surface-2 p-3">
+                  <span className="text-sm font-semibold">
+                    Amarillas: {t.amarillas}
+                    {t.amarillas >= 2 && " (= roja)"}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-11 w-11"
+                      disabled={pending || t.amarillas === 0}
+                      aria-label="Quitar amarilla"
+                      onClick={() =>
+                        aplicarTarjeta(jugador.jugadorId, {
+                          amarillas: t.amarillas - 1,
+                          roja: t.roja,
+                        })
+                      }
+                    >
+                      −
+                    </Button>
+                    <Button
+                      type="button"
+                      className="min-h-11 w-11"
+                      disabled={pending || t.amarillas >= 2}
+                      aria-label="Agregar amarilla"
+                      onClick={() =>
+                        aplicarTarjeta(jugador.jugadorId, {
+                          amarillas: t.amarillas + 1,
+                          roja: t.roja,
+                        })
+                      }
+                    >
+                      🟨
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant={rojaEfectiva ? "danger" : "secondary"}
+                  className="w-full"
+                  disabled={pending || t.amarillas >= 2}
+                  aria-pressed={rojaEfectiva}
+                  onClick={() =>
+                    aplicarTarjeta(jugador.jugadorId, {
+                      amarillas: t.amarillas,
+                      roja: !t.roja,
+                    })
+                  }
+                >
+                  🟥 {rojaEfectiva ? "Quitar roja" : "Roja"}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    setSheet(null);
+                    setObservando(true);
+                  }}
+                >
+                  📝 Observación
+                </Button>
+              </div>
+            );
+          })()}
       </BottomSheet>
 
       <ObservacionSheet

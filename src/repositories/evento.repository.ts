@@ -296,25 +296,20 @@ async function sumarStat(
   });
 }
 
-/** Amarilla (tope 2) o roja sobre la estadística del jugador en el partido. */
-export async function upsertTarjeta(
+/**
+ * Fija el estado ABSOLUTO de tarjetas del jugador en el partido (amarillas y
+ * roja). Absoluto —y no incremental— para que el DT pueda tanto AGREGAR como
+ * QUITAR una tarjeta en vivo sin esperar al cierre. El clamp/regla ya la aplicó
+ * el service.
+ */
+export async function fijarTarjetas(
   escuelaId: string,
   eventoId: string,
   jugadorId: string,
-  tipo: "AMARILLA" | "ROJA",
+  datos: { amarillas: number; roja: boolean },
 ): Promise<void> {
-  // tenant-global: lookup por la clave única evento+jugador; el evento ya viene
+  // tenant-global: upsert por la clave única evento+jugador; el evento ya viene
   // tenant-scoped y validado contra las categorías del DT en el service.
-  const actual = await db.estadisticaPartido.findUnique({
-    where: { eventoId_jugadorId: { eventoId, jugadorId } },
-    select: { amarillas: true },
-  });
-  const datos =
-    tipo === "ROJA"
-      ? { roja: true }
-      : { amarillas: Math.min((actual?.amarillas ?? 0) + 1, 2) };
-  // tenant-global: mismo par único que el findUnique de arriba; el escuelaId se
-  // persiste en el create para mantener la fila acotada al tenant.
   await db.estadisticaPartido.upsert({
     where: { eventoId_jugadorId: { eventoId, jugadorId } },
     create: { escuelaId, eventoId, jugadorId, ...datos },

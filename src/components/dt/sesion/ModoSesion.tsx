@@ -67,10 +67,15 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
     );
   }, [sesion.eventoId, sesion.sesionIniciadaAt, sesion.sesionCerradaAt, router]);
 
-  const filas = useMemo(
-    () => [...sesion.convocados, ...sumados],
-    [sesion.convocados, sumados],
-  );
+  // Dedupe por jugadorId: un jugador sumado en cancha reaparece en
+  // `sesion.convocados` cuando el server revalida, y sin esto quedaría DOS veces
+  // en la lista — con `key` duplicada, y como las marcas se indexan por
+  // jugadorId, tocar una fila movía las dos. Prevalece el dato del server.
+  const filas = useMemo(() => {
+    const vistos = new Set(sesion.convocados.map((c) => c.jugadorId));
+    const extras = sumados.filter((s) => !vistos.has(s.jugadorId));
+    return [...sesion.convocados, ...extras];
+  }, [sesion.convocados, sumados]);
 
   /**
    * Estado a mostrar. Lo marcado manda; si no, se pre-llena TENTATIVAMENTE.

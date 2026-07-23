@@ -72,7 +72,7 @@ import {
   cerrarSesion,
   agregarConvocadoEnCancha,
   registrarGolVivo,
-  marcarTarjeta,
+  fijarTarjetasJugador,
 } from "@/services/sesion.service";
 
 const dt: AuthContext = {
@@ -288,21 +288,60 @@ describe("iniciarSesion", () => {
   });
 });
 
-describe("marcarTarjeta", () => {
-  it("la amarilla topea en 2", async () => {
-    statActual.amarillas = 2;
-    await marcarTarjeta(dt, {
+describe("fijarTarjetasJugador", () => {
+  it("fija el estado absoluto de amarillas y roja", async () => {
+    await fijarTarjetasJugador(dt, {
       eventoId: "ev1",
       jugadorId: "j1",
-      tipo: "AMARILLA",
+      amarillas: 1,
+      roja: false,
+    });
+    const arg = argDe(db.estadisticaPartido.upsert);
+    expect(arg.update).toMatchObject({ amarillas: 1, roja: false });
+  });
+
+  it("clampa las amarillas a un máximo de 2", async () => {
+    await fijarTarjetasJugador(dt, {
+      eventoId: "ev1",
+      jugadorId: "j1",
+      amarillas: 5,
+      roja: false,
     });
     const arg = argDe(db.estadisticaPartido.upsert);
     expect(arg.update).toMatchObject({ amarillas: 2 });
   });
 
-  it("la roja setea la bandera", async () => {
-    await marcarTarjeta(dt, { eventoId: "ev1", jugadorId: "j1", tipo: "ROJA" });
+  it("dos amarillas implican roja aunque no se pida manual", async () => {
+    await fijarTarjetasJugador(dt, {
+      eventoId: "ev1",
+      jugadorId: "j1",
+      amarillas: 2,
+      roja: false,
+    });
     const arg = argDe(db.estadisticaPartido.upsert);
-    expect(arg.update).toMatchObject({ roja: true });
+    expect(arg.update).toMatchObject({ amarillas: 2, roja: true });
+  });
+
+  it("permite quitar la roja bajando a 0 amarillas", async () => {
+    await fijarTarjetasJugador(dt, {
+      eventoId: "ev1",
+      jugadorId: "j1",
+      amarillas: 0,
+      roja: false,
+    });
+    const arg = argDe(db.estadisticaPartido.upsert);
+    expect(arg.update).toMatchObject({ amarillas: 0, roja: false });
+  });
+
+  it("rechaza si el evento no es un partido", async () => {
+    evento.tipo = "ENTRENAMIENTO";
+    await expect(
+      fijarTarjetasJugador(dt, {
+        eventoId: "ev1",
+        jugadorId: "j1",
+        amarillas: 1,
+        roja: false,
+      }),
+    ).rejects.toThrow(ValidationError);
   });
 });
