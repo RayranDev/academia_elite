@@ -15,6 +15,7 @@ import {
 import { CATALOGO_LOGROS } from "./seed-logros";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
+import { crearAcademiaElite } from "./seed-academia-elite";
 import type { Posicion } from "@/types";
 
 /**
@@ -50,6 +51,7 @@ async function limpiar() {
   await db.observacionJugador.deleteMany();
   await db.estadisticaPartido.deleteMany();
   await db.jugadorConvocado.deleteMany();
+  await db.membresia.deleteMany();
   await db.evento.deleteMany();
   await db.statsCalculados.deleteMany();
   await db.evaluacion.deleteMany();
@@ -516,12 +518,22 @@ async function main() {
     ],
   });
 
+  // 11) Escuela demo CURADA "Academia Elite": entorno ordenado para recorrer lo
+  //     construido (reusa los catálogos globales creados arriba).
+  console.log("🏆 Creando Academia Elite (demo curada)…");
+  await crearAcademiaElite(db, passwordHash);
+
   console.log("✅ Seed completado.");
   console.log("   Usuarios demo (contraseña: Demo1234!):");
-  console.log("   • admin@demo.app    → SUPER_ADMIN");
-  console.log("   • escuela@demo.app  → ESCUELA_ADMIN");
-  console.log("   • dt@demo.app       → DT");
-  console.log("   • jugador@demo.app  → JUGADOR (familia)");
+  console.log("   Academia Demo (para E2E):");
+  console.log("   • admin@demo.app         → SUPER_ADMIN");
+  console.log("   • escuela@demo.app       → ESCUELA_ADMIN");
+  console.log("   • dt@demo.app            → DT");
+  console.log("   • jugador@demo.app       → JUGADOR (familia)");
+  console.log("   Academia Elite (demo curada):");
+  console.log("   • elite-admin@demo.app   → ESCUELA_ADMIN");
+  console.log("   • elite-dt@demo.app      → DT");
+  console.log("   • elite-familia@demo.app → JUGADOR (familia Ramírez)");
 }
 
 main()
