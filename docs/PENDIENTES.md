@@ -48,48 +48,54 @@ catálogo de plantillas clickeables para no tipear CSS.
   excedía el viewport y no se podía navegar (había que bajar el zoom). Fix:
   `max-h-[90dvh] overflow-y-auto` en `src/components/ui/Modal.tsx` (aplica a
   todos los modales).
-- ⬜ **Auditoría: filtros + paginación.** La vista de auditoría debería tener
-  pestañas/filtros por tipo de entidad, acción y actor, más paginación. Hoy hay
-  pocos eventos, pero el log crece sin techo. Tocar `src/app/admin/auditoria`,
-  `listarAuditoria` (agregar filtros + `skip/take`) y `listarAuditGlobal`.
+- ✅ **Auditoría: filtros + paginación.** La vista ahora filtra por entidad,
+  acción y actor (form GET, sin JS) y pagina de a 50 con total y navegación. El
+  repo suma `where` + `skip/take` + `count` + facetas (valores distintos para
+  los selects). Falta (opcional): filtro por rango de fechas.
 
 ### DT — Modo PARTIDO
-- ⬜ **La lista no muestra los jugadores + selección/duplicación rara.** Al tocar
-  un jugador se selecciona ese y otro; sospecha de duplicación. Hipótesis a
-  verificar (necesita reproducción): (a) partido creado SIN convocados → la
-  lista sale vacía [gap de diseño: caer a toda la categoría como en
-  entrenamiento]; (b) colisión de `key` si `filas` trae un `jugadorId` repetido.
-  Revisar `ModoSesion`/`ListaViva` y `obtenerSesionDt` (rama PARTIDO).
+- ✅ **La lista no muestra los jugadores (partido sin convocatoria).** Era el gap
+  (a): un partido creado sin convocados dejaba la lista vacía. Ahora cae a la
+  categoría completa, como en un entrenamiento (`obtenerSesionDt`).
+- ✅ **Selección/duplicación rara.** Era colisión de `key`: un jugador sumado en
+  cancha reaparecía en `sesion.convocados` al revalidar y quedaba DOS veces
+  (misma `key` + marcas compartidas por `jugadorId` → tocar uno movía dos).
+  `ModoSesion` ahora dedup­a `filas` por `jugadorId`.
+- ✅ **Quitar tarjeta sin esperar al cierre + 2 amarillas = roja.** Estado de
+  tarjetas absoluto: se agrega Y se quita amarilla/roja en vivo desde la hoja del
+  jugador de `PartidoVivo`; dos amarillas implican roja automáticamente
+  (`fijarTarjetasJugador`).
 - ⬜ **El partido debería empezar 0-0.** No reproducido en código (un partido
-  nuevo calcula 0-0 desde `resultadoLocal/Visitante = null`). Puede ser dato
+  nuevo calcula 0-0 desde `resultadoLocal/Visitante = null`). Probablemente dato
   residual de pruebas; confirmar con un partido recién creado.
-- ⬜ **Quitar tarjeta sin esperar al cierre.** Hoy en vivo solo se AGREGA
-  amarilla/roja; para corregir un toque errado hay que esperar al cierre.
-  Agregar “quitar tarjeta” en la hoja del jugador de `PartidoVivo`
-  (`marcarTarjeta` solo setea → falta la baja). Reglas: **2 amarillas = roja**
-  (automatizar), y contemplar **tarjeta azul** (no existe en el schema:
-  `EstadisticaPartido` + UI).
+- ⬜ **Tarjeta azul.** No existe en el schema. Requiere migración de
+  `EstadisticaPartido` (campo `azules`/`azul`) + UI. Se difiere a un PR propio
+  (cambio de schema sobre datos de menores; no se mete de apuro).
 - ⬜ **Estructura del partido: 2 tiempos, penales, alargue.** El cronómetro no
   tiene períodos (el plan lo dejó para v2). Agregar fin de tiempo, alargue y
-  definición por penales.
+  definición por penales. Feature grande, PR dedicado.
 
 ### TODOS
 - ✅ **Iconos del calendario centrados y más grandes.** En `MonthGrid` estaban
   chicos (`h-3.5`) y pegados abajo (`mt-auto`). Ahora centrados y `h-5 w-5`.
 
 ### JUGADOR
-- ⬜ **Confirmar convocatoria no refresca.** Al confirmar sale “asistencia
-  confirmada” pero el botón/estado sigue ahí. Falta revalidar/actualizar la UI
-  tras `confirmarConvocatoriaAction`.
-- ⬜ **Notificaciones no se refrescan al leerlas.** Se marcan leídas pero siguen
-  en la lista; al volver a entrar no llega la nueva pero se ven las viejas
-  acumuladas. Riesgo de saturación. Revisar `NotificacionesMenu` +
-  `marcarNotificacionLeida` (revalidar y/o depurar leídas viejas).
-- ⬜ **Color de stats no coincide con el fondo configurado.** En el hub del
-  jugador, el color de los stats de la carta no respeta el `colorTexto` del
-  fondo equipado. No reproducido en código (todo hereda `textoCarta` en
-  `PlayerCard`); verificar que el fondo equipado guarde/cargue `colorTexto` y
-  que el hub lo pase. Revisar `obtenerHub` + `PlayerCard` (bloque de stats).
+- ✅ **Notificaciones no se refrescan al leerlas.** La lista se copiaba a
+  `useState` (se sembraba solo al montar): ni llegaban las nuevas ni el marcado
+  se reflejaba. Ahora la fuente de verdad es el prop del server, con overlay
+  local solo para el tilde instantáneo, y las actions revalidan el layout.
+- ⬜ **Confirmar convocatoria — el estado ya refresca.** `confirmarConvocatoriaAction`
+  ya revalida `/jugador`, `/jugador/calendario` y el detalle, y la tarjeta pasa a
+  “Asistencia confirmada”. Lo que quedaba “ahí” era la **notificación** sin
+  depurar (resuelto arriba). Reabrir solo si aparece una superficie puntual que
+  no refresque.
+- ⬜ **Color de stats no coincide con el fondo configurado.** Investigado: el
+  color SÍ fluye a los stats — `obtenerHub` setea `card.fondoTexto` desde
+  `fondo.colorTexto` y en `PlayerCard` TODO el texto (OVR, nombre, stats) hereda
+  `textoCarta`. Sin bug reproducible en código. Hipótesis: (a) el fondo equipado
+  tiene `colorTexto = null` (fondo previo al campo) y cae al color del nivel; o
+  (b) se compara con otro listado de stats del dashboard que usa tokens del
+  tema, no el color de la carta. Necesita el fondo/pantallazo puntual.
 
 ---
 
