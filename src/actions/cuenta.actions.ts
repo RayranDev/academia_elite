@@ -6,13 +6,13 @@ import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
 import {
-  actualizarNombreSchema,
+  actualizarDatosSchema,
   solicitarCambioEmailSchema,
   confirmarCambioEmailSchema,
   datosJugadorSchema,
 } from "@/lib/validators/cuenta";
 import {
-  actualizarMiNombre,
+  actualizarMisDatos,
   solicitarCambioEmail,
   confirmarCambioEmail,
   actualizarDatosMiJugador,
@@ -37,6 +37,7 @@ export async function actualizarMiJugadorAction(
       jugadorId: formData.get("jugadorId"),
       nombre: formData.get("nombre"),
       apellido: formData.get("apellido"),
+      parentesco: formData.get("parentesco"),
     });
     if (!parsed.success) {
       throw new ValidationError(
@@ -48,6 +49,7 @@ export async function actualizarMiJugadorAction(
       parsed.data.jugadorId,
       parsed.data.nombre,
       parsed.data.apellido,
+      parsed.data.parentesco ?? null,
     );
     revalidatePath("/jugador/cuenta");
     revalidatePath("/jugador");
@@ -57,21 +59,25 @@ export async function actualizarMiJugadorAction(
   }
 }
 
-export async function actualizarMiNombreAction(
+export async function actualizarMisDatosAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = actualizarNombreSchema.safeParse({
+    const parsed = actualizarDatosSchema.safeParse({
       nombre: formData.get("nombre"),
+      telefono: formData.get("telefono"),
     });
     if (!parsed.success) {
       throw new ValidationError(
         parsed.error.issues[0]?.message ?? "Datos inválidos.",
       );
     }
-    await actualizarMiNombre(ctx, parsed.data.nombre);
+    await actualizarMisDatos(ctx, {
+      nombre: parsed.data.nombre,
+      telefono: parsed.data.telefono ?? null,
+    });
     revalidarCuenta();
     return { ok: true };
   } catch (e) {

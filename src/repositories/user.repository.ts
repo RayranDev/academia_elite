@@ -6,6 +6,7 @@ const SELECT_SEGURO = {
   id: true,
   email: true,
   nombre: true,
+  telefono: true,
   rol: true,
   escuelaId: true,
   activo: true,
@@ -84,7 +85,7 @@ export function contarUsersAdmin(filtros: {
 
 export function actualizarUserDatos(
   id: string,
-  data: { nombre?: string; email?: string; activo?: boolean },
+  data: { nombre?: string; email?: string; activo?: boolean; telefono?: string | null },
 ) {
   return db.user.update({ where: { id }, data, select: { id: true } });
 }

@@ -64,6 +64,7 @@ export async function obtenerEstadoBloqueo(
 export interface MiCuentaDTO {
   nombre: string;
   email: string;
+  telefono: string | null;
   emailVerificado: boolean;
 }
 
@@ -74,6 +75,7 @@ export async function obtenerMiCuenta(ctx: AuthContext): Promise<MiCuentaDTO> {
   return {
     nombre: user.nombre,
     email: user.email,
+    telefono: user.telefono,
     emailVerificado: user.emailVerificado,
   };
 }
@@ -82,6 +84,7 @@ export interface MiJugadorDTO {
   id: string;
   nombre: string;
   apellido: string;
+  parentesco: string | null;
 }
 
 /** Jugadores (hijos/cuenta) vinculados al tutor, para editar su identidad. */
@@ -90,7 +93,12 @@ export async function obtenerMisJugadores(
 ): Promise<MiJugadorDTO[]> {
   requireRole(ctx, ["JUGADOR"]);
   const hijos = await listarHijos(ctx.userId);
-  return hijos.map((h) => ({ id: h.id, nombre: h.nombre, apellido: h.apellido }));
+  return hijos.map((h) => ({
+    id: h.id,
+    nombre: h.nombre,
+    apellido: h.apellido,
+    parentesco: h.parentescoAcudiente,
+  }));
 }
 
 /**
@@ -103,6 +111,7 @@ export async function actualizarDatosMiJugador(
   jugadorId: string,
   nombre: string,
   apellido: string,
+  parentesco: string | null,
 ): Promise<void> {
   requireRole(ctx, ["JUGADOR"]);
   const hijos = await listarHijos(ctx.userId);
@@ -111,6 +120,7 @@ export async function actualizarDatosMiJugador(
   const res = await actualizarIdentidadJugadorPropio(ctx.userId, jugadorId, {
     nombre,
     apellido,
+    parentescoAcudiente: parentesco,
   });
   if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
   await registrarAuditoria(ctx, {
@@ -121,12 +131,15 @@ export async function actualizarDatosMiJugador(
   });
 }
 
-/** Cambia el nombre propio (autoservicio JUGADOR/DT). Auditado. */
-export async function actualizarMiNombre(
+/** Cambia el nombre y teléfono propios (autoservicio JUGADOR/DT). Auditado. */
+export async function actualizarMisDatos(
   ctx: AuthContext,
-  nombre: string,
+  datos: { nombre: string; telefono: string | null },
 ): Promise<void> {
-  await actualizarUserDatos(ctx.userId, { nombre });
+  await actualizarUserDatos(ctx.userId, {
+    nombre: datos.nombre,
+    telefono: datos.telefono,
+  });
   await registrarAuditoria(ctx, {
     accion: "EDITAR_MI_CUENTA",
     entidad: "User",

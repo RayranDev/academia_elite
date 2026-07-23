@@ -204,9 +204,9 @@ export function listarJugadoresGestion(
     include: {
       categoria: { select: { id: true, nombre: true } },
       padre: {
-        select: { id: true, nombre: true, email: true, bloqueado: true, bloqueoTipo: true },
+        select: { id: true, nombre: true, email: true, telefono: true, bloqueado: true, bloqueoTipo: true },
       },
-      cuentaUser: { select: { id: true, email: true, bloqueado: true } },
+      cuentaUser: { select: { id: true, email: true, telefono: true, bloqueado: true } },
     },
     orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
   });
@@ -245,9 +245,9 @@ export function obtenerJugadorGestion(escuelaId: string | null, id: string) {
     include: {
       categoria: { select: { id: true, nombre: true } },
       padre: {
-        select: { id: true, nombre: true, email: true, bloqueado: true, bloqueoTipo: true },
+        select: { id: true, nombre: true, email: true, telefono: true, bloqueado: true, bloqueoTipo: true },
       },
-      cuentaUser: { select: { id: true, email: true, bloqueado: true } },
+      cuentaUser: { select: { id: true, email: true, telefono: true, bloqueado: true } },
     },
   });
 }
@@ -277,7 +277,7 @@ export async function actualizarJugadorDatos(
 export function actualizarIdentidadJugadorPropio(
   userId: string,
   id: string,
-  data: { nombre: string; apellido: string },
+  data: { nombre: string; apellido: string; parentescoAcudiente?: string | null },
 ) {
   // tenant-global: propiedad por vínculo del usuario (padre/cuenta), no por escuela.
   return db.jugador.updateMany({

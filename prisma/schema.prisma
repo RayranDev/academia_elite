@@ -23,6 +23,7 @@ model User {
   passwordHash     String
   nombre           String
   rol              String // enum: SUPER_ADMIN | ESCUELA_ADMIN | DT | JUGADOR
+  telefono         String? // contacto de la familia (nómina / emergencias)
   escuelaId        String?
   escuela          Escuela?       @relation(fields: [escuelaId], references: [id])
   entrenador       Entrenador?
@@ -163,6 +164,7 @@ model Jugador {
   nombre                  String
   apellido                String
   fechaNacimiento         DateTime
+  parentescoAcudiente     String? // relación del acudiente (Madre, Padre, Tío…)
   posicion                String // enum: POR | DEF | MED | DEL
   dorsal                  Int?
   estado                  String             @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO

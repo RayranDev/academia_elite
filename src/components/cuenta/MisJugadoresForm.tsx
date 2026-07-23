@@ -2,13 +2,19 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { actualizarMiJugadorAction } from "@/actions/cuenta.actions";
+import { PARENTESCOS } from "@/lib/validators/cuenta";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
-type MiJugador = { id: string; nombre: string; apellido: string };
+type MiJugador = {
+  id: string;
+  nombre: string;
+  apellido: string;
+  parentesco: string | null;
+};
 type Aviso = { ok: boolean; texto: string } | null;
 
 /**
@@ -43,6 +49,7 @@ function EditarJugador({
   const [pending, startTransition] = useTransition();
   const [nombre, setNombre] = useState(jugador.nombre);
   const [apellido, setApellido] = useState(jugador.apellido);
+  const [parentesco, setParentesco] = useState(jugador.parentesco ?? "");
   const [msg, setMsg] = useState<Aviso>(null);
 
   function guardar(e: FormEvent) {
@@ -52,6 +59,7 @@ function EditarJugador({
     fd.set("jugadorId", jugador.id);
     fd.set("nombre", nombre);
     fd.set("apellido", apellido);
+    fd.set("parentesco", parentesco);
     startTransition(async () => {
       const res = await actualizarMiJugadorAction(undefined, fd);
       setMsg(
@@ -90,6 +98,23 @@ function EditarJugador({
             className={input}
           />
         </div>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-muted">
+          Parentesco del acudiente (opcional)
+        </label>
+        <select
+          value={parentesco}
+          onChange={(e) => setParentesco(e.target.value)}
+          className={input}
+        >
+          <option value="">Sin especificar</option>
+          {PARENTESCOS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
       </div>
       {msg && (
         <p

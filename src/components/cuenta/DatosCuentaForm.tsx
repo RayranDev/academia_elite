@@ -2,7 +2,7 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import {
-  actualizarMiNombreAction,
+  actualizarMisDatosAction,
   solicitarCambioEmailAction,
   confirmarCambioEmailAction,
 } from "@/actions/cuenta.actions";
@@ -23,28 +23,32 @@ type PasoEmail = "idle" | "nuevo" | "codigo";
 export function DatosCuentaForm({
   nombre: nombreInicial,
   email: emailInicial,
+  telefono: telefonoInicial,
   emailVerificado,
 }: {
   nombre: string;
   email: string;
+  telefono: string | null;
   emailVerificado: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
-  // --- Nombre ---
+  // --- Nombre + teléfono ---
   const [nombre, setNombre] = useState(nombreInicial);
+  const [telefono, setTelefono] = useState(telefonoInicial ?? "");
   const [nombreMsg, setNombreMsg] = useState<Aviso>(null);
 
-  function guardarNombre(e: FormEvent) {
+  function guardarDatos(e: FormEvent) {
     e.preventDefault();
     setNombreMsg(null);
     const fd = new FormData();
     fd.set("nombre", nombre);
+    fd.set("telefono", telefono);
     startTransition(async () => {
-      const res = await actualizarMiNombreAction(undefined, fd);
+      const res = await actualizarMisDatosAction(undefined, fd);
       setNombreMsg(
         res.ok
-          ? { ok: true, texto: "Nombre actualizado." }
+          ? { ok: true, texto: "Datos actualizados." }
           : { ok: false, texto: res.error },
       );
     });
@@ -94,7 +98,7 @@ export function DatosCuentaForm({
 
   return (
     <Card className="max-w-md space-y-6">
-      <form onSubmit={guardarNombre} className="space-y-3">
+      <form onSubmit={guardarDatos} className="space-y-3">
         <div>
           <h2 className="mb-3 text-lg font-bold">Datos de la cuenta</h2>
           <label htmlFor="nombre" className="mb-1 block text-xs text-muted">
@@ -110,6 +114,24 @@ export function DatosCuentaForm({
             className={input}
           />
         </div>
+        <div>
+          <label htmlFor="telefono" className="mb-1 block text-xs text-muted">
+            Teléfono de contacto (opcional)
+          </label>
+          <input
+            id="telefono"
+            type="tel"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            maxLength={30}
+            placeholder="+57 300 000 0000"
+            autoComplete="tel"
+            className={input}
+          />
+          <p className="mt-1 text-xs text-muted">
+            Lo usa la escuela para la nómina y contacto de emergencia.
+          </p>
+        </div>
         {nombreMsg && (
           <p
             className={`text-sm ${nombreMsg.ok ? "text-brand" : "text-alerta"}`}
@@ -119,7 +141,7 @@ export function DatosCuentaForm({
           </p>
         )}
         <Button type="submit" disabled={pending}>
-          {pending ? "Guardando…" : "Guardar nombre"}
+          {pending ? "Guardando…" : "Guardar datos"}
         </Button>
       </form>
 

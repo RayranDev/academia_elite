@@ -16,6 +16,7 @@ export default async function CuentaPage() {
       <DatosCuentaForm
         nombre={cuenta.nombre}
         email={cuenta.email}
+        telefono={cuenta.telefono}
         emailVerificado={cuenta.emailVerificado}
       />
       <MisJugadoresForm jugadores={jugadores} />
