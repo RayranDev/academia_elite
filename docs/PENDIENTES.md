@@ -101,4 +101,21 @@ catálogo de plantillas clickeables para no tipear CSS.
 
 ## Pendiente
 
+### Export de Contactos/Nómina — `BLOQUEADO` (schema)
+
+Cierra PLAN-UX-DT PR-5 §5.1 (última pieza de exportables). Sería la nómina para
+ligas/federación y emergencias: jugador, nacimiento, categoría, acudiente,
+**parentesco**, **teléfono**, email. Bloqueado porque el schema **no tiene**:
+
+- `parentesco` (relación del acudiente con el jugador).
+- `telefono` de la familia — hoy `telefono` solo existe en `Lead`, no en `User`
+  ni `Jugador`. Sin el teléfono, una "hoja de emergencias" no cumple su función,
+  por eso NO se entrega a medias.
+
+**Para desbloquear:** migración que agregue `User.telefono` (y/o
+`Jugador.telefonoEmergencia`) + `Jugador.parentescoAcudiente` (o un modelo de
+contacto), su captura en el alta/edición de familia, y recién ahí el export
+`export-contactos.service.ts` + `api/contactos-export`. Es un PR propio con
+cambio de schema sobre datos de menores.
+
 _(Agregá acá las próximas features.)_
