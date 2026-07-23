@@ -13,7 +13,16 @@ export default async function RankingPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-display italic uppercase">Ranking</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-display italic uppercase">Ranking</h1>
+        {/* Export de resultados: partidos + stats individuales (PR-5 §5.1). */}
+        <a
+          href="/api/resultados-export"
+          className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+        >
+          Descargar resultados
+        </a>
+      </div>
 
       {/* ── Top OVR ──────────────────────────────────────────────────── */}
       <section className="space-y-3">

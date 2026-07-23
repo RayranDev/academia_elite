@@ -82,6 +82,73 @@ export async function asistenciaPorJugador(
 }
 
 /**
+ * Eventos con asistencia para el export en matriz (una columna por fecha). Trae
+ * entrenamientos y partidos NO cancelados desde `desde`, con la marca de cada
+ * jugador (presente / justificado / llegó tarde). Multi-tenant por escuelaId.
+ */
+export function eventosParaMatrizAsistencia(escuelaId: string, desde: Date) {
+  return db.evento.findMany({
+    where: {
+      escuelaId,
+      cancelado: false,
+      tipo: { in: ["ENTRENAMIENTO", "PARTIDO"] },
+      inicio: { gte: desde },
+    },
+    select: {
+      id: true,
+      categoriaId: true,
+      inicio: true,
+      tipo: true,
+      asistencias: {
+        select: {
+          jugadorId: true,
+          presente: true,
+          justificado: true,
+          llegoTarde: true,
+        },
+      },
+    },
+    orderBy: { inicio: "asc" },
+  });
+}
+
+/**
+ * Partidos con resultado cargado, con la línea individual de cada jugador, para
+ * el export de resultados. Multi-tenant por escuelaId.
+ */
+export function partidosParaExport(escuelaId: string) {
+  return db.evento.findMany({
+    where: {
+      escuelaId,
+      tipo: "PARTIDO",
+      cancelado: false,
+      OR: [{ resultadoLocal: { not: null } }, { resultadoVisitante: { not: null } }],
+    },
+    select: {
+      id: true,
+      titulo: true,
+      rival: true,
+      esLocal: true,
+      inicio: true,
+      resultadoLocal: true,
+      resultadoVisitante: true,
+      categoria: { select: { nombre: true } },
+      estadisticas: {
+        select: {
+          goles: true,
+          asistencias: true,
+          minutos: true,
+          amarillas: true,
+          roja: true,
+          jugador: { select: { nombre: true, apellido: true } },
+        },
+      },
+    },
+    orderBy: { inicio: "desc" },
+  });
+}
+
+/**
  * Top 10 goleadores de la escuela usando groupBy en DB.
  */
 export async function estadisticasGoleadoresByEscuela(

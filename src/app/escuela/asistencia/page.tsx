@@ -12,7 +12,16 @@ export default async function AsistenciaPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-display italic uppercase">Asistencia</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-3xl font-display italic uppercase">Asistencia</h1>
+        {/* Export en matriz jugador×fecha, una hoja por categoría (PR-5 §5.1). */}
+        <a
+          href="/api/asistencia-export"
+          className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+        >
+          Descargar asistencia
+        </a>
+      </div>
 
       {/* ── Por categoría ────────────────────────────────────────────── */}
       <section className="space-y-3">
