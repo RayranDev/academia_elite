@@ -19,8 +19,14 @@ function colorPrioridad(prioridad: string): string {
 /**
  * Campana de notificaciones: muestra el contador de no leídas y, al desplegarse,
  * la lista. Cada ítem con `url` navega a la sección donde se evidencia la
- * notificación y se marca como leída. El estado se mantiene local (optimista) y
- * se refresca el árbol de servidor para actualizar el contador del shell.
+ * notificación y se marca como leída.
+ *
+ * La fuente de verdad es `inicial` (server): antes se copiaba a `useState`, que
+ * SOLO se siembra al montar, así que ni las nuevas notificaciones llegaban ni el
+ * marcado se reflejaba al revalidar. Ahora se renderiza directo del prop y solo
+ * se mantiene un overlay LOCAL de "recién marcadas como leídas" para que el tilde
+ * sea instantáneo; cuando el server revalida, ya trae `leida: true` y el overlay
+ * queda inocuo (idempotente).
  */
 export function NotificacionesMenu({
   inicial,
@@ -29,8 +35,11 @@ export function NotificacionesMenu({
 }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
-  const [items, setItems] = useState(inicial);
+  const [leidasOpt, setLeidasOpt] = useState<Set<string>>(() => new Set());
 
+  const items = inicial.map((n) =>
+    leidasOpt.has(n.id) ? { ...n, leida: true } : n,
+  );
   const noLeidas = items.filter((n) => !n.leida).length;
 
   function cerrar() {
@@ -40,18 +49,26 @@ export function NotificacionesMenu({
   async function abrirNotificacion(n: NotificacionDTO) {
     cerrar();
     if (!n.leida) {
-      setItems((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, leida: true } : x)),
-      );
-      await marcarLeidaAction(n.id);
+      setLeidasOpt((prev) => new Set(prev).add(n.id));
+      const res = await marcarLeidaAction(n.id);
+      // Si falló, revertimos el tilde optimista para no mentir el estado.
+      if (!res.ok) {
+        setLeidasOpt((prev) => {
+          const s = new Set(prev);
+          s.delete(n.id);
+          return s;
+        });
+      }
     }
     if (n.url) router.push(n.url);
     else router.refresh();
   }
 
   async function marcarTodas() {
-    setItems((prev) => prev.map((x) => ({ ...x, leida: true })));
-    await marcarTodasLeidasAction();
+    const previas = leidasOpt;
+    setLeidasOpt(new Set(inicial.map((n) => n.id)));
+    const res = await marcarTodasLeidasAction();
+    if (!res.ok) setLeidasOpt(previas);
     router.refresh();
   }
 
