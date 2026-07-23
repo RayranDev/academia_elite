@@ -1,5 +1,5 @@
 import { requireAuthContext } from "@/lib/auth/session";
-import { rankingEscuela } from "@/services/gestion-deportiva.service";
+import { obtenerRankingEscuela } from "@/services/gestion-deportiva.service";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { colorNivel } from "@/lib/nivel";
@@ -9,7 +9,7 @@ export const metadata = { title: "Ranking" };
 
 export default async function RankingPage() {
   const ctx = await requireAuthContext();
-  const datos = await rankingEscuela(ctx);
+  const datos = await obtenerRankingEscuela(ctx);
 
   return (
     <div className="space-y-8">

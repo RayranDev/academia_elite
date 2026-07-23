@@ -81,6 +81,30 @@ export async function asistenciaPorJugador(
   }));
 }
 
+/** Mapa mínimo evento → categoría de toda la escuela (para agregar asistencia). */
+export function eventosCategoriaDeEscuela(escuelaId: string) {
+  return db.evento.findMany({
+    where: { escuelaId },
+    select: { id: true, categoriaId: true },
+  });
+}
+
+/** Jugadores mínimos de la escuela (id/nombre/apellido/categoría) para cruces. */
+export function jugadoresMinimosDeEscuela(escuelaId: string) {
+  return db.jugador.findMany({
+    where: { escuelaId },
+    select: { id: true, nombre: true, apellido: true, categoriaId: true },
+  });
+}
+
+/** Jugadores por ids dentro de la escuela (nombre/apellido), para completar cruces. */
+export function jugadoresPorIds(escuelaId: string, ids: string[]) {
+  return db.jugador.findMany({
+    where: { id: { in: ids }, escuelaId },
+    select: { id: true, nombre: true, apellido: true },
+  });
+}
+
 /**
  * Eventos con asistencia para el export en matriz (una columna por fecha). Trae
  * entrenamientos y partidos NO cancelados desde `desde`, con la marca de cada
