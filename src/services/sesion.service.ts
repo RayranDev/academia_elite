@@ -59,6 +59,15 @@ function exigirPartido(tipo: string): void {
   }
 }
 
+/** Estadística individual del partido (la que alimenta el gol en vivo). */
+export interface EstadisticaSesionDTO {
+  minutos: number;
+  goles: number;
+  asistencias: number;
+  amarillas: number;
+  roja: boolean;
+}
+
 export interface ConvocadoSesionDTO {
   jugadorId: string;
   nombre: string;
@@ -69,6 +78,7 @@ export interface ConvocadoSesionDTO {
   llegoTarde: boolean;
   salioAntes: boolean;
   agregadoEnCancha: boolean;
+  estadistica: EstadisticaSesionDTO;
 }
 
 export interface SesionDTO {
@@ -79,10 +89,23 @@ export interface SesionDTO {
   sesionIniciadaAt: string | null;
   sesionCerradaAt: string | null;
   notaSesion: string | null;
+  // Solo PARTIDO: el marcador en vivo y de qué lado juega el equipo propio.
+  rival: string | null;
+  esLocal: boolean | null;
+  resultadoLocal: number | null;
+  resultadoVisitante: number | null;
   convocados: ConvocadoSesionDTO[];
   /** Jugadores de la categoría sin convocar, para sumarlos en cancha. */
   disponibles: { id: string; nombre: string; apellido: string }[];
 }
+
+const SIN_ESTADISTICA: EstadisticaSesionDTO = {
+  minutos: 0,
+  goles: 0,
+  asistencias: 0,
+  amarillas: 0,
+  roja: false,
+};
 
 /** Estado de la asistencia guardada → estado de 3 posiciones de la UI. */
 function estadoDe(a: {
@@ -102,6 +125,7 @@ export async function obtenerSesionDt(
   const plantilla = await listarPlantilla(escuelaId, [evento.categoriaId]);
 
   const asistencias = new Map(evento.asistencias.map((a) => [a.jugadorId, a]));
+  const estadisticas = new Map(evento.estadisticas.map((s) => [s.jugadorId, s]));
   const convocadosIds = new Set(evento.convocados.map((c) => c.jugadorId));
 
   /**
@@ -135,14 +159,28 @@ export async function obtenerSesionDt(
     sesionIniciadaAt: evento.sesionIniciadaAt?.toISOString() ?? null,
     sesionCerradaAt: evento.sesionCerradaAt?.toISOString() ?? null,
     notaSesion: evento.notaSesion,
+    rival: evento.rival,
+    esLocal: evento.esLocal,
+    resultadoLocal: evento.resultadoLocal,
+    resultadoVisitante: evento.resultadoVisitante,
     convocados: base.map((c) => {
       const a = asistencias.get(c.jugadorId);
+      const s = estadisticas.get(c.jugadorId);
       return {
         ...c,
         estado: a ? estadoDe(a) : null,
         llegoTarde: a?.llegoTarde ?? false,
         salioAntes: a?.salioAntes ?? false,
         agregadoEnCancha: a?.agregadoEnCancha ?? false,
+        estadistica: s
+          ? {
+              minutos: s.minutos,
+              goles: s.goles,
+              asistencias: s.asistencias,
+              amarillas: s.amarillas,
+              roja: s.roja,
+            }
+          : SIN_ESTADISTICA,
       };
     }),
     // Solo tiene sentido sumar en cancha cuando hubo convocatoria previa.

@@ -46,6 +46,8 @@ async function limpiar() {
   await db.conversacion.deleteMany();
   await db.anuncio.deleteMany();
   await db.asistencia.deleteMany();
+  // Observaciones del Modo Sesión: van antes que Jugador por su FK.
+  await db.observacionJugador.deleteMany();
   await db.estadisticaPartido.deleteMany();
   await db.jugadorConvocado.deleteMany();
   await db.evento.deleteMany();

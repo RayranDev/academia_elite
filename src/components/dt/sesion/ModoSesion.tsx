@@ -7,6 +7,7 @@ import { iniciarSesionAction } from "@/actions/sesion.actions";
 import { Cronometro } from "./Cronometro";
 import { ListaViva, type EstadoVisible } from "./ListaViva";
 import { SesionVivo } from "./SesionVivo";
+import { PartidoVivo } from "./PartidoVivo";
 import { CierreSesion } from "./CierreSesion";
 import {
   useAsistenciaOptimista,
@@ -71,14 +72,18 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
     [sesion.convocados, sumados],
   );
 
+  /**
+   * Estado a mostrar. Lo marcado manda; si no, se pre-llena TENTATIVAMENTE.
+   * El default (incluido PENDIENTE, que es la mayoría) es Presente: el DT pasa
+   * lista de quienes SÍ vinieron, así el caso común se resuelve con un toque.
+   * Si arrancara en Ausente harían falta tres por jugador presente.
+   */
   function estadoDe(c: ConvocadoSesionDTO): EstadoVisible {
     const m = marcas.get(c.jugadorId);
     if (m) return { estado: m.estado, tentativo: false };
-    if (c.confirmacion === "CONFIRMADO")
-      return { estado: "PRESENTE", tentativo: true };
     if (c.confirmacion === "RECHAZADO")
       return { estado: "JUSTIFICADO", tentativo: true };
-    return { estado: "AUSENTE", tentativo: true };
+    return { estado: "PRESENTE", tentativo: true };
   }
 
   function ciclar(c: ConvocadoSesionDTO) {
@@ -109,6 +114,7 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
   }
 
   const presentes = filas.filter((c) => estadoDe(c).estado === "PRESENTE");
+  const esPartido = sesion.tipo === "PARTIDO";
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
@@ -183,6 +189,14 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
                   llegoTarde: false,
                   salioAntes: false,
                   agregadoEnCancha: true,
+                  // Recién sumado: arranca sin estadística en el partido.
+                  estadistica: {
+                    minutos: 0,
+                    goles: 0,
+                    asistencias: 0,
+                    amarillas: 0,
+                    roja: false,
+                  },
                 },
               ]);
               marcar({
@@ -196,13 +210,26 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
           />
         )}
 
-        {paso === "VIVO" && (
-          <SesionVivo
-            eventoId={sesion.eventoId}
-            inicio={sesion.sesionIniciadaAt}
-            presentes={presentes}
-          />
-        )}
+        {paso === "VIVO" &&
+          (esPartido ? (
+            <PartidoVivo
+              eventoId={sesion.eventoId}
+              inicio={sesion.sesionIniciadaAt}
+              esLocal={sesion.esLocal}
+              rival={sesion.rival}
+              presentes={presentes}
+              marcadorInicial={{
+                local: sesion.resultadoLocal ?? 0,
+                visitante: sesion.resultadoVisitante ?? 0,
+              }}
+            />
+          ) : (
+            <SesionVivo
+              eventoId={sesion.eventoId}
+              inicio={sesion.sesionIniciadaAt}
+              presentes={presentes}
+            />
+          ))}
 
         {paso === "CIERRE" && (
           <CierreSesion
@@ -210,6 +237,7 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
             filas={filas}
             estadoDe={(c) => estadoDe(c).estado}
             notaInicial={sesion.notaSesion}
+            esPartido={esPartido}
           />
         )}
       </main>
