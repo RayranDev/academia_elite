@@ -177,6 +177,7 @@ model Jugador {
   estadisticasPartido     EstadisticaPartido[]
   logros                  LogroJugador[]
   objetivos               ObjetivoJugador[]
+  observaciones           ObservacionJugador[]
   progresos               ProgresoSemanal[]
   fondosDesbloqueados     FondoDesbloqueado[]
   fondoEquipadoId         String?
@@ -276,6 +277,10 @@ model Evento {
   cancelado          Boolean            @default(false)
   resultadoLocal     Int? // carga post-partido (opcional, para el hub)
   resultadoVisitante Int?
+  // Modo Sesión (PLAN-UX-DT PR-1): el DT corre el evento como flujo guiado.
+  sesionIniciadaAt   DateTime? // cuándo arrancó el modo (base del cronómetro)
+  sesionCerradaAt    DateTime? // cierre confirmado; a partir de acá, editar = corrección
+  notaSesion         String? // nota general del paso de cierre
   convocados         JugadorConvocado[]
   asistencias        Asistencia[]
   estadisticas       EstadisticaPartido[]
@@ -316,6 +321,10 @@ model JugadorConvocado {
   @@id([eventoId, jugadorId])
 }
 
+// Asistencia a un evento. El estado de 3 posiciones de la UI mapea así:
+// Presente = {presente:true, justificado:false} · Ausente = {presente:false,
+// justificado:false} · Justificado = {presente:false, justificado:true}.
+// `llegoTarde`/`salioAntes` son MODIFICADORES de Presente.
 model Asistencia {
   id        String  @id @default(cuid())
   escuelaId String
@@ -325,8 +334,35 @@ model Asistencia {
   jugador   Jugador @relation(fields: [jugadorId], references: [id])
   presente  Boolean
 
+  justificado      Boolean   @default(false)
+  llegoTarde       Boolean   @default(false)
+  salioAntes       Boolean   @default(false)
+  agregadoEnCancha Boolean   @default(false)
+  marcadoAt        DateTime?
+  // Si el evento ya estaba cerrado, la marca es una CORRECCIÓN: se registra
+  // cuándo y quién, y el detalle la muestra como "editado".
+  corregidoAt      DateTime?
+  corregidoPorId   String?
+
   @@unique([eventoId, jugadorId])
   @@index([escuelaId, jugadorId])
+}
+
+// Observación del DT sobre un jugador, hecha en caliente durante la sesión.
+// `visiblePadre` decide si la familia la ve (default: privada del cuerpo técnico).
+model ObservacionJugador {
+  id           String   @id @default(cuid())
+  escuelaId    String
+  jugadorId    String
+  jugador      Jugador  @relation(fields: [jugadorId], references: [id])
+  entrenadorId String
+  eventoId     String?
+  texto        String // máx 500 (se valida en Zod, no en el schema)
+  visiblePadre Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([escuelaId, jugadorId, createdAt])
+  @@index([eventoId])
 }
 
 model Conversacion {

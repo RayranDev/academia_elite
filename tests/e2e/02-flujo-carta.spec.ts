@@ -33,6 +33,8 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   await pf.fill('input[name="jugadorApellido"]', apellido);
   await pf.fill('input[name="fechaNacimiento"]', "2013-05-10");
   await pf.locator('select[name="posicion"]').selectOption("DEL");
+  // Habeas data: aceptar el tratamiento de datos es obligatorio para registrarse.
+  await pf.check('input[name="aceptaTerminos"]');
   await pf.getByRole("button", { name: "Crear cuenta" }).click();
   // Auto-login: tras registrar con código válido, la familia entra directo a su hub.
   await expect(pf).toHaveURL(/\/jugador/, { timeout: 10000 });

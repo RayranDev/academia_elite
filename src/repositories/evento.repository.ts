@@ -157,6 +157,167 @@ export function cargarResultado(
   });
 }
 
+// --- Modo Sesión (PLAN-UX-DT PR-1) ---
+
+/** Upsert de UNA marca de asistencia (guardado optimista, un toque = una escritura). */
+export async function upsertAsistencia(
+  escuelaId: string,
+  eventoId: string,
+  jugadorId: string,
+  data: {
+    presente: boolean;
+    justificado: boolean;
+    llegoTarde?: boolean;
+    salioAntes?: boolean;
+    agregadoEnCancha?: boolean;
+    esCorreccion?: boolean; // true si el evento ya estaba cerrado
+    corregidoPorId?: string;
+  },
+): Promise<void> {
+  const { esCorreccion, corregidoPorId, ...campos } = data;
+  // tenant-global: upsert por clave única evento+jugador; el evento ya viene
+  // tenant-scoped y validado contra las categorías del DT en el service.
+  await db.asistencia.upsert({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    create: { escuelaId, eventoId, jugadorId, ...campos, marcadoAt: new Date() },
+    update: {
+      ...campos,
+      ...(esCorreccion
+        ? { corregidoAt: new Date(), corregidoPorId }
+        : { marcadoAt: new Date() }),
+    },
+  });
+}
+
+/**
+ * Marca el arranque de la sesión SOLO si aún no arrancó: re-entrar al modo no
+ * resetea el cronómetro. Devuelve la cantidad de filas tocadas (0 = ya estaba).
+ */
+export async function marcarSesionIniciada(escuelaId: string, eventoId: string) {
+  return db.evento.updateMany({
+    where: { id: eventoId, escuelaId, sesionIniciadaAt: null },
+    data: { sesionIniciadaAt: new Date() },
+  });
+}
+
+/** Cierra la sesión y guarda la nota general del paso de cierre. */
+export async function cerrarSesionEvento(
+  escuelaId: string,
+  eventoId: string,
+  notaSesion: string | null,
+) {
+  return db.evento.updateMany({
+    where: { id: eventoId, escuelaId },
+    data: { sesionCerradaAt: new Date(), notaSesion },
+  });
+}
+
+/** Convoca a un jugador si aún no lo estaba (alta en cancha). */
+export async function crearConvocadoSiFalta(eventoId: string, jugadorId: string) {
+  // tenant-global: clave compuesta evento+jugador; ambos validados en el service.
+  await db.jugadorConvocado.upsert({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    create: { eventoId, jugadorId },
+    update: {},
+  });
+}
+
+/**
+ * Registra (o deshace) un gol EN VIVO de forma atómica: mueve el marcador y, si
+ * es gol propio con anotador, la estadística individual. `delta` es 1 o -1 y
+ * ningún contador baja de 0. Devuelve el marcador ya actualizado.
+ */
+export async function ajustarGolVivo(input: {
+  escuelaId: string;
+  eventoId: string;
+  esLocal: boolean; // el equipo propio juega de local
+  esRival: boolean;
+  delta: number;
+  anotadorId?: string | null;
+  asistenteId?: string | null;
+}): Promise<{ local: number; visitante: number }> {
+  const { escuelaId, eventoId, esLocal, esRival, delta } = input;
+  return db.$transaction(async (tx) => {
+    const e = await tx.evento.findFirst({
+      where: { id: eventoId, escuelaId },
+      select: { resultadoLocal: true, resultadoVisitante: true },
+    });
+    let local = e?.resultadoLocal ?? 0;
+    let visitante = e?.resultadoVisitante ?? 0;
+
+    // El lado propio es "local" si el equipo juega de local; el rival, el otro.
+    const tocaLocal = esRival ? !esLocal : esLocal;
+    if (tocaLocal) local = Math.max(0, local + delta);
+    else visitante = Math.max(0, visitante + delta);
+
+    await tx.evento.updateMany({
+      where: { id: eventoId, escuelaId },
+      data: { resultadoLocal: local, resultadoVisitante: visitante },
+    });
+
+    // El gol propio alimenta marcador Y stat individual en la misma operación.
+    if (!esRival && input.anotadorId) {
+      await sumarStat(tx, escuelaId, eventoId, input.anotadorId, "goles", delta);
+    }
+    if (!esRival && input.asistenteId) {
+      await sumarStat(tx, escuelaId, eventoId, input.asistenteId, "asistencias", delta);
+    }
+
+    return { local, visitante };
+  });
+}
+
+/** Suma `delta` a un contador de EstadisticaPartido sin bajar de 0. */
+async function sumarStat(
+  tx: Parameters<Parameters<typeof db.$transaction>[0]>[0],
+  escuelaId: string,
+  eventoId: string,
+  jugadorId: string,
+  campo: "goles" | "asistencias",
+  delta: number,
+): Promise<void> {
+  // tenant-global: lookup por la clave única evento+jugador; `ajustarGolVivo` ya
+  // validó el evento contra el escuelaId al abrir la transacción.
+  const actual = await tx.estadisticaPartido.findUnique({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    select: { goles: true, asistencias: true },
+  });
+  const valor = Math.max(0, (actual?.[campo] ?? 0) + delta);
+  // tenant-global: mismo par único que el findUnique de arriba; el escuelaId se
+  // persiste en el create para que la fila quede acotada al tenant.
+  await tx.estadisticaPartido.upsert({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    create: { escuelaId, eventoId, jugadorId, [campo]: valor },
+    update: { [campo]: valor },
+  });
+}
+
+/** Amarilla (tope 2) o roja sobre la estadística del jugador en el partido. */
+export async function upsertTarjeta(
+  escuelaId: string,
+  eventoId: string,
+  jugadorId: string,
+  tipo: "AMARILLA" | "ROJA",
+): Promise<void> {
+  // tenant-global: lookup por la clave única evento+jugador; el evento ya viene
+  // tenant-scoped y validado contra las categorías del DT en el service.
+  const actual = await db.estadisticaPartido.findUnique({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    select: { amarillas: true },
+  });
+  const datos =
+    tipo === "ROJA"
+      ? { roja: true }
+      : { amarillas: Math.min((actual?.amarillas ?? 0) + 1, 2) };
+  // tenant-global: mismo par único que el findUnique de arriba; el escuelaId se
+  // persiste en el create para mantener la fila acotada al tenant.
+  await db.estadisticaPartido.upsert({
+    where: { eventoId_jugadorId: { eventoId, jugadorId } },
+    create: { escuelaId, eventoId, jugadorId, ...datos },
+    update: datos,
+  });
+}
+
 // --- Para el hub del jugador ---
 
 export function proximosEventosDeCategoria(

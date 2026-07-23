@@ -296,6 +296,49 @@ export async function pasarListaDt(
   await registrarAsistencias(escuelaId, eventoId, registros);
 }
 
+/** Datos del evento que necesita el pipeline de difusión del resultado. */
+export interface EventoParaDifusion {
+  titulo: string;
+  categoriaId: string;
+  rival: string | null;
+  esLocal: boolean | null;
+  convocados: { jugadorId: string }[];
+}
+
+/**
+ * Publica la noticia del club y notifica a las familias con el resultado final.
+ *
+ * Vive extraído a propósito: lo usan `cargarResultadoDt` y el CIERRE de una
+ * sesión de partido (`sesion.service`). La notificación masiva sale UNA sola
+ * vez, al cierre — nunca por cada gol registrado en caliente.
+ */
+export async function publicarResultadoYNotificar(
+  escuelaId: string,
+  evento: EventoParaDifusion,
+  local: number,
+  visitante: number,
+): Promise<void> {
+  const marcador = evento.esLocal
+    ? `${local}-${visitante}`
+    : `${visitante}-${local}`;
+  await crearAnuncio(escuelaId, {
+    categoriaId: evento.categoriaId,
+    autorRol: "DT",
+    titulo: `Resultado: ${evento.titulo}`,
+    cuerpo: `Terminó ${evento.titulo} con un ${marcador}${evento.rival ? ` ante ${evento.rival}` : ""}.`,
+    visibleJugador: true,
+  });
+
+  const jugadorIds = evento.convocados.map((c) => c.jugadorId);
+  const padres = await userIdsDePadres(jugadorIds);
+  await notificar(padres, {
+    tipo: "SISTEMA",
+    titulo: "Resultado del partido",
+    cuerpo: `${evento.titulo}: ${marcador}`,
+    url: "/jugador/calendario",
+  });
+}
+
 /** Carga el resultado de un partido y genera la noticia del club + notificación. */
 export async function cargarResultadoDt(
   ctx: AuthContext,
@@ -312,26 +355,7 @@ export async function cargarResultadoDt(
     throw new ValidationError("Solo los partidos tienen resultado.");
   }
   await cargarResultadoRepo(escuelaId, eventoId, local, visitante);
-
-  const marcador = e.esLocal
-    ? `${local}-${visitante}`
-    : `${visitante}-${local}`;
-  await crearAnuncio(escuelaId, {
-    categoriaId: e.categoriaId,
-    autorRol: "DT",
-    titulo: `Resultado: ${e.titulo}`,
-    cuerpo: `Terminó ${e.titulo} con un ${marcador}${e.rival ? ` ante ${e.rival}` : ""}.`,
-    visibleJugador: true,
-  });
-
-  const jugadorIds = e.convocados.map((c) => c.jugadorId);
-  const padres = await userIdsDePadres(jugadorIds);
-  await notificar(padres, {
-    tipo: "SISTEMA",
-    titulo: "Resultado del partido",
-    cuerpo: `${e.titulo}: ${marcador}`,
-    url: "/jugador/calendario",
-  });
+  await publicarResultadoYNotificar(escuelaId, e, local, visitante);
 }
 
 /** Carga/actualiza la estadística individual de los convocados a un partido. */
