@@ -27,12 +27,14 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4"
       onClick={onClose}
     >
       <div
         className={cn(
-          "w-full max-w-md rounded-2xl border border-subtle bg-surface p-6 shadow-2xl",
+          // max-h + scroll: un modal alto (p. ej. el form de fondos) desbordaba
+          // el viewport y obligaba a bajar el zoom para navegarlo.
+          "max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-subtle bg-surface p-6 shadow-2xl",
           className,
         )}
         onClick={(e) => e.stopPropagation()}

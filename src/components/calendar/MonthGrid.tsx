@@ -90,13 +90,15 @@ export function MonthGrid({
                 } ${isSameMonth(dia, mes) ? "bg-surface-2" : "bg-surface opacity-40"}`}
               >
                 <span>{format(dia, "d")}</span>
-                <span className="mt-auto flex items-center gap-0.5 overflow-visible">
+                {/* Iconos centrados en la celda y un poco más grandes: antes
+                    quedaban chicos y pegados abajo. */}
+                <span className="flex flex-1 items-center justify-center gap-0.5 overflow-visible">
                   {evs.slice(0, 3).map((e) => {
                     const Icon = ICONO_TIPO[e.tipo as TipoEvento];
                     return (
                       <Icon
                         key={e.id}
-                        className="h-3.5 w-3.5 shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]"
+                        className="h-5 w-5 shrink-0 drop-shadow-sm"
                         style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
                         strokeWidth={2.5}
                         aria-hidden
