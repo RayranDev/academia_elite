@@ -57,6 +57,13 @@ export default defineConfig({
       // modo consola. Evita inundar la casilla de EMAIL_DEV_TO en cada corrida
       // y quita la latencia de red variable que desestabilizaba los flujos.
       RESEND_API_KEY: "",
+      // Sin Upstash, `rateLimit` cae al contador en memoria, que muere con el
+      // proceso. Es OBLIGATORIO acá: el rate limit de Upstash es distribuido y
+      // PERSISTENTE, así que sobrevive al reinicio del server y al reset del
+      // schema. Compartido entre corridas, agotaba el limite de altas por IP y
+      // el registro del spec 02 empezaba a fallar sin motivo aparente.
+      UPSTASH_REDIS_REST_URL: "",
+      UPSTASH_REDIS_REST_TOKEN: "",
       ...(urlApp ? { DATABASE_URL: urlApp } : {}),
       ...(urlDirecta ? { DIRECT_URL: urlDirecta } : {}),
     },
