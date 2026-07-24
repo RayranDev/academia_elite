@@ -70,13 +70,22 @@ export default async function EventoDetallePage({
           </p>
         )}
         {/* Entrada al Modo Sesión (PLAN-UX-DT PR-3 §3.4): además del home "Hoy",
-            se entra desde acá. Un evento cancelado no se corre. */}
-        {!ev.cancelado && (
+            se entra desde acá. No se ofrece si el evento está cancelado ni si la
+            sesión ya se cerró — en ese caso esta misma pantalla es la de consulta
+            y corrección. */}
+        {!ev.cancelado && !ev.sesionCerradaAt && (
           <Link href={`/dt/eventos/${ev.id}/sesion`} className="mt-3 block">
             <Button size="lg" className="w-full sm:w-auto">
               ▶ Iniciar sesión
             </Button>
           </Link>
+        )}
+        {ev.sesionCerradaAt && (
+          <p className="mt-3 text-sm text-muted">
+            Sesión cerrada el{" "}
+            {new Date(ev.sesionCerradaAt).toLocaleString("es")}. Los cambios que
+            hagas desde acá quedan registrados como corrección.
+          </p>
         )}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -63,6 +63,9 @@ export function UpcomingList({
               {e.canchaNombre ? ` · ${e.canchaNombre}` : ""}
             </p>
 
+            {/* Una vez respondida la convocatoria se muestra SOLO el estado: dejar
+                los botones visibles y tocables hacía dudar de si la respuesta se
+                había registrado. Mismo criterio que `ProximoPartidoTile`. */}
             {e.convocado && (
               <div className="mt-2 flex items-center gap-2">
                 {e.confirmacion === "CONFIRMADO" ? (
@@ -70,24 +73,26 @@ export function UpcomingList({
                 ) : e.confirmacion === "RECHAZADO" ? (
                   <Badge tono="alerta">No asistirá</Badge>
                 ) : (
-                  <Badge tono="oro">Confirmación pendiente</Badge>
+                  <>
+                    <Badge tono="oro">Confirmación pendiente</Badge>
+                    <form action={confirmarConvocatoriaAction}>
+                      <input type="hidden" name="eventoId" value={e.id} />
+                      <input type="hidden" name="jugadorId" value={jugadorId} />
+                      <input type="hidden" name="confirmacion" value="CONFIRMADO" />
+                      <button className="rounded bg-pitch px-2 py-1 text-xs font-semibold text-base">
+                        Confirmar
+                      </button>
+                    </form>
+                    <form action={confirmarConvocatoriaAction}>
+                      <input type="hidden" name="eventoId" value={e.id} />
+                      <input type="hidden" name="jugadorId" value={jugadorId} />
+                      <input type="hidden" name="confirmacion" value="RECHAZADO" />
+                      <button className="rounded border border-subtle px-2 py-1 text-xs text-muted hover:text-foreground">
+                        No asistirá
+                      </button>
+                    </form>
+                  </>
                 )}
-                <form action={confirmarConvocatoriaAction}>
-                  <input type="hidden" name="eventoId" value={e.id} />
-                  <input type="hidden" name="jugadorId" value={jugadorId} />
-                  <input type="hidden" name="confirmacion" value="CONFIRMADO" />
-                  <button className="rounded bg-pitch px-2 py-1 text-xs font-semibold text-base">
-                    Confirmar
-                  </button>
-                </form>
-                <form action={confirmarConvocatoriaAction}>
-                  <input type="hidden" name="eventoId" value={e.id} />
-                  <input type="hidden" name="jugadorId" value={jugadorId} />
-                  <input type="hidden" name="confirmacion" value="RECHAZADO" />
-                  <button className="rounded border border-subtle px-2 py-1 text-xs text-muted hover:text-foreground">
-                    No asistirá
-                  </button>
-                </form>
               </div>
             )}
           </li>

@@ -48,6 +48,13 @@
   --brand: #4ade80;
 }
 
+/* El alto del documento se fija acá y NO con una clase de Tailwind en <html>:
+   ese elemento no puede llevar className gestionado por React, porque el script
+   anti-FOUC le agrega la clase `light` y React la borraría al hidratar. */
+html {
+  height: 100%;
+}
+
 /* Tema claro: sobreescribe los tokens de superficie/texto. Las cartas
    (PlayerCard) usan materiales propios y conservan su identidad premium. */
 html.light {

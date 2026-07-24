@@ -191,6 +191,41 @@ export async function removerFondoDeImagen(
     });
   } catch (err) {
     console.error("Error al remover fondo con @imgly/background-removal:", err);
-    return src; // Fallback al original si falla
+    // Se conserva la foto original (la remoción es una mejora, no un requisito),
+    // pero el error SE DEVUELVE: fallar en silencio hacía imposible saber por qué
+    // "no funciona" — el usuario veía la foto con fondo y ningún aviso.
+    throw new ErrorRemocionFondo(descripcionDeError(err), src);
   }
+}
+
+/** Falla de la remoción de fondo, con la foto original para no perder el trabajo. */
+export class ErrorRemocionFondo extends Error {
+  readonly original: string;
+  constructor(mensaje: string, original: string) {
+    super(mensaje);
+    this.name = "ErrorRemocionFondo";
+    this.original = original;
+  }
+}
+
+/**
+ * Traduce el error a algo accionable. Las causas reales son pocas y muy
+ * distintas entre sí, así que conviene distinguirlas en vez de mostrar un
+ * genérico que no ayuda a nadie a diagnosticar.
+ */
+function descripcionDeError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/unsafe-eval|Content Security Policy|CSP/i.test(msg)) {
+    return "El navegador bloqueó el motor de imagen (CSP). Avisá al equipo.";
+  }
+  if (/fetch|network|Failed to fetch|404/i.test(msg)) {
+    return "No se pudo descargar el modelo de imagen. Revisá tu conexión y probá de nuevo.";
+  }
+  if (/memory|allocation|out of memory/i.test(msg)) {
+    return "El dispositivo se quedó sin memoria al procesar la foto. Probá con una foto más chica o desde otro dispositivo.";
+  }
+  if (/SharedArrayBuffer|WebAssembly|wasm/i.test(msg)) {
+    return "Tu navegador no soporta el motor de imagen. Probá con Chrome o Edge actualizados.";
+  }
+  return `No se pudo quitar el fondo (${msg.slice(0, 120)}).`;
 }

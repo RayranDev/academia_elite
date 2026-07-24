@@ -25,17 +25,21 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * OJO con el `<html>`: NO lleva `className` gestionado por React, a propósito.
+ * El script anti-FOUC agrega la clase `light` a ese mismo elemento, y si React
+ * controlara su `className` lo sobrescribiría al hidratar — borrando el tema y
+ * dejando la app en oscuro al recargar (F5). Por eso las variables de fuente
+ * viven en el `<body>` (las CSS custom properties heredan igual) y el alto del
+ * documento se fija por CSS (`html { height: 100% }` en globals.css).
+ */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="es"
-      className={`${inter.variable} ${archivoBlack.variable} h-full`}
-      suppressHydrationWarning
-    >
+    <html lang="es" suppressHydrationWarning>
       <head>
         {/* Tema por defecto: CLARO. Aplica el tema antes del primer pintado
             (anti-FOUC): agrega `light` salvo que el usuario haya elegido oscuro. */}
@@ -45,7 +49,9 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-base text-foreground">
+      <body
+        className={`${inter.variable} ${archivoBlack.variable} min-h-full flex flex-col bg-base text-foreground`}
+      >
         {children}
       </body>
     </html>

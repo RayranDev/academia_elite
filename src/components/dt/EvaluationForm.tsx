@@ -22,24 +22,50 @@ interface JugadorMin {
   dorsal?: number;
 }
 
-const FISICAS: [string, string, string][] = [
-  ["sprint30mSeg", "Sprint 30 m (seg)", "5.2"],
-  ["saltoVerticalCm", "Salto vertical (cm)", "30"],
-  ["agilidadIllinoisSeg", "Agilidad Illinois (seg)", "18.0"],
-  ["resistenciaYoyoNivel", "Resistencia Yo-Yo (nivel)", "9"],
+// Cada prueba lleva CÓMO se mide: sin eso, dos DT miden distinto y las cartas
+// dejan de ser comparables entre sí, que es todo el sentido del sistema.
+const FISICAS: [string, string, string, string][] = [
+  [
+    "sprint30mSeg",
+    "Sprint 30 m (seg)",
+    "5.2",
+    "Tiempo en recorrer 30 m en línea recta, saliendo desde parada. Menos es mejor.",
+  ],
+  [
+    "saltoVerticalCm",
+    "Salto vertical (cm)",
+    "30",
+    "Diferencia entre el alcance de pie y el alcance saltando, sin carrera previa.",
+  ],
+  [
+    "agilidadIllinoisSeg",
+    "Agilidad Illinois (seg)",
+    "18.0",
+    "Segundos en completar el circuito estándar de conos Illinois. Menos es mejor.",
+  ],
+  [
+    "resistenciaYoyoNivel",
+    "Resistencia Yo-Yo (nivel)",
+    "9",
+    "Nivel alcanzado en el test Yo-Yo de recuperación intermitente.",
+  ],
 ];
-const TECNICAS: [string, string][] = [
-  ["controlBalon", "Control"],
-  ["pase", "Pase"],
-  ["tiro", "Tiro"],
-  ["regate", "Regate"],
+const TECNICAS: [string, string, string][] = [
+  ["controlBalon", "Control", "Primer toque y dominio del balón bajo presión."],
+  ["pase", "Pase", "Precisión y peso del pase, corto y largo."],
+  ["tiro", "Tiro", "Potencia, colocación y definición frente al arco."],
+  ["regate", "Regate", "Conducción y capacidad de superar al rival."],
 ];
-const MENTALIDAD: [string, string][] = [
-  ["actitud", "Actitud"],
-  ["concentracion", "Concentración"],
-  ["trabajoEquipo", "Trabajo en equipo"],
-  ["resiliencia", "Resiliencia"],
+const MENTALIDAD: [string, string, string][] = [
+  ["actitud", "Actitud", "Compromiso en el entrenamiento y ante la adversidad."],
+  ["concentracion", "Concentración", "Sostiene la atención durante todo el trabajo."],
+  ["trabajoEquipo", "Trabajo en equipo", "Juega para el equipo, comunica y acompaña."],
+  ["resiliencia", "Resiliencia", "Se repone del error sin caerse el rendimiento."],
 ];
+
+/** Rúbrica del 1 al 10, para que la nota signifique lo mismo entre DTs. */
+const RUBRICA =
+  "1-3: muy por debajo de su categoría · 4-6: en el promedio · 7-8: por encima · 9-10: referente del equipo.";
 
 // Las 8 notas 1-10 (técnicas + mentalidad). Se evalúan con botones, no con un
 // input con default 5: el 5 precargado invita a "evaluar todo 5" sin pensar.
@@ -123,23 +149,26 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
       <Card>
         <h3 className="mb-3 text-lg font-bold text-brand">Físicas (medidas reales)</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          {FISICAS.map(([name, label, ph]) => (
+          {FISICAS.map(([name, label, ph, ayuda]) => (
             <div key={name}>
               <label className="mb-1 block text-xs text-muted">{label}</label>
               <input name={name} type="number" step="0.01" min="0" placeholder={ph} required className={input} />
+              <p className="mt-1 text-[11px] leading-snug text-muted">{ayuda}</p>
             </div>
           ))}
         </div>
       </Card>
 
       <Card>
-        <h3 className="mb-3 text-lg font-bold text-brand">Técnicas (1–10)</h3>
+        <h3 className="mb-1 text-lg font-bold text-brand">Técnicas (1–10)</h3>
+        <p className="mb-3 text-[11px] leading-snug text-muted">{RUBRICA}</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {TECNICAS.map(([name, label]) => (
+          {TECNICAS.map(([name, label, ayuda]) => (
             <Nota
               key={name}
               name={name}
               label={label}
+              ayuda={ayuda}
               valor={notas[name]}
               onElegir={(v) => setNotas((prev) => ({ ...prev, [name]: v }))}
             />
@@ -148,13 +177,15 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
       </Card>
 
       <Card>
-        <h3 className="mb-3 text-lg font-bold text-brand">Mentalidad (1–10)</h3>
+        <h3 className="mb-1 text-lg font-bold text-brand">Mentalidad (1–10)</h3>
+        <p className="mb-3 text-[11px] leading-snug text-muted">{RUBRICA}</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {MENTALIDAD.map(([name, label]) => (
+          {MENTALIDAD.map(([name, label, ayuda]) => (
             <Nota
               key={name}
               name={name}
               label={label}
+              ayuda={ayuda}
               valor={notas[name]}
               onElegir={(v) => setNotas((prev) => ({ ...prev, [name]: v }))}
             />
@@ -197,17 +228,22 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
 function Nota({
   name,
   label,
+  ayuda,
   valor,
   onElegir,
 }: {
   name: string;
   label: string;
+  ayuda?: string;
   valor: number | null;
   onElegir: (v: number) => void;
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs text-muted">{label}</label>
+      <label className="mb-0.5 block text-xs text-muted">{label}</label>
+      {ayuda && (
+        <p className="mb-1 text-[11px] leading-snug text-muted/80">{ayuda}</p>
+      )}
       {valor != null && <input type="hidden" name={name} value={valor} />}
       <div className="flex flex-wrap gap-1" data-nota={name}>
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (

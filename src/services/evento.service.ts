@@ -239,6 +239,8 @@ export interface EventoDetalleDTO {
   esLocal: boolean | null;
   notas: string | null;
   cancelado: boolean;
+  /** Si ya se cerró, el Modo Sesión no se reabre (se corrige desde el detalle). */
+  sesionCerradaAt: string | null;
   resultadoLocal: number | null;
   resultadoVisitante: number | null;
   convocados: {
@@ -276,6 +278,7 @@ export async function obtenerDetalleEventoDt(
     esLocal: e.esLocal,
     notas: e.notas,
     cancelado: e.cancelado,
+    sesionCerradaAt: e.sesionCerradaAt?.toISOString() ?? null,
     resultadoLocal: e.resultadoLocal,
     resultadoVisitante: e.resultadoVisitante,
     convocados: e.convocados.map((c) => {

@@ -12,7 +12,11 @@ import { Badge } from "@/components/ui/Badge";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { FotoCropper } from "@/components/jugador/FotoCropper";
 import { CamaraCaptura } from "@/components/jugador/CamaraCaptura";
-import { prepararParaRecorte, removerFondoDeImagen } from "@/lib/foto/cliente";
+import {
+  prepararParaRecorte,
+  removerFondoDeImagen,
+  ErrorRemocionFondo,
+} from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
 
 export function FotoConsentimiento({
@@ -37,6 +41,8 @@ export function FotoConsentimiento({
   const [camara, setCamara] = useState(false); // captura desde la cámara
   const [procesandoFondo, setProcesandoFondo] = useState(false); // remoción de fondo en carga
   const [mensajeFondo, setMensajeFondo] = useState("Preparando…"); // progreso visible
+  // Aviso (no error): la foto sirve igual, pero no se le pudo quitar el fondo.
+  const [avisoFondo, setAvisoFondo] = useState<string | null>(null);
   const [subiendo, startTransition] = useTransition();
 
   const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
@@ -63,8 +69,15 @@ export function FotoConsentimiento({
         setMensajeFondo,
       );
       setImagen(transparentDataUrl); // abre el recortador
-    } catch {
-      setError("No se pudo leer la imagen.");
+    } catch (e) {
+      // Si SOLO falló la remoción de fondo seguimos con la foto original: se
+      // avisa, pero no se pierde el trabajo del usuario.
+      if (e instanceof ErrorRemocionFondo) {
+        setAvisoFondo(e.message);
+        setImagen(e.original);
+      } else {
+        setError("No se pudo leer la imagen.");
+      }
     } finally {
       setProcesandoFondo(false);
       // Permite volver a elegir el mismo archivo más tarde.
@@ -171,7 +184,8 @@ export function FotoConsentimiento({
                   setMensajeFondo,
                 );
                 setImagen(transparentDataUrl);
-              } catch {
+              } catch (e) {
+                if (e instanceof ErrorRemocionFondo) setAvisoFondo(e.message);
                 setImagen(dataUrl);
               } finally {
                 setProcesandoFondo(false);
@@ -181,6 +195,11 @@ export function FotoConsentimiento({
           />
         )}
         {error && <p className="text-sm text-alerta">{error}</p>}
+        {avisoFondo && (
+          <p className="text-sm text-oro" role="status">
+            {avisoFondo} La foto se subió igual, con su fondo original.
+          </p>
+        )}
         {ok && <p className="text-sm text-pitch">Foto actualizada.</p>}
 
         <div className="rounded-lg border border-subtle bg-surface-2 p-3 text-xs space-y-1.5 mt-2">

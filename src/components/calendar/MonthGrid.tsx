@@ -11,10 +11,14 @@ import {
   addMonths,
   isSameMonth,
   isSameDay,
+  isToday,
+  isBefore,
+  startOfDay,
   format,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
+import { cn } from "@/lib/cn";
 import type { EventoCalendarioDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
 
@@ -70,6 +74,20 @@ export function MonthGrid({
           </div>
         </div>
 
+        {/* Leyenda ARRIBA de la grilla: al pie obligaba a desplazarse para saber
+            qué significaba cada icono. */}
+        <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
+          {(Object.keys(COLOR_TIPO) as TipoEvento[]).map((t) => {
+            const Icon = ICONO_TIPO[t];
+            return (
+              <span key={t} className="flex items-center gap-1">
+                <Icon className="h-4 w-4" style={{ color: COLOR_TIPO[t] }} aria-hidden />
+                {ETIQUETA_TIPO[t]}
+              </span>
+            );
+          })}
+        </div>
+
         <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted">
           {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
             <div key={d} className="py-1">
@@ -81,15 +99,32 @@ export function MonthGrid({
           {dias.map((dia) => {
             const evs = eventosPorDia(dia);
             const activo = diaSel && isSameDay(dia, diaSel);
+            const hoy = isToday(dia);
+            const delMes = isSameMonth(dia, mes);
+            // Día ya transcurrido DENTRO del mes visible: se atenúa para que la
+            // vista se lea hacia adelante. Antes pasado y futuro se veían igual.
+            const pasado = delMes && !hoy && isBefore(dia, startOfDay(new Date()));
             return (
               <button
                 key={dia.toISOString()}
                 onClick={() => setDiaSel(dia)}
-                className={`flex aspect-square flex-col items-center rounded-lg border p-1 text-xs ${
-                  activo ? "border-brand" : "border-subtle"
-                } ${isSameMonth(dia, mes) ? "bg-surface-2" : "bg-surface opacity-40"}`}
+                aria-current={hoy ? "date" : undefined}
+                className={cn(
+                  "flex aspect-square flex-col items-center rounded-lg border p-1 text-xs",
+                  // Selección y "hoy" son estados distintos: la selección manda.
+                  activo
+                    ? "border-brand"
+                    : hoy
+                      ? "border-oro"
+                      : "border-subtle",
+                  delMes ? "bg-surface-2" : "bg-surface opacity-40",
+                  hoy && "bg-oro/10",
+                  pasado && "opacity-55",
+                )}
               >
-                <span>{format(dia, "d")}</span>
+                <span className={cn(hoy && "font-black text-oro")}>
+                  {format(dia, "d")}
+                </span>
                 {/* Iconos centrados en la celda y un poco más grandes: antes
                     quedaban chicos y pegados abajo. */}
                 <span className="flex flex-1 items-center justify-center gap-0.5 overflow-visible">
@@ -98,7 +133,7 @@ export function MonthGrid({
                     return (
                       <Icon
                         key={e.id}
-                        className="h-5 w-5 shrink-0 drop-shadow-sm"
+                        className="h-6 w-6 shrink-0 drop-shadow-sm"
                         style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
                         strokeWidth={2.5}
                         aria-hidden
@@ -114,17 +149,6 @@ export function MonthGrid({
           })}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted">
-          {(Object.keys(COLOR_TIPO) as TipoEvento[]).map((t) => {
-            const Icon = ICONO_TIPO[t];
-            return (
-              <span key={t} className="flex items-center gap-1">
-                <Icon className="h-3.5 w-3.5" style={{ color: COLOR_TIPO[t] }} aria-hidden />
-                {ETIQUETA_TIPO[t]}
-              </span>
-            );
-          })}
-        </div>
       </div>
 
       <div className="rounded-xl border border-subtle bg-surface p-4">
