@@ -14,7 +14,11 @@ const button = cva(
       size: {
         sm: "h-8 px-3 text-sm",
         md: "h-10 px-4 text-sm",
-        lg: "h-12 px-6 text-base",
+        // `text-base` acá era un bug latente: el tema define `--color-base`, así
+        // que Tailwind v4 lo genera como COLOR y competía con el color de la
+        // variante. Un botón `lg` que no fuera primario podía quedar con el texto
+        // del color del fondo. El tamaño va explícito.
+        lg: "h-12 px-6 text-[1rem]",
       },
     },
     defaultVariants: { variant: "primary", size: "md" },

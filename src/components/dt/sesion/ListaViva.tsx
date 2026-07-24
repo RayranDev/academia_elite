@@ -184,7 +184,11 @@ function FilaJugador({
           <Icono className="h-5 w-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-base font-semibold">
+          {/* OJO: `text-base` NO es un tamaño acá — el tema define `--color-base`
+              (el fondo de la página), así que Tailwind v4 genera `text-base` como
+              COLOR y pisa al tamaño. Usarlo pintaba el nombre del mismo color que
+              el fondo: invisible. El tamaño va explícito. */}
+          <span className="block truncate text-[1rem] font-semibold">
             {convocado.nombre} {convocado.apellido}
           </span>
           <span className="text-xs text-muted">
