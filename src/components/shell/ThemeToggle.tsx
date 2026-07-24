@@ -22,7 +22,9 @@ function leerClaro() {
 }
 
 /**
- * Alterna el tema claro/oscuro aplicando la clase `light` en <html>.
+ * Alterna el tema claro/oscuro escribiendo el atributo `data-tema`
+ * ("light" | "dark") en <html>. Es un ATRIBUTO y no una clase a propósito: el
+ * className del <html> lo gestiona React y pisaría la clase al hidratar.
  * La preferencia se guarda en localStorage y un script inline en el layout
  * raíz la aplica antes del primer pintado (anti-FOUC).
  */
