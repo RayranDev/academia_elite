@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 import os from "os";
+import { readFileSync } from "node:fs";
 
 const isDev = process.env.NODE_ENV !== "production";
+
+// Versión visible en la app (perfil de admin): número de package.json + commit
+// corto + fecha de build. Sirve para que al reportar un bug se sepa EXACTAMENTE
+// qué versión estaba corriendo. En Vercel el sha llega por VERCEL_GIT_COMMIT_SHA.
+const pkg = JSON.parse(readFileSync("./package.json", "utf8")) as { version: string };
+const commitSha = (
+  process.env.VERCEL_GIT_COMMIT_SHA ?? "local"
+).slice(0, 7);
+const buildDate = new Date().toISOString().slice(0, 10);
 
 function getLocalIPs(): string[] {
   const interfaces = os.networkInterfaces();
@@ -47,6 +57,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Estas quedan inlineadas en el bundle (NEXT_PUBLIC_*): las lee `VersionInfo`.
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+    NEXT_PUBLIC_GIT_SHA: commitSha,
+    NEXT_PUBLIC_BUILD_DATE: buildDate,
+  },
   // `sharp` es un módulo NATIVO: si Next lo bundlea, su binario rompe en el
   // runtime serverless de Vercel (500 en toda función que lo importe vía
   // escuela.service/foto.service — layouts dt/escuela/jugador y admin). Marcarlo

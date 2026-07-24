@@ -1,6 +1,7 @@
 import { requirePanelUser, getAuthContext } from "@/lib/auth/session";
 import { obtenerSesionSoporteActual } from "@/services/soporte.service";
 import { SoporteBanner } from "@/components/admin/SoporteBanner";
+import { VersionInfo } from "@/components/admin/VersionInfo";
 import { PanelShell } from "@/components/PanelShell";
 import type { NavItem } from "@/components/shell/Sidebar";
 
@@ -29,6 +30,7 @@ export default async function AdminLayout({
     <PanelShell rol="SUPER_ADMIN" nombre={user.nombre} navItems={NAV} base="/admin">
       <SoporteBanner sesion={soporte} />
       {children}
+      <VersionInfo />
     </PanelShell>
   );
 }
