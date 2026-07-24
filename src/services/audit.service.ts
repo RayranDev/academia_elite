@@ -35,8 +35,21 @@ export interface FiltrosAuditoria {
   accion?: string;
   entidad?: string;
   actorRol?: string;
+  /** Fechas en formato "yyyy-MM-dd" (las envía el form de la vista). */
+  desde?: string;
+  hasta?: string;
   pagina?: number;
   porPagina?: number;
+}
+
+/**
+ * "yyyy-MM-dd" → Date, o undefined si viene vacío/inválido. `finDelDia` lleva el
+ * límite a las 23:59:59.999 para que el "hasta" incluya el día completo.
+ */
+function aFecha(valor: string | undefined, finDelDia = false): Date | undefined {
+  if (!valor) return undefined;
+  const d = new Date(`${valor}T${finDelDia ? "23:59:59.999" : "00:00:00.000"}`);
+  return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
 export interface PaginaAuditoria {
@@ -69,6 +82,8 @@ export async function listarAuditoria(
       accion: filtros.accion,
       entidad: filtros.entidad,
       actorRol: filtros.actorRol,
+      desde: aFecha(filtros.desde),
+      hasta: aFecha(filtros.hasta, true),
       skip: (pagina - 1) * porPagina,
       take: porPagina,
     }),

@@ -30,16 +30,29 @@ export interface FiltrosAudit {
   accion?: string;
   entidad?: string;
   actorRol?: string;
+  /** Rango por fecha de creación (inclusive en ambos extremos). */
+  desde?: Date;
+  hasta?: Date;
   skip?: number;
   take?: number;
 }
 
 function whereAudit(opts: FiltrosAudit) {
+  const rango =
+    opts.desde || opts.hasta
+      ? {
+          createdAt: {
+            ...(opts.desde ? { gte: opts.desde } : {}),
+            ...(opts.hasta ? { lte: opts.hasta } : {}),
+          },
+        }
+      : {};
   return {
     ...(opts.escuelaId ? { escuelaId: opts.escuelaId } : {}),
     ...(opts.accion ? { accion: opts.accion } : {}),
     ...(opts.entidad ? { entidad: opts.entidad } : {}),
     ...(opts.actorRol ? { actorRol: opts.actorRol } : {}),
+    ...rango,
   };
 }
 

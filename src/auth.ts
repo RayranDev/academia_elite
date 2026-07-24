@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth/config";
 import { loginSchema, otpLoginSchema } from "@/lib/validators/auth";
 import { verifyPassword } from "@/lib/auth/password";
 import { verificarOtp } from "@/services/otp.service";
-import { db } from "@/lib/db";
+import { buscarCredencialesPorEmail } from "@/repositories/user.repository";
 import type { Rol } from "@/types";
 
 // En desarrollo, eliminamos las URLs estáticas si apuntan a localhost para que
@@ -36,7 +36,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
-        const user = await db.user.findUnique({ where: { email } });
+        const user = await buscarCredencialesPorEmail(email);
         if (!user || !user.activo) return null;
 
         const ok = await verifyPassword(password, user.passwordHash);

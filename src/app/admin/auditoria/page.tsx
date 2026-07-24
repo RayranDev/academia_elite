@@ -22,6 +22,8 @@ export default async function AuditoriaPage({
   const accion = primerValor(sp.accion);
   const entidad = primerValor(sp.entidad);
   const actor = primerValor(sp.actor);
+  const desde = primerValor(sp.desde);
+  const hasta = primerValor(sp.hasta);
   const pagina = Math.max(1, Number(primerValor(sp.pagina) ?? "1") || 1);
 
   const {
@@ -34,6 +36,8 @@ export default async function AuditoriaPage({
     accion,
     entidad,
     actorRol: actor,
+    desde,
+    hasta,
     pagina,
   });
 
@@ -43,11 +47,13 @@ export default async function AuditoriaPage({
     if (accion) params.set("accion", accion);
     if (entidad) params.set("entidad", entidad);
     if (actor) params.set("actor", actor);
+    if (desde) params.set("desde", desde);
+    if (hasta) params.set("hasta", hasta);
     params.set("pagina", String(p));
     return `/admin/auditoria?${params.toString()}`;
   }
 
-  const hayFiltros = Boolean(accion || entidad || actor);
+  const hayFiltros = Boolean(accion || entidad || actor || desde || hasta);
 
   return (
     <div className="space-y-4">
@@ -86,6 +92,8 @@ export default async function AuditoriaPage({
             valor={actor}
             opciones={facetas.roles}
           />
+          <FiltroFecha nombre="desde" etiqueta="Desde" valor={desde} />
+          <FiltroFecha nombre="hasta" etiqueta="Hasta" valor={hasta} />
           <div className="flex gap-2">
             <button
               type="submit"
@@ -196,6 +204,28 @@ function FiltroSelect({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+function FiltroFecha({
+  nombre,
+  etiqueta,
+  valor,
+}: {
+  nombre: string;
+  etiqueta: string;
+  valor?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
+      {etiqueta}
+      <input
+        type="date"
+        name={nombre}
+        defaultValue={valor ?? ""}
+        className="rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm text-foreground outline-none focus:border-brand"
+      />
     </label>
   );
 }

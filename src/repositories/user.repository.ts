@@ -39,6 +39,9 @@ export function listarUsersAdmin(filtros: {
       }
     : {};
 
+  // tenant-global: panel del SUPER_ADMIN; lista usuarios de TODAS las escuelas a
+  // propósito. El filtro por escuela es opcional ("__sin__" = sin escuela). La
+  // barrera de rol vive en el servicio, no acá.
   return db.user.findMany({
     where: {
       ...(filtros.rol ? { rol: filtros.rol } : {}),
@@ -70,6 +73,8 @@ export function contarUsersAdmin(filtros: {
       }
     : {};
 
+  // tenant-global: contraparte de `listarUsersAdmin` para la paginación del panel
+  // del SUPER_ADMIN; mismo alcance cross-tenant deliberado.
   return db.user.count({
     where: {
       ...(filtros.rol ? { rol: filtros.rol } : {}),
@@ -115,6 +120,29 @@ export function obtenerPasswordHash(id: string) {
   return db.user.findUnique({
     where: { id },
     select: { id: true, passwordHash: true },
+  });
+}
+
+/**
+ * Credenciales para el provider de login (`src/auth.ts`). Es la ÚNICA función del
+ * repositorio que devuelve `passwordHash`, y existe para que la capa de auth no
+ * arme queries Prisma por su cuenta (regla de capas §4). No usar fuera del flujo
+ * de autenticación: el resto de la app se sirve con `obtenerUserSeguro`.
+ */
+// tenant-global: lookup por clave única (email) durante el login; en ese momento
+// todavía no hay sesión ni tenant con el cual acotar.
+export function buscarCredencialesPorEmail(email: string) {
+  return db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      nombre: true,
+      rol: true,
+      escuelaId: true,
+      activo: true,
+      passwordHash: true,
+    },
   });
 }
 
