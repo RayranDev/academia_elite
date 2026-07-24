@@ -239,7 +239,54 @@ export async function crearAcademiaElite(
   }
   await db.membresia.createMany({ data: membresias });
 
-  // 8) Eventos con narrativa (categoría de la familia: Sub-14)
+  // 8) Historial de entrenamientos con asistencia (8 semanas, TODAS las
+  //    categorías). Sin esto la matriz de asistencia, la evolución mensual y el
+  //    export salían con una sola columna. La tasa de presentes varía por
+  //    categoría a propósito, para que el semáforo muestre verde/ámbar/rojo.
+  const TASA_ASISTENCIA: Record<DefJugador["cat"], number> = {
+    sub14: 92,
+    sub12: 80,
+    sub10: 64,
+    sub8: 45,
+  };
+  for (const clave of ["sub8", "sub10", "sub12", "sub14"] as const) {
+    const idsCat = creados.filter((c) => c.def.cat === clave).map((c) => c.id);
+    for (let semana = 8; semana >= 1; semana--) {
+      const inicio = new Date(Date.now() - semana * 7 * DIA);
+      inicio.setHours(18, 0, 0, 0);
+      const fin = new Date(inicio.getTime() + 90 * 60 * 1000);
+      const ent = await db.evento.create({
+        data: {
+          escuelaId: escuela.id,
+          categoriaId: cats[clave].id,
+          tipo: "ENTRENAMIENTO",
+          titulo: `Entrenamiento semanal`,
+          inicio,
+          fin,
+          sesionIniciadaAt: inicio,
+          sesionCerradaAt: fin,
+        },
+      });
+      await db.asistencia.createMany({
+        data: idsCat.map((jugadorId, i) => {
+          // Determinista (mismo seed → mismos datos), pero con variación real.
+          const puntaje = (i * 37 + semana * 13) % 100;
+          const presente = puntaje < TASA_ASISTENCIA[clave];
+          return {
+            escuelaId: escuela.id,
+            eventoId: ent.id,
+            jugadorId,
+            presente,
+            justificado: !presente && puntaje % 3 === 0,
+            llegoTarde: presente && puntaje % 11 === 0,
+            marcadoAt: fin,
+          };
+        }),
+      });
+    }
+  }
+
+  // 9) Eventos con narrativa (categoría de la familia: Sub-14)
   const sub14Ids = creados.filter((c) => c.def.cat === "sub14").map((c) => c.id);
   const hoyA = (h: number, m = 0) => {
     const d = new Date();
@@ -295,7 +342,7 @@ export async function crearAcademiaElite(
     })),
   });
 
-  // 9) Anuncios
+  // 10) Anuncios
   await db.anuncio.createMany({
     data: [
       { escuelaId: escuela.id, categoriaId: null, autorRol: "ESCUELA_ADMIN", titulo: "Bienvenidos a Academia Elite", cuerpo: "Nueva temporada, mismos valores: esfuerzo, respeto y juego. ¡Vamos!", fijado: true },

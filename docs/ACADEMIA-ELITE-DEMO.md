@@ -81,14 +81,35 @@ anterior:
 
 ---
 
-## 📅 Eventos (categoría Sub-14, la de la familia)
+## 📅 Eventos
+
+### Historial de asistencia (todas las categorías)
+
+**8 semanas de entrenamientos ya cerrados con asistencia cargada** — es lo que
+hace que la matriz de asistencia, la **evolución mensual** y el export tengan
+datos de verdad. La tasa de presentes varía a propósito por categoría para que
+el semáforo muestre los tres colores:
+
+| Categoría | Tasa de asistencia | Semáforo |
+|---|---|---|
+| Sub-14 | ~92 % | 🟢 verde |
+| Sub-12 | ~80 % | 🟢 verde |
+| Sub-10 | ~64 % | 🟡 ámbar |
+| Sub-8 | ~45 % | 🔴 rojo |
+
+### Agenda de la Sub-14 (la categoría de la familia)
 
 | Cuándo | Tipo | Detalle |
 |---|---|---|
-| **Hoy 18:00** | Entrenamiento | "Control y pase" — sirve para probar **Iniciar sesión** desde el "Hoy" del DT. |
+| **Hoy 18:00** | Entrenamiento | "Control y pase" — sirve para probar **▶ Iniciar entrenamiento** desde el "Hoy" del DT. |
 | +2 y +4 días | Entrenamiento | Dos entrenamientos técnicos próximos. |
 | +3 días | Partido | vs. **Deportivo Andes** (local) — convocatoria con 2 confirmados y el resto pendiente. |
-| Hace 6 días | Partido | vs. **Real Cuyo** (visitante), **empate 2-2** — con asistencia, y doblete de Bautista → alimenta ranking, goleadores y el **export de resultados**. |
+| Hace 6 días | Partido | vs. **Real Cuyo** (visitante), **empate 2-2** — con asistencia y doblete de Bautista → alimenta ranking, goleadores y el **export de resultados**. |
+
+> ⏱️ **Las fechas son relativas al día en que corriste el seed.** El evento "de
+> hoy" es *hoy* solo la jornada en que seedeaste; al día siguiente pasa a ser
+> pasado y el "Hoy" del DT queda vacío. Volvé a correr `npm run db:seed` para
+> refrescar la agenda.
 
 ---
 
