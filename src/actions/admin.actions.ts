@@ -13,7 +13,7 @@ import {
 } from "@/lib/validators/admin";
 import { actualizarLead, agregarNotaLead } from "@/services/lead.service";
 import { convertirLeadEnEscuela, crearEscuelaDirecta } from "@/services/escuela.service";
-import { emitirSetPassword } from "@/services/recuperacion.service";
+import { avisarSetPassword as avisarSetPasswordService } from "@/services/recuperacion.service";
 import { urlBase } from "@/lib/url";
 import { actualizarParametro } from "@/services/parametro.service";
 import {
@@ -21,17 +21,9 @@ import {
   quitarMetricaEscuelaAdmin,
 } from "@/services/parametro-escuela.service";
 
-/**
- * Envía (best-effort) al recién creado el link para fijar su contraseña. NO
- * falla el alta si el correo no sale: la clave temporal en pantalla es el
- * respaldo (clave mientras no haya dominio verificado en Resend).
- */
+/** Link para fijar contraseña; el helper compartido no rompe el alta si falla. */
 async function avisarSetPassword(email: string): Promise<void> {
-  try {
-    await emitirSetPassword(email, await urlBase());
-  } catch (e) {
-    console.error("[admin] no se pudo enviar el link de set-password:", e);
-  }
+  await avisarSetPasswordService(email, await urlBase());
 }
 
 export async function convertirLeadAction(

@@ -77,6 +77,26 @@ export async function solicitarRecuperacion(email: string): Promise<void> {
  * más un enlace de comodidad a la página de activación con el correo precargado
  * (el código lo tipea el usuario). Silencioso si el usuario no existe.
  */
+/**
+ * Envía el link/código para fijar contraseña **sin romper el alta ni el reset**
+ * si el correo falla. La clave temporal que se muestra en pantalla queda como
+ * respaldo (clave mientras no haya dominio verificado en Resend).
+ *
+ * Existe para que quien crea una cuenta no tenga que dictar una contraseña
+ * temporal por teléfono o WhatsApp: eso la expone en un canal que no controlamos.
+ * La URL base la resuelve la capa de acción (necesita `headers()`).
+ */
+export async function avisarSetPassword(
+  email: string,
+  urlBase: string,
+): Promise<void> {
+  try {
+    await emitirSetPassword(email, urlBase);
+  } catch (e) {
+    console.error("[alta] no se pudo enviar el link de set-password:", e);
+  }
+}
+
 export async function emitirSetPassword(
   email: string,
   urlBase: string,

@@ -5,6 +5,8 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
+import { urlBase } from "@/lib/url";
+import { avisarSetPassword } from "@/services/recuperacion.service";
 import {
   jugadorEditarSchema,
   estadoJugadorSchema,
@@ -207,6 +209,9 @@ export async function resetPasswordFamiliaAction(
       throw new ValidationError("Jugador inválido.");
     }
     const data = await resetPasswordFamilia(ctx, jugadorId, ctx.soporte?.motivo);
+    // La familia recibe el link para fijar su clave; así el staff no necesita
+    // dictarle la temporal por teléfono o WhatsApp (canal que no controlamos).
+    await avisarSetPassword(data.email, await urlBase());
     return { ok: true, data };
   } catch (e) {
     return mapError(e);
@@ -226,6 +231,7 @@ export async function resetPasswordFamiliaDtAction(
       throw new ValidationError("Jugador inválido.");
     }
     const data = await resetPasswordFamiliaDt(ctx, jugadorId);
+    await avisarSetPassword(data.email, await urlBase());
     return { ok: true, data };
   } catch (e) {
     return mapError(e);

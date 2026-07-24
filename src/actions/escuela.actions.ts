@@ -18,6 +18,8 @@ import { MAX_ESCUDO_BYTES } from "@/lib/foto/process";
 import { crearCategoriaEscuela } from "@/services/categoria.service";
 import { crearSedeEscuela, crearCanchaEscuela } from "@/services/sede.service";
 import { crearDt } from "@/services/entrenador.service";
+import { avisarSetPassword } from "@/services/recuperacion.service";
+import { urlBase } from "@/lib/url";
 import {
   crearCodigoEscuela,
   desactivarCodigoEscuela,
@@ -119,6 +121,9 @@ export async function crearDtAction(
       throw new ValidationError(primerError(parsed.error.issues));
     }
     const res = await crearDt(ctx, parsed.data);
+    // El DT recibe el link para fijar su propia contraseña; la temporal en
+    // pantalla queda de respaldo. Best-effort: no rompe el alta si el mail falla.
+    await avisarSetPassword(res.email, await urlBase());
     revalidatePath("/escuela/dts");
     return { ok: true, data: res };
   } catch (e) {
