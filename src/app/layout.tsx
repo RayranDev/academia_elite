@@ -26,12 +26,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * OJO con el `<html>`: NO lleva `className` gestionado por React, a propósito.
- * El script anti-FOUC agrega la clase `light` a ese mismo elemento, y si React
- * controlara su `className` lo sobrescribiría al hidratar — borrando el tema y
- * dejando la app en oscuro al recargar (F5). Por eso las variables de fuente
- * viven en el `<body>` (las CSS custom properties heredan igual) y el alto del
- * documento se fija por CSS (`html { height: 100% }` en globals.css).
+ * El tema viaja en el atributo `data-tema` del `<html>`, NO en una clase.
+ *
+ * Por qué: el `className` del `<html>` lo gestiona React (lleva las variables de
+ * fuente de next/font). Si el script anti-FOUC escribiera una CLASE ahí, React
+ * la sobrescribiría al hidratar y la app volvería a oscuro en cada F5. Un
+ * atributo `data-*` que React no declara queda intacto.
+ *
+ * Y las fuentes tienen que seguir en el `<html>`: `@theme` define
+ * `--font-display: var(--font-archivo)` a nivel `:root`, así que si la variable
+ * viviera en el `<body>` quedaría indefinida en ese scope y la tipografía
+ * display se caería al fallback.
  */
 export default function RootLayout({
   children,
@@ -39,19 +44,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${inter.variable} ${archivoBlack.variable} h-full`}
+      suppressHydrationWarning
+    >
       <head>
-        {/* Tema por defecto: CLARO. Aplica el tema antes del primer pintado
-            (anti-FOUC): agrega `light` salvo que el usuario haya elegido oscuro. */}
+        {/* Tema por defecto: CLARO. Se aplica antes del primer pintado
+            (anti-FOUC) en `data-tema`, que React no toca al hidratar. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem("fcm-tema")!=="dark")document.documentElement.classList.add("light")}catch(e){document.documentElement.classList.add("light")}`,
+            __html: `try{document.documentElement.dataset.tema=localStorage.getItem("fcm-tema")==="dark"?"dark":"light"}catch(e){document.documentElement.dataset.tema="light"}`,
           }}
         />
       </head>
-      <body
-        className={`${inter.variable} ${archivoBlack.variable} min-h-full flex flex-col bg-base text-foreground`}
-      >
+      <body className="min-h-full flex flex-col bg-base text-foreground">
         {children}
       </body>
     </html>

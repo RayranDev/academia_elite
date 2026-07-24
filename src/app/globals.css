@@ -48,16 +48,12 @@
   --brand: #4ade80;
 }
 
-/* El alto del documento se fija acá y NO con una clase de Tailwind en <html>:
-   ese elemento no puede llevar className gestionado por React, porque el script
-   anti-FOUC le agrega la clase `light` y React la borraría al hidratar. */
-html {
-  height: 100%;
-}
-
-/* Tema claro: sobreescribe los tokens de superficie/texto. Las cartas
-   (PlayerCard) usan materiales propios y conservan su identidad premium. */
-html.light {
+/* Tema claro. Se selecciona por ATRIBUTO (`data-tema`) y no por clase: el
+   `className` del <html> lo gestiona React (lleva las variables de next/font) y
+   sobrescribiría una clase puesta por el script anti-FOUC, devolviendo la app a
+   oscuro en cada recarga. Las cartas (PlayerCard) usan materiales propios y
+   conservan su identidad premium en ambos temas. */
+html[data-tema="light"] {
   --color-base: #eef2f7;
   --color-surface: #ffffff;
   --color-surface-2: #eaeff6;
@@ -70,7 +66,7 @@ html.light {
 }
 
 /* En claro, el texto secundario lleva algo más de peso para verse profesional. */
-html.light .text-muted {
+html[data-tema="light"] .text-muted {
   font-weight: 500;
 }
 

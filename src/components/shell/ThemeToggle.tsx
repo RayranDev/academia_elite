@@ -5,19 +5,20 @@ import { Moon, Sun } from "lucide-react";
 
 const KEY = "fcm-tema";
 
-// El estado real vive en el DOM (clase `light` en <html>); el componente se
-// suscribe a sus cambios para no duplicar estado en React.
+// El estado real vive en el DOM (atributo `data-tema` en <html>); el componente
+// se suscribe a sus cambios para no duplicar estado en React. Es un ATRIBUTO y
+// no una clase porque el className del <html> lo gestiona React y lo pisaría.
 function suscribir(cb: () => void) {
   const obs = new MutationObserver(cb);
   obs.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["class"],
+    attributeFilter: ["data-tema"],
   });
   return () => obs.disconnect();
 }
 
 function leerClaro() {
-  return document.documentElement.classList.contains("light");
+  return document.documentElement.dataset.tema !== "dark";
 }
 
 /**
@@ -32,7 +33,7 @@ export function ThemeToggle() {
 
   function alternar() {
     const siguiente = !leerClaro();
-    document.documentElement.classList.toggle("light", siguiente);
+    document.documentElement.dataset.tema = siguiente ? "light" : "dark";
     try {
       localStorage.setItem(KEY, siguiente ? "light" : "dark");
     } catch {
