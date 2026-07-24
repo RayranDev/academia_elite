@@ -297,6 +297,56 @@ async function sumarStat(
 }
 
 /**
+ * Mueve el partido al período indicado. `periodoIniciadoAt` es la base del
+ * cronómetro: se setea al arrancar un tiempo jugado y se limpia en los descansos
+ * y en penales, donde el reloj no corre.
+ */
+export async function avanzarPeriodoEvento(
+  escuelaId: string,
+  eventoId: string,
+  datos: { periodo: string; periodoIniciadoAt: Date | null },
+): Promise<void> {
+  await db.evento.updateMany({
+    where: { id: eventoId, escuelaId },
+    data: datos,
+  });
+}
+
+/**
+ * Suma o resta un penal de la definición, de forma atómica y sin bajar de 0.
+ * Es un marcador APARTE del de juego: en el fútbol los penales definen, pero no
+ * cambian el resultado del partido (un 2-2 (4-3) sigue siendo un empate).
+ * Devuelve el marcador de penales ya actualizado.
+ */
+export async function ajustarPenal(input: {
+  escuelaId: string;
+  eventoId: string;
+  esLocal: boolean; // el equipo propio juega de local
+  esRival: boolean;
+  delta: number;
+}): Promise<{ local: number; visitante: number }> {
+  const { escuelaId, eventoId, esLocal, esRival, delta } = input;
+  return db.$transaction(async (tx) => {
+    const e = await tx.evento.findFirst({
+      where: { id: eventoId, escuelaId },
+      select: { penalesLocal: true, penalesVisitante: true },
+    });
+    let local = e?.penalesLocal ?? 0;
+    let visitante = e?.penalesVisitante ?? 0;
+
+    const tocaLocal = esRival ? !esLocal : esLocal;
+    if (tocaLocal) local = Math.max(0, local + delta);
+    else visitante = Math.max(0, visitante + delta);
+
+    await tx.evento.updateMany({
+      where: { id: eventoId, escuelaId },
+      data: { penalesLocal: local, penalesVisitante: visitante },
+    });
+    return { local, visitante };
+  });
+}
+
+/**
  * Fija el estado ABSOLUTO de tarjetas del jugador en el partido (amarillas y
  * roja). Absoluto —y no incremental— para que el DT pueda tanto AGREGAR como
  * QUITAR una tarjeta en vivo sin esperar al cierre. El clamp/regla ya la aplicó

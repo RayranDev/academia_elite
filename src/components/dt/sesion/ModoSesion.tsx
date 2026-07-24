@@ -227,6 +227,12 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
                 local: sesion.resultadoLocal ?? 0,
                 visitante: sesion.resultadoVisitante ?? 0,
               }}
+              periodoInicial={sesion.periodo}
+              periodoIniciadoAtInicial={sesion.periodoIniciadoAt}
+              penalesIniciales={{
+                local: sesion.penalesLocal ?? 0,
+                visitante: sesion.penalesVisitante ?? 0,
+              }}
             />
           ) : (
             <SesionVivo

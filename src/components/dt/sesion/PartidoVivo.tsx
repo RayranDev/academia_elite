@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { registrarGolAction, fijarTarjetasAction } from "@/actions/sesion.actions";
+import {
+  registrarGolAction,
+  fijarTarjetasAction,
+  avanzarPeriodoAction,
+  registrarPenalAction,
+} from "@/actions/sesion.actions";
+import {
+  siguientesPeriodos,
+  accionHacia,
+  etiquetaPeriodo,
+  enJuego,
+  aceptaGoles,
+  type Periodo,
+} from "@/lib/partido/periodos";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { Cronometro } from "./Cronometro";
@@ -24,6 +37,9 @@ export function PartidoVivo({
   rival,
   presentes,
   marcadorInicial,
+  periodoInicial,
+  periodoIniciadoAtInicial,
+  penalesIniciales,
 }: {
   eventoId: string;
   inicio: string | null;
@@ -31,8 +47,14 @@ export function PartidoVivo({
   rival: string | null;
   presentes: ConvocadoSesionDTO[];
   marcadorInicial: Marcador;
+  periodoInicial: Periodo;
+  periodoIniciadoAtInicial: string | null;
+  penalesIniciales: Marcador;
 }) {
   const [marcador, setMarcador] = useState<Marcador>(marcadorInicial);
+  const [periodo, setPeriodo] = useState<Periodo>(periodoInicial);
+  const [periodoDesde, setPeriodoDesde] = useState(periodoIniciadoAtInicial);
+  const [penales, setPenales] = useState<Marcador>(penalesIniciales);
   const [sheet, setSheet] = useState<SheetAbierta>(null);
   const [anotador, setAnotador] = useState<string | null>(null);
   const [jugador, setJugador] = useState<ConvocadoSesionDTO | null>(null);
@@ -88,6 +110,35 @@ export function PartidoVivo({
   // El equipo propio va primero SIEMPRE: el DT lee su marcador, no el del acta.
   const propio = esLocal === false ? marcador.visitante : marcador.local;
   const ajeno = esLocal === false ? marcador.local : marcador.visitante;
+  const penalPropio = esLocal === false ? penales.visitante : penales.local;
+  const penalAjeno = esLocal === false ? penales.local : penales.visitante;
+
+  // Si el DT nunca tocó los períodos, el flujo simple de siempre sigue intacto.
+  const usaPeriodos = periodo !== "NO_INICIADO";
+  const golesHabilitados = !usaPeriodos || aceptaGoles(periodo);
+
+  /** Avanza de período (el server valida que la transición sea legal). */
+  function avanzar(destino: Periodo) {
+    setError(null);
+    startTransition(async () => {
+      const res = await avanzarPeriodoAction({ eventoId, destino });
+      if (res.ok && res.data) {
+        setPeriodo(res.data.periodo as Periodo);
+        setPeriodoDesde(res.data.periodoIniciadoAt);
+      } else if (!res.ok) {
+        setError(res.error);
+      }
+    });
+  }
+
+  function anotarPenal(esRival: boolean, delta: 1 | -1) {
+    setError(null);
+    startTransition(async () => {
+      const res = await registrarPenalAction({ eventoId, esRival, delta });
+      if (res.ok && res.data) setPenales(res.data);
+      else if (!res.ok) setError(res.error);
+    });
+  }
 
   function aplicar(
     input: {
@@ -132,9 +183,59 @@ export function PartidoVivo({
 
   return (
     <div className="space-y-5">
-      <div className="text-center">
-        <Cronometro inicio={inicio} className="text-2xl" />
+      {/* Período + reloj. En un tiempo jugado el reloj cuenta DESDE que arrancó
+          ese tiempo; en descansos y penales no corre (como en la cancha). */}
+      <div className="space-y-2 text-center">
+        <p className="text-xs font-bold uppercase tracking-widest text-muted">
+          {etiquetaPeriodo(periodo)}
+        </p>
+        {enJuego(periodo) && periodoDesde ? (
+          <Cronometro inicio={periodoDesde} className="text-3xl" />
+        ) : (
+          <Cronometro inicio={inicio} className="text-2xl opacity-60" />
+        )}
+        <div className="flex flex-wrap justify-center gap-2">
+          {siguientesPeriodos(periodo).map((destino) => (
+            <Button
+              key={destino}
+              type="button"
+              variant={destino === "FINALIZADO" ? "secondary" : "primary"}
+              className="min-h-11 text-xs"
+              disabled={pending}
+              onClick={() => avanzar(destino)}
+            >
+              {accionHacia(destino)}
+            </Button>
+          ))}
+        </div>
       </div>
+
+      {/* Definición por penales: marcador APARTE. Un 2-2 (4-3) sigue siendo
+          empate en el resultado del partido; los penales solo definen. */}
+      {periodo === "PENALES" && (
+        <div className="rounded-lg border border-brand/50 bg-brand/5 p-3">
+          <p className="mb-2 text-center text-xs font-bold uppercase tracking-widest text-muted">
+            Penales
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <LadoMarcador
+              etiqueta="Mi equipo"
+              valor={penalPropio}
+              onMas={() => anotarPenal(false, 1)}
+              onMenos={() => anotarPenal(false, -1)}
+              deshabilitado={pending}
+              destacado
+            />
+            <LadoMarcador
+              etiqueta={rival ?? "Rival"}
+              valor={penalAjeno}
+              onMas={() => anotarPenal(true, 1)}
+              onMenos={() => anotarPenal(true, -1)}
+              deshabilitado={pending}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Marcador enorme: es lo que el DT mira de reojo desde el banco. */}
       <div className="grid grid-cols-2 gap-3">
@@ -143,7 +244,7 @@ export function PartidoVivo({
           valor={propio}
           onMas={() => setSheet("GOL")}
           onMenos={() => setSheet("DESHACER")}
-          deshabilitado={pending}
+          deshabilitado={pending || !golesHabilitados}
           destacado
         />
         <LadoMarcador
@@ -151,9 +252,15 @@ export function PartidoVivo({
           valor={ajeno}
           onMas={() => aplicar({ esRival: true, delta: 1 })}
           onMenos={() => aplicar({ esRival: true, delta: -1 })}
-          deshabilitado={pending}
+          deshabilitado={pending || !golesHabilitados}
         />
       </div>
+
+      {usaPeriodos && !golesHabilitados && (
+        <p className="text-center text-xs text-muted">
+          El partido no está en juego: arrancá el próximo tiempo para cargar goles.
+        </p>
+      )}
 
       {error && (
         <p className="text-center text-sm text-alerta" role="alert">

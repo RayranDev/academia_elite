@@ -127,6 +127,46 @@ export async function registrarGolAction(
   }
 }
 
+const periodoSchema = z.object({
+  eventoId: z.string().min(1),
+  destino: z.string().min(1),
+});
+
+/** Avanza el partido de período (el servicio valida que la transición exista). */
+export async function avanzarPeriodoAction(
+  input: z.infer<typeof periodoSchema>,
+): Promise<ActionResult<{ periodo: string; periodoIniciadoAt: string | null }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const datos = periodoSchema.parse(input);
+    const res = await sesion.avanzarPeriodoPartido(ctx, datos);
+    revalidatePath(`/dt/eventos/${datos.eventoId}`);
+    return { ok: true, data: res };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+const penalSchema = z.object({
+  eventoId: z.string().min(1),
+  esRival: z.boolean(),
+  delta: z.union([z.literal(1), z.literal(-1)]),
+});
+
+export async function registrarPenalAction(
+  input: z.infer<typeof penalSchema>,
+): Promise<ActionResult<{ local: number; visitante: number }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const datos = penalSchema.parse(input);
+    const marcador = await sesion.registrarPenalVivo(ctx, datos);
+    revalidatePath(`/dt/eventos/${datos.eventoId}`);
+    return { ok: true, data: marcador };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
 const tarjetaSchema = idsSchema.extend({
   amarillas: z.number().int().min(0).max(2),
   roja: z.boolean(),

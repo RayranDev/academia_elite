@@ -283,6 +283,13 @@ model Evento {
   sesionIniciadaAt   DateTime? // cuándo arrancó el modo (base del cronómetro)
   sesionCerradaAt    DateTime? // cierre confirmado; a partir de acá, editar = corrección
   notaSesion         String? // nota general del paso de cierre
+  // Partido v2: estructura real del partido (dos tiempos, alargue, penales).
+  // enum: NO_INICIADO | PRIMER_TIEMPO | ENTRETIEMPO | SEGUNDO_TIEMPO |
+  //       ALARGUE_1 | DESCANSO_ALARGUE | ALARGUE_2 | PENALES | FINALIZADO
+  periodo            String             @default("NO_INICIADO")
+  periodoIniciadoAt  DateTime? // base del cronómetro DEL PERÍODO en curso
+  penalesLocal       Int? // definición por penales: marcador aparte del de juego
+  penalesVisitante   Int?
   convocados         JugadorConvocado[]
   asistencias        Asistencia[]
   estadisticas       EstadisticaPartido[]

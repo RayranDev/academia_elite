@@ -9,7 +9,16 @@ import {
   crearConvocadoSiFalta,
   ajustarGolVivo,
   fijarTarjetas,
+  avanzarPeriodoEvento,
+  ajustarPenal,
 } from "@/repositories/evento.repository";
+import {
+  esPeriodo,
+  puedeAvanzar,
+  enJuego,
+  aceptaGoles,
+  type Periodo,
+} from "@/lib/partido/periodos";
 import {
   obtenerJugador,
   listarPlantilla,
@@ -94,6 +103,11 @@ export interface SesionDTO {
   esLocal: boolean | null;
   resultadoLocal: number | null;
   resultadoVisitante: number | null;
+  /** Partido v2: momento del partido y reloj del período en curso. */
+  periodo: Periodo;
+  periodoIniciadoAt: string | null;
+  penalesLocal: number | null;
+  penalesVisitante: number | null;
   convocados: ConvocadoSesionDTO[];
   /** Jugadores de la categoría sin convocar, para sumarlos en cancha. */
   disponibles: { id: string; nombre: string; apellido: string }[];
@@ -166,6 +180,10 @@ export async function obtenerSesionDt(
     esLocal: evento.esLocal,
     resultadoLocal: evento.resultadoLocal,
     resultadoVisitante: evento.resultadoVisitante,
+    periodo: periodoDe(evento.periodo),
+    periodoIniciadoAt: evento.periodoIniciadoAt?.toISOString() ?? null,
+    penalesLocal: evento.penalesLocal,
+    penalesVisitante: evento.penalesVisitante,
     convocados: base.map((c) => {
       const a = asistencias.get(c.jugadorId);
       const s = estadisticas.get(c.jugadorId);
@@ -240,6 +258,15 @@ export async function cerrarSesion(
 ): Promise<void> {
   const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
   await cerrarSesionEvento(escuelaId, evento.id, input.notaSesion ?? null);
+
+  // Cerrar la sesión de un partido lo da por terminado también en la línea de
+  // períodos, aunque el DT no haya tocado "Finalizar" (el cierre manda).
+  if (evento.tipo === "PARTIDO" && periodoDe(evento.periodo) !== "FINALIZADO") {
+    await avanzarPeriodoEvento(escuelaId, evento.id, {
+      periodo: "FINALIZADO",
+      periodoIniciadoAt: null,
+    });
+  }
 
   const hayResultado =
     evento.resultadoLocal !== null || evento.resultadoVisitante !== null;
@@ -318,6 +345,15 @@ export async function registrarGolVivo(
 ): Promise<{ local: number; visitante: number }> {
   const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
   exigirPartido(evento.tipo);
+  // Si el DT está usando los períodos, no se cargan goles en un descanso, en
+  // penales ni con el partido terminado. Si NUNCA los usó (NO_INICIADO), se deja
+  // pasar: el flujo simple de siempre tiene que seguir funcionando igual.
+  const periodo = periodoDe(evento.periodo);
+  if (periodo !== "NO_INICIADO" && !aceptaGoles(periodo)) {
+    throw new ValidationError(
+      "El partido no está en juego: no se pueden cargar goles ahora.",
+    );
+  }
   return ajustarGolVivo({
     escuelaId,
     eventoId: evento.id,
@@ -326,6 +362,69 @@ export async function registrarGolVivo(
     delta: input.delta,
     anotadorId: input.anotadorId,
     asistenteId: input.asistenteId,
+  });
+}
+
+/** Lee el período guardado, cayendo a NO_INICIADO si el dato viniera raro. */
+function periodoDe(valor: string): Periodo {
+  return esPeriodo(valor) ? valor : "NO_INICIADO";
+}
+
+/**
+ * Avanza el partido al siguiente período. El destino se valida contra la máquina
+ * pura: desde el 2do tiempo se puede finalizar, ir a alargue o ir a penales, pero
+ * NO saltar de cualquier lado a cualquier lado — un toque errado en cancha no
+ * puede mandar el partido a penales.
+ *
+ * El cronómetro se reinicia por período: arranca al entrar a un tiempo jugado y
+ * se apaga en descansos y penales, donde el reloj no corre.
+ */
+export async function avanzarPeriodoPartido(
+  ctx: AuthContext,
+  input: { eventoId: string; destino: string },
+): Promise<{ periodo: Periodo; periodoIniciadoAt: string | null }> {
+  const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
+  exigirPartido(evento.tipo);
+
+  const actual = periodoDe(evento.periodo);
+  if (!esPeriodo(input.destino)) {
+    throw new ValidationError("Período inválido.");
+  }
+  const destino: Periodo = input.destino;
+  if (!puedeAvanzar(actual, destino)) {
+    throw new ValidationError(
+      "Ese no es un paso válido desde el momento actual del partido.",
+    );
+  }
+
+  const iniciadoAt = enJuego(destino) ? new Date() : null;
+  await avanzarPeriodoEvento(escuelaId, evento.id, {
+    periodo: destino,
+    periodoIniciadoAt: iniciadoAt,
+  });
+  return { periodo: destino, periodoIniciadoAt: iniciadoAt?.toISOString() ?? null };
+}
+
+/**
+ * Registra (delta 1) o deshace (delta -1) un penal de la definición. Marcador
+ * aparte del de juego: los penales definen quién pasa, pero el resultado del
+ * partido sigue siendo el del tiempo jugado.
+ */
+export async function registrarPenalVivo(
+  ctx: AuthContext,
+  input: { eventoId: string; esRival: boolean; delta: 1 | -1 },
+): Promise<{ local: number; visitante: number }> {
+  const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
+  exigirPartido(evento.tipo);
+  if (periodoDe(evento.periodo) !== "PENALES") {
+    throw new ValidationError("El partido no está en definición por penales.");
+  }
+  return ajustarPenal({
+    escuelaId,
+    eventoId: evento.id,
+    esLocal: evento.esLocal ?? true,
+    esRival: input.esRival,
+    delta: input.delta,
   });
 }
 
