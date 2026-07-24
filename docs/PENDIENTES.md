@@ -1,104 +1,56 @@
-# Pendientes — backlog de producto
+# Pendientes — qué falta hacer
 
-> **Qué es este archivo.** El backlog de **features de producto** pendientes: qué
-> falta construir a nivel funcionalidad. Es el primer lugar donde buscar "qué hay
-> por hacer".
+> **Qué es este archivo.** Lo que **todavía no está construido**. Nada de lo ya
+> hecho vive acá: eso va a **[TRAZABILIDAD.md](TRAZABILIDAD.md)**, el registro
+> único de historial. Para el contexto del proyecto (visión, stack, arquitectura)
+> ver **[ESTADO-DEL-PROYECTO.md](ESTADO-DEL-PROYECTO.md)**.
 >
-> Para lo de **infraestructura / migración a producción** (base de datos, auth,
-> storage, hosting) ver **[HOJA-DE-RUTA.md](HOJA-DE-RUTA.md)**. Para el **historial**
-> de lo ya hecho ver **[TRAZABILIDAD.md](TRAZABILIDAD.md)**.
+> Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
+> Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Convención: cada ítem lleva estado (`PENDIENTE` / `EN PROGRESO` / `BLOQUEADO`),
-> una línea de qué y por qué, y enlaces a su plan o PRs si existen.
->
-> Última actualización: 2026-06-30.
+> Última actualización: 2026-07-24.
 
 ---
 
-## En progreso
+## 🔴 Riesgo — antes que features nuevas
 
-### Motor de efectos para el creador de fondos — `EN PROGRESO`
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **Decisión de Auth** | Media | Sigue en **Auth.js v5 beta**. Opciones: estabilizar en v4, migrar a Supabase Auth, o quedarse en v5 con cobertura E2E y plan de rollback. Es el riesgo señalado para datos de menores en producción. |
+| **Backups / PITR** | Chico (config) | Verificar que estén activos en Supabase. Sin esto, un borrado accidental es irreversible. |
+| **Observabilidad** | Media | Hoy solo hay logs de runtime de Vercel + el `digest` del error boundary. Sentry quedó descartado por incompatibilidad con Next 16 + Turbopack **y** por ser un procesador externo que recibiría PII de menores (requiere pasar por Habeas Data primero). Reevaluar cuando el SDK madure. |
+| **`build` y `e2e` en CI** | Media | El workflow corre typecheck/lint/test. Sumar build y E2E exige un proyecto Supabase dedicado a CI con sus secretos. |
 
-Hoy el creador de fondos obliga a escribir CSS a mano y los efectos visuales
-(grano foil, brillo metálico) están atados al nivel de la carta, no se pueden
-elegir por fondo. Se agrega un **motor de efectos** configurable: `METALICO`,
-`HIELO`, `TRAMA`, `HOLOGRAFICO` (con tinte / patrón / intensidad), más un
-catálogo de plantillas clickeables para no tipear CSS.
+## 🟡 Producto — Modo Partido v2
 
-- **Entrega:** 2 PRs encadenados.
-  - **PR 1 — datos + plumbing** (`feat/fondos-efectos-datos`): campos `efecto` +
-    `efectoParams` en `FondoCarta`, DTOs/validadores/servicios, presets y seed.
-    Sin cambio visual todavía.
-  - **PR 2 — motor visual:** `src/lib/cartas/efectos.ts`, refactor de
-    `PlayerCard`, UI del creador (selects + galería + preview), tests y
-    `docs/GUIA-FONDOS.md`.
-- **Archivos clave:** `src/lib/cartas/efectos.ts`, `src/lib/cartas/fondos-presets.ts`,
-  `src/components/cards/PlayerCard.tsx`, `src/components/admin/FondosAdmin.tsx`.
-- **Guía de uso (al cerrar PR 2):** `docs/GUIA-FONDOS.md`.
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **Períodos del partido** | Grande | El cronómetro no tiene estructura: faltan 2 tiempos, fin de tiempo, alargue y definición por penales. PR dedicado. |
+| **Tarjeta azul** | Chico + migración | No existe en el schema; requiere campo en `EstadisticaPartido` + UI. |
 
----
+## 🟢 Mejoras acotadas
 
-## Ronda de testing en Vercel (2026-07) — bugs y mejoras
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| Auditoría: filtro por rango de fechas | Chico | Complementa los filtros por entidad/acción/actor ya existentes. |
+| Credenciales por link en alta de DT y jugador | Chico | Hoy `emitirSetPassword` solo se usa en el alta de escuela; extenderlo es directo. |
+| Paginación en listados que crecen | Chico | Jugadores y auditoría ya paginan; revisar eventos y mensajes. |
+| `auth.ts` → repositorio | Chico | El provider Credentials consulta Prisma directo (patrón estándar de Auth.js, preexistente). Moverlo a `buscarCredencialesPorEmail` alinearía con la regla de capas. |
 
-> Reportados probando en `academia-elite.vercel.app`. ✅ = arreglado en esta
-> ronda · ⬜ = pendiente. Los de partido salieron del Modo Sesión (PR-4).
+## ❓ Sin reproducir — necesitan un caso concreto
 
-### SUPER_ADMIN
-- ✅ **Modal de fondos se desbordaba.** Al crear/editar un fondo, el modal
-  excedía el viewport y no se podía navegar (había que bajar el zoom). Fix:
-  `max-h-[90dvh] overflow-y-auto` en `src/components/ui/Modal.tsx` (aplica a
-  todos los modales).
-- ✅ **Auditoría: filtros + paginación.** La vista ahora filtra por entidad,
-  acción y actor (form GET, sin JS) y pagina de a 50 con total y navegación. El
-  repo suma `where` + `skip/take` + `count` + facetas (valores distintos para
-  los selects). Falta (opcional): filtro por rango de fechas.
+No se tocan hasta poder reproducirlos; el código no muestra el defecto.
 
-### DT — Modo PARTIDO
-- ✅ **La lista no muestra los jugadores (partido sin convocatoria).** Era el gap
-  (a): un partido creado sin convocados dejaba la lista vacía. Ahora cae a la
-  categoría completa, como en un entrenamiento (`obtenerSesionDt`).
-- ✅ **Selección/duplicación rara.** Era colisión de `key`: un jugador sumado en
-  cancha reaparecía en `sesion.convocados` al revalidar y quedaba DOS veces
-  (misma `key` + marcas compartidas por `jugadorId` → tocar uno movía dos).
-  `ModoSesion` ahora dedup­a `filas` por `jugadorId`.
-- ✅ **Quitar tarjeta sin esperar al cierre + 2 amarillas = roja.** Estado de
-  tarjetas absoluto: se agrega Y se quita amarilla/roja en vivo desde la hoja del
-  jugador de `PartidoVivo`; dos amarillas implican roja automáticamente
-  (`fijarTarjetasJugador`).
-- ⬜ **El partido debería empezar 0-0.** No reproducido en código (un partido
-  nuevo calcula 0-0 desde `resultadoLocal/Visitante = null`). Probablemente dato
-  residual de pruebas; confirmar con un partido recién creado.
-- ⬜ **Tarjeta azul.** No existe en el schema. Requiere migración de
-  `EstadisticaPartido` (campo `azules`/`azul`) + UI. Se difiere a un PR propio
-  (cambio de schema sobre datos de menores; no se mete de apuro).
-- ⬜ **Estructura del partido: 2 tiempos, penales, alargue.** El cronómetro no
-  tiene períodos (el plan lo dejó para v2). Agregar fin de tiempo, alargue y
-  definición por penales. Feature grande, PR dedicado.
+- **"El partido debería empezar 0-0."** Un partido nuevo calcula 0-0 desde
+  `resultadoLocal/Visitante = null`. Probablemente dato residual de pruebas.
+- **"El color de los stats no coincide con el fondo."** El color SÍ fluye:
+  `obtenerHub` setea `card.fondoTexto` desde `fondo.colorTexto` y en `PlayerCard`
+  todo el texto hereda `textoCarta`. Hipótesis: el fondo equipado tiene
+  `colorTexto = null`, o se compara con otro listado que usa tokens del tema.
 
-### TODOS
-- ✅ **Iconos del calendario centrados y más grandes.** En `MonthGrid` estaban
-  chicos (`h-3.5`) y pegados abajo (`mt-auto`). Ahora centrados y `h-5 w-5`.
+## 🔮 Fuera de alcance por ahora
 
-### JUGADOR
-- ✅ **Notificaciones no se refrescan al leerlas.** La lista se copiaba a
-  `useState` (se sembraba solo al montar): ni llegaban las nuevas ni el marcado
-  se reflejaba. Ahora la fuente de verdad es el prop del server, con overlay
-  local solo para el tilde instantáneo, y las actions revalidan el layout.
-- ⬜ **Confirmar convocatoria — el estado ya refresca.** `confirmarConvocatoriaAction`
-  ya revalida `/jugador`, `/jugador/calendario` y el detalle, y la tarjeta pasa a
-  “Asistencia confirmada”. Lo que quedaba “ahí” era la **notificación** sin
-  depurar (resuelto arriba). Reabrir solo si aparece una superficie puntual que
-  no refresque.
-- ⬜ **Color de stats no coincide con el fondo configurado.** Investigado: el
-  color SÍ fluye a los stats — `obtenerHub` setea `card.fondoTexto` desde
-  `fondo.colorTexto` y en `PlayerCard` TODO el texto (OVR, nombre, stats) hereda
-  `textoCarta`. Sin bug reproducible en código. Hipótesis: (a) el fondo equipado
-  tiene `colorTexto = null` (fondo previo al campo) y cae al color del nivel; o
-  (b) se compara con otro listado de stats del dashboard que usa tokens del
-  tema, no el color de la carta. Necesita el fondo/pantallazo puntual.
-
----
-
-## Pendiente
-
-_(Agregá acá las próximas features.)_
+Registrados para no re-discutirlos: **pagos/facturación** de cuotas (hoy el
+bloqueo por mora es manual), **rankings entre escuelas** (excluidos a propósito
+por privacidad de menores), **app móvil nativa** (hoy es PWA) e
+**internacionalización** (la app es en español).

@@ -1,23 +1,40 @@
 # Fútbol Career Mode — Estado del proyecto
 
-Documento integral del estado actual: qué tiene, qué falta, stack tecnológico,
-arquitectura, fases y sprints. Última actualización: **2026-06-12**.
+Documento **de contexto**: la visión, el stack, la arquitectura y el estado
+actual. Última actualización: **2026-07-24**.
 
-> Plataforma web multi-tenant que gamifica el fútbol base: evaluaciones reales →
-> cartas de jugador estilo EA FC (stats 1–99, niveles Bronce/Plata/Oro/Héroe,
-> sello MEN de mentalidad). 4 paneles por rol + landing pública.
+> Para el **historial** de lo hecho → [TRAZABILIDAD.md](TRAZABILIDAD.md).
+> Para lo que **falta** → [PENDIENTES.md](PENDIENTES.md).
+
+---
+
+## 0. Visión
+
+**Academia Elite** gamifica el fútbol base. El DT toma medidas físicas y técnicas
+**reales** de cada chico; el motor de stats las convierte en RIT/TIR/PAS/REG/DEF/
+FIS + un sello **MEN** (mentalidad) y un **OVR de 1 a 99**; y el jugador recibe su
+**carta estilo EA FC** (Bronce / Plata / Oro / Héroe).
+
+La idea de fondo: **el progreso se gana midiéndose, no jugando a un videojuego**.
+Por eso el MEN sube con la asistencia real (la *curva de desarrollo*), las cartas
+solo cambian cuando hay una evaluación nueva, y no hay rankings entre escuelas —
+son menores, y la comparación pública les haría daño.
+
+Cuatro roles: `SUPER_ADMIN` (plataforma), `ESCUELA_ADMIN` (dueño del club), `DT`
+(entrenador en cancha) y `JUGADOR` (la familia). Es **multi-tenant**: cada escuela
+ve solo lo suyo.
 
 ---
 
 ## 1. Resumen ejecutivo
 
-- **Estado:** funcional de extremo a extremo en local (build de producción OK).
-- **Calidad:** `typecheck` + `lint` limpios · **88 tests unitarios** · **8 E2E**
-  (Playwright) en verde.
-- **Datos:** SQLite en desarrollo (listo para migrar a Postgres/Supabase en
-  Fase 2).
-- **Pendiente principal:** despliegue productivo, base de datos gestionada + RLS,
-  emails/WhatsApp reales y rate limiting distribuido (ver §8).
+- **Estado:** **en producción** en Vercel, sobre Supabase PostgreSQL.
+- **Calidad:** `typecheck` + `lint` limpios · **171 tests unitarios** · **6 specs
+  E2E** (10 tests, Playwright) en verde · CI en cada push/PR.
+- **Datos:** Supabase PostgreSQL (pooler en runtime, conexión directa para
+  migraciones) + Supabase Storage para fotos, con RLS habilitado.
+- **Riesgo abierto principal:** Auth.js sigue en **v5 beta** y falta observabilidad
+  real (ver [PENDIENTES.md](PENDIENTES.md)).
 
 ---
 
@@ -32,8 +49,11 @@ arquitectura, fases y sprints. Última actualización: **2026-06-12**.
 | Animación | **framer-motion** + `canvas-confetti` | 12.x |
 | Iconos | **lucide-react** | 1.x |
 | Gráficas | **recharts** | 3.x |
-| ORM | **Prisma** + adapter `better-sqlite3` (cliente en `src/generated/prisma`) | 7.8 |
-| Base de datos | **SQLite** (dev) → Postgres/Supabase (Fase 2) | — |
+| ORM | **Prisma** + adapter `@prisma/adapter-pg` (cliente en `src/generated/prisma`) | 7.8 |
+| Base de datos | **Supabase PostgreSQL** (pooler en runtime, directa para migrar) | — |
+| Storage | **Supabase Storage** (bucket privado; servido solo por API con auth) | — |
+| Rate limit | **Upstash Redis** (ventana deslizante; fallback en memoria en dev) | — |
+| Hosting | **Vercel** (deploy desde `main`) | — |
 | Auth | **Auth.js / NextAuth v5** (JWT), **bcryptjs** (factor 12) | 5 beta |
 | Validación | **Zod** | 4.x |
 | Avatares | **DiceBear v10** (`@dicebear/core` + `@dicebear/styles`, `toon-head`) | 10.2 |
@@ -134,20 +154,14 @@ FondoCarta, FondoDesbloqueado, etc.
 
 ---
 
-## 5. Qué NO tiene todavía ❌ (pendiente)
+## 5. Qué NO tiene todavía ❌
 
-- **Despliegue productivo** (hosting, dominio, variables de entorno gestionadas).
-- **Base de datos gestionada** (Postgres/Supabase) y **RLS** replicando las
-  reglas de tenant (hoy la app es el único guardián).
-- **Rate limiting distribuido** (Upstash/Redis) — hoy es en memoria.
-- **Emails y WhatsApp reales** — el despachador existe pero solo INAPP está
-  conectado.
-- **Pagos / facturación** de cuotas (los bloqueos por PAGO son manuales).
-- **Rankings/competiciones** entre escuelas (excluidos a propósito por
-  privacidad de menores).
-- **App móvil nativa** (hoy es PWA responsive).
-- **Internacionalización** (la app está en español).
-- **Observabilidad** (logs centralizados, métricas, alertas).
+El detalle vive en **[PENDIENTES.md](PENDIENTES.md)** (con tamaño y razón). En
+titulares: la **decisión de Auth** (sigue en v5 beta), **observabilidad** real,
+la **estructura del partido** (tiempos, alargue, penales) y la **tarjeta azul**.
+
+Fuera de alcance a propósito: **pagos/facturación**, **rankings entre escuelas**
+(privacidad de menores), **app nativa** e **internacionalización**.
 
 ---
 
@@ -237,16 +251,26 @@ Scripts: `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:e2e`,
 
 ## 9. Documentación del repositorio
 
+Tres tipos de documento, sin superposición: **contrato**, **contexto** e
+**historial/futuro**.
+
 | Archivo | Contenido |
 |---|---|
+| `AGENTS.md` / `CLAUDE.md` | **Contrato** para agentes: reglas no negociables. |
 | `README.md` | Puesta en marcha rápida. |
-| `ESTADO-DEL-PROYECTO.md` | **Este documento** (estado integral). |
-| `MANUAL-DE-USO.md` | Guía de uso por rol. |
-| `DECISIONES.md` | Registro de decisiones de arquitectura/producto. |
+| `ESTADO-DEL-PROYECTO.md` | **Este documento**: visión, stack, arquitectura, estado. |
+| `DECISIONES.md` | Decisiones de arquitectura/producto y su porqué. |
 | `SEGURIDAD.md` | Checklist de seguridad por endpoint. |
 | `HABEAS-DATA.md` | Tratamiento de datos personales de menores. |
-| `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva de desarrollo. |
-| `PLAN-MAESTRO-v4.md` | Visión completa de producto. |
-| `TRAZABILIDAD.md` | Historial de todo lo hecho (sprints, correcciones, planes). |
-| `HOJA-DE-RUTA.md` | Próximos pasos y plan de migración (Sprint 8). |
-| `AGENTS.md` / `CLAUDE.md` | Notas para agentes (este Next tiene cambios). |
+| `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva (MEN diario). |
+| `GUIA-FONDOS.md` | Cómo funcionan los fondos y efectos de carta. |
+| `MANUAL-DE-USO.md` | Guía de uso por rol. |
+| `ACADEMIA-ELITE-DEMO.md` | Credenciales y resumen de la escuela demo. |
+| `NGROK-PASO-A-PASO.md` | Exponer el dev local (útil para probar en celular). |
+| **`TRAZABILIDAD.md`** | **Historial único** de todo lo hecho. |
+| **`PENDIENTES.md`** | **Lo que falta** por hacer. |
+
+> Cuando un plan se ejecuta, su resumen va a `TRAZABILIDAD.md` y el documento del
+> plan se elimina: el detalle queda en git. Así no conviven dos versiones de la
+> verdad. Por eso ya no existen `PLAN-MAESTRO-v4.md`, `PLAN-UX-DT.md` ni
+> `HOJA-DE-RUTA.md`.

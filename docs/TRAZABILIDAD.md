@@ -1,16 +1,21 @@
 # Trazabilidad — Academia Elite (Fútbol Career Mode)
 
-> **Qué es este archivo.** El registro único de **todo lo que se ha hecho**:
-> sprints, correcciones, planes de mejora ejecutados y bitácoras de sesión.
-> Reemplaza y consolida los documentos sueltos de correcciones/planes (su
-> detalle completo vive en el historial de git).
+> **Qué es este archivo.** El registro **único** de todo lo que se ha hecho:
+> sprints, correcciones y planes ejecutados. Cuando un plan se completa, su
+> resumen aterriza acá y el documento del plan se elimina — el detalle completo
+> siempre queda en el historial de git.
 >
-> **Qué NO está acá:** los documentos vivos de referencia se mantienen aparte —
-> `ESTADO-DEL-PROYECTO.md` (estado integral), `DECISIONES.md` (decisiones de
-> arquitectura), `SEGURIDAD.md`, `HABEAS-DATA.md`, `CURVA-DE-DESARROLLO.md`
-> (diseño conceptual), `PLAN-MAESTRO-v4.md` (visión de producto) y los manuales
-> (`MANUAL-DE-USO.md`, `NGROK-PASO-A-PASO.md`). Los **próximos pasos y la
-> migración** viven en `HOJA-DE-RUTA.md`.
+> **Qué NO está acá:** los documentos vivos de referencia van aparte —
+> `ESTADO-DEL-PROYECTO.md` (contexto integral: visión, stack, arquitectura),
+> `DECISIONES.md`, `SEGURIDAD.md`, `HABEAS-DATA.md`, `CURVA-DE-DESARROLLO.md`,
+> `GUIA-FONDOS.md`, `MANUAL-DE-USO.md` y `ACADEMIA-ELITE-DEMO.md`. Lo que **falta
+> por hacer** vive en `PENDIENTES.md`.
+>
+> **Planes ya ejecutados y eliminados del repo** (su resumen está en esta línea de
+> tiempo): `PLAN-MAESTRO-v4.md` (visión original de Fase 1 — describía SQLite,
+> hoy obsoleto), `PLAN-UX-DT.md` (PR-1 a PR-5, ejecutado 100%) y
+> `HOJA-DE-RUTA.md` (migración Sprint 8, cerrada). Los comentarios del código que
+> citan `PLAN-UX-DT PR-n §x` refieren al hito 12 de acá.
 
 ---
 
@@ -29,6 +34,12 @@
 | 8 | Sesión foto/carta (CORS, compartir, @imgly) | 2026-06-24 | ✅ |
 | 9 | Branding + favicon + fixes carta/hydration | 2026-06-25 | ✅ |
 | 10 | Resend — email transaccional + auth por correo | 2026-06-26 | ✅ (commit `e6b1842`) |
+| 11 | Sprint 8 — migración a producción (Supabase + Vercel) | 2026-07 | ✅ |
+| 12 | PLAN-UX-DT — Modos de Sesión y panel Escuela (PR-1 a PR-5) | 2026-07 | ✅ |
+| 13 | Ronda de testing en Vercel — bugs y mejoras | 2026-07-23 | ✅ |
+| 14 | Contactos: teléfono + parentesco y export de nómina | 2026-07-24 | ✅ |
+| 15 | Academia Elite — escuela demo curada | 2026-07-24 | ✅ |
+| 16 | Red de seguridad — CI/CD y error boundaries | 2026-07-24 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -44,7 +55,7 @@ Plataforma multi-tenant base: motor de stats puro (RIT/TIR/PAS/REG/DEF/FIS/MEN +
 OVR), carta estilo EA FC por nivel (Bronce/Plata/Oro/Héroe), 4 roles
 (SUPER_ADMIN, ESCUELA_ADMIN, DT, JUGADOR), auth (Auth.js v5 + Credentials + JWT),
 RBAC + guards, evaluaciones, semana operativa, bloqueo de familias. **38 unit, 7
-E2E.** La visión completa está en `PLAN-MAESTRO-v4.md`.
+E2E.** La visión está en `ESTADO-DEL-PROYECTO.md` §0.
 
 ## 1. Sprint V / V.1 / G — visual + gestión (pre-producción)
 
@@ -216,6 +227,95 @@ hook.) Integra **Resend** respetando capas y datos de menores:
   (`onboarding@resend.dev`) solo entrega al correo dueño de la cuenta. Faltan las
   env vars (`RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_DEV_TO`, `EMAIL_EQUIPO`).
 
+## 11. Sprint 8 — migración a producción (2026-07)
+
+(Origen: `HOJA-DE-RUTA.md`, ya eliminado.) La app dejó de correr sobre SQLite y
+disco local — ambos efímeros en serverless — y pasó a infraestructura real:
+
+- **SQLite → Supabase PostgreSQL**: `provider = "postgresql"`, adapter `PrismaPg`,
+  runtime por el pooler (transaction mode, `?pgbouncer=true`) y CLI por la
+  conexión directa (`DIRECT_URL`). Migraciones regeneradas.
+- **Fotos en disco → Supabase Storage** (bucket privado): misma firma pública en
+  `src/lib/foto/storage.ts`; las fotos se siguen sirviendo SOLO por
+  `/api/archivos/*` con auth, nunca por URL pública.
+- **Rate limit distribuido**: Upstash Redis con ventana deslizante, con fallback
+  en memoria para dev/E2E.
+- **RLS habilitado** en Supabase como segunda capa de aislamiento.
+- **CSP** movida a `src/proxy.ts` (emisión única por request) y `cdn.jsdelivr.net`
+  removido: el modelo de remoción de fondo es self-hosted.
+- **Despliegue en Vercel** desde `main`.
+
+## 12. PLAN-UX-DT — Modos de Sesión y panel Escuela (2026-07)
+
+(Origen: `PLAN-UX-DT.md`, ya eliminado. Los comentarios del código que citan
+`PLAN-UX-DT PR-n §x` refieren a este hito.) Reemplaza el evento-como-página por un
+**flujo guiado** para el DT en cancha.
+
+- **PR-1 — backend de los modos:** migración (`Asistencia` con justificado /
+  llegoTarde / salioAntes / agregadoEnCancha / corrección, `Evento` con
+  sesionIniciadaAt / sesionCerradaAt / notaSesion, modelo `ObservacionJugador`),
+  `sesion.service.ts` con `eventoDelDt` como barrera única, y tests.
+- **PR-2 — quick wins:** confirmación antes de cancelar un evento (notifica
+  familias), home "Hoy" del DT accionable, tab bar móvil, KPIs de escuela
+  clickeables, fila de Administración con `resumenMembresias`.
+- **PR-3 — Modo Sesión + ENTRENAMIENTO:** ruta full-screen, `ListaViva` (un toque
+  cicla presente/ausente/justificado, long-press para modificadores), guardado
+  optimista con cola y backoff, cronómetro, observaciones con chips, cierre.
+- **PR-4 — Modo PARTIDO:** marcador en vivo que alimenta marcador **y** estadística
+  individual en la misma operación; deshacer gol; tarjetas; cierre con tabla
+  editable por steppers. La notificación a familias sale **una sola vez**, al
+  cerrar.
+- **PR-5 — exportables + pulido:** exports de **membresías/cobranza, asistencia
+  (matriz jugador × fecha), resultados y contactos**, todos con `protegerCelda` y
+  auditoría `EXPORT_*`; autocomplete de membresías (C2.2); sidebar agrupado en 3
+  secciones (C2.4); matriz de asistencia mes × categoría (C2.5); botonera 1–10 en
+  la evaluación, sin valor precargado (B5).
+
+## 13. Ronda de testing en Vercel (2026-07-23)
+
+Diez hallazgos probando en producción. Resueltos:
+
+- **Modo Partido:** un partido creado sin convocatoria dejaba la lista vacía (ahora
+  cae al plantel completo); un jugador sumado en cancha se duplicaba al revalidar
+  (colisión de `key` + marcas compartidas → dedupe por `jugadorId`); las tarjetas
+  ahora se **agregan y se quitan** en vivo, con **dos amarillas = roja**.
+- **Notificaciones:** la lista se copiaba a `useState` (se sembraba solo al
+  montar), así que ni llegaban las nuevas ni se reflejaba lo leído. Ahora la
+  fuente de verdad es el prop del server.
+- **Auditoría:** filtros por entidad/acción/actor + paginación.
+- **UI:** modal con scroll (el form de fondos desbordaba) e iconos del calendario
+  centrados.
+
+## 14. Contactos — teléfono y parentesco (2026-07-24)
+
+Destraba el último export de PR-5, que estaba bloqueado por schema. Migración
+`User.telefono` + `Jugador.parentescoAcudiente` (nullable); la familia los carga
+desde "Mi cuenta"; export de nómina (jugador, nacimiento, categoría, acudiente,
+parentesco, teléfono, email) con auditoría `EXPORT_CONTACTOS`.
+
+## 15. Academia Elite — escuela demo curada (2026-07-24)
+
+Escuela demo **aparte** de "Academia Demo" (que queda reservada para los E2E), con
+narrativa: 4 categorías por año, 13 jugadores activos y evaluados cubriendo los
+cuatro niveles de carta, membresías en los tres estados, 8 semanas de
+entrenamientos con asistencia (tasa distinta por categoría para ejercitar el
+semáforo) y partidos jugado/próximo. Credenciales y resumen en
+`ACADEMIA-ELITE-DEMO.md`.
+
+## 16. Red de seguridad — CI/CD y error boundaries (2026-07-24)
+
+Con producción ya sirviendo datos reales, faltaba la red:
+
+- **`.github/workflows/ci.yml`**: `typecheck` + `lint` + `test` en cada push/PR a
+  `main`. `build` y `e2e` quedan fuera porque necesitan base y secretos.
+- **`error.tsx` / `global-error.tsx`**: degradación elegante con la API de Next 16
+  (`unstable_retry`, no `reset`). Nunca muestran el mensaje del error: solo el
+  `digest`, que cruza con los logs de Vercel.
+- **Sentry descartado por ahora:** `@sentry/nextjs` rompe con Next 16 + Turbopack
+  (duplica `@opentelemetry/api` → stack overflow) y, sobre todo, es un procesador
+  externo nuevo que recibiría PII de menores → requiere pasar por Habeas Data
+  (§5) antes de instalarse.
+
 ---
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
@@ -223,8 +323,7 @@ hook.) Integra **Resend** respetando capas y datos de menores:
 - **`auth.ts`** consulta `db.user.findUnique` directo en el provider Credentials
   (patrón estándar de Auth.js; preexistente). Opcional: mover a un
   `buscarCredencialesPorEmail` en el repositorio.
-- **CSP (`next.config.ts`)** permite `cdn.jsdelivr.net`, pero el modelo de
-  remoción de fondo ahora es self-hosted (`/imgly/`). Si nada usa jsdelivr,
-  conviene quitarlo (menos superficie; son datos de menores).
-- **Credenciales por link** está cableado en el alta de escuela del SA; extenderlo
-  al alta de DT/jugador es trivial con el mismo `emitirSetPassword`.
+
+> Las observaciones de CSP (`cdn.jsdelivr.net`) y de extender las credenciales por
+> link se resolvieron o se movieron a `PENDIENTES.md` — este archivo registra lo
+> hecho, no lo que falta.

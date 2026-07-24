@@ -3,11 +3,15 @@
 Plataforma web multi-escuela que gamifica la formación en fútbol base:
 evaluaciones reales → carta estilo Modo Carrera con stats, niveles y evolución.
 
-Implementación basada en `PLAN-MAESTRO-v4.md` (en la carpeta raíz del proyecto).
+El contexto del proyecto (visión, arquitectura, estado) está en
+[docs/ESTADO-DEL-PROYECTO.md](docs/ESTADO-DEL-PROYECTO.md); las reglas para
+trabajar en el repo, en [AGENTS.md](AGENTS.md).
 
 ## Stack
-Next.js 16 (App Router) · TypeScript estricto · Tailwind v4 · Prisma 7 + SQLite
-(driver adapter) · Auth.js v5 (Credentials + JWT) · Zod v4 · Vitest.
+Next.js 16 (App Router) · TypeScript estricto · Tailwind v4 · Prisma 7 +
+**Supabase PostgreSQL** (driver adapter) · Supabase Storage · Upstash Redis ·
+Auth.js v5 (Credentials + JWT) · Zod v4 · Vitest + Playwright. Desplegado en
+Vercel.
 
 ## Puesta en marcha (Windows / local)
 

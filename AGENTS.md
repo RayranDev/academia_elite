@@ -179,8 +179,15 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 | `SEGURIDAD.md` | Checklist de seguridad por endpoint. |
 | `HABEAS-DATA.md` | Tratamiento de datos personales de menores. |
 | `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva de desarrollo (MEN diario). |
-| `PLAN-MAESTRO-v4.md` | Visión completa de producto. |
+| `GUIA-FONDOS.md` | Cómo funcionan los fondos y efectos de carta. |
+| `ACADEMIA-ELITE-DEMO.md` | Credenciales y resumen de la escuela demo curada. |
 | `NGROK-PASO-A-PASO.md` | Exponer el dev local con ngrok (paso a paso). |
-| `TRAZABILIDAD.md` | **Historial** de todo lo hecho: sprints, correcciones, planes ejecutados. |
-| `PENDIENTES.md` | **Backlog de features** de producto: qué falta construir (primer lugar donde buscar pendientes). |
-| `HOJA-DE-RUTA.md` | Pendientes de **infra / migración a producción** (Sprint 8): base de datos, auth, storage, hosting. |
+| `TRAZABILIDAD.md` | **Historial único** de todo lo hecho: sprints, correcciones, planes ejecutados. |
+| `PENDIENTES.md` | **Lo que falta** por hacer (primer lugar donde buscar pendientes). |
+
+**Regla de documentación:** cuando un plan se ejecuta, su resumen va a
+`TRAZABILIDAD.md` y el documento del plan **se elimina** — el detalle queda en el
+historial de git. Nunca conviven dos versiones de la verdad. Por eso ya no
+existen `PLAN-MAESTRO-v4.md`, `PLAN-UX-DT.md` ni `HOJA-DE-RUTA.md`; los
+comentarios del código que citan `PLAN-UX-DT PR-n §x` refieren al hito 12 de
+`TRAZABILIDAD.md`.

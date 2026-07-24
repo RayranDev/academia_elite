@@ -22,8 +22,10 @@ cambió de API, se adapta y se documenta aquí).
 ### Adaptaciones por Prisma 7
 3. **Driver adapters obligatorios**: el `url` ya no va en el `datasource` del
    schema; va en `prisma.config.ts` (para Migrate) y el cliente runtime se crea
-   con `@prisma/adapter-better-sqlite3` (`src/lib/db.ts`). En Fase 2 se cambia
-   el adapter por el de Postgres/Supabase sin tocar el resto.
+   con `@prisma/adapter-pg` (`src/lib/db.ts`) contra **Supabase PostgreSQL**.
+   Runtime por el pooler (transaction mode, `?pgbouncer=true`); la CLI de
+   migraciones usa `DIRECT_URL` (conexión directa). *La arquitectura por capas
+   permitió cambiar de SQLite a Postgres sin tocar servicios ni dominio.*
 4. **Generador `prisma-client`** (nuevo, TS) con salida a `src/generated/prisma`
    (gitignored). Import del cliente: `@/generated/prisma/client`.
 5. El seed se declara en `prisma.config.ts` (`migrations.seed`), no en
