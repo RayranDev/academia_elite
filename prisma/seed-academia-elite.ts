@@ -260,7 +260,7 @@ export async function crearAcademiaElite(
           escuelaId: escuela.id,
           categoriaId: cats[clave].id,
           tipo: "ENTRENAMIENTO",
-          titulo: `Entrenamiento semanal`,
+          titulo: "Entrenamiento semanal",
           inicio,
           fin,
           sesionIniciadaAt: inicio,
