@@ -26,7 +26,8 @@ function cargarImagen(src: string): Promise<HTMLImageElement> {
 
 /**
  * Redimensiona la imagen elegida (si supera `maxLado`) y la devuelve como
- * dataURL JPEG, lista para mostrarse en el recortador sin agotar memoria.
+ * dataURL PNG, lista para mostrarse en el recortador sin agotar memoria. PNG y
+ * no JPEG para preservar la transparencia (la remoción de fondo depende de eso).
  */
 export async function prepararParaRecorte(file: File, maxLado = 1600): Promise<string> {
   const url = URL.createObjectURL(file);
@@ -162,6 +163,14 @@ export async function removerFondoDeImagen(
     const processedBlob = await removeBackground(blob, {
       publicPath: `${window.location.origin}/imgly/`,
       model: "small",
+      // CRÍTICO para el CSP: sin esto imgly corre TODO el pipeline en un Web
+      // Worker, y ese worker NO hereda el `unsafe-eval` que sí tiene la página
+      // /jugador/perfil. El `imageDecode` interno usa eval → el worker lo bloquea
+      // y la remoción falla ("El navegador bloqueó el motor de imagen (CSP)").
+      // Corriendo en el hilo principal, el eval queda bajo el CSP correcto. Como
+      // sin crossOriginIsolated ya era single-thread, no se pierde paralelismo
+      // real; solo se procesa en el hilo principal (unos segundos, con spinner).
+      proxyToWorker: false,
       output: { format: "image/png" },
       progress: (key, current, total) => {
         if (!onEstado) return;
