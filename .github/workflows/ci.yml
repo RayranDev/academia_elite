@@ -1,0 +1,51 @@
+name: CI
+
+# Red de seguridad: ninguna rama llega a producción sin pasar por acá.
+# Vercel despliega desde `main`, así que este workflow es lo único que separa un
+# push de un deploy roto.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Un push nuevo cancela la corrida anterior de la misma rama.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calidad:
+    name: typecheck · lint · test
+    runs-on: ubuntu-latest
+    env:
+      # `prisma generate` corre en el postinstall y `prisma.config.ts` lee esta
+      # variable. Con una URL bien formada alcanza: generate NO abre conexión y
+      # ninguna de estas tres verificaciones toca la base. No hay secretos acá.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests unitarios
+        run: npm run test
+
+# Nota: `build` y `test:e2e` quedan fuera a propósito. Ambos necesitan una base
+# real (y el e2e además levanta el server y siembra un schema aparte), así que
+# exigirían cargar secretos de Supabase en CI. Se pueden sumar más adelante con
+# un proyecto Supabase dedicado a CI; mientras tanto el e2e se corre local antes
+# de tocar flujos de acceso, carta, semana o bloqueo (AGENTS.md §7).
