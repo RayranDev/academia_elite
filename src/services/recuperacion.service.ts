@@ -73,11 +73,6 @@ export async function solicitarRecuperacion(email: string): Promise<void> {
 }
 
 /**
- * Alta de cuenta: envía un código para que el responsable fije su contraseña,
- * más un enlace de comodidad a la página de activación con el correo precargado
- * (el código lo tipea el usuario). Silencioso si el usuario no existe.
- */
-/**
  * Envía el link/código para fijar contraseña **sin romper el alta ni el reset**
  * si el correo falla. La clave temporal que se muestra en pantalla queda como
  * respaldo (clave mientras no haya dominio verificado en Resend).
@@ -97,6 +92,11 @@ export async function avisarSetPassword(
   }
 }
 
+/**
+ * Alta de cuenta: envía un código para que el responsable fije su contraseña,
+ * más un enlace de comodidad a la página de activación con el correo precargado
+ * (el código lo tipea el usuario). Silencioso si el usuario no existe.
+ */
 export async function emitirSetPassword(
   email: string,
   urlBase: string,
