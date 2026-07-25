@@ -4,6 +4,7 @@ import { obtenerHub, type HubDTO } from "@/services/player.service";
 import { DomainError } from "@/lib/errors";
 import { HubHero } from "@/components/jugador/HubHero";
 import { ObjetivosList } from "@/components/jugador/ObjetivosList";
+import { OnboardingBienvenida } from "@/components/jugador/OnboardingBienvenida";
 import { ProximoPartidoTile } from "@/components/jugador/ProximoPartidoTile";
 import { EvolutionChart } from "@/components/charts/EvolutionChart";
 import { UpcomingList } from "@/components/calendar/UpcomingList";
@@ -38,6 +39,10 @@ export default async function JugadorHubPage() {
 
   return (
     <div className="space-y-6">
+      {!hub.foto.tieneFoto && !hub.foto.consentimiento && (
+        <OnboardingBienvenida nombre={hub.nombre} />
+      )}
+
       <h1 className="text-3xl font-display italic uppercase">
         Carrera de {hub.nombre}
       </h1>
