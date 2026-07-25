@@ -30,6 +30,7 @@ export function CrearEventoDialog({
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState("ENTRENAMIENTO");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
+  const [inicio, setInicio] = useState("");
   const [convocados, setConvocados] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -136,11 +137,29 @@ export function CrearEventoDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs text-muted">Inicio</label>
-              <input name="inicio" type="datetime-local" required className={input} />
+              {/* step 900s = 15 min. Un evento empieza y termina el mismo día. */}
+              <input
+                name="inicio"
+                type="datetime-local"
+                required
+                step={900}
+                value={inicio}
+                onChange={(e) => setInicio(e.target.value)}
+                className={input}
+              />
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted">Fin</label>
-              <input name="fin" type="datetime-local" required className={input} />
+              <input
+                name="fin"
+                type="datetime-local"
+                required
+                step={900}
+                // Acotado al día del inicio: no se puede terminar otro día.
+                min={inicio || undefined}
+                max={inicio ? `${inicio.slice(0, 10)}T23:59` : undefined}
+                className={input}
+              />
             </div>
           </div>
 

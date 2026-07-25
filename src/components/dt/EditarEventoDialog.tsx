@@ -82,11 +82,11 @@ export function EditarEventoDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs text-muted">Inicio</label>
-              <input name="inicio" type="datetime-local" required defaultValue={paraInput(evento.inicio)} className={input} />
+              <input name="inicio" type="datetime-local" required step={900} defaultValue={paraInput(evento.inicio)} className={input} />
             </div>
             <div>
               <label className="mb-1 block text-xs text-muted">Fin</label>
-              <input name="fin" type="datetime-local" required defaultValue={paraInput(evento.fin)} className={input} />
+              <input name="fin" type="datetime-local" required step={900} defaultValue={paraInput(evento.fin)} className={input} />
             </div>
           </div>
 

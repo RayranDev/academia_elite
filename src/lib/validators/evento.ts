@@ -1,6 +1,21 @@
 import { z } from "zod";
 import { TIPOS_EVENTO, CONFIRMACIONES } from "@/types";
 
+/** Un evento arranca y termina el MISMO día (no dura 3 días). */
+function mismoDia(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+const mismoDiaCheck = (d: { inicio: Date; fin: Date }) => mismoDia(d.inicio, d.fin);
+const mismoDiaError = {
+  error: "El evento debe empezar y terminar el mismo día.",
+  path: ["fin"],
+};
+
 export const eventoSchema = z
   .object({
     categoriaId: z.string().min(1, { error: "Elige una categoría." }),
@@ -19,7 +34,8 @@ export const eventoSchema = z
   .refine((d) => d.fin >= d.inicio, {
     error: "El fin debe ser posterior al inicio.",
     path: ["fin"],
-  });
+  })
+  .refine(mismoDiaCheck, mismoDiaError);
 
 export type EventoInput = z.infer<typeof eventoSchema>;
 
@@ -50,7 +66,8 @@ export const editarEventoSchema = z
   .refine((d) => d.fin >= d.inicio, {
     error: "El fin debe ser posterior al inicio.",
     path: ["fin"],
-  });
+  })
+  .refine(mismoDiaCheck, mismoDiaError);
 
 export type EditarEventoInput = z.infer<typeof editarEventoSchema>;
 
