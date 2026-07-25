@@ -128,16 +128,22 @@ export async function recortarABlob(
   });
 }
 
-/** Convierte una dataURL en Blob sin usar fetch() (evita 'Failed to fetch' en data: URLs). */
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, base64] = dataUrl.split(",");
-  const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return new Blob([bytes], { type: mime });
+/**
+ * Decodifica una dataURL a `ImageData` con el canvas NATIVO del navegador (sin
+ * eval, a diferencia del decodificador WASM de imgly). Se le pasa así a
+ * `removeBackground` para saltear su `imageDecode` y no chocar con el CSP.
+ */
+async function dataUrlToImageData(dataUrl: string): Promise<ImageData> {
+  const img = await cargarImagen(dataUrl);
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas no disponible.");
+  ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, w, h);
 }
 
 /**
@@ -152,24 +158,26 @@ export async function removerFondoDeImagen(
   try {
     const { removeBackground } = await import("@imgly/background-removal");
 
-    // Convertimos la dataURL en un Blob directamente en memoria (sin fetch)
-    const blob = dataUrlToBlob(src);
+    // CLAVE para el CSP: decodificamos la imagen NOSOTROS con el canvas nativo y
+    // le pasamos `ImageData` ya lista. Si en cambio le pasáramos un Blob/dataURL,
+    // imgly la decodifica con su propio `imageDecode`, que usa `eval` (glue WASM
+    // Emscripten) y corre en un contexto sin 'unsafe-eval' → fallaba con "El
+    // navegador bloqueó el motor de imagen (CSP)". Con `ImageData` de entrada,
+    // `imageSourceToImageData` no toca `imageDecode`: se saltea el eval por
+    // completo. La inferencia sigue por WASM (permitido por 'wasm-unsafe-eval').
+    const imageData = await dataUrlToImageData(src);
 
     // Modelo self-hosteado en /imgly/ (mismo origen, sin CDN externo): son
     // fotos de menores y la foto nunca sale del navegador. publicPath debe ser
     // una URL ABSOLUTA (new URL(x, base) exige base absoluta). Modelo "small"
     // (~40 MB, suficiente para una foto que despues se recorta a la carta) y
     // salida PNG para preservar la transparencia.
-    const processedBlob = await removeBackground(blob, {
+    const processedBlob = await removeBackground(imageData, {
       publicPath: `${window.location.origin}/imgly/`,
       model: "small",
-      // CRÍTICO para el CSP: sin esto imgly corre TODO el pipeline en un Web
-      // Worker, y ese worker NO hereda el `unsafe-eval` que sí tiene la página
-      // /jugador/perfil. El `imageDecode` interno usa eval → el worker lo bloquea
-      // y la remoción falla ("El navegador bloqueó el motor de imagen (CSP)").
-      // Corriendo en el hilo principal, el eval queda bajo el CSP correcto. Como
-      // sin crossOriginIsolated ya era single-thread, no se pierde paralelismo
-      // real; solo se procesa en el hilo principal (unos segundos, con spinner).
+      // Todo en el hilo principal (sin worker proxy): más simple y sin sorpresas
+      // de CSP heredada por el worker. Sin crossOriginIsolated ya era
+      // single-thread, así que no se pierde paralelismo real.
       proxyToWorker: false,
       output: { format: "image/png" },
       progress: (key, current, total) => {
