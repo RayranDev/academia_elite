@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   startOfMonth,
@@ -35,6 +35,17 @@ export function MonthGrid({
   const [mes, setMes] = useState(() => startOfMonth(new Date()));
   const [diaSel, setDiaSel] = useState<Date | null>(null);
 
+  // "new Date()" da un resultado distinto en el servidor (SSR, UTC) y en el
+  // cliente (zona horaria real) al hidratar, así que el mes/día iniciales
+  // pueden no coincidir y disparar un error de hidratación. Se difiere el
+  // render del calendario a después de montar en el cliente, donde "ahora" ya
+  // es consistente consigo mismo.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMontado(true);
+  }, []);
+
   const dias = useMemo(() => {
     const ini = startOfWeek(startOfMonth(mes), { weekStartsOn: 1 });
     const fin = endOfWeek(endOfMonth(mes), { weekStartsOn: 1 });
@@ -45,6 +56,10 @@ export function MonthGrid({
     eventos.filter((e) => isSameDay(new Date(e.inicio), dia));
 
   const delDiaSel = diaSel ? eventosPorDia(diaSel) : [];
+
+  if (!montado) {
+    return <div className="h-96" aria-hidden />;
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
