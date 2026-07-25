@@ -54,11 +54,16 @@ export function UsuariosGestion({
     setLimitVal(searchParams.get("limit") ?? String(limit));
   }, [searchParams, limit]);
 
-  // Debounce for query search
+  // Debounce for query search. Depende de `searchParams` para leer el resto de
+  // los filtros vigentes, pero SOLO debe navegar cuando `q` cambió de verdad:
+  // si no, cualquier otro cambio de searchParams (ej. click en "página 2" de
+  // Paginacion) reprograma este timer y, a los 350ms, pisa la página con "1".
   useEffect(() => {
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
       const query = q.trim();
+      const actual = searchParams.get("q") ?? "";
+      if (query === actual) return;
+      const params = new URLSearchParams(searchParams.toString());
       if (query) {
         params.set("q", query);
       } else {

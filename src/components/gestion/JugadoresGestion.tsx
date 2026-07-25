@@ -57,11 +57,17 @@ export function JugadoresGestion({
     setEstado(searchParams.get("estado") ?? "");
   }, [searchParams]);
 
-  // Debounce para búsqueda por texto
+  // Debounce para búsqueda por texto. Depende de `searchParams` para leer el
+  // resto de los filtros vigentes, pero SOLO debe navegar cuando `q` cambió de
+  // verdad: si no, cualquier otro cambio de searchParams (ej. click en
+  // "página 2" de Paginacion) reprograma este timer y, a los 350ms, pisa la
+  // página con "1".
   useEffect(() => {
     const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
       const query = q.trim();
+      const actual = searchParams.get("q") ?? "";
+      if (query === actual) return;
+      const params = new URLSearchParams(searchParams.toString());
       if (query) {
         params.set("q", query);
       } else {
