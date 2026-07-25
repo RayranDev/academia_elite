@@ -18,6 +18,7 @@ import {
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { cn } from "@/lib/cn";
 import type { EventoCalendarioDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
@@ -171,7 +172,7 @@ export function MonthGrid({
                   aria-hidden
                 />
                 <span>
-                  {format(new Date(e.inicio), "HH:mm")} · {e.titulo}
+                  <FechaLocal iso={e.inicio} formato="HH:mm" /> · {e.titulo}
                 </span>
               </>
             );

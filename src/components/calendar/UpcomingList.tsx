@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
@@ -59,7 +58,7 @@ export function UpcomingList({
               <Badge>{ETIQUETA_TIPO[e.tipo as TipoEvento]}</Badge>
             </div>
             <p className="mt-1 text-xs text-muted">
-              {format(new Date(e.inicio), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+              <FechaLocal iso={e.inicio} formato="EEEE d 'de' MMMM · HH:mm" />
               {e.canchaNombre ? ` · ${e.canchaNombre}` : ""}
             </p>
 
