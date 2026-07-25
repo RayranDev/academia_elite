@@ -6,10 +6,12 @@
 // Sirviendo los assets desde /imgly/ el CSP queda en 'self' y no hay fuga de
 // datos ni dependencia de un CDN ajeno.
 //
-// Solo se copia el modelo liviano ("small", ~40 MB) y el runtime onnxruntime-web.
-// El paquete de datos completo pesa ~221 MB; copiar todo seria inutil porque en
-// runtime solo se descarga el modelo elegido. public/imgly/ esta en .gitignore y
-// se regenera en cada install (postinstall).
+// Solo se copia el modelo que usa el cliente ("medium", ~84 MB) y el runtime
+// onnxruntime-web. El paquete de datos completo pesa ~221 MB; copiar todo seria
+// inutil porque en runtime solo se descarga el modelo elegido (ver el "model:"
+// pasado a removeBackground en src/lib/foto/cliente.ts -- si eso cambia, este
+// filtro tiene que cambiar con eso). public/imgly/ esta en .gitignore y se
+// regenera en cada install (postinstall).
 
 import { createRequire } from "node:module";
 import {
@@ -41,9 +43,9 @@ const manifest = JSON.parse(readFileSync(join(dataDist, "resources.json"), "utf8
 const destDir = join(root, "public", "imgly");
 mkdirSync(destDir, { recursive: true });
 
-// Modelo liviano + todo el runtime WASM (la lib elige el .wasm segun el device).
+// Modelo elegido + todo el runtime WASM (la lib elige el .wasm segun el device).
 const incluir = (key) =>
-  key === "/models/small" || key.startsWith("/onnxruntime-web/");
+  key === "/models/medium" || key.startsWith("/onnxruntime-web/");
 
 const hashes = new Set();
 for (const [key, entry] of Object.entries(manifest)) {
