@@ -18,7 +18,11 @@ export function CamposPassword({
   etiqueta?: string;
 }) {
   const [ver, setVer] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmacion, setConfirmacion] = useState("");
   const tipo = ver ? "text" : "password";
+  const coincide = confirmacion.length > 0 && password === confirmacion;
+  const noCoincide = confirmacion.length > 0 && password !== confirmacion;
   return (
     <>
       <div>
@@ -33,6 +37,8 @@ export function CamposPassword({
             autoComplete="new-password"
             required
             minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className={`${input} pr-10`}
           />
           <button
@@ -56,8 +62,21 @@ export function CamposPassword({
           autoComplete="new-password"
           required
           minLength={8}
+          value={confirmacion}
+          onChange={(e) => setConfirmacion(e.target.value)}
+          aria-invalid={noCoincide}
           className={input}
         />
+        {noCoincide && (
+          <p className="mt-1 text-xs text-alerta" role="alert">
+            Las contraseñas no coinciden.
+          </p>
+        )}
+        {coincide && (
+          <p className="mt-1 text-xs text-pitch" role="status">
+            Las contraseñas coinciden.
+          </p>
+        )}
       </div>
     </>
   );

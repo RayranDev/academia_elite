@@ -205,3 +205,13 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Edge agrega su propio ícono de "mostrar contraseña" (pseudo-elemento nativo)
+   apenas el input type="password" tiene texto. Los formularios ya traen su
+   propio botón de mostrar/ocultar: sin esto, Edge dibuja un segundo ícono que
+   no se puede posicionar ni estilar, y en los campos sin botón propio (ej.
+   "repetí la contraseña") queda solo, pelado. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
