@@ -1,7 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleEventoDt, listarCanchasDt } from "@/services/evento.service";
 import { DomainError } from "@/lib/errors";
@@ -13,9 +11,10 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { EditarEventoDialog } from "@/components/dt/EditarEventoDialog";
 import { CancelarEventoButton } from "@/components/dt/CancelarEventoButton";
-import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
+import { ETIQUETA_TIPO, ICONO_TIPO, TEXTO_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
 const numInput =
@@ -45,14 +44,16 @@ export default async function EventoDetallePage({
 
   return (
     <div className="space-y-6">
+      <Link href="/dt/eventos" className="text-sm text-muted hover:text-foreground">
+        ← Volver a eventos
+      </Link>
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-display italic uppercase">
           {(() => {
             const Icon = ICONO_TIPO[ev.tipo as TipoEvento];
             return (
               <Icon
-                className="h-7 w-7 shrink-0"
-                style={{ color: COLOR_TIPO[ev.tipo as TipoEvento] }}
+                className={`h-7 w-7 shrink-0 ${TEXTO_TIPO[ev.tipo as TipoEvento]}`}
                 aria-hidden
               />
             );
@@ -61,7 +62,7 @@ export default async function EventoDetallePage({
         </h1>
         <p className="text-sm text-muted">
           {ETIQUETA_TIPO[ev.tipo as TipoEvento]} · {ev.categoriaNombre} ·{" "}
-          {format(new Date(ev.inicio), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+          <FechaLocal iso={ev.inicio} formato="EEEE d 'de' MMMM · HH:mm" />
           {ev.canchaNombre ? ` · ${ev.canchaNombre}` : ""}
         </p>
         {ev.rival && (

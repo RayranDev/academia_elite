@@ -1,9 +1,8 @@
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Trophy, MapPin } from "lucide-react";
 import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 
@@ -29,7 +28,7 @@ export function ProximoPartidoTile({
         {evento.esLocal ? "vs" : "@"} {evento.rival ?? evento.titulo}
       </h2>
       <p className="mt-1 text-sm text-muted">
-        {format(new Date(evento.inicio), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+        <FechaLocal iso={evento.inicio} formato="EEEE d 'de' MMMM · HH:mm" />
       </p>
       {evento.canchaNombre && (
         <p className="mt-0.5 flex items-center gap-1 text-sm text-muted">

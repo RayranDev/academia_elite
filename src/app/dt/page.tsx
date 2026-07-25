@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { requireAuthContext } from "@/lib/auth/session";
 import { eventosDeHoyDt, type EventoHoyDTO } from "@/services/evento.service";
 import {
@@ -10,6 +8,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
 
 /**
@@ -114,7 +113,6 @@ export default async function DtHoyPage() {
 
 /** Tarjeta del evento del día con la acción principal: arrancar la sesión. */
 function EventoHoy({ ev }: { ev: EventoHoyDTO }) {
-  const hora = format(new Date(ev.inicio), "HH:mm", { locale: es });
   const cerrado = ev.sesionCerradaAt !== null;
   const etiqueta = ETIQUETA_TIPO[ev.tipo] ?? ev.tipo;
 
@@ -123,7 +121,7 @@ function EventoHoy({ ev }: { ev: EventoHoyDTO }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">
-            {hora} · {etiqueta} · {ev.categoriaNombre}
+            <FechaLocal iso={ev.inicio} formato="HH:mm" /> · {etiqueta} · {ev.categoriaNombre}
           </p>
           <h3 className="mt-0.5 text-xl font-display italic uppercase">
             {ev.titulo}

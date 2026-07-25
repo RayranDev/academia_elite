@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { startOfMonth, endOfMonth, addMonths, format } from "date-fns";
-import { es } from "date-fns/locale";
+import { startOfMonth, endOfMonth, addMonths } from "date-fns";
 import { requireAuthContext } from "@/lib/auth/session";
 import {
   listarCalendarioDt,
@@ -14,7 +13,8 @@ import {
 import { MonthGrid } from "@/components/calendar/MonthGrid";
 import { CrearEventoDialog } from "@/components/dt/CrearEventoDialog";
 import { Card } from "@/components/ui/Card";
-import { ETIQUETA_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
+import { FechaLocal } from "@/components/ui/FechaLocal";
+import { ETIQUETA_TIPO, FONDO_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
 function proximosEventos(
@@ -65,8 +65,7 @@ export default async function CalendarioPage() {
                 >
                   <span>
                     <span
-                      className="mr-2 inline-block h-2 w-2 rounded-full align-middle"
-                      style={{ background: COLOR_TIPO[e.tipo as TipoEvento] }}
+                      className={`mr-2 inline-block h-2 w-2 rounded-full align-middle ${FONDO_TIPO[e.tipo as TipoEvento]}`}
                     />
                     {e.titulo}{" "}
                     <span className="text-muted">
@@ -74,7 +73,7 @@ export default async function CalendarioPage() {
                     </span>
                   </span>
                   <span className="text-xs text-muted">
-                    {format(new Date(e.inicio), "d MMM HH:mm", { locale: es })}
+                    <FechaLocal iso={e.inicio} formato="d MMM HH:mm" />
                   </span>
                 </Link>
               </li>

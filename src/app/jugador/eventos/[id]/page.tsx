@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleEventoJugador } from "@/services/evento.service";
 import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { DomainError } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
-import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
+import { ETIQUETA_TIPO, ICONO_TIPO, TEXTO_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
 export default async function EventoJugadorPage({
@@ -39,15 +38,14 @@ export default async function EventoJugadorPage({
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-display italic uppercase">
           <Icon
-            className="h-7 w-7 shrink-0"
-            style={{ color: COLOR_TIPO[ev.tipo as TipoEvento] }}
+            className={`h-7 w-7 shrink-0 ${TEXTO_TIPO[ev.tipo as TipoEvento]}`}
             aria-hidden
           />
           {ev.titulo}
         </h1>
         <p className="text-sm text-muted">
           {ETIQUETA_TIPO[ev.tipo as TipoEvento]} · {ev.categoriaNombre} ·{" "}
-          {format(new Date(ev.inicio), "EEEE d 'de' MMMM · HH:mm", { locale: es })}
+          <FechaLocal iso={ev.inicio} formato="EEEE d 'de' MMMM · HH:mm" />
           {ev.canchaNombre ? ` · ${ev.canchaNombre}` : ""}
         </p>
         {ev.rival && (

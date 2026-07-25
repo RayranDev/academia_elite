@@ -17,7 +17,7 @@ import {
   format,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
+import { TEXTO_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { cn } from "@/lib/cn";
 import type { EventoCalendarioDTO } from "@/services/evento.service";
@@ -93,11 +93,11 @@ export function MonthGrid({
         {/* Leyenda ARRIBA de la grilla: al pie obligaba a desplazarse para saber
             qué significaba cada icono. */}
         <div className="mb-3 flex flex-wrap gap-3 text-xs text-muted">
-          {(Object.keys(COLOR_TIPO) as TipoEvento[]).map((t) => {
+          {(Object.keys(TEXTO_TIPO) as TipoEvento[]).map((t) => {
             const Icon = ICONO_TIPO[t];
             return (
               <span key={t} className="flex items-center gap-1">
-                <Icon className="h-4 w-4" style={{ color: COLOR_TIPO[t] }} aria-hidden />
+                <Icon className={`h-4 w-4 ${TEXTO_TIPO[t]}`} aria-hidden />
                 {ETIQUETA_TIPO[t]}
               </span>
             );
@@ -159,8 +159,11 @@ export function MonthGrid({
                     return (
                       <Icon
                         key={e.id}
-                        className={cn("h-6 w-6 shrink-0 drop-shadow-sm", pasado && "opacity-60")}
-                        style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                        className={cn(
+                          "h-6 w-6 shrink-0 drop-shadow-sm",
+                          TEXTO_TIPO[e.tipo as TipoEvento],
+                          pasado && "opacity-60",
+                        )}
                         strokeWidth={2.5}
                         aria-hidden
                       />
@@ -192,8 +195,7 @@ export function MonthGrid({
             const contenido = (
               <>
                 <Icon
-                  className="h-4 w-4 shrink-0"
-                  style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                  className={`h-4 w-4 shrink-0 ${TEXTO_TIPO[e.tipo as TipoEvento]}`}
                   aria-hidden
                 />
                 <span>

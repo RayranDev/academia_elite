@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Paginacion } from "@/components/ui/Paginacion";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
+import { TEXTO_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import { TIPOS_EVENTO, ESTADOS_EVENTO, type EstadoEvento, type TipoEvento } from "@/types";
 import type { EventoListadoDTO } from "@/services/evento.service";
 
@@ -137,8 +137,7 @@ export function EventosListado({
                     className="flex items-center gap-3 p-3 hover:bg-surface-2/50"
                   >
                     <Icon
-                      className="h-5 w-5 shrink-0"
-                      style={{ color: COLOR_TIPO[e.tipo] }}
+                      className={`h-5 w-5 shrink-0 ${TEXTO_TIPO[e.tipo]}`}
                       aria-hidden
                     />
                     <div className="min-w-0 flex-1">

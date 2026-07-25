@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
-import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
+import { TEXTO_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
 
@@ -42,8 +42,7 @@ export function UpcomingList({
                   const Icon = ICONO_TIPO[e.tipo as TipoEvento];
                   return (
                     <Icon
-                      className="h-4 w-4 shrink-0"
-                      style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
+                      className={`h-4 w-4 shrink-0 ${TEXTO_TIPO[e.tipo as TipoEvento]}`}
                       aria-hidden
                     />
                   );
