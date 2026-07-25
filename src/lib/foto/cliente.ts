@@ -129,11 +129,13 @@ export async function recortarABlob(
 }
 
 /**
- * Decodifica una dataURL a `ImageData` con el canvas NATIVO del navegador (sin
- * eval, a diferencia del decodificador WASM de imgly). Se le pasa así a
- * `removeBackground` para saltear su `imageDecode` y no chocar con el CSP.
+ * Decodifica la imagen con el canvas NATIVO del navegador y la envuelve como
+ * blob RGBA crudo (`image/x-rgba8;width=..;height=..`). Ese es el formato que
+ * imgly reconoce y envuelve directo en su tensor SIN pasar por su `imageDecode`
+ * —el que usa `eval` (glue WASM Emscripten) y chocaba con el CSP—. La salida PNG
+ * de imgly usa canvas nativo, así que el pipeline entero queda libre de eval.
  */
-async function dataUrlToImageData(dataUrl: string): Promise<ImageData> {
+async function dataUrlARgbaBlob(dataUrl: string): Promise<Blob> {
   const img = await cargarImagen(dataUrl);
   const w = img.naturalWidth || img.width;
   const h = img.naturalHeight || img.height;
@@ -143,13 +145,15 @@ async function dataUrlToImageData(dataUrl: string): Promise<ImageData> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas no disponible.");
   ctx.drawImage(img, 0, 0);
-  return ctx.getImageData(0, 0, w, h);
+  const { data } = ctx.getImageData(0, 0, w, h);
+  return new Blob([data.buffer], { type: `image/x-rgba8;width=${w};height=${h}` });
 }
 
 /**
  * Quita el fondo de la imagen 100% en el navegador (modelo self-hosteado).
  * `onEstado` recibe texto legible de progreso (descarga del modelo y procesado)
- * para mostrar un indicador de carga. Si algo falla, devuelve la imagen original.
+ * para mostrar un indicador de carga. Si algo falla, LANZA `ErrorRemocionFondo`,
+ * que lleva la imagen original en `.original` para que el llamador la conserve.
  */
 export async function removerFondoDeImagen(
   src: string,
@@ -158,21 +162,18 @@ export async function removerFondoDeImagen(
   try {
     const { removeBackground } = await import("@imgly/background-removal");
 
-    // CLAVE para el CSP: decodificamos la imagen NOSOTROS con el canvas nativo y
-    // le pasamos `ImageData` ya lista. Si en cambio le pasáramos un Blob/dataURL,
-    // imgly la decodifica con su propio `imageDecode`, que usa `eval` (glue WASM
-    // Emscripten) y corre en un contexto sin 'unsafe-eval' → fallaba con "El
-    // navegador bloqueó el motor de imagen (CSP)". Con `ImageData` de entrada,
-    // `imageSourceToImageData` no toca `imageDecode`: se saltea el eval por
-    // completo. La inferencia sigue por WASM (permitido por 'wasm-unsafe-eval').
-    const imageData = await dataUrlToImageData(src);
+    // CLAVE para el CSP: decodificamos la imagen NOSOTROS (canvas nativo) y se la
+    // pasamos como RGBA crudo (image/x-rgba8). Así imgly NO usa su `imageDecode`,
+    // que hace `eval` (glue WASM) y chocaba con el CSP ("El navegador bloqueó el
+    // motor de imagen"). Con RGBA crudo la envuelve directo en su tensor.
+    const rgba = await dataUrlARgbaBlob(src);
 
     // Modelo self-hosteado en /imgly/ (mismo origen, sin CDN externo): son
     // fotos de menores y la foto nunca sale del navegador. publicPath debe ser
     // una URL ABSOLUTA (new URL(x, base) exige base absoluta). Modelo "small"
     // (~40 MB, suficiente para una foto que despues se recorta a la carta) y
     // salida PNG para preservar la transparencia.
-    const processedBlob = await removeBackground(imageData, {
+    const processedBlob = await removeBackground(rgba, {
       publicPath: `${window.location.origin}/imgly/`,
       model: "small",
       // Todo en el hilo principal (sin worker proxy): más simple y sin sorpresas
