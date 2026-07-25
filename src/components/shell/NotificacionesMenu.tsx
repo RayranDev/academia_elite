@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import {
@@ -27,6 +27,13 @@ function colorPrioridad(prioridad: string): string {
  * se mantiene un overlay LOCAL de "recién marcadas como leídas" para que el tilde
  * sea instantáneo; cuando el server revalida, ya trae `leida: true` y el overlay
  * queda inocuo (idempotente).
+ *
+ * `inicial` viene de `PanelShell`, que vive en el `layout.tsx` de cada rol. Un
+ * layout NO se vuelve a ejecutar al navegar entre páginas hijas (solo la propia
+ * `page.tsx` cambia), así que sin ayuda esta campana quedaría congelada en lo
+ * que había al entrar a la sección. Por eso pedimos `router.refresh()` solos:
+ * cada 60s y cada vez que la pestaña vuelve a estar visible (volviste de otra
+ * app/pestaña) — eso SÍ vuelve a ejecutar el layout con datos frescos.
  */
 export function NotificacionesMenu({
   inicial,
@@ -41,6 +48,18 @@ export function NotificacionesMenu({
     leidasOpt.has(n.id) ? { ...n, leida: true } : n,
   );
   const noLeidas = items.filter((n) => !n.leida).length;
+
+  useEffect(() => {
+    const intervalo = setInterval(() => router.refresh(), 60_000);
+    function alVolverVisible() {
+      if (document.visibilityState === "visible") router.refresh();
+    }
+    document.addEventListener("visibilitychange", alVolverVisible);
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", alVolverVisible);
+    };
+  }, [router]);
 
   function cerrar() {
     setAbierto(false);
