@@ -19,7 +19,7 @@ import {
   type UltimoPartidoDTO,
   type ResumenPartidosDTO,
 } from "@/services/evento.service";
-import { aPlayerCardData } from "@/lib/mappers/player-card";
+import { aPlayerCardData, cartaInicialBronce } from "@/lib/mappers/player-card";
 import { obtenerFondo } from "@/repositories/fondo.repository";
 import { parseAvatarConfig } from "@/lib/avatar/config";
 import { ovrConMen } from "@/lib/stats-engine";
@@ -87,6 +87,8 @@ export interface HubDTO {
   categoriaNombre: string;
   estado: string;
   card: PlayerCardData | null;
+  /** true si la carta es la BRONCE inicial (todavía sin ninguna evaluación). */
+  sinEvaluacion: boolean;
   bonusUltima: number;
   hijos: HijoRef[];
   evolucion: EvolucionPunto[];
@@ -146,7 +148,12 @@ export async function obtenerHub(
   const escudoUrl = escuela?.logoUrl
     ? `/api/archivos/escudo/${elegido.escuelaId}`
     : undefined;
-  const card = stats ? aPlayerCardData(full, stats, fotoUrl, escudoUrl) : null;
+  // Sin evaluación aún: en vez de dejar la carta vacía, se muestra una carta
+  // BRONCE inicial con datos base, para que el jugador ya vea "su" carta.
+  const card = stats
+    ? aPlayerCardData(full, stats, fotoUrl, escudoUrl)
+    : cartaInicialBronce(full, fotoUrl, escudoUrl);
+  const sinEvaluacion = !stats;
   // Fondo desbloqueado y equipado por el jugador (detrás del retrato). El marco
   // Héroe (morado) solo se activa si el fondo equipado es el especial "LEYENDA".
   if (card && elegido.fondoEquipadoId) {
@@ -248,6 +255,7 @@ export async function obtenerHub(
     categoriaNombre: full.categoria.nombre,
     estado: full.estado,
     card,
+    sinEvaluacion,
     bonusUltima: stats?.bonusAplicado ?? 0,
     hijos: hijos.map((h) => ({
       id: h.id,

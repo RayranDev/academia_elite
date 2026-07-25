@@ -43,13 +43,17 @@ export default async function JugadorHubPage() {
       </h1>
 
       <div className="grid gap-6 lg:grid-cols-[auto_1fr]">
-        {hub.card ? (
-          <HubHero card={hub.card} />
-        ) : (
-          <Card className="flex min-h-80 w-72 items-center justify-center text-center text-muted">
-            Aún sin evaluación. Tu primera carta nacerá tras la próxima sesión de
-            pruebas.
-          </Card>
+        {hub.card && (
+          <div className="space-y-2">
+            <HubHero card={hub.card} />
+            {hub.sinEvaluacion && (
+              <p className="max-w-72 rounded-lg border border-bronce/40 bg-bronce/10 px-3 py-2 text-center text-xs text-muted">
+                <span className="font-semibold text-bronce">Carta inicial</span> ·
+                todavía sin evaluación. Tus stats reales nacen tras tu primera
+                sesión de pruebas.
+              </p>
+            )}
+          </div>
         )}
 
         <div className="space-y-6">
@@ -138,7 +142,7 @@ function ResumenStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg bg-surface-2 py-2">
       <dd className="text-2xl font-bold tabular">{value}</dd>
-      <dt className="text-[10px] uppercase tracking-wide text-muted">{label}</dt>
+      <dt className="text-xs uppercase tracking-wide text-muted">{label}</dt>
     </div>
   );
 }
