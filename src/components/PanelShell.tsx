@@ -6,7 +6,7 @@ import { TabBarMovil } from "@/components/shell/TabBarMovil";
 import { SplashScreen } from "@/components/shell/SplashScreen";
 import { ThemeToggle } from "@/components/shell/ThemeToggle";
 import { NotificacionesMenu } from "@/components/shell/NotificacionesMenu";
-import { LoginNotifToast } from "@/components/shell/LoginNotifToast";
+import { AvisoImportante } from "@/components/shell/AvisoImportante";
 import { getAuthContext } from "@/lib/auth/session";
 import { listarMisNotificaciones } from "@/services/notificacion.service";
 import type { Rol } from "@/types";
@@ -45,7 +45,7 @@ export async function PanelShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <SplashScreen marca={marca} />
-      <LoginNotifToast notificaciones={notificaciones} />
+      <AvisoImportante notificaciones={notificaciones} />
       <header className="flex items-center justify-between border-b border-subtle bg-surface px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           {escudoUrl ? (
