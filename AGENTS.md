@@ -129,7 +129,11 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   `ActionResult<T>` = `{ ok: true; data? }` | `{ ok: false; error }`. Envolvé
   con `mapError`, que **re-lanza las señales de control de Next** (`NEXT_REDIRECT`,
   `NEXT_NOT_FOUND`) — no las trates como error — y oculta errores inesperados
-  tras un mensaje genérico.
+  tras un mensaje genérico. **Excepción**: las actions invocadas por
+  `<form action=…>` sin `useActionState` (progressive enhancement) pueden ser
+  `Promise<void>` y lanzar directo — el borde de la UI las maneja con el
+  `error.tsx` del segmento. Patrón existente en `evento.actions.ts` y
+  `mensaje.actions.ts`.
 - **AuditLog** para acciones sensibles.
 
 Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.md](docs/HABEAS-DATA.md)**.

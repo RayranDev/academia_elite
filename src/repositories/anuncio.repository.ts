@@ -5,10 +5,12 @@ export function crearAnuncio(
   data: {
     categoriaId?: string | null;
     autorRol: string;
+    autorId?: string | null;
     titulo: string;
     cuerpo: string;
     visibleJugador?: boolean;
     fijado?: boolean;
+    caducaEn?: Date | null;
   },
 ) {
   return db.anuncio.create({
@@ -16,10 +18,12 @@ export function crearAnuncio(
       escuelaId,
       categoriaId: data.categoriaId ?? null,
       autorRol: data.autorRol,
+      autorId: data.autorId ?? null,
       titulo: data.titulo,
       cuerpo: data.cuerpo,
       visibleJugador: data.visibleJugador ?? false,
       fijado: data.fijado ?? false,
+      caducaEn: data.caducaEn ?? null,
     },
   });
 }
@@ -56,13 +60,17 @@ export function borrarAnuncio(escuelaId: string, id: string) {
   return db.anuncio.deleteMany({ where: { id, escuelaId } });
 }
 
-/** Noticias del club visibles para un jugador (de su categoría o globales). */
+/**
+ * Noticias del club visibles para un jugador (de su categoría o globales). Se
+ * EXCLUYEN los caducados: `caducaEn` null (no vence) o todavía en el futuro.
+ */
 export function noticiasDeJugador(escuelaId: string, categoriaId: string) {
   return db.anuncio.findMany({
     where: {
       escuelaId,
       visibleJugador: true,
       OR: [{ categoriaId: null }, { categoriaId }],
+      AND: [{ OR: [{ caducaEn: null }, { caducaEn: { gt: new Date() } }] }],
     },
     orderBy: { createdAt: "desc" },
     take: 100,

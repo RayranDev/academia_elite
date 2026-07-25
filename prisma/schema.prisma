@@ -408,10 +408,12 @@ model Anuncio {
   categoriaId    String? // null = toda la escuela
   categoria      Categoria? @relation(fields: [categoriaId], references: [id])
   autorRol       String // DT | ESCUELA_ADMIN
+  autorId        String? // quién lo publicó (para mostrar el nombre); nullable para históricos
   titulo         String
   cuerpo         String // texto plano
   visibleJugador Boolean    @default(false) // "mostrar al jugador" -> noticia del club
   fijado         Boolean    @default(false)
+  caducaEn       DateTime? // vencimiento opcional: al pasar, se oculta al jugador
   createdAt      DateTime   @default(now())
 
   @@index([escuelaId, categoriaId, createdAt])

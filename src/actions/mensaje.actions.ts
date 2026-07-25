@@ -67,6 +67,7 @@ export async function publicarAnuncioAction(formData: FormData): Promise<void> {
     cuerpo: formData.get("cuerpo"),
     visibleJugador: formData.get("visibleJugador") === "on",
     fijado: formData.get("fijado") === "on",
+    caducaEn: formData.get("caducaEn") ?? "",
   });
   if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
   await publicarAnuncio(ctx, {
@@ -75,7 +76,9 @@ export async function publicarAnuncioAction(formData: FormData): Promise<void> {
     cuerpo: parsed.data.cuerpo,
     visibleJugador: parsed.data.visibleJugador,
     fijado: parsed.data.fijado,
+    caducaEn: parsed.data.caducaEn ?? null,
   });
+  revalidatePath("/dt/anuncios");
   revalidatePath("/dt/mensajes");
   revalidatePath("/escuela/anuncios");
 }
@@ -91,6 +94,7 @@ export async function eliminarAnuncioAction(
       throw new ValidationError("Anuncio inválido.");
     }
     await eliminarAnuncio(ctx, id);
+    revalidatePath("/dt/anuncios");
     revalidatePath("/dt/mensajes");
     revalidatePath("/escuela/anuncios");
     return { ok: true };

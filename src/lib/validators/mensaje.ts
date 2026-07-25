@@ -23,4 +23,14 @@ export const anuncioSchema = z.object({
   cuerpo: z.string().trim().min(2, { error: "Cuerpo requerido." }).max(2000),
   visibleJugador: z.coerce.boolean().optional(),
   fijado: z.coerce.boolean().optional(),
+  // Caducidad opcional: fecha "yyyy-MM-dd". Vacío = no vence. Se toma hasta el
+  // FIN de ese día (23:59:59) para que el día elegido siga siendo visible.
+  caducaEn: z
+    .string()
+    .trim()
+    .transform((v) => (v.length > 0 ? new Date(`${v}T23:59:59`) : null))
+    .nullish()
+    .refine((d) => d == null || !Number.isNaN(d.getTime()), {
+      error: "Fecha de caducidad inválida.",
+    }),
 });

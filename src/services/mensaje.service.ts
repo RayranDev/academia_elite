@@ -24,6 +24,7 @@ import {
   obtenerAnuncio,
   borrarAnuncio,
 } from "@/repositories/anuncio.repository";
+import { nombresDeUsuarios } from "@/repositories/user.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 
 type JugadorAcc = NonNullable<
@@ -224,6 +225,7 @@ export async function publicarAnuncio(
     cuerpo: string;
     visibleJugador?: boolean;
     fijado?: boolean;
+    caducaEn?: Date | null;
   },
 ): Promise<void> {
   requireRole(ctx, ["DT", "ESCUELA_ADMIN"]);
@@ -239,10 +241,12 @@ export async function publicarAnuncio(
   await crearAnuncio(escuelaId, {
     categoriaId: data.categoriaId || null,
     autorRol: ctx.rol,
+    autorId: ctx.userId,
     titulo: data.titulo,
     cuerpo: data.cuerpo,
     visibleJugador: data.visibleJugador,
     fijado: data.fijado,
+    caducaEn: data.caducaEn ?? null,
   });
 }
 
@@ -250,10 +254,14 @@ export interface AnuncioDTO {
   id: string;
   categoriaId: string | null;
   autorRol: string;
+  /** Nombre de quién lo publicó; null si es un anuncio viejo sin autor guardado. */
+  autorNombre: string | null;
   titulo: string;
   cuerpo: string;
   visibleJugador: boolean;
   fijado: boolean;
+  /** Vencimiento (ISO) o null si no vence. */
+  caducaEn: string | null;
   createdAt: string;
 }
 
@@ -300,14 +308,21 @@ export async function listarAnuncios(ctx: AuthContext): Promise<AnuncioDTO[]> {
   } else {
     throw new ForbiddenError();
   }
+  // Resolvemos el nombre del autor en un solo lookup por los ids presentes.
+  const autorIds = [...new Set(rows.map((a) => a.autorId).filter((id): id is string => !!id))];
+  const nombres = new Map(
+    (autorIds.length ? await nombresDeUsuarios(autorIds) : []).map((u) => [u.id, u.nombre]),
+  );
   return rows.map((a) => ({
     id: a.id,
     categoriaId: a.categoriaId,
     autorRol: a.autorRol,
+    autorNombre: a.autorId ? nombres.get(a.autorId) ?? null : null,
     titulo: a.titulo,
     cuerpo: a.cuerpo,
     visibleJugador: a.visibleJugador,
     fijado: a.fijado,
+    caducaEn: a.caducaEn?.toISOString() ?? null,
     createdAt: a.createdAt.toISOString(),
   }));
 }
