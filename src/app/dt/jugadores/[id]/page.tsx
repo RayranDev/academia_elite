@@ -35,6 +35,10 @@ export default async function JugadorDetallePage({
 
   return (
     <div className="space-y-6">
+      <Link href="/dt/plantilla" className="text-sm text-muted hover:text-foreground">
+        ← Volver a la plantilla
+      </Link>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black italic uppercase">
