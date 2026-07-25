@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import type { NoticiaDTO } from "@/services/player.service";
 
 export function NoticiasList({ noticias }: { noticias: NoticiaDTO[] }) {
@@ -27,7 +28,7 @@ export function NoticiasList({ noticias }: { noticias: NoticiaDTO[] }) {
               <p className="text-sm font-semibold">{n.titulo}</p>
               <p className="text-sm text-muted">{n.cuerpo}</p>
               <p className="text-[11px] text-muted">
-                {new Date(n.fecha).toLocaleDateString("es")}
+                <FechaLocal iso={n.fecha} />
               </p>
             </div>
           </li>
