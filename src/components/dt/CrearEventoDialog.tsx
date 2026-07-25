@@ -30,8 +30,24 @@ export function CrearEventoDialog({
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState("ENTRENAMIENTO");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
+  const [convocados, setConvocados] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  /** Al cambiar de categoría, la convocatoria previa deja de aplicar. */
+  function cambiarCategoria(id: string) {
+    setCategoriaId(id);
+    setConvocados(new Set());
+  }
+
+  function alternarConvocado(id: string) {
+    setConvocados((prev) => {
+      const s = new Set(prev);
+      if (s.has(id)) s.delete(id);
+      else s.add(id);
+      return s;
+    });
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,7 +95,7 @@ export function CrearEventoDialog({
               <select
                 name="categoriaId"
                 value={categoriaId}
-                onChange={(e) => setCategoriaId(e.target.value)}
+                onChange={(e) => cambiarCategoria(e.target.value)}
                 className={input}
               >
                 {categorias.map((c) => (
@@ -93,7 +109,16 @@ export function CrearEventoDialog({
 
           <div>
             <label className="mb-1 block text-xs text-muted">Título</label>
-            <input name="titulo" required className={input} placeholder={tipo === "PARTIDO" ? "vs. Academia Sur" : "Entrenamiento técnico"} />
+            <input
+              name="titulo"
+              required
+              className={input}
+              placeholder={
+                tipo === "PARTIDO"
+                  ? "Partido de liga, amistoso, torneo…"
+                  : "Entrenamiento técnico"
+              }
+            />
           </div>
 
           {canchas.length > 0 && (
@@ -124,7 +149,7 @@ export function CrearEventoDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1 block text-xs text-muted">Rival</label>
-                  <input name="rival" className={input} />
+                  <input name="rival" className={input} placeholder="vs. Academia Sur" />
                 </div>
                 <label className="flex items-center gap-2 self-end pb-2 text-sm">
                   <input type="checkbox" name="esLocal" className="accent-[color:var(--brand)]" />
@@ -132,14 +157,42 @@ export function CrearEventoDialog({
                 </label>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-muted">Convocados</label>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="block text-xs text-muted">
+                    Convocados{convocados.size > 0 ? ` (${convocados.size})` : ""}
+                  </label>
+                  {convocables.length > 0 && (
+                    <label className="flex items-center gap-1.5 text-xs font-medium text-muted">
+                      <input
+                        type="checkbox"
+                        className="accent-[color:var(--brand)]"
+                        checked={convocados.size === convocables.length}
+                        onChange={(e) =>
+                          setConvocados(
+                            e.target.checked
+                              ? new Set(convocables.map((j) => j.id))
+                              : new Set(),
+                          )
+                        }
+                      />
+                      Seleccionar todos
+                    </label>
+                  )}
+                </div>
                 <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-subtle bg-surface-2 p-2">
                   {convocables.length === 0 ? (
                     <p className="text-xs text-muted">No hay jugadores en esta categoría.</p>
                   ) : (
                     convocables.map((j) => (
                       <label key={j.id} className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="convocados" value={j.id} className="accent-[color:var(--brand)]" />
+                        <input
+                          type="checkbox"
+                          name="convocados"
+                          value={j.id}
+                          checked={convocados.has(j.id)}
+                          onChange={() => alternarConvocado(j.id)}
+                          className="accent-[color:var(--brand)]"
+                        />
                         {j.nombre} {j.apellido}
                       </label>
                     ))
