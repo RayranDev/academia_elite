@@ -14,19 +14,25 @@ const aceptaTerminosSchema = z.literal("on", {
  * Auto-registro del padre con código de invitación. Crea su cuenta (rol JUGADOR,
  * gestionada por el padre) y el jugador en estado PENDIENTE hasta que el DT apruebe.
  */
-export const registroSchema = z.object({
-  codigo: z.string().trim().toUpperCase().min(4).max(12),
-  // Cuenta del padre/tutor
-  padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
-  padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
-  password: passwordSchema,
-  // Datos del hijo/a
-  jugadorNombre: textoSeguro({ min: 2, max: 60, error: "Nombre del jugador requerido." }).transform(formatearNombre),
-  jugadorApellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(formatearNombre),
-  fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
-  posicion: z.enum(POSICIONES),
-  aceptaTerminos: aceptaTerminosSchema,
-});
+export const registroSchema = z
+  .object({
+    codigo: z.string().trim().toUpperCase().min(4).max(12),
+    // Cuenta del padre/tutor
+    padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
+    padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+    password: passwordSchema,
+    confirmacion: z.string(),
+    // Datos del hijo/a
+    jugadorNombre: textoSeguro({ min: 2, max: 60, error: "Nombre del jugador requerido." }).transform(formatearNombre),
+    jugadorApellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(formatearNombre),
+    fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
+    posicion: z.enum(POSICIONES),
+    aceptaTerminos: aceptaTerminosSchema,
+  })
+  .refine((d) => d.password === d.confirmacion, {
+    error: "Las contraseñas no coinciden.",
+    path: ["confirmacion"],
+  });
 
 export type RegistroInput = z.infer<typeof registroSchema>;
 
@@ -35,14 +41,20 @@ export type RegistroInput = z.infer<typeof registroSchema>;
  * el código de la escuela (slug o codigoRef "ESC-…") y el código del jugador. La
  * BD vincula su cuenta al perfil del hijo para que vea sus stats.
  */
-export const vincularHijoSchema = z.object({
-  // Sin lowercase: el codigoRef es en mayúsculas. El repo normaliza ambos casos.
-  codigoEscuela: z.string().trim().min(2, { error: "Código de escuela requerido." }).max(60),
-  codigoJugador: z.string().trim().toUpperCase().min(4, { error: "Código de jugador requerido." }).max(12),
-  padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
-  padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
-  password: passwordSchema,
-  aceptaTerminos: aceptaTerminosSchema,
-});
+export const vincularHijoSchema = z
+  .object({
+    // Sin lowercase: el codigoRef es en mayúsculas. El repo normaliza ambos casos.
+    codigoEscuela: z.string().trim().min(2, { error: "Código de escuela requerido." }).max(60),
+    codigoJugador: z.string().trim().toUpperCase().min(4, { error: "Código de jugador requerido." }).max(12),
+    padreNombre: textoSeguro({ min: 2, max: 120, error: "Tu nombre es requerido." }).transform(formatearNombre),
+    padreEmail: z.email({ error: "Email inválido." }).trim().toLowerCase(),
+    password: passwordSchema,
+    confirmacion: z.string(),
+    aceptaTerminos: aceptaTerminosSchema,
+  })
+  .refine((d) => d.password === d.confirmacion, {
+    error: "Las contraseñas no coinciden.",
+    path: ["confirmacion"],
+  });
 
 export type VincularHijoInput = z.infer<typeof vincularHijoSchema>;
