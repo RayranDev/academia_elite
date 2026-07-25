@@ -125,7 +125,7 @@ export default auth((req) => {
 // El proxy corre en TODAS las rutas de documento para poder emitir la CSP en un
 // único lugar. Se excluyen /api (respuestas no-HTML con sus propias cabeceras),
 // los estáticos de Next, el optimizador de imágenes, el favicon y /imgly (chunks
-// del modelo ~40MB: no necesitan CSP ni el costo de decodificar el JWT).
+// del modelo de remoción de fondo: no necesitan CSP ni el costo de decodificar el JWT).
 export const config = {
   matcher: [
     {

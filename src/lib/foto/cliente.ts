@@ -170,12 +170,14 @@ export async function removerFondoDeImagen(
 
     // Modelo self-hosteado en /imgly/ (mismo origen, sin CDN externo): son
     // fotos de menores y la foto nunca sale del navegador. publicPath debe ser
-    // una URL ABSOLUTA (new URL(x, base) exige base absoluta). Modelo "small"
-    // (~40 MB, suficiente para una foto que despues se recorta a la carta) y
-    // salida PNG para preservar la transparencia.
+    // una URL ABSOLUTA (new URL(x, base) exige base absoluta). Salida PNG para
+    // preservar la transparencia.
     const processedBlob = await removeBackground(rgba, {
       publicPath: `${window.location.origin}/imgly/`,
-      model: "small",
+      // "medium" (no "small"): el modelo chico dejaba estelas del fondo
+      // original en el pelo (su máscara de segmentación es más burda ahí).
+      // Es más pesado de descargar/procesar, pero el borde queda más limpio.
+      model: "medium",
       // Todo en el hilo principal (sin worker proxy): más simple y sin sorpresas
       // de CSP heredada por el worker. Sin crossOriginIsolated ya era
       // single-thread, así que no se pierde paralelismo real.
