@@ -117,9 +117,19 @@ export function MonthGrid({
             const activo = diaSel && isSameDay(dia, diaSel);
             const hoy = isToday(dia);
             const delMes = isSameMonth(dia, mes);
-            // Día ya transcurrido DENTRO del mes visible: se atenúa para que la
-            // vista se lea hacia adelante. Antes pasado y futuro se veían igual.
+            // Día ya transcurrido DENTRO del mes visible: se distingue con un
+            // fondo propio (no solo opacidad, que en tema claro casi no se nota)
+            // para que la vista se lea de un vistazo: pasado / hoy / futuro.
             const pasado = delMes && !hoy && isBefore(dia, startOfDay(new Date()));
+            // Estados mutuamente excluyentes: nunca se pisan dos fondos entre sí
+            // (antes bg-surface-2 y opacity-55 convivían sin garantía de orden).
+            const estado = !delMes
+              ? "border-subtle bg-surface opacity-40"
+              : hoy
+                ? "border-2 border-oro bg-oro/15"
+                : pasado
+                  ? "border-subtle bg-surface"
+                  : "border-subtle bg-surface-2";
             return (
               <button
                 key={dia.toISOString()}
@@ -127,18 +137,18 @@ export function MonthGrid({
                 aria-current={hoy ? "date" : undefined}
                 className={cn(
                   "flex aspect-square flex-col items-center rounded-lg border p-1 text-xs",
-                  // Selección y "hoy" son estados distintos: la selección manda.
-                  activo
-                    ? "border-brand"
-                    : hoy
-                      ? "border-oro"
-                      : "border-subtle",
-                  delMes ? "bg-surface-2" : "bg-surface opacity-40",
-                  hoy && "bg-oro/10",
-                  pasado && "opacity-55",
+                  estado,
+                  // La selección se superpone como anillo: no reemplaza el
+                  // estado (pasado/hoy/futuro) sigue siendo visible debajo.
+                  activo && "ring-2 ring-brand ring-inset",
                 )}
               >
-                <span className={cn(hoy && "font-black text-oro")}>
+                <span
+                  className={cn(
+                    hoy && "font-black text-oro",
+                    pasado && "text-muted",
+                  )}
+                >
                   {format(dia, "d")}
                 </span>
                 {/* Iconos centrados en la celda y un poco más grandes: antes
@@ -149,7 +159,7 @@ export function MonthGrid({
                     return (
                       <Icon
                         key={e.id}
-                        className="h-6 w-6 shrink-0 drop-shadow-sm"
+                        className={cn("h-6 w-6 shrink-0 drop-shadow-sm", pasado && "opacity-60")}
                         style={{ color: COLOR_TIPO[e.tipo as TipoEvento] }}
                         strokeWidth={2.5}
                         aria-hidden
