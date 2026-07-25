@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   subirFotoAction,
@@ -18,6 +18,24 @@ import {
   ErrorRemocionFondo,
 } from "@/lib/foto/cliente";
 import type { AvatarConfig } from "@/types";
+
+// La CSP con 'unsafe-eval' (necesaria para @imgly/background-removal) la fija
+// el proxy por DOCUMENTO, solo en /jugador/perfil. Si se llegó acá navegando
+// del lado del cliente (<Link>, sin recarga completa), el navegador sigue
+// usando la CSP del documento anterior — sin 'unsafe-eval' — aunque la URL ya
+// diga /jugador/perfil. Se detecta probando eval real y, si está bloqueado, se
+// fuerza UNA sola recarga completa (bandera anti-loop) para que el navegador
+// vuelva a pedir el documento y reciba la CSP correcta de esta ruta.
+const CLAVE_RECARGA_CSP = "csp-eval-recarga-jugador-perfil";
+
+function evalDisponible(): boolean {
+  try {
+    new Function("return 1")();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function FotoConsentimiento({
   jugadorId,
@@ -44,6 +62,17 @@ export function FotoConsentimiento({
   // Aviso (no error): la foto sirve igual, pero no se le pudo quitar el fondo.
   const [avisoFondo, setAvisoFondo] = useState<string | null>(null);
   const [subiendo, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (evalDisponible()) return;
+    try {
+      if (sessionStorage.getItem(CLAVE_RECARGA_CSP)) return;
+      sessionStorage.setItem(CLAVE_RECARGA_CSP, "1");
+    } catch {
+      // sessionStorage no disponible: igual intentamos la recarga una vez.
+    }
+    window.location.reload();
+  }, []);
 
   const fotoSrc = `/api/archivos/foto/${jugadorId}${version ? `?v=${version}` : ""}`;
 
