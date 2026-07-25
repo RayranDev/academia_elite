@@ -50,20 +50,27 @@ export function ListaAnuncios({
           {error}
         </p>
       )}
-      {anuncios.map((a) => (
-        <Card key={a.id}>
+      {anuncios.map((a) => {
+        const caducado = a.caducaEn != null && new Date(a.caducaEn) < new Date();
+        return (
+        <Card key={a.id} className={caducado ? "opacity-70" : undefined}>
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-bold">{a.titulo}</h3>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
               {a.fijado && <Badge tono="oro">Fijado</Badge>}
               {a.visibleJugador && <Badge tono="pitch">Visible al jugador</Badge>}
+              {caducado && <Badge tono="alerta">Caducado</Badge>}
             </div>
           </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{a.cuerpo}</p>
           <div className="mt-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] text-muted">
-              {a.categoriaId ? nombreCat[a.categoriaId] ?? "Categoría" : "Global"} ·{" "}
+            <p className="text-xs text-muted">
+              {a.categoriaId ? nombreCat[a.categoriaId] ?? "Categoría" : "Global"}
+              {a.autorNombre ? ` · por ${a.autorNombre}` : ""} ·{" "}
               {new Date(a.createdAt).toLocaleDateString("es")}
+              {a.caducaEn && !caducado && (
+                <> · vence {new Date(a.caducaEn).toLocaleDateString("es")}</>
+              )}
             </p>
             <button
               type="button"
@@ -75,7 +82,8 @@ export function ListaAnuncios({
             </button>
           </div>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

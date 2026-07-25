@@ -1,19 +1,22 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarAnuncios } from "@/services/mensaje.service";
-import { listarCategoriasEscuela } from "@/services/categoria.service";
+import { listarCategoriasDelDt } from "@/services/jugador.service";
 import { publicarAnuncioAction } from "@/actions/mensaje.actions";
 import { ListaAnuncios } from "@/components/messages/ListaAnuncios";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
+export const metadata = { title: "Anuncios" };
+
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
-export default async function AnunciosPage() {
+/** Anuncios del DT en su propia sección (antes vivían dentro de Mensajes). */
+export default async function DtAnunciosPage() {
   const ctx = await requireAuthContext();
   const [anuncios, categorias] = await Promise.all([
     listarAnuncios(ctx),
-    listarCategoriasEscuela(ctx),
+    listarCategoriasDelDt(ctx),
   ]);
   const nombreCat = new Map(categorias.map((c) => [c.id, c.nombre]));
 
@@ -23,9 +26,8 @@ export default async function AnunciosPage() {
         <h2 className="mb-3 text-lg font-bold">Publicar anuncio</h2>
         <form action={publicarAnuncioAction} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-muted">Alcance</label>
-            <select name="categoriaId" className={input}>
-              <option value="">Toda la escuela (global)</option>
+            <label className="mb-1 block text-xs text-muted">Categoría</label>
+            <select name="categoriaId" className={input} required>
               {categorias.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
@@ -43,11 +45,7 @@ export default async function AnunciosPage() {
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="visibleJugador" className="accent-[color:var(--brand)]" />
-            Mostrar al jugador (noticia del club)
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="fijado" className="accent-[color:var(--brand)]" />
-            Fijar arriba
+            Mostrar también al jugador (noticia del club)
           </label>
           <div>
             <label className="mb-1 block text-xs text-muted">
@@ -58,13 +56,19 @@ export default async function AnunciosPage() {
               Al pasar la fecha deja de verse para las familias. Vacío = no vence.
             </p>
           </div>
-          <Button type="submit">Publicar</Button>
+          <Button type="submit">Publicar anuncio</Button>
         </form>
       </Card>
 
-      <div className="space-y-3">
-        <h1 className="text-3xl font-black italic uppercase">Anuncios</h1>
-        <ListaAnuncios anuncios={anuncios} nombreCat={Object.fromEntries(nombreCat)} />
+      <div className="space-y-2">
+        <h1 className="text-3xl font-display italic uppercase">Anuncios</h1>
+        <p className="text-xs text-muted">
+          Así los ven las familias de tus categorías. Podés borrarlos.
+        </p>
+        <ListaAnuncios
+          anuncios={anuncios}
+          nombreCat={Object.fromEntries(nombreCat)}
+        />
       </div>
     </div>
   );

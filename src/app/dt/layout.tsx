@@ -29,6 +29,7 @@ export default async function DtLayout({
     { href: "/dt/progreso", label: "Progreso", icon: "progreso" },
     { href: "/dt/logros", label: "Logros", icon: "logros" },
     { href: "/dt/mensajes", label: "Mensajes", icon: "mensajes" },
+    { href: "/dt/anuncios", label: "Anuncios", icon: "anuncios" },
     {
       href: "/dt/solicitudes",
       label: "Solicitudes",
