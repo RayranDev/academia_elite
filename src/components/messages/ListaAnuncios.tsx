@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { eliminarAnuncioAction } from "@/actions/mensaje.actions";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import type { AnuncioDTO } from "@/services/mensaje.service";
 
 /**
@@ -67,9 +68,12 @@ export function ListaAnuncios({
             <p className="text-xs text-muted">
               {a.categoriaId ? nombreCat[a.categoriaId] ?? "Categoría" : "Global"}
               {a.autorNombre ? ` · por ${a.autorNombre}` : ""} ·{" "}
-              {new Date(a.createdAt).toLocaleDateString("es")}
+              <FechaLocal iso={a.createdAt} />
               {a.caducaEn && !caducado && (
-                <> · vence {new Date(a.caducaEn).toLocaleDateString("es")}</>
+                <>
+                  {" "}
+                  · vence <FechaLocal iso={a.caducaEn} />
+                </>
               )}
             </p>
             <button
