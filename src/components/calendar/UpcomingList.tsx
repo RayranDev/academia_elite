@@ -63,15 +63,20 @@ export function UpcomingList({
               {e.canchaNombre ? ` · ${e.canchaNombre}` : ""}
             </p>
 
-            {/* Una vez respondida la convocatoria se muestra SOLO el estado: dejar
-                los botones visibles y tocables hacía dudar de si la respuesta se
-                había registrado. Mismo criterio que `ProximoPartidoTile`. */}
+            {/* Respondida: se muestra el estado + un botón para CAMBIARLO a la
+                opción opuesta. Mismo criterio que `ProximoPartidoTile`. */}
             {e.convocado && (
-              <div className="mt-2 flex items-center gap-2">
+              <div className="mt-2 flex flex-wrap items-center gap-2">
                 {e.confirmacion === "CONFIRMADO" ? (
-                  <Badge tono="pitch">Asistencia confirmada</Badge>
+                  <>
+                    <Badge tono="pitch">Asistencia confirmada</Badge>
+                    <CambiarRespuesta eventoId={e.id} jugadorId={jugadorId} a="RECHAZADO" texto="Cambiar: no asistiré" />
+                  </>
                 ) : e.confirmacion === "RECHAZADO" ? (
-                  <Badge tono="alerta">No asistirá</Badge>
+                  <>
+                    <Badge tono="alerta">No asistirá</Badge>
+                    <CambiarRespuesta eventoId={e.id} jugadorId={jugadorId} a="CONFIRMADO" texto="Cambiar: confirmar" />
+                  </>
                 ) : (
                   <>
                     <Badge tono="oro">Confirmación pendiente</Badge>
@@ -123,5 +128,29 @@ export function UpcomingList({
         </div>
       )}
     </div>
+  );
+}
+
+/** Botón discreto para rectificar la convocatoria ya respondida. */
+function CambiarRespuesta({
+  eventoId,
+  jugadorId,
+  a,
+  texto,
+}: {
+  eventoId: string;
+  jugadorId: string;
+  a: "CONFIRMADO" | "RECHAZADO";
+  texto: string;
+}) {
+  return (
+    <form action={confirmarConvocatoriaAction}>
+      <input type="hidden" name="eventoId" value={eventoId} />
+      <input type="hidden" name="jugadorId" value={jugadorId} />
+      <input type="hidden" name="confirmacion" value={a} />
+      <button className="text-xs font-medium text-muted underline hover:text-foreground">
+        {texto}
+      </button>
+    </form>
   );
 }

@@ -37,11 +37,30 @@ export function ProximoPartidoTile({
       )}
 
       {evento.convocado && (
-        <div className="mt-4 flex items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {/* Ya respondida: se muestra el estado + un botón para CAMBIAR a la
+              opción opuesta. Así queda claro qué se registró y, a la vez, se puede
+              rectificar (antes quedaba fijo para siempre). */}
           {evento.confirmacion === "CONFIRMADO" ? (
-            <Badge tono="pitch">Asistencia confirmada</Badge>
+            <>
+              <Badge tono="pitch">Asistencia confirmada</Badge>
+              <CambiarRespuesta
+                eventoId={evento.id}
+                jugadorId={jugadorId}
+                a="RECHAZADO"
+                texto="Cambiar: no asistiré"
+              />
+            </>
           ) : evento.confirmacion === "RECHAZADO" ? (
-            <Badge tono="alerta">No asistirá</Badge>
+            <>
+              <Badge tono="alerta">No asistirá</Badge>
+              <CambiarRespuesta
+                eventoId={evento.id}
+                jugadorId={jugadorId}
+                a="CONFIRMADO"
+                texto="Cambiar: confirmar asistencia"
+              />
+            </>
           ) : (
             <>
               <form action={confirmarConvocatoriaAction}>
@@ -65,5 +84,29 @@ export function ProximoPartidoTile({
         </div>
       )}
     </Card>
+  );
+}
+
+/** Botón discreto para rectificar la convocatoria ya respondida. */
+function CambiarRespuesta({
+  eventoId,
+  jugadorId,
+  a,
+  texto,
+}: {
+  eventoId: string;
+  jugadorId: string;
+  a: "CONFIRMADO" | "RECHAZADO";
+  texto: string;
+}) {
+  return (
+    <form action={confirmarConvocatoriaAction}>
+      <input type="hidden" name="eventoId" value={eventoId} />
+      <input type="hidden" name="jugadorId" value={jugadorId} />
+      <input type="hidden" name="confirmacion" value={a} />
+      <button className="text-xs font-medium text-muted underline hover:text-foreground">
+        {texto}
+      </button>
+    </form>
   );
 }
