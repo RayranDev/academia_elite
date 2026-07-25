@@ -13,6 +13,13 @@ const campo =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm text-foreground outline-none focus:border-pitch";
 const etiqueta = "mb-1 block text-xs text-muted";
 
+/** Fecha de hoy en formato YYYY-MM-DD, en la zona local del navegador. */
+function hoyLocal(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 /** Edita estado y seguimiento del lead (mini-CRM). */
 export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
   const router = useRouter();
@@ -77,6 +84,9 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
           id="le-fecha"
           name="fechaProximoContacto"
           type="date"
+          // No tiene sentido agendar el próximo contacto en el pasado: el `min`
+          // es HOY (en la zona local del navegador).
+          min={hoyLocal()}
           defaultValue={lead.fechaProximoContacto?.slice(0, 10) ?? ""}
           className={campo}
         />

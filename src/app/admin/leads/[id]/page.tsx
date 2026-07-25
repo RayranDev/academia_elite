@@ -4,6 +4,7 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { DomainError } from "@/lib/errors";
 import { obtenerLeadDetalle } from "@/services/lead.service";
 import { Card } from "@/components/ui/Card";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { EstadoLeadBadge } from "@/components/admin/EstadoLeadBadge";
 import { LeadEditarForm } from "@/components/admin/LeadEditarForm";
 import { AgregarNotaForm } from "@/components/admin/AgregarNotaForm";
@@ -82,7 +83,8 @@ export default async function LeadDetallePage({
                     {n.comentario}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {n.autorNombre} · {new Date(n.createdAt).toLocaleString("es")}
+                    {n.autorNombre} ·{" "}
+                    <FechaLocal iso={n.createdAt} formato="d 'de' MMM, HH:mm" />
                   </p>
                 </li>
               ))

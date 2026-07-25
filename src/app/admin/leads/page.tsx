@@ -4,6 +4,7 @@ import { listarLeads } from "@/services/lead.service";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Paginacion } from "@/components/ui/Paginacion";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import {
   EstadoLeadBadge,
   LABEL_ESTADO_LEAD,
@@ -120,7 +121,7 @@ export default async function LeadsPage({
                       {l.responsableNombre ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted">
-                      {new Date(l.createdAt).toLocaleDateString("es")}
+                      <FechaLocal iso={l.createdAt} />
                     </td>
                   </tr>
                 ))}
