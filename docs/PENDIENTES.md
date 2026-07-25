@@ -8,7 +8,7 @@
 > Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
 > Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Última actualización: 2026-07-24.
+> Última actualización: 2026-07-25.
 
 ---
 
@@ -25,8 +25,23 @@
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| **Períodos del partido** | Grande | El cronómetro no tiene estructura: faltan 2 tiempos, fin de tiempo, alargue y definición por penales. PR dedicado. |
 | **Tarjeta azul** | Chico + migración | No existe en el schema; requiere campo en `EstadisticaPartido` + UI. |
+
+> **Nota (2026-07-25):** "Períodos del partido" (2 tiempos, entretiempo, alargue,
+> penales) figuraba acá como pendiente Grande pero ya está construido —
+> `src/lib/partido/periodos.ts` + `PartidoVivo.tsx`, sin registrar en
+> TRAZABILIDAD.md. Se saca de acá; falta solo agregar el resumen al historial.
+
+## 🟡 Producto — Apartado Eventos
+
+Rediseño en curso (2026-07-25). Ya resuelto: estado unificado del evento
+(`estadoDeEvento()` en `src/lib/eventos/estado.ts`) y gating de estadísticas
+individuales por estado en los DTOs de detalle (DT y familia). Queda:
+
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **Listado general de eventos** | Grande | No existe una pantalla de "todos los eventos" (pasados/cancelados/próximos) para DT ni familia — solo el calendario mensual y widgets de "próximos N". Necesita paginación de servidor (`listarEventosCategorias` no pagina hoy). |
+| **Mensaje de "stats aún no disponibles"** | Chico | La UI hoy simplemente no muestra la tabla de estadística si `estadistica` viene `null`; agregar una nota explicando que se publica cuando el partido arranca. |
 
 ## 🟢 Mejoras acotadas
 

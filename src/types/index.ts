@@ -58,6 +58,18 @@ export type TipoEvento = (typeof TIPOS_EVENTO)[number];
 export const CONFIRMACIONES = ["PENDIENTE", "CONFIRMADO", "RECHAZADO"] as const;
 export type Confirmacion = (typeof CONFIRMACIONES)[number];
 
+// Estado unificado del evento: hoy se infería combinando por separado
+// `cancelado`, fechas vs. "ahora", `periodo` (solo PARTIDO) y `sesionCerradaAt`/
+// resultado, sin un criterio único — ver estadoDeEvento() en
+// src/lib/eventos/estado.ts, que es la única fuente de verdad para derivarlo.
+export const ESTADOS_EVENTO = [
+  "PROGRAMADO",
+  "EN_CURSO",
+  "FINALIZADO",
+  "CANCELADO",
+] as const;
+export type EstadoEvento = (typeof ESTADOS_EVENTO)[number];
+
 export const TIPOS_NOTIFICACION = [
   "EVALUACION_VENCIDA",
   "CONVOCATORIA",

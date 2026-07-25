@@ -27,7 +27,8 @@ import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { crearAnuncio } from "@/repositories/anuncio.repository";
 import { listarSedes } from "@/repositories/sede.repository";
 import type { EventoInput, EditarEventoInput, EstadisticaInput } from "@/lib/validators/evento";
-import type { TipoEvento, Confirmacion } from "@/types";
+import { estadoDeEvento, permiteVerEstadisticas } from "@/lib/eventos/estado";
+import type { TipoEvento, Confirmacion, EstadoEvento } from "@/types";
 
 export interface EstadisticaJugadorDTO {
   titular: boolean;
@@ -239,6 +240,8 @@ export interface EventoDetalleDTO {
   esLocal: boolean | null;
   notas: string | null;
   cancelado: boolean;
+  /** Estado unificado (ver estadoDeEvento en src/lib/eventos/estado.ts). */
+  estado: EstadoEvento;
   /** Si ya se cerró, el Modo Sesión no se reabre (se corrige desde el detalle). */
   sesionCerradaAt: string | null;
   resultadoLocal: number | null;
@@ -264,6 +267,18 @@ export async function obtenerDetalleEventoDt(
   }
   const presencia = new Map(e.asistencias.map((a) => [a.jugadorId, a.presente]));
   const stats = new Map(e.estadisticas.map((s) => [s.jugadorId, s]));
+  const estado = estadoDeEvento({
+    tipo: e.tipo as TipoEvento,
+    cancelado: e.cancelado,
+    periodo: e.periodo,
+    sesionCerradaAt: e.sesionCerradaAt,
+    inicio: e.inicio,
+    fin: e.fin,
+  });
+  // Antes de que arranque el partido no se muestran estadísticas, aunque el DT
+  // ya haya cargado una fila por error: la convocatoria/lista sí es visible
+  // siempre, solo las stats individuales quedan gateadas por estado.
+  const verStats = permiteVerEstadisticas(estado);
   return {
     id: e.id,
     tipo: e.tipo as TipoEvento,
@@ -278,11 +293,12 @@ export async function obtenerDetalleEventoDt(
     esLocal: e.esLocal,
     notas: e.notas,
     cancelado: e.cancelado,
+    estado,
     sesionCerradaAt: e.sesionCerradaAt?.toISOString() ?? null,
     resultadoLocal: e.resultadoLocal,
     resultadoVisitante: e.resultadoVisitante,
     convocados: e.convocados.map((c) => {
-      const s = stats.get(c.jugadorId);
+      const s = verStats ? stats.get(c.jugadorId) : undefined;
       return {
         jugadorId: c.jugadorId,
         nombre: c.jugador.nombre,
@@ -430,6 +446,19 @@ export async function editarEventoDt(
   if (!e || !categoriaIds.includes(e.categoriaId)) {
     throw new NotFoundError("Evento no encontrado.");
   }
+  // Antes solo se ocultaba el botón en la UI; un evento ya cerrado/cancelado
+  // no debe poder editarse aunque alguien fuerce la request.
+  const estado = estadoDeEvento({
+    tipo: e.tipo as TipoEvento,
+    cancelado: e.cancelado,
+    periodo: e.periodo,
+    sesionCerradaAt: e.sesionCerradaAt,
+    inicio: e.inicio,
+    fin: e.fin,
+  });
+  if (estado === "CANCELADO" || estado === "FINALIZADO") {
+    throw new ValidationError("No se puede editar un evento cancelado o finalizado.");
+  }
   await editarEvento(escuelaId, eventoId, {
     titulo: input.titulo,
     canchaId: input.canchaId || null,
@@ -450,6 +479,20 @@ export async function cancelarEventoDt(
   const e = await obtenerEvento(escuelaId, eventoId);
   if (!e || !categoriaIds.includes(e.categoriaId)) {
     throw new NotFoundError("Evento no encontrado.");
+  }
+  if (e.cancelado) {
+    throw new ValidationError("El evento ya está cancelado.");
+  }
+  const estado = estadoDeEvento({
+    tipo: e.tipo as TipoEvento,
+    cancelado: e.cancelado,
+    periodo: e.periodo,
+    sesionCerradaAt: e.sesionCerradaAt,
+    inicio: e.inicio,
+    fin: e.fin,
+  });
+  if (estado === "FINALIZADO") {
+    throw new ValidationError("No se puede cancelar un evento que ya finalizó.");
   }
   await cancelarEvento(escuelaId, eventoId);
   const padres = await userIdsDePadres(e.convocados.map((c) => c.jugadorId));
@@ -476,6 +519,7 @@ export interface EventoDetalleJugadorDTO {
   rival: string | null;
   esLocal: boolean | null;
   cancelado: boolean;
+  estado: EstadoEvento;
   resultadoLocal: number | null;
   resultadoVisitante: number | null;
   // Línea por cada hijo de la familia que está convocado a este evento.
@@ -505,12 +549,21 @@ export async function obtenerDetalleEventoJugador(
     throw new NotFoundError("Evento no encontrado.");
   }
 
+  const estado = estadoDeEvento({
+    tipo: e.tipo as TipoEvento,
+    cancelado: e.cancelado,
+    periodo: e.periodo,
+    sesionCerradaAt: e.sesionCerradaAt,
+    inicio: e.inicio,
+    fin: e.fin,
+  });
+  const verStats = permiteVerEstadisticas(estado);
   const stats = new Map(e.estadisticas.map((s) => [s.jugadorId, s]));
   const idsHijos = new Set(hijos.map((h) => h.id));
   const misHijos = e.convocados
     .filter((c) => idsHijos.has(c.jugadorId))
     .map((c) => {
-      const s = stats.get(c.jugadorId);
+      const s = verStats ? stats.get(c.jugadorId) : undefined;
       return {
         jugadorId: c.jugadorId,
         nombre: c.jugador.nombre,
@@ -540,6 +593,7 @@ export async function obtenerDetalleEventoJugador(
     rival: e.rival,
     esLocal: e.esLocal,
     cancelado: e.cancelado,
+    estado,
     resultadoLocal: e.resultadoLocal,
     resultadoVisitante: e.resultadoVisitante,
     misHijos,
