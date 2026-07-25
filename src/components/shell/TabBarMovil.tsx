@@ -8,11 +8,12 @@ import { cn } from "@/lib/cn";
 import { ICONOS, esActivo, type NavItem } from "@/components/shell/Sidebar";
 
 /**
- * Barra inferior para el DT en móvil (PLAN-UX-DT PR-2 · B6). El DT usa la app en
- * cancha, de pie y con una mano: el pulgar llega abajo, no arriba. Muestra los 4
- * destinos principales y agrupa el resto en "Más". Targets ≥ 44px.
+ * Barra inferior en móvil, para TODOS los roles. En el celular el pulgar llega
+ * abajo, no arriba: la barra pone los 4 accesos principales al alcance y agrupa
+ * el resto en "Más". Los 4 principales son las 4 PRIMERAS secciones del menú de
+ * cada rol (mismo orden que el aside de escritorio). Targets ≥ 44px.
  */
-const PRINCIPALES = ["/dt", "/dt/plantilla", "/dt/calendario", "/dt/mensajes"];
+const CANT_PRINCIPALES = 4;
 
 export function TabBarMovil({
   items,
@@ -24,10 +25,8 @@ export function TabBarMovil({
   const pathname = usePathname();
   const [abierto, setAbierto] = useState(false);
 
-  const principales = PRINCIPALES.map((href) =>
-    items.find((i) => i.href === href),
-  ).filter((i): i is NavItem => !!i);
-  const resto = items.filter((i) => !PRINCIPALES.includes(i.href));
+  const principales = items.slice(0, CANT_PRINCIPALES);
+  const resto = items.slice(CANT_PRINCIPALES);
   const hayBadgeEnResto = resto.some((i) => (i.badge ?? 0) > 0);
 
   return (

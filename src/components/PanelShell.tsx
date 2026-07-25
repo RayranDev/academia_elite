@@ -37,9 +37,10 @@ export async function PanelShell({
 }) {
   const ctx = await getAuthContext();
   const notificaciones = ctx ? await listarMisNotificaciones(ctx) : [];
-  // El DT trabaja en cancha, de pie y con una mano: barra inferior al alcance
-  // del pulgar en vez del desplegable de arriba (PLAN-UX-DT PR-2 · B6).
-  const conTabBar = rol === "DT";
+  // En móvil TODOS los roles usan la barra inferior (el pulgar llega abajo, no
+  // arriba). Reemplaza al desplegable de arriba, que no era intuitivo. En
+  // escritorio se sigue viendo el aside lateral. (Origen DT: PLAN-UX-DT PR-2 B6.)
+  const conTabBar = true;
 
   return (
     <div className="flex min-h-dvh flex-col">
