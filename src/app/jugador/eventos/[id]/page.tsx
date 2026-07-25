@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -7,6 +8,7 @@ import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { DomainError } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
 import { ETIQUETA_TIPO, ICONO_TIPO, COLOR_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
@@ -31,6 +33,9 @@ export default async function EventoJugadorPage({
 
   return (
     <div className="space-y-6">
+      <Link href="/jugador/eventos" className="text-sm text-muted hover:text-foreground">
+        ← Volver a eventos
+      </Link>
       <div>
         <h1 className="flex items-center gap-2 text-3xl font-display italic uppercase">
           <Icon
@@ -76,9 +81,25 @@ export default async function EventoJugadorPage({
           {!ev.cancelado && (
             <div className="flex items-center gap-2">
               {h.confirmacion === "CONFIRMADO" ? (
-                <Badge tono="pitch">Asistencia confirmada</Badge>
+                <>
+                  <Badge tono="pitch">Asistencia confirmada</Badge>
+                  <CambiarRespuesta
+                    eventoId={ev.id}
+                    jugadorId={h.jugadorId}
+                    a="RECHAZADO"
+                    texto="Cambiar: no asistiré"
+                  />
+                </>
               ) : h.confirmacion === "RECHAZADO" ? (
-                <Badge tono="alerta">No asistirá</Badge>
+                <>
+                  <Badge tono="alerta">No asistirá</Badge>
+                  <CambiarRespuesta
+                    eventoId={ev.id}
+                    jugadorId={h.jugadorId}
+                    a="CONFIRMADO"
+                    texto="Cambiar: confirmar asistencia"
+                  />
+                </>
               ) : (
                 <>
                   <form action={confirmarConvocatoriaAction}>

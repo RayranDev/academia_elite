@@ -4,6 +4,7 @@ import { Trophy, MapPin } from "lucide-react";
 import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 
 export function ProximoPartidoTile({
@@ -84,29 +85,5 @@ export function ProximoPartidoTile({
         </div>
       )}
     </Card>
-  );
-}
-
-/** Botón discreto para rectificar la convocatoria ya respondida. */
-function CambiarRespuesta({
-  eventoId,
-  jugadorId,
-  a,
-  texto,
-}: {
-  eventoId: string;
-  jugadorId: string;
-  a: "CONFIRMADO" | "RECHAZADO";
-  texto: string;
-}) {
-  return (
-    <form action={confirmarConvocatoriaAction}>
-      <input type="hidden" name="eventoId" value={eventoId} />
-      <input type="hidden" name="jugadorId" value={jugadorId} />
-      <input type="hidden" name="confirmacion" value={a} />
-      <button className="text-xs font-medium text-muted underline hover:text-foreground">
-        {texto}
-      </button>
-    </form>
   );
 }

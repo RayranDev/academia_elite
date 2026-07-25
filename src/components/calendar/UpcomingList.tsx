@@ -5,6 +5,7 @@ import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { FechaLocal } from "@/components/ui/FechaLocal";
+import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
 import { COLOR_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
@@ -127,29 +128,5 @@ export function UpcomingList({
         </div>
       )}
     </div>
-  );
-}
-
-/** Botón discreto para rectificar la convocatoria ya respondida. */
-function CambiarRespuesta({
-  eventoId,
-  jugadorId,
-  a,
-  texto,
-}: {
-  eventoId: string;
-  jugadorId: string;
-  a: "CONFIRMADO" | "RECHAZADO";
-  texto: string;
-}) {
-  return (
-    <form action={confirmarConvocatoriaAction}>
-      <input type="hidden" name="eventoId" value={eventoId} />
-      <input type="hidden" name="jugadorId" value={jugadorId} />
-      <input type="hidden" name="confirmacion" value={a} />
-      <button className="text-xs font-medium text-muted underline hover:text-foreground">
-        {texto}
-      </button>
-    </form>
   );
 }
