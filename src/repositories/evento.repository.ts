@@ -111,6 +111,98 @@ export function listarEventosCategorias(
   });
 }
 
+export interface FiltrosListadoEventos {
+  tipo?: string;
+  /** Refleja estadoDeEvento() (src/lib/eventos/estado.ts) como where de Prisma:
+   *  es la ÚNICA otra fuente que conoce esas reglas, así que si cambia una,
+   *  cambia la otra. */
+  estado?: "PROGRAMADO" | "EN_CURSO" | "FINALIZADO" | "CANCELADO";
+  desde?: Date;
+  hasta?: Date;
+  skip?: number;
+  take?: number;
+}
+
+/**
+ * Solo la porción de filtro por tipo/estado/rango de fechas -NUNCA incluye
+ * escuelaId/categoriaId: eso se agrega inline en cada llamada de
+ * listarEventosPaginado() para que el test guardián de aislamiento por tenant
+ * (tests/unit/aislamiento-tenant.test.ts) pueda verlo por análisis estático.
+ */
+function filtroPorTipoEstadoFecha(filtros: FiltrosListadoEventos, ahora: Date) {
+  const comun = {
+    ...(filtros.tipo ? { tipo: filtros.tipo } : {}),
+    ...(filtros.desde || filtros.hasta
+      ? {
+          inicio: {
+            ...(filtros.desde ? { gte: filtros.desde } : {}),
+            ...(filtros.hasta ? { lte: filtros.hasta } : {}),
+          },
+        }
+      : {}),
+  };
+
+  if (!filtros.estado) return comun;
+  if (filtros.estado === "CANCELADO") return { ...comun, cancelado: true };
+
+  const noPartido = { tipo: { not: "PARTIDO" } };
+  if (filtros.estado === "PROGRAMADO") {
+    return {
+      ...comun,
+      cancelado: false,
+      OR: [
+        { tipo: "PARTIDO", periodo: "NO_INICIADO", sesionCerradaAt: null },
+        { ...noPartido, inicio: { gt: ahora }, sesionCerradaAt: null },
+      ],
+    };
+  }
+  if (filtros.estado === "EN_CURSO") {
+    return {
+      ...comun,
+      cancelado: false,
+      OR: [
+        {
+          tipo: "PARTIDO",
+          periodo: { notIn: ["NO_INICIADO", "FINALIZADO"] },
+          sesionCerradaAt: null,
+        },
+        { ...noPartido, inicio: { lte: ahora }, fin: { gte: ahora }, sesionCerradaAt: null },
+      ],
+    };
+  }
+  // FINALIZADO
+  return {
+    ...comun,
+    cancelado: false,
+    OR: [
+      { sesionCerradaAt: { not: null } },
+      { tipo: "PARTIDO", periodo: "FINALIZADO" },
+      { ...noPartido, fin: { lt: ahora } },
+    ],
+  };
+}
+
+/** Listado paginado de eventos con filtros (tipo/estado/rango de fechas). */
+export function listarEventosPaginado(
+  escuelaId: string,
+  categoriaIds: string[],
+  filtros: FiltrosListadoEventos,
+) {
+  const extra = filtroPorTipoEstadoFecha(filtros, new Date());
+  return Promise.all([
+    db.evento.findMany({
+      where: { escuelaId, categoriaId: { in: categoriaIds }, ...extra },
+      include: { categoria: { select: { nombre: true } } },
+      orderBy: { inicio: "desc" },
+      skip: filtros.skip,
+      take: filtros.take,
+    }),
+    db.evento.count({
+      where: { escuelaId, categoriaId: { in: categoriaIds }, ...extra },
+    }),
+  ]);
+}
+
 export function actualizarConfirmacion(
   eventoId: string,
   jugadorId: string,

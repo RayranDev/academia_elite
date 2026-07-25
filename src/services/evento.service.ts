@@ -22,6 +22,8 @@ import {
   proximosEventosDeCategoria,
   ultimoPartidoDeCategoria,
   padresDeJugadores,
+  listarEventosPaginado,
+  type FiltrosListadoEventos,
 } from "@/repositories/evento.repository";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { crearAnuncio } from "@/repositories/anuncio.repository";
@@ -224,6 +226,133 @@ export async function listarCalendarioJugador(
     resultadoLocal: e.resultadoLocal,
     resultadoVisitante: e.resultadoVisitante,
   }));
+}
+
+// --- Listado general de eventos (paginado, con filtros) ---
+
+export interface EventoListadoDTO {
+  id: string;
+  tipo: TipoEvento;
+  titulo: string;
+  inicio: string;
+  fin: string;
+  categoriaNombre: string;
+  rival: string | null;
+  esLocal: boolean | null;
+  resultadoLocal: number | null;
+  resultadoVisitante: number | null;
+  cancelado: boolean;
+  estado: EstadoEvento;
+}
+
+export interface FiltrosListadoEventosInput {
+  tipo?: TipoEvento;
+  estado?: EstadoEvento;
+  desde?: Date;
+  hasta?: Date;
+  page?: number;
+  limit?: number;
+}
+
+export interface ListadoEventosDTO {
+  items: EventoListadoDTO[];
+  total: number;
+  totalPages: number;
+  page: number;
+}
+
+function aEventoListadoDTO(e: {
+  id: string;
+  tipo: string;
+  titulo: string;
+  inicio: Date;
+  fin: Date;
+  categoria: { nombre: string };
+  rival: string | null;
+  esLocal: boolean | null;
+  resultadoLocal: number | null;
+  resultadoVisitante: number | null;
+  cancelado: boolean;
+  periodo: string;
+  sesionCerradaAt: Date | null;
+}): EventoListadoDTO {
+  return {
+    id: e.id,
+    tipo: e.tipo as TipoEvento,
+    titulo: e.titulo,
+    inicio: e.inicio.toISOString(),
+    fin: e.fin.toISOString(),
+    categoriaNombre: e.categoria.nombre,
+    rival: e.rival,
+    esLocal: e.esLocal,
+    resultadoLocal: e.resultadoLocal,
+    resultadoVisitante: e.resultadoVisitante,
+    cancelado: e.cancelado,
+    estado: estadoDeEvento({
+      tipo: e.tipo as TipoEvento,
+      cancelado: e.cancelado,
+      periodo: e.periodo,
+      sesionCerradaAt: e.sesionCerradaAt,
+      inicio: e.inicio,
+      fin: e.fin,
+    }),
+  };
+}
+
+function filtrosRepo(filtros: FiltrosListadoEventosInput): FiltrosListadoEventos {
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 10);
+  return {
+    tipo: filtros.tipo,
+    estado: filtros.estado,
+    desde: filtros.desde,
+    hasta: filtros.hasta,
+    skip: (page - 1) * limit,
+    take: limit,
+  };
+}
+
+/** Listado paginado de eventos de las categorías del DT (todos los tipos/estados). */
+export async function listarEventosDt(
+  ctx: AuthContext,
+  filtros: FiltrosListadoEventosInput = {},
+): Promise<ListadoEventosDTO> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 10);
+  const [rows, total] = await listarEventosPaginado(escuelaId, categoriaIds, filtrosRepo(filtros));
+  return {
+    items: rows.map(aEventoListadoDTO),
+    total,
+    totalPages: Math.ceil(total / limit),
+    page,
+  };
+}
+
+/** Listado paginado de eventos de las categorías de los hijos de la familia. */
+export async function listarEventosJugador(
+  ctx: AuthContext,
+  filtros: FiltrosListadoEventosInput = {},
+): Promise<ListadoEventosDTO> {
+  requireRole(ctx, ["JUGADOR"]);
+  const hijos = await listarHijos(ctx.userId);
+  if (hijos.length === 0) {
+    return { items: [], total: 0, totalPages: 0, page: 1 };
+  }
+  const escuelaId = hijos[0].escuelaId;
+  assertTenant(ctx, escuelaId);
+  const categoriaIds = Array.from(
+    new Set(hijos.filter((h) => h.escuelaId === escuelaId).map((h) => h.categoriaId)),
+  );
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 10);
+  const [rows, total] = await listarEventosPaginado(escuelaId, categoriaIds, filtrosRepo(filtros));
+  return {
+    items: rows.map(aEventoListadoDTO),
+    total,
+    totalPages: Math.ceil(total / limit),
+    page,
+  };
 }
 
 export interface EventoDetalleDTO {

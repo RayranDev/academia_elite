@@ -40,9 +40,14 @@ export default async function CalendarioPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-3xl font-black italic uppercase">Calendario</h1>
-        <CrearEventoDialog categorias={categorias} jugadores={jugadores} canchas={canchas} />
+        <div className="flex items-center gap-3">
+          <Link href="/dt/eventos" className="text-sm font-semibold text-brand hover:underline">
+            Ver todos los eventos →
+          </Link>
+          <CrearEventoDialog categorias={categorias} jugadores={jugadores} canchas={canchas} />
+        </div>
       </div>
       <MonthGrid eventos={eventos} eventoBase="/dt/eventos/" />
 
