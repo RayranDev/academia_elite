@@ -230,8 +230,12 @@ export function PlayerCard({
           boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 0 1px ${material.ring}59, inset 0 -16px 30px rgba(0,0,0,0.30), inset 0 18px 30px rgba(255,255,255,0.08)`,
         }}
       />
-      {/* Sheen especular (Oro/Héroe) — suprimido si el fondo trae su propio efecto */}
-      {animarMaterial && material.sheen && !suprimir && (
+      {/* Sheen especular en la carta protagonista de CUALQUIER nivel (antes solo
+          Oro/Héroe): el jugador quería ese brillo en su carta sea cual sea su
+          nivel. Se suprime solo si el fondo equipado ya trae su propio efecto,
+          para no duplicar texturas. El destello de partículas sigue siendo
+          exclusivo de Héroe. `prefers-reduced-motion` lo apaga (globals.css). */}
+      {animarMaterial && !suprimir && (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[14px] carta-sheen" />
       )}
       {/* Destellos (Héroe) — suprimidos si el fondo trae su propio efecto */}
