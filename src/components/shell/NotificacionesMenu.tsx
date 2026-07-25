@@ -7,6 +7,7 @@ import {
   marcarLeidaAction,
   marcarTodasLeidasAction,
 } from "@/actions/notificacion.actions";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import type { NotificacionDTO } from "@/services/notificacion.service";
 
 /** Color del indicador según la prioridad de la notificación (no leída). */
@@ -163,7 +164,7 @@ export function NotificacionesMenu({
                           </span>
                         )}
                         <span className="mt-1 block text-[10px] uppercase tracking-wide text-muted">
-                          {new Date(n.createdAt).toLocaleString("es")}
+                          <FechaLocal iso={n.createdAt} formato="d MMM, HH:mm" />
                         </span>
                       </span>
                     </button>

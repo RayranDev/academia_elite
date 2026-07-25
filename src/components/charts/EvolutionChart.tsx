@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -17,14 +17,16 @@ type Metrica = (typeof METRICAS)[number];
 
 export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
   const [metrica, setMetrica] = useState<Metrica>("ovr");
-
-  const data = datos.map((d) => ({
-    fecha: new Date(d.fecha).toLocaleDateString("es", {
-      day: "2-digit",
-      month: "short",
-    }),
-    valor: d[metrica],
-  }));
+  // El formateo de fecha usa la zona horaria del que mira: si se calculara
+  // igual en SSR (servidor en UTC) y en el cliente, un mismatch de texto entre
+  // ambos dispara un error de hidratación en React. Se difiere el cálculo (y
+  // el montaje del chart, que Recharts igual no puede medir bien en SSR) a
+  // después de montar en el cliente.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMontado(true);
+  }, []);
 
   if (datos.length < 2) {
     return (
@@ -33,6 +35,18 @@ export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
       </p>
     );
   }
+
+  if (!montado) {
+    return <div className="h-60" aria-hidden />;
+  }
+
+  const data = datos.map((d) => ({
+    fecha: new Date(d.fecha).toLocaleDateString("es", {
+      day: "2-digit",
+      month: "short",
+    }),
+    valor: d[metrica],
+  }));
 
   return (
     <div>
@@ -53,15 +67,15 @@ export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
       </div>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
-          <CartesianGrid stroke="#1E2A44" strokeDasharray="3 3" />
-          <XAxis dataKey="fecha" stroke="#94A3B8" fontSize={12} />
-          <YAxis domain={[0, 99]} stroke="#94A3B8" fontSize={12} />
+          <CartesianGrid stroke="var(--color-subtle)" strokeDasharray="3 3" />
+          <XAxis dataKey="fecha" stroke="var(--color-muted)" fontSize={12} />
+          <YAxis domain={[0, 99]} stroke="var(--color-muted)" fontSize={12} />
           <Tooltip
             contentStyle={{
-              background: "#0D1322",
-              border: "1px solid #1E2A44",
+              background: "var(--color-surface)",
+              border: "1px solid var(--color-subtle)",
               borderRadius: 8,
-              color: "#F1F5F9",
+              color: "var(--color-foreground)",
             }}
           />
           <Line
