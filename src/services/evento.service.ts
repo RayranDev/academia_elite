@@ -3,7 +3,7 @@ import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { categoriasDelDt } from "@/services/dt-scope";
-import { listarHijos } from "@/repositories/jugador.repository";
+import { listarHijos, listarPlantilla } from "@/repositories/jugador.repository";
 import { notificar } from "@/services/notificacion.service";
 import {
   crearEvento,
@@ -64,7 +64,11 @@ async function userIdsDePadres(jugadorIds: string[]): Promise<string[]> {
   return ids;
 }
 
-/** Crea un evento (o serie semanal). Para PARTIDO convoca y notifica a los padres. */
+/**
+ * Crea un evento (o serie semanal). PARTIDO convoca a quien elija el DT;
+ * ENTRENAMIENTO convoca automáticamente a todo el plantel activo. En ambos
+ * casos, si hay convocados, se notifica a los padres.
+ */
 export async function crearEventoDt(
   ctx: AuthContext,
   input: EventoInput,
@@ -88,7 +92,16 @@ export async function crearEventoDt(
     fechas.push({ inicio, fin });
   }
 
-  const convocados = input.tipo === "PARTIDO" ? (input.convocados ?? []) : [];
+  // PARTIDO: convocatoria manual (la elige el DT en el form). ENTRENAMIENTO:
+  // convocatoria automática a todo el plantel activo de la categoría -no
+  // tenía sentido pedirle al DT que tildara jugador por jugador algo que va
+  // a convocar siempre igual. EVALUACION/OTRO quedan sin convocatoria.
+  const convocados =
+    input.tipo === "PARTIDO"
+      ? (input.convocados ?? [])
+      : input.tipo === "ENTRENAMIENTO"
+        ? (await listarPlantilla(escuelaId, [input.categoriaId])).map((j) => j.id)
+        : [];
 
   for (const f of fechas) {
     const evento = await crearEvento(escuelaId, {

@@ -221,6 +221,14 @@ export function CrearEventoDialog({
             </>
           )}
 
+          {tipo === "ENTRENAMIENTO" && (
+            <p className="rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-xs text-muted">
+              Se convoca automáticamente a todo el plantel activo de la
+              categoría y se avisa a las familias, que pueden confirmar o
+              rechazar la asistencia.
+            </p>
+          )}
+
           {tipo !== "PARTIDO" && (
             <div className="flex items-center gap-3">
               <label className="flex items-center gap-2 text-sm">

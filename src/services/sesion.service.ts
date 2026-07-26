@@ -144,15 +144,14 @@ export async function obtenerSesionDt(
 
   /**
    * A quién se le pasa lista:
-   *  - PARTIDO con convocatoria: a los convocados (decisión deportiva).
-   *  - PARTIDO sin convocar a nadie: a TODA la categoría. Si se creó el partido
-   *    sin convocatoria, con los convocados la lista saldría VACÍA y el DT no
-   *    podría trabajar; caemos al plantel completo, como en un entrenamiento.
-   *  - Entrenamiento y demás: a TODA la categoría. Esos eventos no tienen
-   *    convocatoria (el alta ni la ofrece) y se espera al plantel completo.
+   *  - Con convocatoria (PARTIDO manual o ENTRENAMIENTO automática): a los
+   *    convocados. Ambos alta la crean hoy (ver crearEventoDt).
+   *  - Sin convocados: a TODA la categoría. Cubre eventos creados antes de
+   *    que ENTRENAMIENTO convocara automático, y el caso borde de un PARTIDO
+   *    dado de alta sin convocar a nadie (si no, la lista saldría VACÍA y el
+   *    DT no podría trabajar).
    */
-  const esPartido = evento.tipo === "PARTIDO";
-  const usarConvocatoria = esPartido && evento.convocados.length > 0;
+  const usarConvocatoria = evento.convocados.length > 0;
   const base = usarConvocatoria
     ? evento.convocados.map((c) => ({
         jugadorId: c.jugadorId,
