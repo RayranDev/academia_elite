@@ -131,6 +131,20 @@ export default async function EventoJugadorPage({
               <Stat label="Roja" value={h.estadistica.roja ? "Sí" : "No"} />
             </dl>
           )}
+
+          {h.observaciones.length > 0 && (
+            <div className="space-y-2 border-t border-subtle pt-3">
+              <h3 className="text-sm font-bold">Notas del entrenador</h3>
+              {h.observaciones.map((o, i) => (
+                <p key={i} className="rounded-lg bg-surface-2 p-2 text-sm">
+                  {o.texto}
+                  <span className="ml-2 text-xs text-muted">
+                    <FechaLocal iso={o.fecha} />
+                  </span>
+                </p>
+              ))}
+            </div>
+          )}
         </Card>
       ))}
     </div>

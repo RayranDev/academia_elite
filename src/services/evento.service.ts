@@ -27,6 +27,7 @@ import {
 } from "@/repositories/evento.repository";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { crearAnuncio } from "@/repositories/anuncio.repository";
+import { listarObservacionesVisiblesDeEvento } from "@/repositories/observacion.repository";
 import { listarSedes } from "@/repositories/sede.repository";
 import type { EventoInput, EditarEventoInput, EstadisticaInput } from "@/lib/validators/evento";
 import { estadoDeEvento, permiteVerEstadisticas } from "@/lib/eventos/estado";
@@ -671,6 +672,9 @@ export interface EventoDetalleJugadorDTO {
     apellido: string;
     confirmacion: Confirmacion;
     estadistica: EstadisticaJugadorDTO | null;
+    // Observaciones del DT sobre este hijo en este evento que el DT marcó
+    // explícitamente como visibles para la familia.
+    observaciones: { texto: string; fecha: string }[];
   }[];
 }
 
@@ -702,27 +706,34 @@ export async function obtenerDetalleEventoJugador(
   const verStats = permiteVerEstadisticas(estado);
   const stats = new Map(e.estadisticas.map((s) => [s.jugadorId, s]));
   const idsHijos = new Set(hijos.map((h) => h.id));
-  const misHijos = e.convocados
-    .filter((c) => idsHijos.has(c.jugadorId))
-    .map((c) => {
-      const s = verStats ? stats.get(c.jugadorId) : undefined;
-      return {
-        jugadorId: c.jugadorId,
-        nombre: c.jugador.nombre,
-        apellido: c.jugador.apellido,
-        confirmacion: c.confirmacion as Confirmacion,
-        estadistica: s
-          ? {
-              titular: s.titular,
-              minutos: s.minutos,
-              goles: s.goles,
-              asistencias: s.asistencias,
-              amarillas: s.amarillas,
-              roja: s.roja,
-            }
-          : null,
-      };
-    });
+  const misHijos = await Promise.all(
+    e.convocados
+      .filter((c) => idsHijos.has(c.jugadorId))
+      .map(async (c) => {
+        const s = verStats ? stats.get(c.jugadorId) : undefined;
+        const obs = await listarObservacionesVisiblesDeEvento(escuelaId, e.id, c.jugadorId);
+        return {
+          jugadorId: c.jugadorId,
+          nombre: c.jugador.nombre,
+          apellido: c.jugador.apellido,
+          confirmacion: c.confirmacion as Confirmacion,
+          estadistica: s
+            ? {
+                titular: s.titular,
+                minutos: s.minutos,
+                goles: s.goles,
+                asistencias: s.asistencias,
+                amarillas: s.amarillas,
+                roja: s.roja,
+              }
+            : null,
+          observaciones: obs.map((o) => ({
+            texto: o.texto,
+            fecha: o.createdAt.toISOString(),
+          })),
+        };
+      }),
+  );
 
   return {
     id: e.id,

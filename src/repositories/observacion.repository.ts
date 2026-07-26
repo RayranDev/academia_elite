@@ -48,3 +48,15 @@ export function listarObservacionesDeEvento(escuelaId: string, eventoId: string)
     orderBy: { createdAt: "desc" },
   });
 }
+
+/** Observaciones de un jugador en un evento puntual que el DT marcó visibles para la familia. */
+export function listarObservacionesVisiblesDeEvento(
+  escuelaId: string,
+  eventoId: string,
+  jugadorId: string,
+) {
+  return db.observacionJugador.findMany({
+    where: { escuelaId, eventoId, jugadorId, visiblePadre: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
