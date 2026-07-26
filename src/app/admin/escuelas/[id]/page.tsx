@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuthContext } from "@/lib/auth/session";
 import { DomainError } from "@/lib/errors";
@@ -51,6 +52,9 @@ export default async function EscuelaDetalleAdminPage({
 
   return (
     <div className="space-y-4">
+      <Link href="/admin/escuelas" className="text-sm text-muted hover:text-foreground">
+        ← Volver a escuelas
+      </Link>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-display italic uppercase">

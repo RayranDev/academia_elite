@@ -29,7 +29,7 @@ export default async function LeadDetallePage({
   return (
     <div className="space-y-4">
       <Link href="/admin/leads" className="text-sm text-muted hover:text-foreground">
-        ← Leads
+        ← Volver a leads
       </Link>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
