@@ -11,7 +11,12 @@ import {
   contarNoLeidas,
   marcarLeida,
   marcarTodasLeidas,
+  borrarLeidasAntiguas,
 } from "@/repositories/notificacion.repository";
+
+// Retención de notificaciones ya leídas: pasado este tiempo se borran para que
+// no se acumulen sesión tras sesión (decisión del usuario, 2026-07-26).
+const RETENCION_LEIDAS_DIAS = 7;
 
 // Canal INAPP del despachador (G9): persiste en la tabla Notificacion.
 registrarCanal({
@@ -87,4 +92,10 @@ export async function marcarNotificacionLeida(
 
 export async function marcarTodasMisLeidas(ctx: AuthContext): Promise<void> {
   await marcarTodasLeidas(ctx.userId);
+}
+
+/** Cron diario (sin ctx): borra notificaciones leídas con más de N días. */
+export async function limpiarNotificacionesLeidas(): Promise<{ count: number }> {
+  const antesDe = new Date(Date.now() - RETENCION_LEIDAS_DIAS * 24 * 60 * 60 * 1000);
+  return borrarLeidasAntiguas(antesDe);
 }

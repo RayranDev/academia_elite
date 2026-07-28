@@ -39,3 +39,10 @@ export function marcarTodasLeidas(userId: string) {
     data: { leida: true },
   });
 }
+
+/** Borra notificaciones ya leídas y con más de `antesDe` de antigüedad (no se acumulan). */
+export function borrarLeidasAntiguas(antesDe: Date) {
+  return db.notificacion.deleteMany({
+    where: { leida: true, createdAt: { lt: antesDe } },
+  });
+}

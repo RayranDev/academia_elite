@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/men-diario",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/limpiar-notificaciones",
+      "schedule": "30 6 * * *"
     }
   ]
 }
