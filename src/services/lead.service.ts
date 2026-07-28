@@ -9,12 +9,13 @@ import {
   actualizarLeadGlobal,
   crearLeadNota,
 } from "@/repositories/lead.repository";
-import { nombresDeUsuarios } from "@/repositories/user.repository";
+import { nombresDeUsuarios, listarIdsSuperAdmin } from "@/repositories/user.repository";
 import type { LeadInput } from "@/lib/validators/lead";
 import type { EditarLeadInput } from "@/lib/validators/admin";
 import type { EstadoLead } from "@/types";
 import { NotFoundError } from "@/lib/errors";
 import { registrarAuditoria } from "@/services/audit.service";
+import { notificar } from "@/services/notificacion.service";
 
 export interface LeadDTO {
   id: string;
@@ -84,9 +85,21 @@ function mapLead(r: LeadRow, nombres: Map<string, string>): LeadDTO {
   };
 }
 
-/** Crear lead desde la landing (público, sin ctx). */
+/** Crear lead desde la landing (público, sin ctx). Avisa a los SUPER_ADMIN. */
 export async function crearLead(input: LeadInput): Promise<{ id: string }> {
-  return crearLeadGlobal(input);
+  const lead = await crearLeadGlobal(input);
+  const admins = await listarIdsSuperAdmin();
+  await notificar(
+    admins.map((a) => a.id),
+    {
+      tipo: "NUEVO_LEAD",
+      titulo: "Nuevo interesado",
+      cuerpo: `${input.contactoNombre} (${input.nombreEscuela}) dejó sus datos.`,
+      url: `/admin/leads/${lead.id}`,
+      prioridad: "alta",
+    },
+  );
+  return lead;
 }
 
 export interface PaginatedLeadsDTO {

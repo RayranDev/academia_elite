@@ -183,6 +183,15 @@ export function marcarEmailVerificado(id: string) {
   });
 }
 
+// tenant-global: el SUPER_ADMIN es de plataforma, no de una escuela.
+/** IDs de todos los SUPER_ADMIN (para avisos internos de plataforma, ej. leads). */
+export function listarIdsSuperAdmin() {
+  return db.user.findMany({
+    where: { rol: "SUPER_ADMIN" },
+    select: { id: true },
+  });
+}
+
 /** Nombres de un conjunto de usuarios por id (para resolver autores/responsables). */
 export function nombresDeUsuarios(ids: string[]) {
   if (ids.length === 0) {

@@ -423,7 +423,7 @@ model Notificacion {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  tipo      String // enum: EVALUACION_VENCIDA | CONVOCATORIA | MENSAJE | LOGRO | ANUNCIO | SISTEMA
+  tipo      String // enum: EVALUACION_VENCIDA | CONVOCATORIA | MENSAJE | LOGRO | ANUNCIO | SISTEMA | NUEVO_LEAD
   titulo    String
   cuerpo    String?
   url       String? // deep-link interno

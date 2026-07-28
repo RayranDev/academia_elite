@@ -77,6 +77,7 @@ export const TIPOS_NOTIFICACION = [
   "LOGRO",
   "ANUNCIO",
   "SISTEMA",
+  "NUEVO_LEAD",
 ] as const;
 export type TipoNotificacion = (typeof TIPOS_NOTIFICACION)[number];
 
