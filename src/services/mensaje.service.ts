@@ -9,6 +9,7 @@ import {
   obtenerJugadoresMinimos,
 } from "@/repositories/jugador.repository";
 import { categoriaIdsDeEntrenador } from "@/repositories/entrenador.repository";
+import { contarCategoriasDeEscuela } from "@/repositories/categoria.repository";
 import {
   crearConversacionConMensaje,
   agregarMensaje,
@@ -230,13 +231,19 @@ export async function publicarAnuncio(
 ): Promise<void> {
   requireRole(ctx, ["DT", "ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
-  // El DT solo publica en sus categorías; la escuela puede global o por categoría.
+  // El DT solo publica en sus categorías; la escuela puede global o por categoría
+  // (pero si elige una, tiene que ser DE SU escuela: sin esto, un ESCUELA_ADMIN
+  // podía pasar el categoriaId de OTRA escuela a mano y el anuncio quedaba
+  // "filtrado" hacia esa otra escuela).
   if (ctx.rol === "DT") {
     if (!ctx.entrenadorId) throw new ForbiddenError();
     const cats = await categoriaIdsDeEntrenador(ctx.entrenadorId);
     if (!data.categoriaId || !cats.includes(data.categoriaId)) {
       throw new ForbiddenError();
     }
+  } else if (data.categoriaId) {
+    const cuenta = await contarCategoriasDeEscuela(escuelaId, [data.categoriaId]);
+    if (cuenta !== 1) throw new ForbiddenError();
   }
   await crearAnuncio(escuelaId, {
     categoriaId: data.categoriaId || null,
