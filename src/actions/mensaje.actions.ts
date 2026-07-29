@@ -59,28 +59,36 @@ export async function responderAction(formData: FormData): Promise<void> {
   revalidatePath(`/jugador/mensajes/${parsed.data.conversacionId}`);
 }
 
-export async function publicarAnuncioAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = anuncioSchema.safeParse({
-    categoriaId: formData.get("categoriaId") || undefined,
-    titulo: formData.get("titulo"),
-    cuerpo: formData.get("cuerpo"),
-    visibleJugador: formData.get("visibleJugador") === "on",
-    fijado: formData.get("fijado") === "on",
-    caducaEn: formData.get("caducaEn") ?? "",
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await publicarAnuncio(ctx, {
-    categoriaId: parsed.data.categoriaId || undefined,
-    titulo: parsed.data.titulo,
-    cuerpo: parsed.data.cuerpo,
-    visibleJugador: parsed.data.visibleJugador,
-    fijado: parsed.data.fijado,
-    caducaEn: parsed.data.caducaEn ?? null,
-  });
-  revalidatePath("/dt/anuncios");
-  revalidatePath("/dt/mensajes");
-  revalidatePath("/escuela/anuncios");
+export async function publicarAnuncioAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = anuncioSchema.safeParse({
+      categoriaId: formData.get("categoriaId") || undefined,
+      titulo: formData.get("titulo"),
+      cuerpo: formData.get("cuerpo"),
+      visibleJugador: formData.get("visibleJugador") === "on",
+      fijado: formData.get("fijado") === "on",
+      caducaEn: formData.get("caducaEn") ?? "",
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await publicarAnuncio(ctx, {
+      categoriaId: parsed.data.categoriaId || undefined,
+      titulo: parsed.data.titulo,
+      cuerpo: parsed.data.cuerpo,
+      visibleJugador: parsed.data.visibleJugador,
+      fijado: parsed.data.fijado,
+      caducaEn: parsed.data.caducaEn ?? null,
+    });
+    revalidatePath("/dt/anuncios");
+    revalidatePath("/dt/mensajes");
+    revalidatePath("/escuela/anuncios");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function eliminarAnuncioAction(

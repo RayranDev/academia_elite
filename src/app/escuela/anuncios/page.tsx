@@ -1,13 +1,9 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarAnuncios } from "@/services/mensaje.service";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
-import { publicarAnuncioAction } from "@/actions/mensaje.actions";
+import { PublicarAnuncioForm } from "@/components/messages/PublicarAnuncioForm";
 import { ListaAnuncios } from "@/components/messages/ListaAnuncios";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-
-const input =
-  "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
 export default async function AnunciosPage() {
   const ctx = await requireAuthContext();
@@ -21,45 +17,7 @@ export default async function AnunciosPage() {
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="self-start">
         <h2 className="mb-3 text-lg font-bold">Publicar anuncio</h2>
-        <form action={publicarAnuncioAction} className="space-y-3">
-          <div>
-            <label className="mb-1 block text-xs text-muted">Alcance</label>
-            <select name="categoriaId" className={input}>
-              <option value="">Toda la escuela (global)</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted">Título</label>
-            <input name="titulo" required className={input} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted">Cuerpo</label>
-            <textarea name="cuerpo" rows={3} required className={input} />
-          </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="visibleJugador" className="accent-[color:var(--brand)]" />
-            Mostrar al jugador (noticia del club)
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="fijado" className="accent-[color:var(--brand)]" />
-            Fijar arriba
-          </label>
-          <div>
-            <label className="mb-1 block text-xs text-muted">
-              Caduca el (opcional)
-            </label>
-            <input name="caducaEn" type="date" className={input} />
-            <p className="mt-1 text-xs text-muted">
-              Al pasar la fecha deja de verse para las familias. Vacío = no vence.
-            </p>
-          </div>
-          <Button type="submit">Publicar</Button>
-        </form>
+        <PublicarAnuncioForm categorias={categorias} categoriaOpcional mostrarFijado />
       </Card>
 
       <div className="space-y-3">
