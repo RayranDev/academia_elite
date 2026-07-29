@@ -40,6 +40,7 @@
 | 14 | Contactos: teléfono + parentesco y export de nómina | 2026-07-24 | ✅ |
 | 15 | Academia Elite — escuela demo curada | 2026-07-24 | ✅ |
 | 16 | Red de seguridad — CI/CD y error boundaries | 2026-07-24 | ✅ |
+| 17 | Ronda `mejoras.pdf`: onboarding, Apartado Eventos, Entrenamiento dinámico, notificaciones, endurecimiento de validación | 2026-07-25 → 2026-07-29 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -315,6 +316,113 @@ Con producción ya sirviendo datos reales, faltaba la red:
   (duplica `@opentelemetry/api` → stack overflow) y, sobre todo, es un procesador
   externo nuevo que recibiría PII de menores → requiere pasar por Habeas Data
   (§5) antes de instalarse.
+
+## 17. Ronda `mejoras.pdf` (2026-07-25 → 2026-07-29)
+
+El usuario mandó un PDF con ~25 hallazgos de uso real en producción. Resumen
+por tema (commits en `main`, orden cronológico dentro de cada uno):
+
+**Onboarding del jugador**
+- Carta Bronce inicial (con datos base) para el jugador sin evaluación aún,
+  en vez de un hueco vacío en el hub.
+- Modal de bienvenida saltable (una vez por sesión) invitando a configurar
+  foto/avatar.
+
+**Fixes puntuales del PDF**
+- Remoción de fondo (`@imgly/background-removal`) rota por CSP: causa real
+  era que `unsafe-eval` se fija por DOCUMENTO en `/jugador/perfil`, y una
+  navegación client-side (`<Link>`) no vuelve a pedir esa cabecera. Se agregó
+  un auto-reparador: detecta `eval` bloqueado y fuerza una única recarga.
+- Modo oscuro que "se resetea" al recargar: eran 4 hydration mismatches
+  distintos (`NoticiasList`, `EvolutionChart`, `ListaAnuncios`,
+  `UpcomingList`/`MonthGrid`) por formatear fechas con la zona horaria del
+  servidor (UTC) en vez de la del navegador; `MonthGrid` además inicializaba
+  estado con `new Date()` directo. El síntoma de "tema oscuro" era un efecto
+  secundario de que React descartaba y remontaba el árbol al fallar la
+  hidratación.
+- Calendario: hoy/pasado/futuro no se distinguían en tema claro (opacidad
+  sobre un fondo casi blanco no rinde contraste) — ahora cada estado tiene un
+  fondo propio y mutuamente excluyente.
+- Navegación "volver": auditoría completa de `dt/`, `jugador/`, `escuela/`,
+  `admin/` — 3 pantallas sin ningún link de retorno (`dt/eventos/[id]`,
+  `jugador/eventos/[id]`, `admin/escuelas/[id]`), corregidas con el mismo
+  patrón `← Volver a X` ya usado en el resto del proyecto.
+- Confirmar/rechazar convocatoria: el detalle de evento del jugador no
+  dejaba cambiar la respuesta ya dada (`ProximoPartidoTile`/`UpcomingList` sí
+  lo permitían) — se extrajo `CambiarRespuesta` a un componente compartido.
+- Paginación, contraseñas, tab bar, sheen de carta, cámara, anuncios del DT:
+  ronda anterior de fixes de esta misma serie (ver conversación/PRs de
+  2026-07-25).
+
+**Apartado Eventos** (rediseño completo)
+- Estado unificado del evento (`estadoDeEvento()` en
+  `src/lib/eventos/estado.ts`, puro): PROGRAMADO/EN_CURSO/FINALIZADO/CANCELADO,
+  derivado de `cancelado`/`periodo`/`sesionCerradaAt`/fechas — antes cada
+  consumidor lo inferís por su cuenta.
+- Gating real: las estadísticas individuales de un partido ya no se muestran
+  hasta EN_CURSO/FINALIZADO (antes bastaba con que existiera la fila, sin
+  mirar si el partido había arrancado). Convocatoria y lista siguen visibles
+  siempre.
+- `editarEventoDt`/`cancelarEventoDt` validan en el servidor que el evento no
+  esté ya cerrado/cancelado (antes solo se ocultaba el botón en la UI).
+- Listado general de eventos (`/dt/eventos`, `/jugador/eventos`), paginado y
+  con filtros de tipo/estado/rango de fechas — antes no existía ninguna
+  pantalla de "todos los eventos", solo el calendario mensual.
+
+**Entrenamiento dinámico**
+- `crearEventoDt` convoca automáticamente a todo el plantel ACTIVO cuando el
+  tipo es ENTRENAMIENTO (antes nunca convocaba a nadie ni notificaba a las
+  familias). PARTIDO sigue siendo convocatoria manual.
+- Modo Sesión (`obtenerSesionDt`) generaliza `usarConvocatoria` para no
+  exigir que sea PARTIDO.
+- Observaciones del DT (`ObservacionJugador`, campo `visiblePadre` que ya
+  existía sin consumidor) ahora se muestran a la familia en el detalle del
+  evento cuando están marcadas como visibles.
+
+**Notificaciones**
+- La campana quedaba congelada con lo que había al entrar a la sección
+  (`PanelShell` vive en el `layout.tsx` de cada rol, que no se re-ejecuta al
+  navegar entre páginas hijas): se agregó refresco por intervalo (60s) y al
+  volver a la pestaña.
+- Un lead nuevo no generaba ningún aviso interno para el súper admin — solo
+  el correo (que además llegaba redirigido por `EMAIL_DEV_TO`). Se agregó
+  notificación in-app (`NUEVO_LEAD`, prioridad alta) a todos los SUPER_ADMIN.
+- Cron diario (`/api/cron/limpiar-notificaciones`, mismo patrón que
+  `men-diario`) que borra notificaciones leídas con más de 7 días.
+- Diagnóstico de correo confirmado con el usuario en producción:
+  `enviarAvisoLeadEquipo` se omitía en silencio sin `EMAIL_EQUIPO`; al
+  agregarla en Vercel + redeploy, el correo "Nuevo lead" empezó a llegar.
+  Pendiente del lado del usuario: verificar dominio propio en Resend y sacar
+  `EMAIL_DEV_TO` de producción para que cada correo llegue a su destinatario
+  real (hoy todo se redirige a una sola casilla).
+
+**Simulador de carta**
+- El marco Héroe no se veía en el simulador salvo eligiendo el fondo
+  "Leyenda" (mismo comportamiento que un jugador real, documentado en
+  `PlayerCard.tsx`) — a pedido del usuario, en el simulador (no en jugadores
+  reales) el marco Héroe ahora se ve automático al cruzar el umbral, porque
+  el propósito de la herramienta es previsualizar cada nivel.
+- Personalización completa agregada: nombre/apellido/dorsal editables +
+  editor de avatar granular (se extrajo `AvatarPicker` de `AvatarEditor` para
+  reutilizarlo sin duplicar el selector de peinado/ojos/cejas/boca/ropa/colores).
+
+**Endurecimiento de validación (seguridad)**
+- Dorsal: tope subido de 99 a 100, con clamp defensivo en el simulador
+  (los atributos `min`/`max` de un `<input>` no bloquean valores pegados).
+- `textoSeguro()` (ya existía, sanitiza HTML/scripts + límites de longitud)
+  se aplicó a los campos de texto libre que seguían con `z.string()` plano:
+  mensajes/anuncios (el mayor riesgo real — texto que se renderiza a otro
+  usuario), eventos, catálogo de fondos/logros, escuela/categoría/sede/cancha,
+  observaciones de evaluación, motivos de bloqueo/soporte (este último sin
+  ningún límite de longitud antes).
+- `publicarAnuncioAction` pasó de `Promise<void>` (cualquier error de
+  validación caía al `error.tsx` genérico) al contrato `ActionResult` +
+  `useActionState`, con el formulario de publicar anuncio extraído a
+  `PublicarAnuncioForm` (compartido por DT y escuela).
+- Hallazgo de Guardian Angel al revisar ese mismo fix: `publicarAnuncio` no
+  validaba que la categoría elegida por un `ESCUELA_ADMIN` perteneciera a su
+  propia escuela (el DT sí tenía ese chequeo) — un cruce de tenant real,
+  corregido.
 
 ---
 
