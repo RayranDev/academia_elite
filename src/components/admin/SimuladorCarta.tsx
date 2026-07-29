@@ -5,6 +5,7 @@ import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { FotoCropper } from "@/components/jugador/FotoCropper";
+import { AvatarPicker } from "@/components/avatar/AvatarPicker";
 import { prepararParaRecorte } from "@/lib/foto/cliente";
 import { avatarDesdeSeed } from "@/lib/avatar/config";
 import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
@@ -80,11 +81,21 @@ export function SimuladorCarta({
   const [posicion, setPosicion] = useState<Posicion>("DEL");
   const [grupo, setGrupo] = useState<GrupoEdad>("SUB12");
   // Apariencia (solo previsualización, no se guarda nada).
+  const [nombre, setNombre] = useState("Jugador");
+  const [apellido, setApellido] = useState("Simulado");
+  const [dorsal, setDorsal] = useState(10);
   const [fondoCodigo, setFondoCodigo] = useState("");
-  const [avatarConfig, setAvatarConfig] = useState<AvatarConfigV2 | null>(null);
+  const SEED_AVATAR = "simulador";
+  const [avatarConfig, setAvatarConfig] = useState<AvatarConfigV2 | null>(
+    avatarDesdeSeed(SEED_AVATAR),
+  );
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [imagenCrop, setImagenCrop] = useState<string | null>(null);
   const inputFoto = useRef<HTMLInputElement>(null);
+
+  function setAvatarCampo<K extends keyof AvatarConfigV2>(k: K, v: AvatarConfigV2[K]) {
+    setAvatarConfig((c) => ({ ...(c ?? avatarDesdeSeed(SEED_AVATAR)), [k]: v }));
+  }
 
   const fondoSel = fondos.find((f) => f.codigo === fondoCodigo) ?? null;
 
@@ -107,8 +118,8 @@ export function SimuladorCarta({
   );
 
   const card: PlayerCardData = {
-    nombre: "Jugador",
-    apellido: "Simulado",
+    nombre: nombre || "Jugador",
+    apellido: apellido || "Simulado",
     posicion,
     ovr: resultado.ovr,
     nivel: resultado.nivel,
@@ -122,13 +133,17 @@ export function SimuladorCarta({
     },
     men: resultado.men,
     fotoUrl,
-    dorsal: 10,
+    dorsal,
     avatarConfig,
     fondoEstilo: fondoSel?.estilo ?? null,
     fondoTexto: fondoSel?.colorTexto ?? null,
     fondoEfecto: fondoSel?.efecto ?? null,
     fondoEfectoParams: fondoSel?.efectoParams ?? null,
-    heroeEquipado: fondoSel?.codigo === "LEYENDA",
+    // En el simulador (a diferencia de un jugador real) el marco Héroe se ve
+    // automático al llegar al umbral: el objetivo es previsualizar CADA
+    // nivel, y exigir además elegir el fondo "Leyenda" lo dejaba cojo justo
+    // en el nivel más alto. No afecta cómo se ve la carta de un jugador real.
+    heroeEquipado: fondoSel?.codigo === "LEYENDA" || resultado.nivel === "HEROE",
   };
 
   function set(key: keyof MedidasEvaluacion, v: number) {
@@ -195,6 +210,38 @@ export function SimuladorCarta({
         <Card>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Apariencia (prueba)</h2>
           <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs text-muted">Nombre</span>
+                <input
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  maxLength={30}
+                  className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs text-muted">Apellido</span>
+                <input
+                  value={apellido}
+                  onChange={(e) => setApellido(e.target.value)}
+                  maxLength={30}
+                  className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs text-muted">Dorsal</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={dorsal}
+                  onChange={(e) => setDorsal(Number(e.target.value))}
+                  className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm tabular outline-none focus:border-brand"
+                />
+              </label>
+            </div>
+
             <label className="block text-sm">
               <span className="mb-1 block text-xs text-muted">Fondo</span>
               <select
@@ -219,13 +266,22 @@ export function SimuladorCarta({
                 <Button type="button" size="sm" variant="secondary" onClick={() => inputFoto.current?.click()}>
                   Probar foto…
                 </Button>
-                {(fotoUrl || avatarConfig) && (
-                  <Button type="button" size="sm" variant="ghost" onClick={() => { setFotoUrl(null); setAvatarConfig(null); }}>
-                    Quitar
+                {fotoUrl && (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setFotoUrl(null)}>
+                    Quitar foto
                   </Button>
                 )}
               </div>
             </div>
+
+            {avatarConfig && (
+              <div className="border-t border-subtle pt-3">
+                <span className="mb-2 block text-xs text-muted">
+                  Personalizar avatar (se usa cuando no hay foto)
+                </span>
+                <AvatarPicker cfg={avatarConfig} seed={SEED_AVATAR} onChange={setAvatarCampo} />
+              </div>
+            )}
           </div>
         </Card>
       </div>
