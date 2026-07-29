@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { POSICIONES, TIPOS_LOGRO, STATS_CARTA } from "@/types";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 // Validadores del catálogo de logros (G6).
 
 const base = {
-  nombre: z.string().trim().min(3, { error: "Nombre requerido." }).max(80),
-  descripcion: z.string().trim().min(5, { error: "Descripción requerida." }).max(200),
+  nombre: textoSeguro({ min: 3, max: 80, error: "Nombre requerido." }),
+  descripcion: textoSeguro({ min: 5, max: 200, error: "Descripción requerida." }),
   tipo: z.enum(TIPOS_LOGRO),
   statBonus: z
     .union([z.literal(""), z.enum([...STATS_CARTA, "MEN"] as const)])

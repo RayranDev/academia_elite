@@ -25,13 +25,13 @@ export const jugadorEditarSchema = z.object({
 export const estadoJugadorSchema = z.object({
   jugadorId: z.string().min(1),
   estado: z.enum(["ACTIVO", "INACTIVO"]),
-  motivo: z.string().trim().min(3, { error: "Indica el motivo." }).max(200),
+  motivo: textoSeguro({ min: 3, max: 200, error: "Indica el motivo." }),
 });
 
 export const eliminarJugadorSchema = z.object({
   jugadorId: z.string().min(1),
-  confirmacion: z.string().trim().min(1, { error: "Escribe el nombre del jugador." }),
-  motivo: z.string().trim().min(3, { error: "Indica el motivo." }).max(200),
+  confirmacion: textoSeguro({ min: 1, max: 120, error: "Escribe el nombre del jugador." }),
+  motivo: textoSeguro({ min: 3, max: 200, error: "Indica el motivo." }),
 });
 
 export const bloqueoSchema = z.object({

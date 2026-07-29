@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ORDEN_NIVEL } from "@/lib/fondos";
 import { EFECTOS_CARTA, TINTAS_METAL, TRAMAS_PATRON } from "@/types";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 // Validadores del catálogo de fondos de carta (laboratorio del Súper Admin).
 
@@ -18,9 +19,12 @@ const efectoParamsSchema = z
   .strict();
 
 const base = {
-  nombre: z.string().trim().min(3, { error: "Nombre requerido." }).max(80),
-  descripcion: z.string().trim().min(5, { error: "Descripción requerida." }).max(200),
-  // CSS que se aplica como `background` de toda la carta (gradiente/patrón).
+  nombre: textoSeguro({ min: 3, max: 80, error: "Nombre requerido." }),
+  descripcion: textoSeguro({ min: 5, max: 200, error: "Descripción requerida." }),
+  // CSS que se aplica como `background` de toda la carta (gradiente/patrón):
+  // no pasa por textoSeguro a propósito (rechazaría sintaxis CSS legítima
+  // como comparaciones o selectores); solo lo edita el SUPER_ADMIN, no es
+  // input de un usuario no confiable.
   estilo: z.string().trim().min(3, { error: "El estilo CSS es requerido." }).max(2000),
   colorTexto: z
     .union([z.literal(""), z.string().trim().max(40)])

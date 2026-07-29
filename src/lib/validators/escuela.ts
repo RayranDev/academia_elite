@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -9,7 +10,7 @@ export const enviarCodigoSchema = z.object({
 });
 
 export const brandingSchema = z.object({
-  nombre: z.string().trim().min(2).max(120).optional(),
+  nombre: textoSeguro({ min: 2, max: 120 }).optional(),
   colorPrimario: z.string().trim().regex(HEX, {
     error: "Color inválido (usa formato #RRGGBB).",
   }),
@@ -22,7 +23,7 @@ export const brandingSchema = z.object({
 
 export const categoriaSchema = z
   .object({
-    nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(60),
+    nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }),
     anioDesde: z.coerce.number().int().min(1990).max(2100),
     anioHasta: z.coerce.number().int().min(1990).max(2100),
   })
@@ -32,17 +33,17 @@ export const categoriaSchema = z
   });
 
 export const sedeSchema = z.object({
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(80),
-  direccion: z.string().trim().max(160).optional().or(z.literal("")),
+  nombre: textoSeguro({ min: 2, max: 80, error: "Nombre requerido." }),
+  direccion: textoSeguro({ max: 160 }).optional().or(z.literal("")),
 });
 
 export const canchaSchema = z.object({
   sedeId: z.string().min(1),
-  nombre: z.string().trim().min(1, { error: "Nombre requerido." }).max(60),
+  nombre: textoSeguro({ min: 1, max: 60, error: "Nombre requerido." }),
 });
 
 export const dtSchema = z.object({
-  nombre: z.string().trim().min(2, { error: "Nombre requerido." }).max(120),
+  nombre: textoSeguro({ min: 2, max: 120, error: "Nombre requerido." }),
   email: z.email({ error: "Email inválido." }).trim().toLowerCase(),
   categoriaIds: z
     .array(z.string().min(1))

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TIPOS_EVENTO, CONFIRMACIONES } from "@/types";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 /** Un evento arranca y termina el MISMO día (no dura 3 días). */
 function mismoDia(a: Date, b: Date): boolean {
@@ -20,13 +21,13 @@ export const eventoSchema = z
   .object({
     categoriaId: z.string().min(1, { error: "Elige una categoría." }),
     tipo: z.enum(TIPOS_EVENTO),
-    titulo: z.string().trim().min(2, { error: "Título requerido." }).max(120),
+    titulo: textoSeguro({ min: 2, max: 120, error: "Título requerido." }),
     canchaId: z.string().optional().or(z.literal("")),
-    rival: z.string().trim().max(120).optional().or(z.literal("")),
+    rival: textoSeguro({ max: 120 }).optional().or(z.literal("")),
     esLocal: z.coerce.boolean().optional(),
     inicio: z.coerce.date({ error: "Fecha de inicio inválida." }),
     fin: z.coerce.date({ error: "Fecha de fin inválida." }),
-    notas: z.string().trim().max(2000).optional().or(z.literal("")),
+    notas: textoSeguro({ max: 2000 }).optional().or(z.literal("")),
     convocados: z.array(z.string().min(1)).optional(),
     repetirSemanal: z.coerce.boolean().optional(),
     repetirHasta: z.coerce.date().optional(),
@@ -55,13 +56,13 @@ export const resultadoSchema = z.object({
 export const editarEventoSchema = z
   .object({
     eventoId: z.string().min(1),
-    titulo: z.string().trim().min(2, { error: "Título requerido." }).max(120),
+    titulo: textoSeguro({ min: 2, max: 120, error: "Título requerido." }),
     canchaId: z.string().optional().or(z.literal("")),
-    rival: z.string().trim().max(120).optional().or(z.literal("")),
+    rival: textoSeguro({ max: 120 }).optional().or(z.literal("")),
     esLocal: z.coerce.boolean().optional(),
     inicio: z.coerce.date({ error: "Fecha de inicio inválida." }),
     fin: z.coerce.date({ error: "Fecha de fin inválida." }),
-    notas: z.string().trim().max(2000).optional().or(z.literal("")),
+    notas: textoSeguro({ max: 2000 }).optional().or(z.literal("")),
   })
   .refine((d) => d.fin >= d.inicio, {
     error: "El fin debe ser posterior al inicio.",
