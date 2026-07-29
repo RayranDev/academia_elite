@@ -9,7 +9,7 @@ export const jugadorSchema = z.object({
   fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
   posicion: z.enum(POSICIONES),
   categoriaId: z.string().min(1, { error: "Elige una categoría." }),
-  dorsal: z.coerce.number().int().min(1).max(99).optional(),
+  dorsal: z.coerce.number().int().min(1).max(100).optional(),
 });
 
 export type JugadorInput = z.infer<typeof jugadorSchema>;

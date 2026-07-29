@@ -233,10 +233,18 @@ export function SimuladorCarta({
                 <span className="mb-1 block text-xs text-muted">Dorsal</span>
                 <input
                   type="number"
+                  inputMode="numeric"
                   min={1}
-                  max={99}
+                  max={100}
+                  step={1}
                   value={dorsal}
-                  onChange={(e) => setDorsal(Number(e.target.value))}
+                  onChange={(e) => {
+                    // Clamp en el propio cambio: los atributos min/max del
+                    // input son solo una sugerencia visual, no lo impiden.
+                    const n = Math.round(Number(e.target.value));
+                    if (Number.isNaN(n)) return;
+                    setDorsal(Math.min(100, Math.max(1, n)));
+                  }}
                   className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm tabular outline-none focus:border-brand"
                 />
               </label>

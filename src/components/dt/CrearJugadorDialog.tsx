@@ -71,7 +71,7 @@ export function CrearJugadorDialog({
                 ))}
               </select>
             </div>
-            <Field name="dorsal" label="Dorsal (opcional)" type="number" required={false} />
+            <Field name="dorsal" label="Dorsal (opcional)" type="number" required={false} min={1} max={100} />
           </div>
           {error && (
             <p className="text-sm text-alerta" role="alert">
@@ -97,18 +97,30 @@ function Field({
   label,
   type = "text",
   required = true,
+  min,
+  max,
 }: {
   name: string;
   label: string;
   type?: string;
   required?: boolean;
+  min?: number;
+  max?: number;
 }) {
   return (
     <div>
       <label htmlFor={name} className="mb-1 block text-xs text-muted">
         {label}
       </label>
-      <input id={name} name={name} type={type} required={required} className={input} />
+      <input
+        id={name}
+        name={name}
+        type={type}
+        required={required}
+        min={min}
+        max={max}
+        className={input}
+      />
     </div>
   );
 }

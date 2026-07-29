@@ -69,8 +69,10 @@ export function JugadorEditarModal({
             <input
               name="dorsal"
               type="number"
+              inputMode="numeric"
               min={1}
-              max={99}
+              max={100}
+              step={1}
               defaultValue={jugador.dorsal ?? ""}
               className={input}
             />

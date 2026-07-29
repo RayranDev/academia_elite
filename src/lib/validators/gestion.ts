@@ -16,7 +16,7 @@ export const jugadorEditarSchema = z.object({
   fechaNacimiento: z.coerce.date(),
   posicion: z.enum(POSICIONES),
   dorsal: z
-    .union([z.literal(""), z.coerce.number().int().min(1).max(99)])
+    .union([z.literal(""), z.coerce.number().int().min(1).max(100)])
     .optional()
     .transform((v) => (v === "" || v == null ? null : v)),
   categoriaId: z.string().min(1, { error: "Elige una categoría." }),
