@@ -84,8 +84,8 @@ export default async function EventoDetallePage({
         {ev.sesionCerradaAt && (
           <p className="mt-3 text-sm text-muted">
             Sesión cerrada el{" "}
-            {new Date(ev.sesionCerradaAt).toLocaleString("es")}. Los cambios que
-            hagas desde acá quedan registrados como corrección.
+            <FechaLocal iso={ev.sesionCerradaAt} formato="d MMM yyyy, HH:mm" />. Los
+            cambios que hagas desde acá quedan registrados como corrección.
           </p>
         )}
 
@@ -227,6 +227,7 @@ export default async function EventoDetallePage({
                   <th className="px-1 text-center">Asist.</th>
                   <th className="px-1 text-center">Amar.</th>
                   <th className="px-1 text-center">Roja</th>
+                  <th className="px-1 text-center">Azul</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,6 +256,9 @@ export default async function EventoDetallePage({
                       </td>
                       <td className="px-1 text-center">
                         <input type="checkbox" name={`roja_${c.jugadorId}`} defaultChecked={s?.roja ?? false} className="accent-[color:var(--brand)]" />
+                      </td>
+                      <td className="px-1 text-center">
+                        <input type="checkbox" name={`azul_${c.jugadorId}`} defaultChecked={s?.azul ?? false} className="accent-[color:var(--brand)]" />
                       </td>
                     </tr>
                   );

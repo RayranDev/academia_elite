@@ -122,13 +122,14 @@ export default async function EventoJugadorPage({
           )}
 
           {h.estadistica && (
-            <dl className="grid grid-cols-3 gap-2 text-center text-sm sm:grid-cols-6">
+            <dl className="grid grid-cols-3 gap-2 text-center text-sm sm:grid-cols-7">
               <Stat label="Titular" value={h.estadistica.titular ? "Sí" : "No"} />
               <Stat label="Minutos" value={h.estadistica.minutos} />
               <Stat label="Goles" value={h.estadistica.goles} />
               <Stat label="Asist." value={h.estadistica.asistencias} />
               <Stat label="Amar." value={h.estadistica.amarillas} />
               <Stat label="Roja" value={h.estadistica.roja ? "Sí" : "No"} />
+              <Stat label="Azul" value={h.estadistica.azul ? "Sí" : "No"} />
             </dl>
           )}
 

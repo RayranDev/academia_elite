@@ -164,6 +164,7 @@ export function partidosParaExport(escuelaId: string) {
           minutos: true,
           amarillas: true,
           roja: true,
+          azul: true,
           jugador: { select: { nombre: true, apellido: true } },
         },
       },

@@ -314,6 +314,7 @@ model EstadisticaPartido {
   asistencias Int     @default(0)
   amarillas   Int     @default(0)
   roja        Boolean @default(false)
+  azul        Boolean @default(false) // expulsión temporal (algunas ligas de base)
 
   @@unique([eventoId, jugadorId])
   @@index([escuelaId, jugadorId])

@@ -110,8 +110,9 @@ export async function cargarResultadoAction(formData: FormData): Promise<void> {
   revalidatePath(`/dt/eventos/${parsed.data.eventoId}`);
 }
 
-export async function cargarEstadisticasAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
+/** Lee la tabla de estadística del FormData (o lanza ValidationError). Compartido
+ *  por el `<form action>` de la tabla y la llamada imperativa del cierre. */
+function parsearEstadisticas(formData: FormData) {
   const eventoId = formData.get("eventoId");
   if (typeof eventoId !== "string" || !eventoId) {
     throw new ValidationError("Evento inválido.");
@@ -125,12 +126,37 @@ export async function cargarEstadisticasAction(formData: FormData): Promise<void
       asistencias: formData.get(`asistencias_${jugadorId}`) || 0,
       amarillas: formData.get(`amarillas_${jugadorId}`) || 0,
       roja: formData.get(`roja_${jugadorId}`) === "on",
+      azul: formData.get(`azul_${jugadorId}`) === "on",
     });
     if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
     return { jugadorId, ...parsed.data };
   });
+  return { eventoId, registros };
+}
+
+// Tabla de estadística en el detalle del evento: `<form action>` sin
+// useActionState (progressive enhancement), Promise<void> — la excepción de §5.
+export async function cargarEstadisticasAction(formData: FormData): Promise<void> {
+  const ctx = await requireAuthContext();
+  const { eventoId, registros } = parsearEstadisticas(formData);
   await cargarEstadisticasDt(ctx, eventoId, registros);
   revalidatePath(`/dt/eventos/${eventoId}`);
+}
+
+// Cierre de sesión: se llama IMPERATIVAMENTE desde el cliente (CierreSesion),
+// así que devuelve ActionResult para mostrar el error puntual inline.
+export async function guardarEstadisticasCierreAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const { eventoId, registros } = parsearEstadisticas(formData);
+    await cargarEstadisticasDt(ctx, eventoId, registros);
+    revalidatePath(`/dt/eventos/${eventoId}`);
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function editarEventoAction(

@@ -80,6 +80,7 @@ export interface EstadisticaSesionDTO {
   asistencias: number;
   amarillas: number;
   roja: boolean;
+  azul: boolean;
 }
 
 export interface ConvocadoSesionDTO {
@@ -124,6 +125,7 @@ const SIN_ESTADISTICA: EstadisticaSesionDTO = {
   asistencias: 0,
   amarillas: 0,
   roja: false,
+  azul: false,
 };
 
 /** Estado de la asistencia guardada → estado de 3 posiciones de la UI. */
@@ -204,6 +206,7 @@ export async function obtenerSesionDt(
               asistencias: s.asistencias,
               amarillas: s.amarillas,
               roja: s.roja,
+              azul: s.azul,
             }
           : SIN_ESTADISTICA,
       };

@@ -88,6 +88,7 @@ export async function registrarEstadisticas(
     asistencias: number;
     amarillas: number;
     roja: boolean;
+    azul: boolean;
   }[],
 ) {
   for (const r of registros) {

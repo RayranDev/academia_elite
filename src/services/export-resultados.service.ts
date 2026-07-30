@@ -34,6 +34,7 @@ const CABECERAS_STATS = [
   "Asistencias",
   "Amarillas",
   "Roja",
+  "Azul",
 ] as const;
 
 function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
@@ -120,6 +121,7 @@ export async function exportarResultados(
         s.asistencias,
         s.amarillas,
         s.roja ? "Sí" : "",
+        s.azul ? "Sí" : "",
       ]);
     }
   }

@@ -40,6 +40,7 @@ export interface EstadisticaJugadorDTO {
   asistencias: number;
   amarillas: number;
   roja: boolean;
+  azul: boolean;
 }
 
 export interface EventoCalendarioDTO {
@@ -97,12 +98,21 @@ export async function crearEventoDt(
   // convocatoria automática a todo el plantel activo de la categoría -no
   // tenía sentido pedirle al DT que tildara jugador por jugador algo que va
   // a convocar siempre igual. EVALUACION/OTRO quedan sin convocatoria.
-  const convocados =
-    input.tipo === "PARTIDO"
-      ? (input.convocados ?? [])
-      : input.tipo === "ENTRENAMIENTO"
-        ? (await listarPlantilla(escuelaId, [input.categoriaId])).map((j) => j.id)
-        : [];
+  //
+  // En PARTIDO se INTERSECTA input.convocados con el plantel real de la
+  // categoría: el categoriaId ya está validado, pero los ids de convocados
+  // vienen del form y no hay que confiarlos (un request armado a mano podría
+  // convocar a un jugador de OTRA escuela y filtrarle una notificación / su
+  // nombre en el detalle del evento).
+  let convocados: string[] = [];
+  if (input.tipo === "PARTIDO" || input.tipo === "ENTRENAMIENTO") {
+    const plantel = await listarPlantilla(escuelaId, [input.categoriaId]);
+    const idsPlantel = plantel.map((j) => j.id);
+    convocados =
+      input.tipo === "PARTIDO"
+        ? idsPlantel.filter((id) => (input.convocados ?? []).includes(id))
+        : idsPlantel;
+  }
 
   for (const f of fechas) {
     const evento = await crearEvento(escuelaId, {
@@ -456,6 +466,7 @@ export async function obtenerDetalleEventoDt(
               asistencias: s.asistencias,
               amarillas: s.amarillas,
               roja: s.roja,
+              azul: s.azul,
             }
           : null,
       };
@@ -492,7 +503,14 @@ export async function pasarListaDt(
   if (!e || !categoriaIds.includes(e.categoriaId)) {
     throw new NotFoundError("Evento no encontrado.");
   }
-  await registrarAsistencias(escuelaId, eventoId, registros);
+  // Solo se acepta lista de jugadores del plantel de la categoría del evento:
+  // sin esto, un form armado a mano podía crear una Asistencia para un jugador
+  // ajeno bajo esta escuela (mismo criterio que cargarEstadisticasDt).
+  const plantel = await listarPlantilla(escuelaId, [e.categoriaId]);
+  const validos = new Set(plantel.map((j) => j.id));
+  const registrosValidos = registros.filter((r) => validos.has(r.jugadorId));
+  if (registrosValidos.length === 0) return;
+  await registrarAsistencias(escuelaId, eventoId, registrosValidos);
 }
 
 /** Datos del evento que necesita el pipeline de difusión del resultado. */
@@ -725,6 +743,7 @@ export async function obtenerDetalleEventoJugador(
                 asistencias: s.asistencias,
                 amarillas: s.amarillas,
                 roja: s.roja,
+                azul: s.azul,
               }
             : null,
           observaciones: obs.map((o) => ({

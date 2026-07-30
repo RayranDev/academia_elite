@@ -80,6 +80,7 @@ export const estadisticaSchema = z.object({
   asistencias: z.coerce.number().int().min(0).max(99).default(0),
   amarillas: z.coerce.number().int().min(0).max(2).default(0),
   roja: z.coerce.boolean().optional().default(false),
+  azul: z.coerce.boolean().optional().default(false),
 });
 
 export type EstadisticaInput = z.infer<typeof estadisticaSchema>;

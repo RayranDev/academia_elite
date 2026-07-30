@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cerrarSesionAction } from "@/actions/sesion.actions";
-import { cargarEstadisticasAction } from "@/actions/evento.actions";
+import { guardarEstadisticasCierreAction } from "@/actions/evento.actions";
 import { Button } from "@/components/ui/Button";
 import type {
   ConvocadoSesionDTO,
@@ -76,6 +76,16 @@ export function CierreSesion({
     });
   }
 
+  function alternarAzul(jugadorId: string) {
+    setStats((prev) => {
+      const m = new Map(prev);
+      const actual = m.get(jugadorId);
+      if (!actual) return prev;
+      m.set(jugadorId, { ...actual, azul: !actual.azul });
+      return m;
+    });
+  }
+
   function cerrar() {
     setError(null);
     startTransition(async () => {
@@ -94,8 +104,13 @@ export function CierreSesion({
             fd.set(`asistencias_${f.jugadorId}`, String(s.asistencias));
             fd.set(`amarillas_${f.jugadorId}`, String(s.amarillas));
             if (s.roja) fd.set(`roja_${f.jugadorId}`, "on");
+            if (s.azul) fd.set(`azul_${f.jugadorId}`, "on");
           }
-          await cargarEstadisticasAction(fd);
+          const resStats = await guardarEstadisticasCierreAction(fd);
+          if (!resStats.ok) {
+            setError(resStats.error);
+            return;
+          }
         }
 
         const res = await cerrarSesionAction({
@@ -147,16 +162,28 @@ export function CierreSesion({
                     <span className="truncate text-sm font-semibold">
                       {f.nombre} {f.apellido}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => alternarRoja(f.jugadorId)}
-                      aria-pressed={s.roja}
-                      className={`min-h-11 rounded-lg px-3 text-xs font-bold ${
-                        s.roja ? "bg-alerta/20 text-alerta" : "text-muted"
-                      }`}
-                    >
-                      🟥 Roja
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => alternarRoja(f.jugadorId)}
+                        aria-pressed={s.roja}
+                        className={`min-h-11 rounded-lg px-3 text-xs font-bold ${
+                          s.roja ? "bg-alerta/20 text-alerta" : "text-muted"
+                        }`}
+                      >
+                        🟥 Roja
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => alternarAzul(f.jugadorId)}
+                        aria-pressed={s.azul}
+                        className={`min-h-11 rounded-lg px-3 text-xs font-bold ${
+                          s.azul ? "bg-info/20 text-info" : "text-muted"
+                        }`}
+                      >
+                        🟦 Azul
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(

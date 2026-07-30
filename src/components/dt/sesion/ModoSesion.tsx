@@ -201,6 +201,7 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
                     asistencias: 0,
                     amarillas: 0,
                     roja: false,
+                    azul: false,
                   },
                 },
               ]);
