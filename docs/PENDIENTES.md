@@ -31,7 +31,6 @@
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| Auditoría: filtro por rango de fechas | Chico | Complementa los filtros por entidad/acción/actor ya existentes. |
 | Credenciales por link en alta de DT y jugador | Chico | Hoy `emitirSetPassword` solo se usa en el alta de escuela; extenderlo es directo. |
 | Paginación de mensajes | Chico | Jugadores, auditoría y eventos ya paginan en servidor; conversaciones de mensajes todavía no. |
 
