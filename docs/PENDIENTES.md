@@ -8,7 +8,7 @@
 > Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
 > Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Última actualización: 2026-07-29.
+> Última actualización: 2026-07-30.
 
 ---
 
@@ -25,8 +25,8 @@
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| Credenciales por link en alta de DT y jugador | Chico | Hoy `emitirSetPassword` solo se usa en el alta de escuela; extenderlo es directo. |
-| Paginación de mensajes | Chico | Jugadores, auditoría y eventos ya paginan en servidor; conversaciones de mensajes todavía no. |
+| Credenciales por link en alta de DT y jugador | Chico | Hoy el alta muestra la contraseña temporal una vez; se podría mandar además un link (`emitirSetPassword`, ya usado en recuperación). **Diferido: depende del correo.** Mientras `EMAIL_DEV_TO` esté activo y el dominio de Resend sin verificar, el link no llegaría al DT/familia. Hacer después de verificar el dominio + sacar `EMAIL_DEV_TO`. |
+| Paginación de mensajes | Chico → Medio | Conversaciones de mensajes no paginan en servidor (jugadores/auditoría/eventos sí). **Diferido: prematuro** (un DT tiene pocos hilos) y para hacerlo bien hay que mover el filtro del DT —hoy client-side en `MensajesDtFiltro`— a la URL, o el filtro solo aplicaría dentro de la página. |
 
 ## ❓ Sin reproducir — necesitan un caso concreto
 
