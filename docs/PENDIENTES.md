@@ -31,11 +31,9 @@
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| Mensaje de "stats aún no disponibles" | Chico | La UI hoy simplemente no muestra la tabla de estadística si `estadistica` viene `null` (gateado por `estadoDeEvento()`); agregar una nota explicando que se publica cuando el partido arranca. |
 | Auditoría: filtro por rango de fechas | Chico | Complementa los filtros por entidad/acción/actor ya existentes. |
 | Credenciales por link en alta de DT y jugador | Chico | Hoy `emitirSetPassword` solo se usa en el alta de escuela; extenderlo es directo. |
 | Paginación de mensajes | Chico | Jugadores, auditoría y eventos ya paginan en servidor; conversaciones de mensajes todavía no. |
-| `auth.ts` → repositorio | Chico | El provider Credentials consulta Prisma directo (patrón estándar de Auth.js, preexistente). Moverlo a `buscarCredencialesPorEmail` alinearía con la regla de capas. |
 
 ## ❓ Sin reproducir — necesitan un caso concreto
 

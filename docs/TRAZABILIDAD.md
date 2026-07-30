@@ -428,10 +428,8 @@ por tema (commits en `main`, orden cronológico dentro de cada uno):
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
-- **`auth.ts`** consulta `db.user.findUnique` directo en el provider Credentials
-  (patrón estándar de Auth.js; preexistente). Opcional: mover a un
-  `buscarCredencialesPorEmail` en el repositorio.
-
-> Las observaciones de CSP (`cdn.jsdelivr.net`) y de extender las credenciales por
-> link se resolvieron o se movieron a `PENDIENTES.md` — este archivo registra lo
-> hecho, no lo que falta.
+> Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a
+> `buscarCredencialesPorEmail`) ya está resuelta en código (`src/auth.ts` usa el
+> repositorio). Las de CSP (`cdn.jsdelivr.net`) y extender credenciales por link
+> se resolvieron o se movieron a `PENDIENTES.md`. Este archivo registra lo hecho,
+> no lo que falta.
