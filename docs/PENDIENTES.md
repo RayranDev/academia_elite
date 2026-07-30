@@ -32,7 +32,6 @@
 | Ítem | Tamaño | Detalle |
 |---|---|---|
 | Mensaje de "stats aún no disponibles" | Chico | La UI hoy simplemente no muestra la tabla de estadística si `estadistica` viene `null` (gateado por `estadoDeEvento()`); agregar una nota explicando que se publica cuando el partido arranca. |
-| Historial de observaciones para el DT | Chico | El DT carga observaciones (`ObservacionJugador`, visibles o no para la familia) pero no tiene ninguna pantalla para releerlas — sigue siendo un flujo de solo carga también de su lado. |
 | Auditoría: filtro por rango de fechas | Chico | Complementa los filtros por entidad/acción/actor ya existentes. |
 | Credenciales por link en alta de DT y jugador | Chico | Hoy `emitirSetPassword` solo se usa en el alta de escuela; extenderlo es directo. |
 | Paginación de mensajes | Chico | Jugadores, auditoría y eventos ya paginan en servidor; conversaciones de mensajes todavía no. |
