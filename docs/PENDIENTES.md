@@ -21,12 +21,6 @@
 | **Observabilidad** | Media | Hoy solo hay logs de runtime de Vercel + el `digest` del error boundary. Sentry quedó descartado por incompatibilidad con Next 16 + Turbopack **y** por ser un procesador externo que recibiría PII de menores (requiere pasar por Habeas Data primero). Reevaluar cuando el SDK madure. |
 | **`build` y `e2e` en CI** | Media | El workflow corre typecheck/lint/test. Sumar build y E2E exige un proyecto Supabase dedicado a CI con sus secretos. |
 
-## 🟡 Producto — Modo Partido v2
-
-| Ítem | Tamaño | Detalle |
-|---|---|---|
-| **Tarjeta azul** | Chico + migración | No existe en el schema; requiere campo en `EstadisticaPartido` + UI. |
-
 ## 🟢 Mejoras acotadas
 
 | Ítem | Tamaño | Detalle |
