@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleJugadorDt } from "@/services/jugador.service";
 import { credencialesFamiliaDt } from "@/services/gestion-jugadores.service";
+import { listarObservacionesJugadorDt } from "@/services/sesion.service";
 import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
 import { DomainError } from "@/lib/errors";
@@ -10,6 +11,8 @@ import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
+import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
 import { crearObjetivoAction } from "@/actions/dt.actions";
 import { STATS_OBJETIVO } from "@/types";
 
@@ -23,10 +26,12 @@ export default async function JugadorDetallePage({
 
   let detalle;
   let credenciales: { email: string | null; bloqueado: boolean };
+  let observaciones;
   try {
-    [detalle, credenciales] = await Promise.all([
+    [detalle, credenciales, observaciones] = await Promise.all([
       obtenerDetalleJugadorDt(ctx, id),
       credencialesFamiliaDt(ctx, id),
+      listarObservacionesJugadorDt(ctx, id),
     ]);
   } catch (e) {
     if (e instanceof DomainError) notFound();
@@ -85,7 +90,7 @@ export default async function JugadorDetallePage({
                     className="flex items-center justify-between border-b border-subtle pb-2"
                   >
                     <span className="text-muted">
-                      {new Date(h.fecha).toLocaleDateString("es")}
+                      <FechaLocal iso={h.fecha} />
                     </span>
                     <span className="flex items-center gap-2">
                       <Badge tono="info">{h.nivel}</Badge>
@@ -97,6 +102,40 @@ export default async function JugadorDetallePage({
           )}
         </Card>
       </div>
+
+      <Card className="max-w-xl">
+        <h2 className="mb-3 text-lg font-bold">Observaciones del jugador</h2>
+        {observaciones.length === 0 ? (
+          <p className="text-sm text-muted">
+            Todavía no cargaste observaciones. Se escriben durante el Modo Sesión
+            de un entrenamiento o partido.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {observaciones.map((o, i) => (
+              <li key={i} className="rounded-lg border border-subtle bg-surface-2 p-3">
+                <p className="whitespace-pre-wrap text-sm">{o.texto}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  {o.visiblePadre ? (
+                    <Badge tono="pitch">Visible a la familia</Badge>
+                  ) : (
+                    <Badge tono="neutral">Privada</Badge>
+                  )}
+                  {o.eventoTitulo && (
+                    <span>
+                      {o.eventoTipo ? `${ETIQUETA_TIPO[o.eventoTipo]}: ` : ""}
+                      {o.eventoTitulo}
+                    </span>
+                  )}
+                  <span className="ml-auto">
+                    <FechaLocal iso={o.fecha} formato="d MMM yyyy, HH:mm" />
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <Card className="max-w-xl">
         <h2 className="mb-1 text-lg font-bold">Cuenta de la familia</h2>

@@ -11,6 +11,7 @@ import {
   fijarTarjetas,
   avanzarPeriodoEvento,
   ajustarPenal,
+  eventosPorIds,
 } from "@/repositories/evento.repository";
 import {
   esPeriodo,
@@ -23,8 +24,12 @@ import {
   obtenerJugador,
   listarPlantilla,
 } from "@/repositories/jugador.repository";
-import { crearObservacion as crearObservacionRepo } from "@/repositories/observacion.repository";
+import {
+  crearObservacion as crearObservacionRepo,
+  listarObservacionesDeJugador,
+} from "@/repositories/observacion.repository";
 import { publicarResultadoYNotificar } from "@/services/evento.service";
+import type { TipoEvento } from "@/types";
 
 /**
  * Modo Sesión (PLAN-UX-DT PR-1): el DT corre el evento como flujo guiado
@@ -324,6 +329,49 @@ export async function crearObservacion(
     eventoId: input.eventoId ?? null,
     texto: input.texto,
     visiblePadre: input.visiblePadre,
+  });
+}
+
+/** Una observación del DT sobre un jugador, para releer su historial. */
+export interface ObservacionDtDTO {
+  texto: string;
+  /** Si el DT la marcó visible para la familia (la ven en el detalle del evento). */
+  visiblePadre: boolean;
+  fecha: string;
+  /** Evento del que salió (null si fue una observación suelta, sin evento). */
+  eventoTitulo: string | null;
+  eventoTipo: TipoEvento | null;
+}
+
+/**
+ * Historial de observaciones que el DT escribió sobre un jugador (visibles o no
+ * para la familia), de más nueva a más vieja. El título del evento se resuelve
+ * en un lookup batcheado: `ObservacionJugador.eventoId` no tiene relación Prisma.
+ */
+export async function listarObservacionesJugadorDt(
+  ctx: AuthContext,
+  jugadorId: string,
+): Promise<ObservacionDtDTO[]> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  const jugador = await obtenerJugador(escuelaId, jugadorId);
+  if (!jugador || !categoriaIds.includes(jugador.categoriaId)) {
+    throw new NotFoundError("Jugador no encontrado.");
+  }
+  const observaciones = await listarObservacionesDeJugador(escuelaId, jugadorId);
+  const ids = [
+    ...new Set(observaciones.map((o) => o.eventoId).filter((v): v is string => !!v)),
+  ];
+  const eventos = await eventosPorIds(escuelaId, ids);
+  const porId = new Map(eventos.map((e) => [e.id, e]));
+  return observaciones.map((o) => {
+    const ev = o.eventoId ? porId.get(o.eventoId) : undefined;
+    return {
+      texto: o.texto,
+      visiblePadre: o.visiblePadre,
+      fecha: o.createdAt.toISOString(),
+      eventoTitulo: ev?.titulo ?? null,
+      eventoTipo: (ev?.tipo as TipoEvento) ?? null,
+    };
   });
 }
 

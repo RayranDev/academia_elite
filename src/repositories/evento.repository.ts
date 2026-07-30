@@ -42,6 +42,17 @@ export function obtenerEvento(escuelaId: string, id: string) {
   });
 }
 
+/** Título y tipo de varios eventos por id (para enriquecer observaciones sin relación Prisma). */
+export function eventosPorIds(escuelaId: string, ids: string[]) {
+  if (ids.length === 0) {
+    return Promise.resolve([] as { id: string; titulo: string; tipo: string }[]);
+  }
+  return db.evento.findMany({
+    where: { escuelaId, id: { in: ids } },
+    select: { id: true, titulo: true, tipo: true },
+  });
+}
+
 export function editarEvento(
   escuelaId: string,
   id: string,
