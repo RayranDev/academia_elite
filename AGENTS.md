@@ -119,6 +119,13 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   catálogos globales, métricas de plataforma) se marcan con `// tenant-global:` y su
   razón; un test guardián (`tests/unit/aislamiento-tenant.test.ts`) falla si una
   query sobre un modelo con `escuelaId` no filtra ni se justifica.
+- **Texto libre sanitizado.** Todo campo de texto libre (nombres, títulos,
+  mensajes, cuerpos, notas, motivos) pasa por `textoSeguro()`
+  (`src/lib/validators/sanitizar.ts`) en su validador Zod: recorta, limita
+  longitud y rechaza HTML/scripts/`javascript:`/`onXXX=`. React ya escapa al
+  renderizar; esto es defensa en profundidad en el borde. Al agregar un campo de
+  texto libre nuevo, usá `textoSeguro`, no `z.string()` pelado. Excepción
+  consciente: el CSS crudo del catálogo de fondos (solo lo edita el SUPER_ADMIN).
 - **Fotos de menores nunca públicas**: servidas por API protegida
   (`/api/archivos/foto/[jugadorId]`), validadas por magic bytes, EXIF stripped,
   recomprimidas a WebP, nombre UUID, `no-store`. Nunca las pongas en `public/`.
@@ -156,6 +163,13 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 - **Estilos**: Tailwind v4 vía `@theme` en `src/app/globals.css`. **No hay
   `tailwind.config.js`** ni CSS Modules. Usá tokens del tema, no valores
   hardcodeados. White-label por escuela vía variable CSS `--brand`.
+- **Fechas en cliente con `FechaLocal`.** Nunca formatees una fecha/hora con la
+  zona del servidor (`toLocaleString`, `date-fns format()`) en un componente que
+  se hidrata: el SSR corre en UTC (Vercel) y el cliente en la zona del usuario →
+  hydration mismatch (React #418) que remonta el árbol. Usá
+  `<FechaLocal iso={…} />` (`src/components/ui/FechaLocal.tsx`), que formatea en
+  cliente con `suppressHydrationWarning`. Igual de peligroso: sembrar estado con
+  `new Date()` en el lazy initializer de un `useState` de un client component.
 
 ---
 
