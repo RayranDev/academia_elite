@@ -56,11 +56,39 @@ cambió de API, se adapta y se documenta aquí).
 
 13. **E2E contra build de producción.** Playwright levanta `next build && next
    start -p 3100` (no el dev server, que compila on-demand y es lento/flaky).
-   Las pruebas comparten `dev.db` y corren en serie (`workers: 1`).
+   Las pruebas corren contra un **schema `e2e` aislado** en el mismo proyecto
+   Supabase (recreado con `DROP SCHEMA` + migrate + seed en `globalSetup`, nunca
+   contra los datos reales) y en serie (`workers: 1`). *Actualizado en Sprint 8:
+   antes de la migración a Postgres corrían contra `dev.db` (SQLite).*
 
 14. **CSP**: `script-src` incluye `'unsafe-inline'` (Next inyecta scripts inline)
    pero **nunca** `'unsafe-eval'` en producción (solo en dev para el HMR).
    `style-src 'unsafe-inline'` por Tailwind v4.
+
+## Sprint 8 — Migración a producción
+
+(Detalle completo del qué en `TRAZABILIDAD.md` hito 11; acá solo el porqué de
+cada adaptación, regla 0.8.)
+
+13b. **Fotos en disco → Supabase Storage (bucket privado).** El disco local es
+   efímero en serverless (Vercel no persiste el filesystem entre invocaciones).
+   Se mantuvo la misma firma pública en `src/lib/foto/storage.ts` (el resto del
+   código no supo del cambio) y las fotos se siguen sirviendo SOLO por
+   `/api/archivos/*` con auth — nunca por URL pública ni firmada, ni aunque el
+   bucket lo permitiera: son datos de menores.
+
+13c. **Rate limit en memoria → Upstash Redis.** Un `Map` en memoria de proceso
+   no sirve en serverless: cada invocación de función puede ser una instancia
+   nueva, así que el límite se reseteaba solo. Upstash (ventana deslizante) es
+   compartido entre invocaciones; se mantiene el fallback en memoria cuando no
+   hay credenciales de Upstash (dev local y E2E no dependen de un servicio
+   externo).
+
+13d. **RLS habilitado en Supabase como segunda capa.** El filtrado por
+   `escuelaId` en cada repositorio (Barrera 2, servicios) sigue siendo el
+   control de acceso real; RLS es defensa en profundidad a nivel de motor de
+   base de datos por si algún query futuro se olvidara del filtro — no
+   reemplaza los guards de `src/lib/auth/guards.ts`.
 
 ## Sprint 4 — Motor de stats v1.1
 
