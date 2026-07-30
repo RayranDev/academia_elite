@@ -13,12 +13,15 @@ Next.js 16 (App Router) · TypeScript estricto · Tailwind v4 · Prisma 7 +
 Auth.js v5 (Credentials + JWT) · Zod v4 · Vitest + Playwright. Desplegado en
 Vercel.
 
-## Puesta en marcha (Windows / local)
+## Puesta en marcha (local)
 
-```powershell
+Requiere una base **PostgreSQL** (un proyecto Supabase "dev" gratuito alcanza)
+con `DATABASE_URL` y `DIRECT_URL` en `.env` — ya no hay SQLite local.
+
+```bash
 npm install
-npx prisma migrate dev      # crea dev.db y aplica el schema
-npm run db:seed             # datos demo deterministas
+npx prisma migrate deploy   # aplica las migraciones
+npm run db:seed             # datos demo deterministas (idempotente)
 npm run dev                 # http://localhost:3000
 ```
 
@@ -26,16 +29,9 @@ npm run dev                 # http://localhost:3000
 
 ## Usuarios demo
 
-Contraseña para todos: **`Demo1234!`**
-
-| Email              | Rol           | Panel       |
-|--------------------|---------------|-------------|
-| admin@demo.app     | SUPER_ADMIN   | `/admin`    |
-| escuela@demo.app   | ESCUELA_ADMIN | `/escuela`  |
-| dt@demo.app        | DT            | `/dt`       |
-| jugador@demo.app   | JUGADOR       | `/jugador`  |
-
-> Credenciales válidas solo en entorno local de demostración.
+Las credenciales de las cuentas demo son de **uso interno del equipo** y viven
+en [docs/ACADEMIA-ELITE-DEMO.md](docs/ACADEMIA-ELITE-DEMO.md), fuera de este
+README. No se documentan cuentas de acceso en la portada pública del repo.
 
 ## Scripts
 
@@ -58,7 +54,8 @@ Contraseña para todos: **`Demo1234!`**
 - **Dominio** (`src/services`, `src/lib/stats-engine`): reglas de negocio puras.
 - **Datos** (`src/repositories`, `prisma`): acceso a datos con `escuelaId`.
 
-Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
+Seguridad: ver §5 de [AGENTS.md](AGENTS.md), `SEGURIDAD.md`, `HABEAS-DATA.md` y
+`DECISIONES.md`.
 
 ## Estado por sprints
 
@@ -95,4 +92,9 @@ Seguridad: ver Sección 6 del Plan Maestro y `DECISIONES.md`.
       `next.config`, checklist 6.8 firmado por endpoint (`SEGURIDAD.md`),
       `MANUAL-DE-USO.md`, y suite **E2E (Playwright)** de los 3 flujos críticos
       en verde. Fix de portabilidad: el proxy redirige usando el host real.
-- [ ] Sprint 8 — Fase 2 (Supabase + Vercel + Storage + RLS).
+- [x] **Sprint 8** — Fase 2: migración a producción (Supabase Postgres + Storage,
+      Upstash Redis, Vercel, RLS).
+
+> El detalle de todo lo posterior (Modos de Sesión, Apartado Eventos,
+> Entrenamiento dinámico, notificaciones, simulador, endurecimiento de
+> validación…) vive en [docs/TRAZABILIDAD.md](docs/TRAZABILIDAD.md).
