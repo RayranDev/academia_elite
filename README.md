@@ -57,44 +57,16 @@ README. No se documentan cuentas de acceso en la portada pública del repo.
 Seguridad: ver §5 de [AGENTS.md](AGENTS.md), `SEGURIDAD.md`, `HABEAS-DATA.md` y
 `DECISIONES.md`.
 
-## Estado por sprints
+## Estado
 
-- [x] **Sprint 0** — Setup, schema completo, seed, Auth.js + RBAC (guards + proxy),
-      layout base con design tokens. 4 logins → 4 paneles; cruce de rol redirige;
-      test de guards en verde.
-- [x] **Sprint 1** — Landing animada (Hero con carta 3D, demo en vivo con slider,
-      features, formulario de captación), `POST /api/leads` con honeypot +
-      tiempo mínimo + rate limit, y el componente firma `PlayerCard` v1.
-- [x] **Sprint 2** — Panel Súper Admin: pipeline de leads (kanban con cambio de
-      estado), conversión lead→escuela+admin (con contraseña temporal), edición
-      de parámetros de fórmula y explorador de AuditLog. Toda acción sensible
-      queda auditada.
-- [x] **Sprint 3** — Panel Escuela (autogestión): categorías, sedes/canchas,
-      DTs (alta con contraseña temporal y categorías asignadas), códigos de
-      invitación (generación/desactivación) y branding white-label
-      (`colorPrimario` inyectado como `--brand` que tiñe el panel del tenant).
-- [x] **Sprint 4** — Núcleo: motor de stats v1.1 puro y testeado (38 tests),
-      auto-registro del padre por código, plantilla de mini-cartas, solicitudes
-      (aprobar/rechazar), **formulario de evaluación 4+4+4** y snapshot inmutable.
-      La carta "nace" con OVR, sello MEN y nivel; los logros BONUS se aplican con
-      tope anti-inflación.
-- [x] **Sprint 5** — Hub del jugador estilo FC26: carta hero con revelación
-      (count-up + confetti), evolución (Recharts con stat seleccionable), vitrina
-      de logros (insignias + bonus con anti-inflación), objetivos con barras de
-      progreso, y foto con consentimiento/avatar servida por API protegida
-      (magic bytes + strip EXIF + resize). Revocar consentimiento oculta la foto
-      al instante.
-- [x] **Sprint 6** — Eventos + calendario + mensajería: CRUD de eventos (incl.
-      recurrentes), convocatorias con confirmación del padre, asistencia y
-      resultados; `MonthGrid` + `UpcomingList`; hilos DT↔padre, anuncios y
-      noticias del club; notificaciones in-app con badge.
-- [x] **Sprint 7** — Endurecimiento: cabeceras de seguridad (CSP/HSTS/…) en
-      `next.config`, checklist 6.8 firmado por endpoint (`SEGURIDAD.md`),
-      `MANUAL-DE-USO.md`, y suite **E2E (Playwright)** de los 3 flujos críticos
-      en verde. Fix de portabilidad: el proxy redirige usando el host real.
-- [x] **Sprint 8** — Fase 2: migración a producción (Supabase Postgres + Storage,
-      Upstash Redis, Vercel, RLS).
+En producción (Supabase + Vercel): landing con captación de leads, panel por
+rol (SUPER_ADMIN / ESCUELA_ADMIN / DT / JUGADOR), evaluaciones → carta con
+stats/nivel/evolución, eventos + calendario + Modo Sesión (entrenamiento y
+partido en vivo), mensajería y anuncios, y notificaciones in-app.
 
-> El detalle de todo lo posterior (Modos de Sesión, Apartado Eventos,
-> Entrenamiento dinámico, notificaciones, simulador, endurecimiento de
-> validación…) vive en [docs/TRAZABILIDAD.md](docs/TRAZABILIDAD.md).
+Para no tener dos versiones de la verdad, la historia y el estado no se narran
+acá:
+
+- **Estado integral** (qué hay, qué falta, fases): [docs/ESTADO-DEL-PROYECTO.md](docs/ESTADO-DEL-PROYECTO.md)
+- **Historial completo** de lo hecho: [docs/TRAZABILIDAD.md](docs/TRAZABILIDAD.md)
+- **Pendientes**: [docs/PENDIENTES.md](docs/PENDIENTES.md)
