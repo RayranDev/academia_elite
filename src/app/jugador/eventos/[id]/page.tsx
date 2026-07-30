@@ -132,6 +132,15 @@ export default async function EventoJugadorPage({
             </dl>
           )}
 
+          {/* PARTIDO aún no arrancado: la estadística está gateada por
+              estadoDeEvento(), así que no viene. Se avisa en vez de dejar
+              el hueco vacío. */}
+          {ev.tipo === "PARTIDO" && !h.estadistica && ev.estado === "PROGRAMADO" && (
+            <p className="text-xs text-muted">
+              Las estadísticas de {h.nombre} se publican cuando arranque el partido.
+            </p>
+          )}
+
           {h.observaciones.length > 0 && (
             <div className="space-y-2 border-t border-subtle pt-3">
               <h3 className="text-sm font-bold">Notas del entrenador</h3>
