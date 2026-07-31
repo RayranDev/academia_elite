@@ -5,16 +5,24 @@ import {
   listarMembresias,
   obtenerMembresia,
   upsertMembresia,
-  cambiarEstadoMembresia,
+  registrarPagoMembresia,
+  crearMembresiasFaltantes,
+  jugadoresConCuota,
   contarMembresiasPorEstado,
   contarFamiliasBloqueadas,
 } from "@/repositories/membresia.repository";
 import {
   obtenerJugador,
   obtenerJugadoresMinimos,
+  jugadoresActivosParaCobranza,
 } from "@/repositories/jugador.repository";
+import { listarArancelesActivos } from "@/repositories/arancel.repository";
+import { resolverArancel, referenciaDePrecio } from "@/lib/aranceles";
 import { registrarAuditoria } from "@/services/audit.service";
-import type { MembresiaInput } from "@/lib/validators/membresia";
+import type {
+  MembresiaInput,
+  CambiarEstadoMembresiaInput,
+} from "@/lib/validators/membresia";
 
 export interface MembresiaDTO {
   id: string;
@@ -22,8 +30,22 @@ export interface MembresiaDTO {
   jugadorNombre: string;
   categoriaNombre: string;
   periodo: string;
+  concepto: string;
   monto: number | null;
+  descuento: number | null;
   estado: string;
+  pagadaEn: string | null;
+  medioPago: string | null;
+  referenciaPago: string | null;
+}
+
+/**
+ * `Decimal` de Prisma nunca sale hacia la UI (AGENTS.md §4: DTOs planos). No se
+ * usa `?? null` sobre el valor convertido porque un monto de 0 es legítimo y
+ * `0` es falsy: la ausencia se decide sobre el valor original.
+ */
+function aNumero(valor: { toString(): string } | null): number | null {
+  return valor == null ? null : Number(valor.toString());
 }
 
 /** Contadores de cobranza para el dashboard de la escuela. */
@@ -62,6 +84,90 @@ export async function resumenMembresias(
   };
 }
 
+/** Resultado de generar la cobranza de un período. */
+export interface GeneracionCuotasDTO {
+  creadas: number;
+  yaExistian: number;
+  sinPrecio: number;
+}
+
+/**
+ * Genera las cuotas de un período para todos los jugadores ACTIVO (Track A · A.2).
+ *
+ * Es el reemplazo de cargar la cobranza jugador por jugador: una escuela de 150
+ * chicos son 150 altas manuales por mes, y nadie sostiene eso dos meses seguidos.
+ *
+ * Idempotente: se puede correr varias veces sobre el mismo período. Las cuotas
+ * que ya existen NO se tocan — ni el monto ni el estado —, así que volver a
+ * generar después de haber cobrado no pisa ningún pago.
+ *
+ * Los jugadores cuya categoría no tiene precio vigente igual reciben su cuota,
+ * pero SIN monto: se informan aparte para que la escuela los complete a mano. Es
+ * preferible a inventar un número o a dejar al chico fuera de la cobranza.
+ */
+export async function generarCuotasDelPeriodo(
+  ctx: AuthContext,
+  periodo: string,
+  concepto = "MENSUALIDAD",
+): Promise<GeneracionCuotasDTO> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+
+  const [jugadores, aranceles, yaTienen] = await Promise.all([
+    jugadoresActivosParaCobranza(escuelaId),
+    listarArancelesActivos(escuelaId, concepto),
+    jugadoresConCuota(escuelaId, periodo, concepto),
+  ]);
+  if (jugadores.length === 0) {
+    return { creadas: 0, yaExistian: 0, sinPrecio: 0 };
+  }
+
+  // Un solo query de precios y la resolución en memoria: evita una consulta por
+  // categoría (`resolverArancel` es puro y está testeado aparte).
+  const vigentes = aranceles.map((a) => ({
+    id: a.id,
+    categoriaId: a.categoriaId,
+    concepto: a.concepto,
+    monto: Number(a.monto.toString()),
+    vigenteDesde: a.vigenteDesde,
+  }));
+
+  // `sinPrecio` se cuenta SOLO sobre los que se van a crear. Contarlo sobre todos
+  // los activos haría que una segunda corrida informara "N quedaron sin monto"
+  // sobre cuotas que ni se tocaron.
+  // El precio se resuelve contra el período que se está emitiendo, no contra hoy:
+  // generar septiembre durante agosto tiene que tomar el precio de septiembre.
+  const referencia = referenciaDePrecio(periodo);
+
+  let sinPrecio = 0;
+  const filas = jugadores
+    .filter((j) => !yaTienen.has(j.id))
+    .map((j) => {
+      const arancel = resolverArancel(vigentes, j.categoriaId, concepto, referencia);
+      if (!arancel) sinPrecio++;
+      return {
+        jugadorId: j.id,
+        periodo,
+        concepto,
+        monto: arancel ? arancel.monto : null,
+      };
+    });
+
+  const creadas = await crearMembresiasFaltantes(escuelaId, filas);
+  await registrarAuditoria(ctx, {
+    accion: "MEMBRESIA_GENERAR_PERIODO",
+    entidad: "Membresia",
+    entidadId: escuelaId,
+    escuelaId,
+    motivo: `${periodo} ${concepto}: ${creadas} creadas de ${jugadores.length} activos`,
+  });
+
+  // `yaExistian` sale de lo REALMENTE insertado, no del pre-filtro: si otra
+  // corrida simultánea creó algunas entre el SELECT y el INSERT, el unique las
+  // descarta y el número sigue siendo exacto.
+  return { creadas, yaExistian: jugadores.length - creadas, sinPrecio };
+}
+
 /** Lista las cuotas de la escuela (opcional: filtrar por período AAAA-MM). */
 export async function listarMembresiasEscuela(
   ctx: AuthContext,
@@ -86,8 +192,13 @@ export async function listarMembresiasEscuela(
       jugadorNombre: j ? `${j.apellido}, ${j.nombre}` : "—",
       categoriaNombre: j?.categoria.nombre ?? "—",
       periodo: m.periodo,
-      monto: m.monto,
+      concepto: m.concepto,
+      monto: aNumero(m.monto),
+      descuento: aNumero(m.descuento),
       estado: m.estado,
+      pagadaEn: m.pagadaEn?.toISOString() ?? null,
+      medioPago: m.medioPago,
+      referenciaPago: m.referenciaPago,
     };
   });
 }
@@ -104,8 +215,9 @@ export async function registrarMembresiaEscuela(
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
 
-  await upsertMembresia(escuelaId, input.jugadorId, input.periodo, {
+  await upsertMembresia(escuelaId, input.jugadorId, input.periodo, input.concepto, {
     monto: input.monto,
+    descuento: input.descuento,
     estado: input.estado,
   });
   await registrarAuditoria(ctx, {
@@ -113,27 +225,36 @@ export async function registrarMembresiaEscuela(
     entidad: "Membresia",
     entidadId: input.jugadorId,
     escuelaId,
-    motivo: `${input.periodo} → ${input.estado}`,
+    motivo: `${input.periodo} ${input.concepto} → ${input.estado}`,
   });
 }
 
-/** Cambia el estado de una cuota (PENDIENTE/PAGADA/VENCIDA). Auditado. */
+/**
+ * Cambia el estado de una cuota (PENDIENTE/PAGADA/VENCIDA). Al pasar a PAGADA
+ * registra además cuándo, con qué medio y con qué comprobante: sin eso el estado
+ * no se puede conciliar contra el banco ni defender ante un reclamo. Auditado.
+ */
 export async function cambiarEstadoMembresiaEscuela(
   ctx: AuthContext,
-  membresiaId: string,
-  estado: string,
+  input: CambiarEstadoMembresiaInput,
 ): Promise<void> {
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
-  const m = await obtenerMembresia(escuelaId, membresiaId);
+  const m = await obtenerMembresia(escuelaId, input.membresiaId);
   if (!m) throw new NotFoundError("Cuota no encontrada.");
 
-  await cambiarEstadoMembresia(escuelaId, membresiaId, estado);
+  await registrarPagoMembresia(escuelaId, input.membresiaId, input.estado, {
+    medioPago: input.medioPago,
+    referenciaPago: input.referenciaPago,
+  });
   await registrarAuditoria(ctx, {
     accion: "MEMBRESIA_ESTADO",
     entidad: "Membresia",
-    entidadId: membresiaId,
+    entidadId: input.membresiaId,
     escuelaId,
-    motivo: `${m.periodo} → ${estado}`,
+    // El medio de pago va al motivo: es la traza de cómo entró la plata.
+    motivo:
+      `${m.periodo} ${m.concepto} → ${input.estado}` +
+      (input.estado === "PAGADA" && input.medioPago ? ` (${input.medioPago})` : ""),
   });
 }

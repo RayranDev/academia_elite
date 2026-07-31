@@ -94,6 +94,18 @@ export function jugadoresParaDuplicados(escuelaId: string) {
   });
 }
 
+/**
+ * Jugadores ACTIVO de la escuela con su categoría, para generar la cobranza del
+ * mes. Solo ACTIVO: a un jugador PENDIENTE (todavía sin aprobar) o INACTIVO no
+ * se le emite cuota.
+ */
+export function jugadoresActivosParaCobranza(escuelaId: string) {
+  return db.jugador.findMany({
+    where: { escuelaId, estado: "ACTIVO" },
+    select: { id: true, categoriaId: true },
+  });
+}
+
 /** Ids de jugadores de unas categorías (para acotar consultas del DT). */
 export async function jugadorIdsDeCategorias(
   escuelaId: string,

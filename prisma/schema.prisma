@@ -91,6 +91,7 @@ model Escuela {
   anuncios                 Anuncio[]
   codigos                  CodigoInvitacion[]
   parametros               ParametroEscuela[]
+  aranceles                Arancel[]
   createdAt                DateTime           @default(now())
 }
 
@@ -124,6 +125,7 @@ model Categoria {
   entrenadores EntrenadorCategoria[]
   eventos      Evento[]
   anuncios     Anuncio[]
+  aranceles    Arancel[]
 
   @@index([escuelaId])
 }
@@ -622,11 +624,47 @@ model Membresia {
   escuelaId String
   jugadorId String
   periodo   String // "2026-06"
+  // Qué se está cobrando. Una escuela no cobra solo la mensualidad: también
+  // matrícula, indumentaria, torneos. Por eso el unique incluye el concepto.
+  concepto  String @default("MENSUALIDAD") // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
   estado    String @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
-  monto     Float?
+  // Dinero en Decimal, nunca Float: en punto flotante 0.1 + 0.2 !== 0.3, y una
+  // cobranza que arrastra ese error termina en diferencias de centavos que nadie
+  // puede explicar. Los DTOs lo convierten a `number` (nunca sale un Decimal de
+  // Prisma hacia la UI).
+  monto     Decimal? @db.Decimal(12, 2)
+  descuento Decimal? @db.Decimal(12, 2) // becas, descuento por hermano, etc.
+  // Registro del pago: un estado "PAGADA" sin cuándo, cómo ni comprobante no es
+  // auditable ni sirve para conciliar contra el banco.
+  pagadaEn       DateTime?
+  medioPago      String? // EFECTIVO | TRANSFERENCIA | NEQUI | DAVIPLATA | OTRO
+  referenciaPago String? // número de comprobante / referencia bancaria
 
-  @@unique([escuelaId, jugadorId, periodo])
+  @@unique([escuelaId, jugadorId, periodo, concepto])
   @@index([escuelaId])
+}
+
+// Lista de precios de la escuela. Sin esto no hay forma de generar la cobranza
+// del mes sin tipear el monto jugador por jugador.
+//
+// No lleva unique por (categoría, concepto) A PROPÓSITO: guardar varias filas con
+// distinto `vigenteDesde` es el historial de precios. El precio aplicable se
+// resuelve con `resolverArancel` (src/lib/aranceles.ts), que toma el más reciente
+// ya vigente y cae al general de la escuela (`categoriaId = null`) si esa
+// categoría no tiene precio propio.
+model Arancel {
+  id           String     @id @default(cuid())
+  escuelaId    String
+  escuela      Escuela    @relation(fields: [escuelaId], references: [id])
+  categoriaId  String? // null = precio general de la escuela
+  categoria    Categoria? @relation(fields: [categoriaId], references: [id])
+  concepto     String // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
+  monto        Decimal    @db.Decimal(12, 2)
+  vigenteDesde DateTime   @default(now())
+  activo       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  @@index([escuelaId, concepto])
 }
 
 // Sesión de soporte: puerta explícita, temporal y auditada por la que el

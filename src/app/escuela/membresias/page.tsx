@@ -1,32 +1,45 @@
+import Link from "next/link";
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarMembresiasEscuela } from "@/services/membresia.service";
+import { listarArancelesEscuela } from "@/services/arancel.service";
 import { listarJugadoresGestion } from "@/services/gestion-jugadores.service";
 import { MembresiasPanel } from "@/components/escuela/MembresiasPanel";
+import { GenerarCuotasCard } from "@/components/escuela/GenerarCuotasCard";
 
 export default async function MembresiasPage() {
   const ctx = await requireAuthContext();
-  const [membresias, jugadoresRes] = await Promise.all([
+  const [membresias, jugadoresRes, aranceles] = await Promise.all([
     listarMembresiasEscuela(ctx),
     listarJugadoresGestion(ctx, { limit: 10000 }),
+    listarArancelesEscuela(ctx),
   ]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-3xl font-black italic uppercase">Membresías</h1>
-        {/* Export de cobranza (PR-5 §5.1): el listado para llamar a cobrar. */}
-        <a
-          href="/api/membresias-export"
-          className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
-        >
-          Descargar cobranza
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/escuela/aranceles"
+            className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+          >
+            Precios
+          </Link>
+          {/* Export de cobranza (PR-5 §5.1): el listado para llamar a cobrar. */}
+          <a
+            href="/api/membresias-export"
+            className="inline-flex items-center gap-1 rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm font-semibold hover:border-brand"
+          >
+            Descargar cobranza
+          </a>
+        </div>
       </div>
       <p className="max-w-2xl text-sm text-muted">
         Gestión de cuotas por jugador y período. Marca cada cuota como pagada,
         pendiente o vencida. El acceso por mora se gestiona desde la ficha del
         jugador (bloqueo por pago).
       </p>
+      <GenerarCuotasCard hayAranceles={aranceles.some((a) => a.activo)} />
       <MembresiasPanel
         membresias={membresias}
         jugadores={jugadoresRes.items.map((j) => ({

@@ -22,10 +22,21 @@ const CABECERAS = [
   "Familia",
   "Email familia",
   "Período",
+  "Concepto",
   "Estado",
   "Monto",
+  "Descuento",
+  "Neto",
+  "Pagada el",
+  "Medio de pago",
+  "Referencia",
   "Acceso",
 ] as const;
+
+/** `Decimal` de Prisma → número plano para la celda de Excel. */
+function aNumero(valor: { toString(): string } | null): number | null {
+  return valor == null ? null : Number(valor.toString());
+}
 
 function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
   requireRole(ctx, ["ESCUELA_ADMIN", "SUPER_ADMIN"]);
@@ -74,26 +85,39 @@ export async function exportarMembresias(
   ws.addRow([...CABECERAS]);
   ws.getRow(1).font = { bold: true };
 
-  let totalMonto = 0;
+  // El total suma el NETO (monto − descuento): es la plata que la escuela
+  // realmente espera, no el precio de lista.
+  let totalNeto = 0;
   for (const m of filtradas) {
     const j = porId.get(m.jugadorId);
     const familia = j?.padre ?? j?.cuentaUser ?? null;
     const bloqueado = j?.padre?.bloqueado || j?.cuentaUser?.bloqueado;
-    totalMonto += m.monto ?? 0;
+    const monto = aNumero(m.monto);
+    const descuento = aNumero(m.descuento);
+    const neto = monto == null ? null : monto - (descuento ?? 0);
+    if (neto != null) totalNeto += neto;
     ws.addRow([
       protegerCelda(j ? `${j.apellido}, ${j.nombre}` : "—"),
       protegerCelda(j?.categoria.nombre ?? "—"),
       protegerCelda(j?.padre?.nombre ?? ""),
       protegerCelda(familia?.email ?? ""),
       m.periodo,
+      m.concepto,
       m.estado,
-      m.monto ?? "",
+      monto ?? "",
+      descuento ?? "",
+      neto ?? "",
+      m.pagadaEn ? format(m.pagadaEn, "yyyy-MM-dd") : "",
+      m.medioPago ?? "",
+      protegerCelda(m.referenciaPago ?? ""),
       bloqueado ? "Bloqueado" : "Activo",
     ]);
   }
 
   // Fila TOTAL al pie: es un resumen para el que cobra.
-  const total = ws.addRow(["", "", "", "", "", "TOTAL", totalMonto, ""]);
+  const total = ws.addRow([
+    "", "", "", "", "", "", "", "", "TOTAL", totalNeto, "", "", "", "",
+  ]);
   total.font = { bold: true };
 
   ws.columns.forEach((c) => {
