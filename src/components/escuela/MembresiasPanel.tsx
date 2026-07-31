@@ -7,7 +7,7 @@ import {
   cambiarEstadoMembresiaAction,
 } from "@/actions/membresia.actions";
 import {
-  ESTADOS_MEMBRESIA,
+  ESTADOS_EDITABLES,
   CONCEPTOS_MEMBRESIA,
   MEDIOS_PAGO,
   etiquetaConcepto,
@@ -123,7 +123,7 @@ export function MembresiasPanel({
               defaultValue="PENDIENTE"
               className={input}
             >
-              {ESTADOS_MEMBRESIA.map((e) => (
+              {ESTADOS_EDITABLES.map((e) => (
                 <option key={e} value={e}>{etiquetaEstado(e)}</option>
               ))}
             </select>
@@ -209,7 +209,7 @@ export function MembresiasPanel({
                     )}
                   </td>
                   <td className="px-4 py-2">
-                    <CambiarEstado membresiaId={m.id} estadoActual={m.estado} />
+                    <CambiarEstado membresiaId={m.id} estadoActual={m.estadoGuardado} />
                   </td>
                 </tr>
               ))}
@@ -307,6 +307,9 @@ function CambiarEstado({
   const [medioPago, setMedioPago] = useState<string>(MEDIOS_PAGO[0]);
   const [referencia, setReferencia] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const estaEntreEditables = (ESTADOS_EDITABLES as readonly string[]).includes(
+    estadoActual,
+  );
 
   function enviar(estado: string, pago?: { medio: string; referencia: string }) {
     const fd = new FormData();
@@ -395,7 +398,17 @@ function CambiarEstado({
         aria-label="Cambiar estado del cobro"
         className="rounded-lg border border-subtle bg-surface-2 px-2 py-1 text-xs outline-none focus:border-brand"
       >
-        {ESTADOS_MEMBRESIA.map((e) => (
+        {/* VENCIDA no se ofrece: se deriva de que el mes cerró sin pago (A.3).
+            Pero si la cuota YA tiene guardado un estado que no está entre las
+            opciones (datos previos, o el seed), hay que renderizarlo igual: un
+            `value` sin `<option>` deja el select en blanco al lado de un badge
+            que sí dice "Vencida". Se muestra deshabilitado. */}
+        {!estaEntreEditables && (
+          <option value={estadoActual} disabled>
+            {etiquetaEstado(estadoActual)}
+          </option>
+        )}
+        {ESTADOS_EDITABLES.map((e) => (
           <option key={e} value={e}>{etiquetaEstado(e)}</option>
         ))}
       </select>

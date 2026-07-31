@@ -35,6 +35,8 @@ export async function registrarMembresiaAction(
     }
     await registrarMembresiaEscuela(ctx, parsed.data);
     revalidatePath("/escuela/membresias");
+    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
+    revalidatePath("/escuela");
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -65,6 +67,8 @@ export async function generarCuotasAction(
       parsed.data.concepto,
     );
     revalidatePath("/escuela/membresias");
+    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
+    revalidatePath("/escuela");
     return { ok: true, data };
   } catch (e) {
     return mapError(e);
@@ -88,6 +92,8 @@ export async function cambiarEstadoMembresiaAction(
     }
     await cambiarEstadoMembresiaEscuela(ctx, parsed.data);
     revalidatePath("/escuela/membresias");
+    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
+    revalidatePath("/escuela");
     return { ok: true };
   } catch (e) {
     return mapError(e);

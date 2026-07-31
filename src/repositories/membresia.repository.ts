@@ -118,6 +118,32 @@ export function contarMembresiasPorEstado(escuelaId: string) {
   });
 }
 
+/**
+ * Cuotas PENDIENTE cuyo período ya cerró: son las que están vencidas de hecho
+ * aunque nadie las haya marcado (A.3). La comparación es textual porque
+ * "AAAA-MM" con mes de dos dígitos ordena igual como texto que como fecha.
+ */
+export function contarPendientesDeMesesCerrados(escuelaId: string, periodoActual: string) {
+  return db.membresia.count({
+    where: { escuelaId, estado: "PENDIENTE", periodo: { lt: periodoActual } },
+  });
+}
+
+/** Cuotas impagas de la escuela con lo justo para calcular la deuda. */
+export function cuotasImpagas(escuelaId: string) {
+  return db.membresia.findMany({
+    where: { escuelaId, estado: { not: "PAGADA" } },
+    select: {
+      jugadorId: true,
+      periodo: true,
+      concepto: true,
+      estado: true,
+      monto: true,
+      descuento: true,
+    },
+  });
+}
+
 /** Familias (rol JUGADOR) con el acceso bloqueado en la escuela. */
 export function contarFamiliasBloqueadas(escuelaId: string) {
   return db.user.count({

@@ -1,0 +1,186 @@
+import { describe, it, expect } from "vitest";
+import {
+  periodoDe,
+  periodoCerrado,
+  estadoEfectivo,
+  netoCuota,
+  estadoCuenta,
+  type CuotaParaDeuda,
+} from "@/lib/cobranza";
+
+// Cobranza derivada (Track A · A.3 y A.4). El estado de una cuota y la deuda de
+// un jugador se CALCULAN: si dependieran de que alguien se acuerde de marcarlos,
+// estarían mal justo el día que la escuela necesita reclamar.
+
+// Instantes en UTC explicitos: la libreria calcula en la hora de la escuela
+// (UTC-5), asi que un `new Date(2026, 6, 15)` local haria que el resultado
+// dependiera del huso de la maquina que corre los tests.
+const HOY = new Date("2026-07-15T12:00:00Z");
+
+function cuota(p: Partial<CuotaParaDeuda>): CuotaParaDeuda {
+  return {
+    periodo: "2026-07",
+    concepto: "MENSUALIDAD",
+    estado: "PENDIENTE",
+    monto: 45000,
+    descuento: null,
+    ...p,
+  };
+}
+
+describe("periodoDe", () => {
+  it("arma AAAA-MM con el mes en dos dígitos", () => {
+    expect(periodoDe(new Date("2026-01-05T12:00:00Z"))).toBe("2026-01");
+    expect(periodoDe(new Date("2026-12-15T12:00:00Z"))).toBe("2026-12");
+  });
+
+  // El caso que motiva toda la función: el servidor de Vercel corre en UTC.
+  it("no adelanta el mes por las últimas horas del día en Colombia", () => {
+    // 31 de enero, 19:00 en Colombia = 1 de febrero 00:00 UTC. Sigue siendo enero.
+    expect(periodoDe(new Date("2026-02-01T00:00:00Z"))).toBe("2026-01");
+    // 31 de enero, 23:59 Colombia = 1 de febrero 04:59 UTC. Todavía enero.
+    expect(periodoDe(new Date("2026-02-01T04:59:00Z"))).toBe("2026-01");
+    // 1 de febrero, 00:00 Colombia = 05:00 UTC. Recién ahí cambia.
+    expect(periodoDe(new Date("2026-02-01T05:00:00Z"))).toBe("2026-02");
+  });
+
+  it("cruza el año con el mismo criterio", () => {
+    expect(periodoDe(new Date("2027-01-01T04:00:00Z"))).toBe("2026-12");
+    expect(periodoDe(new Date("2027-01-01T05:00:00Z"))).toBe("2027-01");
+  });
+});
+
+describe("estadoEfectivo — frontera de fin de mes", () => {
+  it("una cuota de enero NO vence en las últimas horas del 31 en Colombia", () => {
+    const casiFebrero = new Date("2026-02-01T04:00:00Z"); // 31/01 23:00 en Colombia
+    expect(estadoEfectivo("PENDIENTE", "2026-01", casiFebrero)).toBe("PENDIENTE");
+  });
+  it("vence recién cuando febrero arranca en Colombia", () => {
+    const febrero = new Date("2026-02-01T05:00:00Z"); // 01/02 00:00 en Colombia
+    expect(estadoEfectivo("PENDIENTE", "2026-01", febrero)).toBe("VENCIDA");
+  });
+});
+
+describe("periodoCerrado", () => {
+  it("el mes en curso no está cerrado", () => {
+    expect(periodoCerrado("2026-07", HOY)).toBe(false);
+  });
+  it("un mes anterior sí, incluso cruzando el año", () => {
+    expect(periodoCerrado("2026-06", HOY)).toBe(true);
+    expect(periodoCerrado("2025-12", HOY)).toBe(true);
+  });
+  it("un mes futuro no", () => {
+    expect(periodoCerrado("2026-08", HOY)).toBe(false);
+  });
+  it("ordena bien septiembre contra octubre (el caso que rompe el orden textual ingenuo)", () => {
+    // "2026-9" < "2026-10" sería falso como texto; por eso el mes va en 2 dígitos.
+    expect(periodoCerrado("2026-09", new Date("2026-10-15T12:00:00Z"))).toBe(true);
+  });
+});
+
+describe("estadoEfectivo", () => {
+  it("PAGADA manda siempre, aunque el período haya cerrado", () => {
+    expect(estadoEfectivo("PAGADA", "2026-01", HOY)).toBe("PAGADA");
+  });
+  it("una pendiente del mes en curso sigue pendiente", () => {
+    expect(estadoEfectivo("PENDIENTE", "2026-07", HOY)).toBe("PENDIENTE");
+  });
+  it("una pendiente de un mes cerrado vence sola, sin que nadie la toque", () => {
+    expect(estadoEfectivo("PENDIENTE", "2026-06", HOY)).toBe("VENCIDA");
+  });
+  it("respeta un VENCIDA ya guardado (datos previos al cálculo derivado)", () => {
+    expect(estadoEfectivo("VENCIDA", "2026-07", HOY)).toBe("VENCIDA");
+  });
+});
+
+describe("netoCuota", () => {
+  it("resta el descuento", () => {
+    expect(netoCuota(cuota({ monto: 45000, descuento: 5000 }))).toBe(40000);
+  });
+  it("sin monto no hay neto (no se inventa un cero)", () => {
+    expect(netoCuota(cuota({ monto: null }))).toBeNull();
+  });
+  it("un monto de 0 sigue siendo 0, no null", () => {
+    expect(netoCuota(cuota({ monto: 0 }))).toBe(0);
+  });
+});
+
+describe("estadoCuenta", () => {
+  it("sin cuotas no hay mora", () => {
+    expect(estadoCuenta([], HOY)).toEqual({
+      cuotasVencidas: 0,
+      montoVencido: 0,
+      cuotasPendientes: 0,
+      desdePeriodo: null,
+      enMora: false,
+    });
+  });
+
+  it("la cuota del mes en curso es pendiente, NO deuda", () => {
+    const r = estadoCuenta([cuota({ periodo: "2026-07" })], HOY);
+    expect(r.enMora).toBe(false);
+    expect(r.cuotasPendientes).toBe(1);
+    expect(r.montoVencido).toBe(0);
+  });
+
+  it("suma los netos de los meses cerrados e impagos", () => {
+    const r = estadoCuenta(
+      [
+        cuota({ periodo: "2026-05", monto: 45000 }),
+        cuota({ periodo: "2026-06", monto: 45000, descuento: 5000 }),
+        cuota({ periodo: "2026-07" }), // en curso: no es deuda
+      ],
+      HOY,
+    );
+    expect(r.cuotasVencidas).toBe(2);
+    expect(r.montoVencido).toBe(85000);
+    expect(r.cuotasPendientes).toBe(1);
+    expect(r.desdePeriodo).toBe("2026-05");
+    expect(r.enMora).toBe(true);
+  });
+
+  it("las pagadas no cuentan, aunque sean viejas", () => {
+    const r = estadoCuenta(
+      [
+        cuota({ periodo: "2026-05", estado: "PAGADA" }),
+        cuota({ periodo: "2026-06", estado: "PAGADA" }),
+      ],
+      HOY,
+    );
+    expect(r.enMora).toBe(false);
+    expect(r.montoVencido).toBe(0);
+    expect(r.desdePeriodo).toBeNull();
+  });
+
+  it("una cuota vencida sin monto cuenta como deuda pero no infla el total", () => {
+    // Es el caso del jugador cuya categoría no tenía precio al generar.
+    const r = estadoCuenta([cuota({ periodo: "2026-06", monto: null })], HOY);
+    expect(r.cuotasVencidas).toBe(1);
+    expect(r.montoVencido).toBe(0);
+    expect(r.enMora).toBe(true);
+  });
+
+  it("`desdePeriodo` es el más viejo impago, sin importar el orden de entrada", () => {
+    const r = estadoCuenta(
+      [
+        cuota({ periodo: "2026-06" }),
+        cuota({ periodo: "2026-03" }),
+        cuota({ periodo: "2026-05" }),
+      ],
+      HOY,
+    );
+    expect(r.desdePeriodo).toBe("2026-03");
+  });
+
+  it("cuenta conceptos distintos del mismo mes por separado", () => {
+    const r = estadoCuenta(
+      [
+        cuota({ periodo: "2026-06", concepto: "MENSUALIDAD", monto: 45000 }),
+        cuota({ periodo: "2026-06", concepto: "INDUMENTARIA", monto: 80000 }),
+      ],
+      HOY,
+    );
+    expect(r.cuotasVencidas).toBe(2);
+    expect(r.montoVencido).toBe(125000);
+  });
+});

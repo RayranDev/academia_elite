@@ -9,6 +9,8 @@ import {
   crearMembresiasFaltantes,
   jugadoresConCuota,
   contarMembresiasPorEstado,
+  contarPendientesDeMesesCerrados,
+  cuotasImpagas,
   contarFamiliasBloqueadas,
 } from "@/repositories/membresia.repository";
 import {
@@ -18,6 +20,12 @@ import {
 } from "@/repositories/jugador.repository";
 import { listarArancelesActivos } from "@/repositories/arancel.repository";
 import { resolverArancel, referenciaDePrecio } from "@/lib/aranceles";
+import {
+  estadoEfectivo,
+  estadoCuenta,
+  periodoDe,
+  type CuotaParaDeuda,
+} from "@/lib/cobranza";
 import { registrarAuditoria } from "@/services/audit.service";
 import type {
   MembresiaInput,
@@ -33,7 +41,13 @@ export interface MembresiaDTO {
   concepto: string;
   monto: number | null;
   descuento: number | null;
+  /**
+   * Estado REAL, ya derivado: una pendiente de un mes cerrado llega como
+   * VENCIDA sin que nadie la haya marcado (A.3). La UI muestra esto.
+   */
   estado: string;
+  /** Estado tal como está guardado; lo necesita el `<select>` para no mentir. */
+  estadoGuardado: string;
   pagadaEn: string | null;
   medioPago: string | null;
   referenciaPago: string | null;
@@ -54,12 +68,20 @@ export interface ResumenMembresiasDTO {
   pendientes: number;
   vencidas: number;
   bloqueados: number;
+  /** Plata impaga de meses ya cerrados: lo que la escuela tiene que salir a cobrar. */
+  montoVencido: number;
+  /** Jugadores con al menos una cuota vencida impaga. */
+  jugadoresEnMora: number;
 }
 
 /**
  * Resumen de administración (PLAN-UX-DT PR-2 · C2.3). El dashboard de la escuela
  * era 100% deportivo: el dueño no veía la cobranza, que es lo que le paga las
- * cuentas. Un solo groupBy + un count.
+ * cuentas.
+ *
+ * Las vencidas ya no salen solo del estado guardado: se les suman las PENDIENTE
+ * de meses cerrados (A.3). Antes el KPI dependía de que alguien se acordara de
+ * marcarlas una por una, así que mostraba de menos justo lo que hay que cobrar.
  */
 export async function resumenMembresias(
   ctx: AuthContext,
@@ -68,19 +90,47 @@ export async function resumenMembresias(
   // los servicios hermanos de este archivo usan el mismo alcance.
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
-  const [porEstado, bloqueados] = await Promise.all([
+  const hoy = new Date();
+
+  const [porEstado, bloqueados, pendientesCerradas, impagas] = await Promise.all([
     contarMembresiasPorEstado(escuelaId),
     contarFamiliasBloqueadas(escuelaId),
+    contarPendientesDeMesesCerrados(escuelaId, periodoDe(hoy)),
+    cuotasImpagas(escuelaId),
   ]);
 
   const de = (estado: string) =>
     porEstado.find((p) => p.estado === estado)?._count._all ?? 0;
 
+  // Deuda por jugador, sobre las impagas ya traídas (una sola lectura).
+  const porJugador = new Map<string, CuotaParaDeuda[]>();
+  for (const c of impagas) {
+    const lista = porJugador.get(c.jugadorId) ?? [];
+    lista.push({
+      periodo: c.periodo,
+      concepto: c.concepto,
+      estado: c.estado,
+      monto: aNumero(c.monto),
+      descuento: aNumero(c.descuento),
+    });
+    porJugador.set(c.jugadorId, lista);
+  }
+
+  let montoVencido = 0;
+  let jugadoresEnMora = 0;
+  for (const cuotas of porJugador.values()) {
+    const cuenta = estadoCuenta(cuotas, hoy);
+    montoVencido += cuenta.montoVencido;
+    if (cuenta.enMora) jugadoresEnMora++;
+  }
+
   return {
     alDia: de("PAGADA"),
-    pendientes: de("PENDIENTE"),
-    vencidas: de("VENCIDA"),
+    pendientes: de("PENDIENTE") - pendientesCerradas,
+    vencidas: de("VENCIDA") + pendientesCerradas,
     bloqueados,
+    montoVencido,
+    jugadoresEnMora,
   };
 }
 
@@ -178,6 +228,9 @@ export async function listarMembresiasEscuela(
   const rows = await listarMembresias(escuelaId, periodo);
   if (rows.length === 0) return [];
 
+  // Un solo "ahora" para todas las filas: si cada una llamara a `new Date()`, dos
+  // cuotas del mismo listado podrían caer a distinto lado de un cambio de mes.
+  const hoy = new Date();
   const jugadores = await obtenerJugadoresMinimos(
     escuelaId,
     [...new Set(rows.map((r) => r.jugadorId))],
@@ -195,7 +248,8 @@ export async function listarMembresiasEscuela(
       concepto: m.concepto,
       monto: aNumero(m.monto),
       descuento: aNumero(m.descuento),
-      estado: m.estado,
+      estado: estadoEfectivo(m.estado, m.periodo, hoy),
+      estadoGuardado: m.estado,
       pagadaEn: m.pagadaEn?.toISOString() ?? null,
       medioPago: m.medioPago,
       referenciaPago: m.referenciaPago,

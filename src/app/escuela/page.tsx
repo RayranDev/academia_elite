@@ -7,6 +7,7 @@ import { listarDts } from "@/services/entrenador.service";
 import { listarCodigosEscuela } from "@/services/codigo.service";
 import { resumenMembresias } from "@/services/membresia.service";
 import { Card } from "@/components/ui/Card";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 
 export default async function EscuelaDashboardPage() {
   const ctx = await requireAuthContext();
@@ -79,6 +80,7 @@ export default async function EscuelaDashboardPage() {
                 : `${resumen.asistenciaMesPorcentaje}%`
             }
             href="/escuela/asistencia"
+            hayQueVer={resumen.asistenciaMesPorcentaje > 0}
           />
         </div>
       </section>
@@ -88,7 +90,7 @@ export default async function EscuelaDashboardPage() {
         <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
           Administración
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Kpi
             titulo="Cuotas al día"
             valor={membresias.alDia}
@@ -103,7 +105,24 @@ export default async function EscuelaDashboardPage() {
             titulo="Cuotas vencidas"
             valor={membresias.vencidas}
             alerta={membresias.vencidas > 0}
+            subtitulo={
+              membresias.jugadoresEnMora > 0
+                ? `${membresias.jugadoresEnMora} jugador(es) en mora`
+                : undefined
+            }
             href="/escuela/membresias?estado=VENCIDA"
+          />
+          {/* La plata concreta que hay que salir a cobrar, no solo el conteo. */}
+          <Kpi
+            titulo="Monto vencido"
+            valor={
+              membresias.montoVencido === 0
+                ? "—"
+                : membresias.montoVencido.toLocaleString("es-CO")
+            }
+            alerta={membresias.montoVencido > 0}
+            href="/escuela/membresias?estado=VENCIDA"
+            hayQueVer={membresias.montoVencido > 0}
           />
           <Kpi
             titulo="Familias bloqueadas"
@@ -194,17 +213,19 @@ export default async function EscuelaDashboardPage() {
                           </span>
                         )}
                       </td>
+                      {/* `FechaLocal` y no `toLocaleDateString` en el servidor:
+                          el SSR corre en UTC y Colombia es UTC-5, así que una
+                          fecha de la tarde se mostraba con el día siguiente
+                          (AGENTS.md §6). De paso se va el "es-AR" suelto. */}
                       <td className="px-4 py-3 text-muted">
-                        {p.ultimaEvaluacion
-                          ? new Date(p.ultimaEvaluacion).toLocaleDateString(
-                              "es-AR",
-                              {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                              },
-                            )
-                          : "—"}
+                        {p.ultimaEvaluacion ? (
+                          <FechaLocal
+                            iso={new Date(p.ultimaEvaluacion).toISOString()}
+                            formato="dd/MM/yyyy"
+                          />
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -242,8 +263,12 @@ export default async function EscuelaDashboardPage() {
 // ─── Componentes locales ──────────────────────────────────────────────────────
 
 /**
- * KPI del dashboard. Si recibe `href` y el valor es > 0, se vuelve navegable:
+ * KPI del dashboard. Si recibe `href` y hay algo que mirar, se vuelve navegable:
  * antes informaban ("Evals vencidas: 12") sin decir cuáles (PR-2 · C2.1).
+ *
+ * `navegable` se decide con `hayQueVer` y no con `typeof valor === "number"`: los
+ * KPIs que muestran plata formateada ("1.250.000") son strings, así que la regla
+ * vieja los dejaba con un `href` inerte — sin enlace, sin flecha y sin hover.
  */
 function Kpi({
   titulo,
@@ -251,14 +276,18 @@ function Kpi({
   alerta,
   subtitulo,
   href,
+  hayQueVer,
 }: {
   titulo: string;
   valor: number | string;
   alerta?: boolean;
   subtitulo?: string;
   href?: string;
+  /** Si se omite, se infiere de que el valor numérico sea > 0. */
+  hayQueVer?: boolean;
 }) {
-  const navegable = href && typeof valor === "number" && valor > 0;
+  const navegable =
+    href && (hayQueVer ?? (typeof valor === "number" && valor > 0));
   const cuerpo = (
     <Card
       className={[

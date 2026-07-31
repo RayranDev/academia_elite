@@ -3,6 +3,15 @@ import { textoSeguro } from "@/lib/validators/sanitizar";
 
 export const ESTADOS_MEMBRESIA = ["PENDIENTE", "PAGADA", "VENCIDA"] as const;
 
+/**
+ * Estados que un humano puede elegir. `VENCIDA` NO está: se deriva de que el mes
+ * cerró sin pago (`estadoEfectivo` en `src/lib/cobranza.ts`). Dejarla en el
+ * formulario obligaba a que alguien recordara marcarla cuota por cuota, y lo que
+ * depende de la memoria de una persona está mal justo cuando hay que reclamar.
+ * El schema sigue aceptándola por compatibilidad con los datos ya guardados.
+ */
+export const ESTADOS_EDITABLES = ["PENDIENTE", "PAGADA"] as const;
+
 /** Qué se está cobrando. Una escuela no vive solo de la mensualidad. */
 export const CONCEPTOS_MEMBRESIA = [
   "MENSUALIDAD",
@@ -74,7 +83,18 @@ export const membresiaSchema = z.object({
   monto: montoOpcional,
   descuento: montoOpcional,
   estado: z.enum(ESTADOS_MEMBRESIA),
-});
+})
+  // Un descuento mayor que el monto daría un neto negativo que después se suma
+  // al total de la cobranza: la escuela le estaría "debiendo" a la familia.
+  .refine((v) => v.descuento == null || v.monto == null || v.descuento <= v.monto, {
+    error: "El descuento no puede superar el monto.",
+    path: ["descuento"],
+  })
+  // Un descuento sin monto no significa nada y esconde una carga a medias.
+  .refine((v) => v.descuento == null || v.monto != null, {
+    error: "Para aplicar un descuento hay que indicar el monto.",
+    path: ["descuento"],
+  });
 
 export type MembresiaInput = z.infer<typeof membresiaSchema>;
 
