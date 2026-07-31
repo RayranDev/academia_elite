@@ -22,7 +22,10 @@ export const MEDIOS_PAGO = [
   "OTRO",
 ] as const;
 
-export const ETIQUETA_CONCEPTO: Record<string, string> = {
+// Tipados contra la unión y no como `Record<string, string>`: así, al agregar un
+// concepto o un medio de pago, TypeScript avisa que falta su etiqueta en vez de
+// dejar que cada punto de uso lo tape con un `?? valor`.
+export const ETIQUETA_CONCEPTO: Record<(typeof CONCEPTOS_MEMBRESIA)[number], string> = {
   MENSUALIDAD: "Mensualidad",
   MATRICULA: "Matrícula",
   INDUMENTARIA: "Indumentaria",
@@ -30,6 +33,29 @@ export const ETIQUETA_CONCEPTO: Record<string, string> = {
   TRANSPORTE: "Transporte",
   OTRO: "Otro",
 };
+
+export const ETIQUETA_ESTADO: Record<(typeof ESTADOS_MEMBRESIA)[number], string> = {
+  PENDIENTE: "Pendiente",
+  PAGADA: "Pagada",
+  VENCIDA: "Vencida",
+};
+
+export const ETIQUETA_MEDIO_PAGO: Record<(typeof MEDIOS_PAGO)[number], string> = {
+  EFECTIVO: "Efectivo",
+  TRANSFERENCIA: "Transferencia",
+  NEQUI: "Nequi",
+  DAVIPLATA: "Daviplata",
+  OTRO: "Otro",
+};
+
+// Los DTOs traen estos campos como `string` (vienen de la base, que podría tener
+// cualquier valor viejo), así que la búsqueda cae al crudo si no hay etiqueta. La
+// exhaustividad se gana arriba, al declarar el registro; acá solo se consume.
+const etiquetar = (mapa: Record<string, string>, valor: string) => mapa[valor] ?? valor;
+
+export const etiquetaConcepto = (v: string) => etiquetar(ETIQUETA_CONCEPTO, v);
+export const etiquetaEstado = (v: string) => etiquetar(ETIQUETA_ESTADO, v);
+export const etiquetaMedioPago = (v: string) => etiquetar(ETIQUETA_MEDIO_PAGO, v);
 
 /** Monto opcional venido de un `<input type="number">` (llega "" si está vacío). */
 const montoOpcional = z

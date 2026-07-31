@@ -303,3 +303,57 @@ cada adaptación, regla 0.8.)
     Ley 1581/2012 y Decreto 1377/2013, con foco en datos de menores y fotos, +
     checklist de cumplimiento. Requiere revisión legal y completar datos del
     Responsable.
+
+## Giro a ERP — cobranza (2026-07-31)
+
+49. **El producto se posiciona como ERP de escuelas de fútbol.** La carta
+    gamificada pasa a ser el diferencial, no el centro: es el anzuelo de la
+    familia, mientras que la administración es lo que el dueño de la escuela
+    compra. Consecuencia directa: **"pagos/facturación" deja de estar fuera de
+    alcance** (estaba así en `PENDIENTES.md`) y la cobranza pasa al frente de la
+    fila. Mercado objetivo: **Colombia** — coherente con la Ley 1581 ya citada en
+    el schema, con `parentescoAcudiente` y con el UTC-5 de `FechaLocal`.
+50. **El dinero se guarda en `Decimal`, nunca en `Float`.** En punto flotante
+    `0.1 + 0.2 !== 0.3`; una cobranza que arrastra ese error termina en
+    diferencias de centavos que nadie puede explicar. `Membresia.monto` y
+    `Arancel.monto` son `Decimal(12,2)`. El `Decimal` de Prisma **no sale hacia
+    la UI**: se convierte a `number` en el mapper del servicio (DTOs planos). La
+    conversión decide la ausencia sobre el valor original y no sobre el
+    convertido, porque un monto de 0 (beca total) es legítimo y `0` es falsy.
+51. **Un pago se registra, no se marca.** `estado = PAGADA` sin cuándo, cómo ni
+    comprobante no es auditable ni sirve para conciliar contra el banco. Marcar
+    pagada exige un paso extra (`pagadaEn`, `medioPago`, `referenciaPago`); al
+    salir de PAGADA esos campos se limpian para no dejar un comprobante colgado
+    de una cuota que ya no está paga.
+52. **El unique de `Membresia` incluye el concepto.** Una escuela cobra
+    mensualidad, matrícula, indumentaria, torneos y transporte. Sin el concepto en
+    la clave, agregar el campo habría sido decorativo.
+53. **La lista de precios guarda historial, no un valor único.** `Arancel` NO
+    lleva unique por (categoría, concepto): varias filas con distinto
+    `vigenteDesde` son la historia de precios de la escuela. `resolverArancel`
+    (puro, en `src/lib/aranceles.ts`) elige el precio de la categoría sobre el
+    general y, dentro del mismo alcance, el más reciente **ya vigente** — así un
+    aumento se puede dejar programado con fecha futura sin que se aplique antes.
+54. **La generación masiva usa `createMany({ skipDuplicates })`, no un upsert.**
+    Un upsert pisaría el monto y el estado de una cuota ya cobrada. Delegar el
+    filtrado al unique de la base hace la operación idempotente por construcción y
+    elimina la ventana de carrera entre "consultar qué falta" y "crear". Los
+    jugadores sin precio vigente reciben la cuota **sin monto** y se informan
+    aparte: preferible a inventar un número o a dejarlos fuera de la cobranza.
+55. **El estado de cuenta se DERIVA de las cuotas; no hay `vigenciaHasta`
+    manual.** Se evaluó agregar `Jugador.vigenciaHasta` cargado a mano y se
+    descartó: creaba una segunda fuente de verdad que después habría que
+    reconciliar con `Membresia`, y mudaba la carga de datos del DT al
+    administrador en vez de eliminarla. En un ERP la situación del jugador se
+    calcula desde su situación administrativa.
+56. **El countdown 3-2-1 al iniciar sesión queda cortado.** El problema declarado
+    era "el Modo Sesión se siente como carga de datos"; una animación lo decora en
+    vez de resolverlo, suma tres segundos a cada arranque con el grupo esperando, y
+    abre un modo de falla real: si el DT navega o cierra durante la cuenta,
+    `sesionIniciadaAt` nunca se fija y la sesión queda sin arrancar.
+57. **Los puntos de sesión que mueven la carta quedan bloqueados hasta resolver la
+    tesis.** `ESTADO-DEL-PROYECTO.md` §0 afirma que "las cartas solo cambian
+    cuando hay una evaluación nueva" y que "el progreso se gana midiéndose".
+    Dejar que el DT ajuste la carta con taps contradice eso. Puede ser la decisión
+    correcta, pero tiene que decidirse acá y de frente — no colarse como efecto
+    lateral de un track de UX. Sin esa entrada, no se construye.

@@ -27,6 +27,9 @@ export async function crearArancelAction(
     }
     await crearArancelEscuela(ctx, parsed.data);
     revalidatePath("/escuela/aranceles");
+    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
+    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
+    revalidatePath("/escuela/membresias");
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -45,6 +48,9 @@ export async function desactivarArancelAction(
     }
     await desactivarArancelEscuela(ctx, id);
     revalidatePath("/escuela/aranceles");
+    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
+    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
+    revalidatePath("/escuela/membresias");
     return { ok: true };
   } catch (e) {
     return mapError(e);

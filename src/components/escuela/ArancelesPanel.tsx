@@ -8,7 +8,7 @@ import {
 } from "@/actions/arancel.actions";
 import {
   CONCEPTOS_MEMBRESIA,
-  ETIQUETA_CONCEPTO,
+  etiquetaConcepto,
 } from "@/lib/validators/membresia";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -59,7 +59,7 @@ export function ArancelesPanel({
             </label>
             <select id="concepto" name="concepto" defaultValue="MENSUALIDAD" className={input}>
               {CONCEPTOS_MEMBRESIA.map((c) => (
-                <option key={c} value={c}>{ETIQUETA_CONCEPTO[c] ?? c}</option>
+                <option key={c} value={c}>{etiquetaConcepto(c)}</option>
               ))}
             </select>
           </div>
@@ -124,7 +124,7 @@ export function ArancelesPanel({
                 <tr key={a.id} className="border-b border-subtle/50">
                   <td className="px-4 py-2">{a.categoriaNombre}</td>
                   <td className="px-4 py-2 text-muted">
-                    {ETIQUETA_CONCEPTO[a.concepto] ?? a.concepto}
+                    {etiquetaConcepto(a.concepto)}
                   </td>
                   <td className="px-4 py-2 tabular">{a.monto}</td>
                   <td className="px-4 py-2 text-muted">

@@ -8,7 +8,7 @@
 > Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
 > Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Última actualización: 2026-07-30.
+> Última actualización: 2026-07-31.
 
 ---
 
@@ -20,6 +20,7 @@
 | **Backups / PITR** | Chico (config) | Verificar que estén activos en Supabase. Sin esto, un borrado accidental es irreversible. |
 | **Observabilidad** | Media | Hoy solo hay logs de runtime de Vercel + el `digest` del error boundary. Sentry quedó descartado por incompatibilidad con Next 16 + Turbopack **y** por ser un procesador externo que recibiría PII de menores (requiere pasar por Habeas Data primero). Reevaluar cuando el SDK madure. |
 | **`build` y `e2e` en CI** | Media | El workflow corre typecheck/lint/test. Sumar build y E2E exige un proyecto Supabase dedicado a CI con sus secretos. |
+| **El guardián de tenant no cubre `create`/`createMany`** | Chico → Medio | `tests/unit/aislamiento-tenant.test.ts` arma su regex desde `METODOS`, que no incluye los creates. Hoy todo el código pasa `escuelaId` correctamente, pero **el próximo `create` que lo olvide no lo detecta nadie** — y escribir filas en el tenant equivocado es peor que filtrar una lectura. Ojo al hacerlo: un create no tiene `where`, así que hay que mirar el bloque `data`, y varios creates existentes lo pasan opaco (`progresoSemanal`, `notificacion`, `jugadorConvocado`) — habrá que anotarlos o desglosarlos. PR propio. |
 
 ## 🟢 Mejoras acotadas
 
@@ -39,9 +40,43 @@ No se tocan hasta poder reproducirlos; el código no muestra el defecto.
   todo el texto hereda `textoCarta`. Hipótesis: el fondo equipado tiene
   `colorTexto = null`, o se compara con otro listado que usa tokens del tema.
 
+## 💰 ERP — cobranza y administración
+
+El producto se posiciona como **ERP de escuelas de fútbol** (`DECISIONES.md` §49).
+A.0–A.2 ya están hechos (ver hito 18 de TRAZABILIDAD): dinero en `Decimal`,
+registro de pago, aranceles y generación masiva de cuotas. Lo que sigue:
+
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **A.3 — `VENCIDA` derivada** | Chico | Hoy `VENCIDA` se sigue eligiendo a mano en el `<select>`. Debería derivarse de que el período ya pasó y la cuota no está paga: es un cálculo, no un estado que alguien recuerda cambiar. |
+| **A.4 — Estado de cuenta derivado** | Medio | `estadoCuentaJugador`: meses adeudados y monto, calculado sobre `Membresia`. Badge de deuda en `escuela/jugadores` y en la ficha del DT + KPI en el dashboard. **Sin columnas nuevas** — reemplaza la idea descartada de `Jugador.vigenciaHasta` (§55). |
+| **F — Ficha administrativa y médica** | Grande | `Jugador` no tiene documento, EPS, RH, alergias, apto médico con vencimiento, contacto de emergencia propio ni autorización de traslado. Es lo que el DT necesita cuando un chico se lesiona de visitante. **Bloqueante previo:** son datos sensibles de salud de menores (Ley 1581) — `HABEAS-DATA.md` se actualiza en el mismo PR que el schema, no después. |
+| **Descuentos con regla** | Medio | Hoy el descuento se tipea por cuota. Falta representarlo como regla (hermano, beca) para que la generación masiva lo aplique sola. |
+| **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |
+| **Staff más allá del DT** | Medio | Solo existe `Entrenador`: no hay coordinador, preparador físico ni utilero. |
+| **V — Vigencia y bloqueo automático** | Medio | Cron que bloquea vencidos y desbloquea al día, sobre A.4. **Gateado**: no se construye hasta que una escuela real haya cerrado un ciclo de cobro completo y el bloqueo manual resulte repetitivo. Mitigaciones ya diseñadas: `bloqueado: false` en el WHERE del bloqueo automático (no pisa un bloqueo manual) y `bloqueoTipo: "VIGENCIA_VENCIDA"` en el del desbloqueo (no levanta un bloqueo por comportamiento). |
+
+## 🎨 Localización a Colombia
+
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **Tuteo neutro** | Chico | ~18 archivos con voseo rioplatense; suena extranjero en una demo colombiana. Incluye `src/lib/email/plantillas.ts`, que conviene en tanda aparte (un email mal formateado no se corrige con un redeploy). |
+| **`"es-AR"` suelto** | Trivial | `src/app/escuela/page.tsx:200` es el único que quedó; el resto del código usa `"es"` genérico. Al tocarlo: varios Server Components formatean fechas en el servidor contra la regla de `AGENTS.md` §6 — deberían usar `FechaLocal` (el desfase UTC-5 se ve en los que muestran hora). |
+
+## 🚧 Bloqueado por una decisión de producto
+
+- **Puntos de sesión que mueven la carta.** Contradice la tesis documentada en
+  `ESTADO-DEL-PROYECTO.md` §0. Requiere entrada explícita en `DECISIONES.md`
+  antes de escribir código (§57). Si se aprueba, el fix previo obligatorio es
+  `statsLatest` en `src/repositories/jugador.repository.ts`, que no filtra
+  `evaluacion.anulada`.
+- **Herramientas de formación/táctica.** Diferidas a una ronda de planeamiento
+  propia; hoy sin ninguna definición.
+- **Countdown al iniciar sesión.** Cortado (§56). Si se retoma, que sea de 1
+  segundo y salteable.
+
 ## 🔮 Fuera de alcance por ahora
 
-Registrados para no re-discutirlos: **pagos/facturación** de cuotas (hoy el
-bloqueo por mora es manual), **rankings entre escuelas** (excluidos a propósito
-por privacidad de menores), **app móvil nativa** (hoy es PWA) e
+Registrados para no re-discutirlos: **rankings entre escuelas** (excluidos a
+propósito por privacidad de menores), **app móvil nativa** (hoy es PWA) e
 **internacionalización** (la app es en español).

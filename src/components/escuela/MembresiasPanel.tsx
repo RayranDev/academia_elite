@@ -10,7 +10,9 @@ import {
   ESTADOS_MEMBRESIA,
   CONCEPTOS_MEMBRESIA,
   MEDIOS_PAGO,
-  ETIQUETA_CONCEPTO,
+  etiquetaConcepto,
+  etiquetaEstado,
+  etiquetaMedioPago,
 } from "@/lib/validators/membresia";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -81,7 +83,7 @@ export function MembresiasPanel({
               className={input}
             >
               {CONCEPTOS_MEMBRESIA.map((c) => (
-                <option key={c} value={c}>{ETIQUETA_CONCEPTO[c] ?? c}</option>
+                <option key={c} value={c}>{etiquetaConcepto(c)}</option>
               ))}
             </select>
           </div>
@@ -122,7 +124,7 @@ export function MembresiasPanel({
               className={input}
             >
               {ESTADOS_MEMBRESIA.map((e) => (
-                <option key={e} value={e}>{e}</option>
+                <option key={e} value={e}>{etiquetaEstado(e)}</option>
               ))}
             </select>
           </div>
@@ -170,7 +172,7 @@ export function MembresiasPanel({
                   <td className="px-4 py-2 text-muted">{m.categoriaNombre}</td>
                   <td className="px-4 py-2 tabular">{m.periodo}</td>
                   <td className="px-4 py-2 text-muted">
-                    {ETIQUETA_CONCEPTO[m.concepto] ?? m.concepto}
+                    {etiquetaConcepto(m.concepto)}
                   </td>
                   <td className="px-4 py-2 tabular">
                     {m.monto == null ? (
@@ -187,13 +189,15 @@ export function MembresiasPanel({
                     )}
                   </td>
                   <td className="px-4 py-2">
-                    <Badge tono={TONO[m.estado] ?? "oro"}>{m.estado}</Badge>
+                    <Badge tono={TONO[m.estado] ?? "oro"}>{etiquetaEstado(m.estado)}</Badge>
                   </td>
                   <td className="px-4 py-2 text-xs text-muted">
                     {m.pagadaEn ? (
                       <>
                         <FechaLocal iso={m.pagadaEn} formato="d MMM yyyy" />
-                        {m.medioPago && <span className="ml-1">· {m.medioPago}</span>}
+                        {m.medioPago && (
+                          <span className="ml-1">· {etiquetaMedioPago(m.medioPago)}</span>
+                        )}
                         {m.referenciaPago && (
                           <span className="ml-1 opacity-70">
                             #{m.referenciaPago}
@@ -345,7 +349,7 @@ function CambiarEstado({
             className="rounded-lg border border-subtle bg-surface-2 px-2 py-1 text-xs outline-none focus:border-brand"
           >
             {MEDIOS_PAGO.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>{etiquetaMedioPago(m)}</option>
             ))}
           </select>
           <input
@@ -392,7 +396,7 @@ function CambiarEstado({
         className="rounded-lg border border-subtle bg-surface-2 px-2 py-1 text-xs outline-none focus:border-brand"
       >
         {ESTADOS_MEMBRESIA.map((e) => (
-          <option key={e} value={e}>{e}</option>
+          <option key={e} value={e}>{etiquetaEstado(e)}</option>
         ))}
       </select>
       {error && <p className="text-xs text-alerta" role="alert">{error}</p>}

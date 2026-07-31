@@ -41,6 +41,7 @@
 | 15 | Academia Elite — escuela demo curada | 2026-07-24 | ✅ |
 | 16 | Red de seguridad — CI/CD y error boundaries | 2026-07-24 | ✅ |
 | 17 | Ronda `mejoras.pdf`: onboarding, Apartado Eventos, Entrenamiento dinámico, notificaciones, endurecimiento de validación | 2026-07-25 → 2026-07-29 | ✅ |
+| 18 | Giro a ERP — cobranza: dinero en `Decimal`, registro de pago, aranceles y generación masiva de cuotas | 2026-07-31 | ✅ (A.0–A.2) |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -423,6 +424,70 @@ por tema (commits en `main`, orden cronológico dentro de cada uno):
   validaba que la categoría elegida por un `ESCUELA_ADMIN` perteneciera a su
   propia escuela (el DT sí tenía ese chequeo) — un cruce de tenant real,
   corregido.
+
+---
+
+## 18. Giro a ERP — cobranza (2026-07-31)
+
+Reorientación del producto: **Academia Elite pasa a posicionarse como el ERP de
+las escuelas de fútbol**, con la carta gamificada como diferencial y no como
+centro. La carta es el anzuelo de la familia; la administración es lo que el
+dueño de la escuela compra. El plan anterior ("Modo Sesión de alto valor") tenía
+3 de 4 tracks en experiencia DT/jugador; se reordenó poniendo la cobranza
+primero. Mercado objetivo confirmado: **Colombia**.
+
+**Diagnóstico que motivó el giro.** El módulo de dinero era `Membresia` con 6
+campos y nada más: sin lista de precios, sin fecha/medio/comprobante de pago, y
+con las cuotas cargadas **de a una** por formulario — 150 altas manuales por mes
+para una escuela de 150 chicos.
+
+**A.0 — Saneamiento del modelo de dinero** (migración `membresia_cobranza`)
+- `Membresia.monto`: `Float` → `Decimal(12,2)`. La plata no se guarda en punto
+  flotante. Se hizo con 15 filas en producción, cuando el cast era trivial.
+- Campos nuevos: `pagadaEn`, `medioPago` (EFECTIVO/TRANSFERENCIA/NEQUI/
+  DAVIPLATA/OTRO), `referenciaPago`, `descuento` (becas, hermanos) y `concepto`.
+- El unique pasa de `(escuelaId, jugadorId, periodo)` a incluir `concepto`: una
+  escuela cobra matrícula, indumentaria y torneos, no solo la mensualidad. Las
+  filas existentes quedaron en `MENSUALIDAD`, así que la tupla ampliada siguió
+  siendo única.
+- `Decimal` de Prisma **nunca** sale hacia la UI: se convierte en el mapper del
+  servicio. La conversión decide la ausencia sobre el valor original, no sobre el
+  convertido — un monto de 0 (beca total) es legítimo y `0` es falsy.
+- Marcar PAGADA abre un paso para medio + comprobante en vez de aplicarse de una;
+  el export de cobranza suma **neto** (monto − descuento), no precio de lista.
+
+**A.1 — Lista de precios** (migración `arancel`)
+- Modelo `Arancel`: precio por categoría y concepto, con `vigenteDesde` y baja
+  lógica. **Sin unique por (categoría, concepto) a propósito**: varias filas con
+  distinta fecha son el historial de precios.
+- `src/lib/aranceles.ts` — `resolverArancel` puro y testeado: gana el precio de
+  la categoría sobre el general (`categoriaId = null`), y dentro del mismo
+  alcance el `vigenteDesde` más reciente **ya vigente** (un aumento con fecha
+  futura queda programado y no se aplica hasta entonces).
+- Pantalla `/escuela/aranceles`, enlazada desde Membresías.
+
+**A.2 — Generación masiva de la cobranza del mes**
+- `generarCuotasDelPeriodo`: emite la cuota de todos los jugadores `ACTIVO` de un
+  click. Un solo query de precios y resolución en memoria — no una consulta por
+  categoría.
+- Usa `createMany({ skipDuplicates })` y **no** un upsert: un upsert pisaría el
+  monto y el estado de una cuota ya pagada. El unique hace el filtrado en la
+  base, así que no hay ventana de carrera entre "ver qué falta" y "crear".
+- Los jugadores sin precio vigente reciben la cuota **sin monto** y se informan
+  aparte: preferible a inventar un número o a dejarlos fuera de la cobranza.
+- La UI devuelve el detalle real ("137 creadas, 13 ya existían, 2 sin monto"), no
+  un "listo" opaco sobre una operación que toca cientos de filas.
+
+**Verificación.** `typecheck`/`lint` limpios, **215 tests** en verde (19 nuevos:
+validadores de cobranza y resolución de precios). Smoke de idempotencia contra la
+base real dentro de una transacción con `ROLLBACK`: 13 creadas en la primera
+corrida, **0 en la segunda**, y una cuota marcada PAGADA sobrevivió a la
+regeneración con su estado y su monto intactos.
+
+**Decisiones de producto tomadas en esta ronda** (detalle en `DECISIONES.md`):
+countdown de sesión **cortado**; `Jugador.vigenciaHasta` manual **descartado** en
+favor de estado de cuenta derivado; Track P (puntos en sesión) bloqueado hasta
+resolver la contradicción con la tesis de la carta.
 
 ---
 

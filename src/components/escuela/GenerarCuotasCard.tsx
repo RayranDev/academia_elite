@@ -6,7 +6,7 @@ import Link from "next/link";
 import { generarCuotasAction } from "@/actions/membresia.actions";
 import {
   CONCEPTOS_MEMBRESIA,
-  ETIQUETA_CONCEPTO,
+  etiquetaConcepto,
 } from "@/lib/validators/membresia";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -101,7 +101,7 @@ export function GenerarCuotasCard({ hayAranceles }: { hayAranceles: boolean }) {
             className={input}
           >
             {CONCEPTOS_MEMBRESIA.map((c) => (
-              <option key={c} value={c}>{ETIQUETA_CONCEPTO[c] ?? c}</option>
+              <option key={c} value={c}>{etiquetaConcepto(c)}</option>
             ))}
           </select>
         </div>
