@@ -1,7 +1,7 @@
 # Fútbol Career Mode — Estado del proyecto
 
 Documento **de contexto**: la visión, el stack, la arquitectura y el estado
-actual. Última actualización: **2026-07-24**.
+actual. Última actualización: **2026-07-31**.
 
 > Para el **historial** de lo hecho → [TRAZABILIDAD.md](TRAZABILIDAD.md).
 > Para lo que **falta** → [PENDIENTES.md](PENDIENTES.md).
@@ -29,10 +29,16 @@ ve solo lo suyo.
 ## 1. Resumen ejecutivo
 
 - **Estado:** **en producción** en Vercel, sobre Supabase PostgreSQL.
-- **Calidad:** `typecheck` + `lint` limpios · **171 tests unitarios** · **6 specs
+- **Posicionamiento:** **ERP de escuelas de fútbol**, con la carta gamificada como
+  diferencial y no como centro. La carta engancha a la familia; la administración
+  es lo que el dueño de la escuela compra (`DECISIONES.md` §49).
+- **Mercado objetivo:** **Colombia** (Ley 1581 de habeas data, EPS, "acudiente").
+  Queda pendiente pasar el copy de voseo rioplatense a tuteo neutro.
+- **Calidad:** `typecheck` + `lint` limpios · **248 tests unitarios** · **6 specs
   E2E** (10 tests, Playwright) en verde · CI en cada push/PR.
 - **Datos:** Supabase PostgreSQL (pooler en runtime, conexión directa para
-  migraciones) + Supabase Storage para fotos, con RLS habilitado.
+  migraciones) + Supabase Storage para fotos, con **RLS habilitado en todas las
+  tablas** del esquema `public`.
 - **Riesgo abierto principal:** Auth.js sigue en **v5 beta** y falta observabilidad
   real (ver [PENDIENTES.md](PENDIENTES.md)).
 
@@ -85,18 +91,38 @@ app | components  →  actions  →  services  →  repositories  →  prisma
 - **Motor de stats puro** (`src/lib/stats-engine`): mismas entradas → mismas
   salidas, sin Prisma ni React. Reutilizado por evaluaciones y simulador.
 
-### Modelos de datos (30)
+### Modelos de datos (36)
 
-Escuela, Sede, Cancha, Categoría, Entrenador, User, Jugador, CódigoInvitación,
-Evaluación, StatsCalculados, Evento, JugadorConvocado, Asistencia, Conversación,
-Mensaje, Anuncio, Notificación, Lead, AuditLog, ObjetivoJugador, Logro,
-LogroEscuela, LogroJugador, ProgresoSemanal, ParametroFormula, ParametroEscuela,
-FondoCarta, FondoDesbloqueado, etc.
+| Dominio | Modelos |
+|---|---|
+| Identidad y acceso | `User`, `TokenAuth`, `SoporteSesion` |
+| Estructura de la escuela | `Escuela`, `Sede`, `Cancha`, `Categoria`, `Entrenador`, `EntrenadorCategoria` |
+| Jugadores | `Jugador`, `CodigoInvitacion`, `ObjetivoJugador`, `ObservacionJugador` |
+| Motor de cartas | `Evaluacion`, `StatsCalculados`, `ParametroFormula`, `ParametroEscuela` |
+| Calendario y cancha | `Evento`, `JugadorConvocado`, `Asistencia`, `EstadisticaPartido` |
+| Progreso y méritos | `ProgresoSemanal`, `Logro`, `LogroEscuela`, `LogroJugador`, `FondoCarta`, `FondoDesbloqueado` |
+| Comunicación | `Conversacion`, `Mensaje`, `Anuncio`, `Notificacion` |
+| **Administración / ERP** | **`Membresia`, `Arancel`** |
+| Comercial y auditoría | `Lead`, `LeadNota`, `AuditLog` |
 
-### Migraciones (7)
+### Migraciones (12)
 
-`init` → `avatar_config` → `progreso_semanal` → `gestion_bloqueo_logros` →
-`parametro_escuela` → `fondos_carta` → `codigo_jugador`.
+`init` → `token_cambio_email` → `terminos_aceptacion` → `enable_rls` →
+`modos_sesion_asistencia_viva` → `enable_rls_observacion` →
+`contactos_telefono_parentesco` → `partido_periodos` →
+`anuncio_autor_caducidad` → `estadistica_tarjeta_azul` →
+`membresia_cobranza` → `arancel`.
+
+> Las migraciones que **crean tablas** llevan el bloque idempotente de
+> re-habilitación de RLS (patrón de `enable_rls_observacion`): en Supabase una
+> tabla nueva no hereda RLS y nacería expuesta a la Data API.
+
+### Trabajos programados (`vercel.json`)
+
+| Cron | Horario (UTC) | Qué hace |
+|---|---|---|
+| `/api/cron/men-diario` | 06:00 | Recalcula el bonus de MEN por asistencia (curva de desarrollo). Idempotente. |
+| `/api/cron/limpiar-notificaciones` | 06:30 | Borra notificaciones leídas de más de 7 días. |
 
 ---
 
@@ -126,13 +152,55 @@ FondoCarta, FondoDesbloqueado, etc.
   contraseña; **eliminación lógica** (solo SA) y restaurar.
 - **Importación masiva por Excel (.xlsx)** con plantilla por escuela.
 - **Métricas configurables por escuela** (override de rangos y umbrales).
+- **Cobranza (el módulo ERP):**
+  - **Lista de precios** (`/escuela/aranceles`) por categoría y concepto
+    (mensualidad, matrícula, indumentaria, torneo, transporte), con vigencia
+    programable e historial: el precio de la categoría gana sobre el general y,
+    dentro del mismo alcance, el más reciente ya vigente.
+  - **Generación de la cobranza del mes de un click** para todos los jugadores
+    activos. Idempotente: repetirla no toca las cuotas existentes ni pisa un pago.
+  - **Registro real del pago**: fecha, medio (efectivo, transferencia, Nequi,
+    Daviplata) y comprobante. Descuentos por beca o hermano.
+  - **Estado y deuda derivados**: una cuota pendiente de un mes cerrado se marca
+    vencida sola; el dashboard muestra monto vencido y jugadores en mora.
+  - Export de cobranza a Excel con neto y total.
+
+### Súper Admin — acceso a un tenant
+- El SUPER_ADMIN **no** tiene acceso ambiental a los datos de una escuela: entra
+  por una **sesión de soporte** (`SoporteSesion`) explícita, temporal y auditada.
+  Nace en solo lectura; escribir requiere habilitarla y exige un motivo que va al
+  `AuditLog`.
 
 ### DT (Director Técnico)
 - Plantilla con filtros por categoría; solicitudes; evaluaciones (carta "nace").
 - Calendario y eventos (entrenos/partidos), convocatorias, asistencia,
   resultados → noticias.
+- **Modo Sesión**: corre el entrenamiento o el partido como flujo guiado en
+  cancha — asistencia viva, observaciones por jugador, y en partido los períodos,
+  goles y tarjetas (`EstadisticaPartido`).
 - Logros: configurar ventanas y **otorgar**; credenciales/reset de familias.
 - **Validación masiva del progreso** semanal de sus jugadores.
+
+### Curva de desarrollo (progreso entre evaluaciones)
+Está **construida y corriendo en producción** (`src/lib/curva.ts`,
+`curva.service.ts`, cron `men-diario`). Diseño conceptual en
+[CURVA-DE-DESARROLLO.md](CURVA-DE-DESARROLLO.md).
+
+- La asistencia real mueve el **MEN** día a día: **+0.6** por entrenamiento y
+  **+1.2** por partido, con tope de **+12** y penalización de −1.5 por ausencia a
+  partir de la tercera.
+- Ventana móvil de 30 días **recalculada desde cero**: idempotente (el cron puede
+  correr varias veces sin desviar) y recuperable (las ausencias envejecen y salen).
+- El hub del jugador aplica el bonus **en vivo** sobre la carta y recalcula el
+  OVR. Ranking, exports y evolución histórica siguen usando el OVR **medido**, así
+  que la comparabilidad no se rompe.
+- **Los stats físicos y técnicos (RIT, TIR, PAS, REG, DEF, FIS) solo cambian con
+  una evaluación real.** Es la tesis del producto: un Oro inflado por tiempo no
+  vale lo que un Oro medido.
+- Lo que **falta**: hoy cuenta la presencia, no el rendimiento —
+  `EstadisticaPartido` (goles, asistencias, minutos) no alimenta la curva, así que
+  un jugador que marca tres goles suma lo mismo que uno que fue y no jugó. Ver
+  [PENDIENTES.md](PENDIENTES.md).
 
 ### Jugador / Familia
 - Hub estilo "Modo Carrera": carta premium (foil/reflejos/bisel), evolución,
@@ -157,11 +225,23 @@ FondoCarta, FondoDesbloqueado, etc.
 ## 5. Qué NO tiene todavía ❌
 
 El detalle vive en **[PENDIENTES.md](PENDIENTES.md)** (con tamaño y razón). En
-titulares: la **decisión de Auth** (sigue en v5 beta), **observabilidad** real,
-la **estructura del partido** (tiempos, alargue, penales) y la **tarjeta azul**.
+titulares:
 
-Fuera de alcance a propósito: **pagos/facturación**, **rankings entre escuelas**
-(privacidad de menores), **app nativa** e **internacionalización**.
+- **Riesgo**: la **decisión de Auth** (sigue en v5 beta) y **observabilidad** real.
+- **ERP**: ficha administrativa y médica del jugador (documento, EPS, RH,
+  alergias, apto médico, contacto de emergencia), descuentos como regla, caja y
+  egresos, staff más allá del DT.
+- **Progresión**: conectar el rendimiento en partido a la curva y una vista de
+  seguimiento para el DT.
+- **Localización**: pasar el copy de voseo a tuteo neutro para Colombia.
+
+Fuera de alcance a propósito: **rankings entre escuelas** (privacidad de menores),
+**app nativa** e **internacionalización**.
+
+> **Cambio de alcance (2026-07-31):** "pagos/facturación" **dejó de estar fuera
+> de alcance**. Con el giro a ERP la cobranza pasó al frente de la fila y su
+> primer tramo ya está construido (`DECISIONES.md` §49, hito 18 de
+> `TRAZABILIDAD.md`).
 
 ---
 
@@ -215,8 +295,25 @@ Encuadre de la foto (cabeza completa) · reactividad al cambiar foto
 prueba fondos/avatares/fotos. *(91 unit / 8 E2E)* — ver
 [TRAZABILIDAD.md](TRAZABILIDAD.md).
 
-### Próximo — Sprint 8 (producción)
-Despliegue, Postgres/Supabase + RLS, Upstash, emails/WhatsApp reales (ver §5).
+### Sprint 8 — Producción (✅)
+Despliegue en Vercel, migración a Supabase PostgreSQL con **RLS**, rate limiting
+distribuido con **Upstash Redis** (con fallback en memoria para dev/E2E) y correo
+transaccional real con **Resend**. E2E en verde sobre Postgres.
+
+### Ronda `mejoras.pdf` (✅)
+Onboarding, Apartado Eventos, Entrenamiento dinámico, notificaciones in-app y
+endurecimiento de validación (`textoSeguro` en todos los campos de texto libre).
+
+### Giro a ERP — cobranza (✅ primer tramo, 2026-07-31)
+Reorientación del producto (§1). Dinero en `Decimal`, registro real del pago,
+lista de precios por categoría, generación masiva de la cobranza del mes, y
+estado/deuda derivados. Detalle en el hito 18 de
+[TRAZABILIDAD.md](TRAZABILIDAD.md).
+
+### Próximo
+Cerrar el módulo administrativo (ficha del jugador, descuentos como regla, caja)
+y conectar el rendimiento en partido a la curva de desarrollo. Ver
+[PENDIENTES.md](PENDIENTES.md).
 
 ---
 

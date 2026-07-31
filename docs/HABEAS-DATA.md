@@ -1,7 +1,7 @@
 # Política de Tratamiento de Datos Personales y Habeas Data
 
 **Plataforma:** Academia Elite — Fútbol Career Mode
-**Última actualización:** 2026-06-12 · **Versión:** 1.0 (borrador)
+**Última actualización:** 2026-07-31 · **Versión:** 1.0 (borrador)
 
 > ⚠️ **AVISO LEGAL.** Este documento es un **borrador técnico** preparado por el
 > equipo de desarrollo conforme a la **Ley 1581 de 2012**, el **Decreto 1377 de
@@ -177,7 +177,7 @@ canales habituales.
 
 | Requisito | Estado | Dónde |
 |---|---|---|
-| Autorización en el registro (aceptar política) | ⛔ **Pendiente** (añadir checkbox de aceptación en `/registro`) | `registro` |
+| Autorización en el registro (aceptar política) | ✅ Implementado — se conserva **fecha y versión** de la política aceptada (`User.terminosAceptadosEn`, `terminosVersion`), como exige el art. 6 | `AceptarTerminos`, `registro.service`, `lib/legal` |
 | Consentimiento específico para foto de menor | ✅ Implementado (otorgar/revocar) | `FotoConsentimiento` |
 | Foto no pública + EXIF strip + acceso controlado | ✅ Implementado | `foto.service`, `process.ts` |
 | Revocación oculta la foto al instante | ✅ Implementado | `actualizarConsentimiento` |
@@ -185,9 +185,10 @@ canales habituales.
 | Registro de auditoría | ✅ Implementado | `AuditLog` |
 | Aislamiento multi-tenant | ✅ Implementado | guards/servicios |
 | Validación anti-XSS / anti-inyección | ✅ Implementado | `validators/sanitizar`, `xlsx.protegerCelda` |
-| Cifrado en reposo de fotos | ⛔ **Pendiente (Fase 2)** | — |
-| RLS en BD gestionada | ⛔ **Pendiente (Fase 2)** | — |
-| Política publicada y enlazada en la web | ⛔ **Pendiente** (enlazar en footer/registro) | `Footer`, `/registro` |
+| Cifrado en reposo de fotos | ✅ Cubierto por el cifrado en reposo de Supabase Storage (bucket **privado**); no hay cifrado adicional a nivel de aplicación | Supabase Storage |
+| RLS en BD gestionada | ✅ Implementado — habilitado en **todas** las tablas del esquema `public`; las migraciones que crean tablas reaplican el bloque | `enable_rls`, `enable_rls_observacion` |
+| Política publicada y enlazada en la web | ✅ Implementado — `/legal` con versión visible, enlazada desde el footer y desde el registro | `Footer`, `AceptarTerminos`, `/legal` |
+| Datos sensibles de salud (EPS, RH, alergias) | ⚪ **No aplica todavía** — no se recogen. Si se agrega la ficha médica, exige autorización específica y este documento se actualiza **en el mismo PR** que el schema | ver `PENDIENTES.md` |
 
 ## Anexo B — Texto sugerido de autorización (registro)
 

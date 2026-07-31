@@ -51,13 +51,43 @@ equipo y viven en [ACADEMIA-ELITE-DEMO.md](ACADEMIA-ELITE-DEMO.md), no acá.
    verde/ámbar/rojo) + exportar.
 7. **Ranking**: top OVR y goleadores de la escuela + descargar resultados
    (partidos y estadística individual).
-8. **Membresías**: cuotas por jugador y período (pagada/pendiente/vencida) +
-   descargar cobranza. El bloqueo de acceso por mora se gestiona desde la
-   ficha del jugador, no acá.
-9. **Códigos**: genera códigos de invitación por categoría (usos + caducidad)
-   y compártelos con las familias.
-10. **Anuncios**: publica anuncios globales o por categoría; marca "mostrar al
+8. **Precios** (`/escuela/aranceles`): tu lista de precios. Cargá un monto por
+   **categoría** y **concepto** (mensualidad, matrícula, indumentaria, torneo,
+   transporte). Reglas útiles:
+   - El precio de una categoría **gana** sobre el general ("todas las
+     categorías"), así que podés tener un precio base y excepciones.
+   - Si dejás la fecha vacía rige desde hoy. Si ponés una **fecha futura**, el
+     aumento queda **programado** y no se aplica hasta entonces — podés cargar en
+     enero el precio que arranca en marzo.
+   - Los precios viejos no se borran: quedan como **historial**.
+9. **Membresías**: la cobranza.
+   - **"Generar cuotas del mes"** crea la cuota de **todos los jugadores
+     activos** de un click, con el precio que corresponde a cada categoría. Podés
+     repetirlo sin miedo: **las cuotas que ya existen no se tocan**, así que
+     nunca pisa un pago ya registrado. Te dice exactamente qué pasó ("137
+     creadas, 13 ya existían").
+   - Si una categoría no tiene precio cargado, esas cuotas se crean **sin monto**
+     y te avisa cuántas, para que las completes a mano.
+   - **Marcar pagada** pide el **medio** (efectivo, transferencia, Nequi,
+     Daviplata) y el **comprobante**. Sin eso después no hay forma de conciliar
+     contra el banco ni de responder un reclamo.
+   - **"Vencida" no se elige a mano**: una cuota pendiente se marca vencida sola
+     cuando el mes cierra sin pago.
+   - El **descuento** (beca, hermano) se resta del monto; el total y el export
+     usan el **neto**.
+   - Los filtros de arriba y los enlaces del dashboard te llevan directo a las
+     vencidas o pendientes.
+   - El bloqueo de acceso por mora se gestiona desde la **ficha del jugador**,
+     no acá: la app te muestra la deuda, pero **no bloquea sola**.
+10. **Códigos**: genera códigos de invitación por categoría (usos + caducidad)
+    y compártelos con las familias.
+11. **Anuncios**: publica anuncios globales o por categoría; marca "mostrar al
     jugador" para que aparezcan como noticia del club.
+
+> **El dashboard** (`/escuela`) resume las dos mitades: arriba lo deportivo
+> (jugadores activos, OVR promedio, evaluaciones vencidas, asistencia) y abajo la
+> **administración** — cuotas al día, pendientes, vencidas, **monto vencido** y
+> familias bloqueadas. Los números con flecha son enlaces al listado filtrado.
 
 ## 3. DT / Entrenador (`/dt`)
 
@@ -125,6 +155,18 @@ equipo y viven en [ACADEMIA-ELITE-DEMO.md](ACADEMIA-ELITE-DEMO.md), no acá.
 
 - **¿Por qué la carta no cambió tras un logro?** Los bonus se aplican en la
   siguiente evaluación, con un máximo acumulado (+3 por defecto).
+- **¿La carta se mueve entre evaluaciones?** Sí, por el **sello MEN**: cada
+  entrenamiento al que tu hijo/a asiste suma, y cada partido suma más. Eso
+  recalcula el OVR del hub todos los días. Si falta seguido, baja — pero se
+  recupera volviendo. Lo que **no** se mueve sin una medición real son los stats
+  físicos y técnicos (RIT, TIR, PAS, REG, DEF, FIS): esos solo cambian cuando el
+  DT vuelve a medir. Es a propósito, y es lo que hace que el OVR signifique algo.
+- **¿Puedo repetir "Generar cuotas del mes"?** Sí, sin riesgo: las que ya existen
+  no se modifican. Sirve justamente para completar el mes cuando entró un jugador
+  nuevo después de la primera corrida.
+- **Marqué una cuota como pagada por error.** Cambiala a pendiente: al salir de
+  "pagada" se borra también el medio de pago y el comprobante, para no dejar un
+  recibo colgado de una cuota que ya no está paga.
 - **¿Por qué veo un avatar y no la foto?** Falta el consentimiento o fue
   revocado.
 - **¿Por qué no veo la estadística de un partido?** Todavía no arrancó — se

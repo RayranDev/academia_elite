@@ -43,13 +43,13 @@ No se tocan hasta poder reproducirlos; el código no muestra el defecto.
 ## 💰 ERP — cobranza y administración
 
 El producto se posiciona como **ERP de escuelas de fútbol** (`DECISIONES.md` §49).
-A.0–A.2 ya están hechos (ver hito 18 de TRAZABILIDAD): dinero en `Decimal`,
-registro de pago, aranceles y generación masiva de cuotas. Lo que sigue:
+**A.0–A.4 ya están hechos** (ver hito 18 de TRAZABILIDAD): dinero en `Decimal`,
+registro real del pago, lista de precios, generación masiva de la cobranza del
+mes, y estado/deuda derivados. Lo que sigue:
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| **A.3 — `VENCIDA` derivada** | Chico | Hoy `VENCIDA` se sigue eligiendo a mano en el `<select>`. Debería derivarse de que el período ya pasó y la cuota no está paga: es un cálculo, no un estado que alguien recuerda cambiar. |
-| **A.4 — Estado de cuenta derivado** | Medio | `estadoCuentaJugador`: meses adeudados y monto, calculado sobre `Membresia`. Badge de deuda en `escuela/jugadores` y en la ficha del DT + KPI en el dashboard. **Sin columnas nuevas** — reemplaza la idea descartada de `Jugador.vigenciaHasta` (§55). |
+| **Badge de deuda en las listas** | Chico | `estadoCuenta` ya existe y el dashboard lo usa, pero falta el badge por jugador en `escuela/jugadores` y en la ficha que ve el DT: hoy la deuda se ve en el agregado, no al lado del chico. |
 | **F — Ficha administrativa y médica** | Grande | `Jugador` no tiene documento, EPS, RH, alergias, apto médico con vencimiento, contacto de emergencia propio ni autorización de traslado. Es lo que el DT necesita cuando un chico se lesiona de visitante. **Bloqueante previo:** son datos sensibles de salud de menores (Ley 1581) — `HABEAS-DATA.md` se actualiza en el mismo PR que el schema, no después. |
 | **Descuentos con regla** | Medio | Hoy el descuento se tipea por cuota. Falta representarlo como regla (hermano, beca) para que la generación masiva lo aplique sola. |
 | **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |
@@ -61,7 +61,19 @@ registro de pago, aranceles y generación masiva de cuotas. Lo que sigue:
 | Ítem | Tamaño | Detalle |
 |---|---|---|
 | **Tuteo neutro** | Chico | ~18 archivos con voseo rioplatense; suena extranjero en una demo colombiana. Incluye `src/lib/email/plantillas.ts`, que conviene en tanda aparte (un email mal formateado no se corrige con un redeploy). |
-| **`"es-AR"` suelto** | Trivial | `src/app/escuela/page.tsx:200` es el único que quedó; el resto del código usa `"es"` genérico. Al tocarlo: varios Server Components formatean fechas en el servidor contra la regla de `AGENTS.md` §6 — deberían usar `FechaLocal` (el desfase UTC-5 se ve en los que muestran hora). |
+| **Fechas formateadas en el servidor** | Chico | Varios Server Components usan `toLocaleDateString("es")` en vez de `FechaLocal` (`dt/solicitudes`, `jugador/page`, `escuela/codigos`, `admin/auditoria`, `admin/page`). El SSR corre en UTC y Colombia es UTC-5, así que una fecha de la tarde se muestra con el día siguiente — se nota sobre todo en las que llevan hora. El `"es-AR"` suelto de `escuela/page.tsx` ya se corrigió. |
+
+## 📈 Progresión del jugador (curva de desarrollo)
+
+La etapa 1 **ya está en producción**: la asistencia mueve el MEN a diario y eso
+recalcula el OVR del hub (ver `CURVA-DE-DESARROLLO.md` §0). Lo que falta:
+
+| Ítem | Tamaño | Detalle |
+|---|---|---|
+| **Rendimiento → progreso** | Medio | Hoy la curva premia la **presencia**, no lo que pasa en la cancha: `EstadisticaPartido` (goles, asistencias, minutos, tarjetas) **no alimenta nada**, así que quien marca tres goles suma igual que quien fue y no jugó. El dato ya lo carga el DT en el Modo Sesión. **Decisiones a cerrar antes de construir** en `CURVA-DE-DESARROLLO.md` §9 etapa 2 (¿pesan los minutos, que dependen del DT y no del chico? ¿las tarjetas restan? ¿tope propio o compartido?). |
+| **Vista de seguimiento para el DT** | Medio | Nadie puede ver "este chico ganó X este mes y fue por esto". El dato existe (asistencias, bonus, histórico); falta la pantalla. Es lo que convierte la curva en herramienta de trabajo y no en un adorno del hub. |
+| **Línea de proyección** | Medio | La punteada de `CURVA-DE-DESARROLLO.md` §6: hacia dónde va el OVR con el esfuerzo acumulado. Pura visualización sobre datos que ya existen. |
+| **Pesos de la curva por escuela** | Chico | `CURVA` son constantes globales; la infra de `ParametroEscuela` ya existe. |
 
 ## 🚧 Bloqueado por una decisión de producto
 

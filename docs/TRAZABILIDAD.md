@@ -41,7 +41,8 @@
 | 15 | Academia Elite — escuela demo curada | 2026-07-24 | ✅ |
 | 16 | Red de seguridad — CI/CD y error boundaries | 2026-07-24 | ✅ |
 | 17 | Ronda `mejoras.pdf`: onboarding, Apartado Eventos, Entrenamiento dinámico, notificaciones, endurecimiento de validación | 2026-07-25 → 2026-07-29 | ✅ |
-| 18 | Giro a ERP — cobranza: dinero en `Decimal`, registro de pago, aranceles y generación masiva de cuotas | 2026-07-31 | ✅ (A.0–A.2) |
+| 18 | Giro a ERP — cobranza: dinero en `Decimal`, registro de pago, aranceles, generación masiva y deuda derivada | 2026-07-31 | ✅ (A.0–A.4) |
+| 19 | Sincronización de la documentación con el código | 2026-07-31 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -488,6 +489,39 @@ regeneración con su estado y su monto intactos.
 countdown de sesión **cortado**; `Jugador.vigenciaHasta` manual **descartado** en
 favor de estado de cuenta derivado; Track P (puntos en sesión) bloqueado hasta
 resolver la contradicción con la tesis de la carta.
+
+## 19. Sincronización de la documentación (2026-07-31)
+
+La documentación había quedado atrás del código y varios documentos afirmaban
+cosas **falsas**. Auditoría y corrección completa, contrastando cada afirmación
+contra el repo y la base:
+
+- **`CURVA-DE-DESARROLLO.md`** decía en su encabezado *"Estado: diseño /
+  propuesta (**no implementado**)"* y marcaba como "a construir" el crecimiento
+  diario y el decaimiento. **La etapa 1 estaba construida y corriendo en
+  producción** (`src/lib/curva.ts`, `curva.service.ts`, cron `men-diario`). Se
+  reescribió con una tabla de estado real por pieza, los parámetros vigentes, las
+  decisiones que quedaron cerradas y las que faltan cerrar para la etapa 2.
+- **`HABEAS-DATA.md`** — el peor lugar para una afirmación falsa. Su checklist
+  daba por **pendientes** la autorización en el registro, la política publicada y
+  **RLS**, las tres ya implementadas (`User.terminosAceptadosEn` + `terminosVersion`,
+  `/legal` enlazada desde el footer y el registro, RLS en todas las tablas).
+- **`SEGURIDAD.md`** listaba RLS, Upstash y los emails transaccionales como
+  "pendiente Fase 2" cuando los tres están en producción desde el Sprint 8;
+  seguía diciendo "carga masiva por CSV" (es XLSX desde M.1) y no mencionaba la
+  cobranza, el Modo Sesión ni las sesiones de soporte del SUPER_ADMIN.
+- **`ESTADO-DEL-PROYECTO.md`** venía del 2026-07-24 con conteos viejos (30
+  modelos → **36**, 7 migraciones → **12**, 171 tests → **248**), con el Sprint 8
+  como "próximo" estando terminado y con "pagos/facturación" fuera de alcance.
+- **`PENDIENTES.md`** listaba como pendientes A.3, A.4 y el `"es-AR"` suelto, ya
+  hechos en el hito 18.
+- **`MANUAL-DE-USO.md`** describía Membresías como una tabla de estados, sin la
+  lista de precios, la generación masiva ni el registro del pago.
+- **`README.md`** no reflejaba el posicionamiento como ERP.
+
+**Regla que se estaba incumpliendo** (AGENTS.md §8): la doc se actualiza en la
+misma ronda que el código, no cada tanto. Una doc que miente es peor que una que
+falta: manda a construir lo que ya existe.
 
 ---
 

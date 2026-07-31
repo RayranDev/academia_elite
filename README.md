@@ -1,7 +1,11 @@
 # ⚽ Fútbol Career Mode
 
-Plataforma web multi-escuela que gamifica la formación en fútbol base:
-evaluaciones reales → carta estilo Modo Carrera con stats, niveles y evolución.
+**ERP para escuelas de fútbol base**, con una vuelta de tuerca: el DT toma
+medidas reales de cada chico y el motor las convierte en una carta estilo Modo
+Carrera con stats, nivel y evolución.
+
+La carta es lo que engancha a la familia; la **administración** —plantel,
+asistencia, cobranza— es lo que sostiene a la escuela. La app cubre las dos.
 
 El contexto del proyecto (visión, arquitectura, estado) está en
 [docs/ESTADO-DEL-PROYECTO.md](docs/ESTADO-DEL-PROYECTO.md); las reglas para
@@ -62,7 +66,12 @@ Seguridad: ver §5 de [AGENTS.md](AGENTS.md), `SEGURIDAD.md`, `HABEAS-DATA.md` y
 En producción (Supabase + Vercel): landing con captación de leads, panel por
 rol (SUPER_ADMIN / ESCUELA_ADMIN / DT / JUGADOR), evaluaciones → carta con
 stats/nivel/evolución, eventos + calendario + Modo Sesión (entrenamiento y
-partido en vivo), mensajería y anuncios, y notificaciones in-app.
+partido en vivo), mensajería y anuncios, notificaciones in-app, **curva de
+desarrollo** (la asistencia mueve el MEN a diario vía cron) y el módulo de
+**cobranza**: lista de precios por categoría, generación de las cuotas del mes de
+un click, registro del pago y deuda derivada.
+
+Mercado objetivo: **Colombia**.
 
 Para no tener dos versiones de la verdad, la historia y el estado no se narran
 acá:

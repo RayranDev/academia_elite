@@ -1,8 +1,37 @@
-# Curva de desarrollo del jugador — Documento de diseño
+# Curva de desarrollo del jugador — Diseño e implementación
 
-> Estado: **diseño / propuesta** (no implementado). Sirve para entender el
-> modelo y para exponerlo a las escuelas. La implementación se planifica al
-> final (§9).
+> **Estado: la etapa 1 está CONSTRUIDA y corriendo en producción.**
+> Actualizado 2026-07-31.
+>
+> Este documento decía "diseño / propuesta (no implementado)" mucho después de
+> que la curva estuviera funcionando — se corrigió. Lo que sigue mezcla el
+> **modelo conceptual** (útil para explicárselo a una escuela) con el **estado
+> real de cada pieza**, marcado en §8.
+>
+> **En una línea:** la asistencia a entrenamientos y partidos ya mueve el MEN
+> todos los días y eso ya recalcula el OVR de la carta del hub. Lo que todavía
+> **no** cuenta es el **rendimiento** (goles, minutos): hoy solo cuenta la
+> presencia.
+
+## 0. Qué está construido (resumen ejecutivo)
+
+| Pieza | Dónde | Estado |
+|---|---|---|
+| Motor puro de la curva | `src/lib/curva.ts` | ✅ |
+| Recálculo diario | `src/services/curva.service.ts` + `/api/cron/men-diario` (06:00 UTC) | ✅ |
+| Persistencia del bonus | `Jugador.menBonus`, `Jugador.menBonusActualizado` | ✅ |
+| Efecto en vivo en la carta | `player.service.ts` `obtenerHub` → `ovrConMen` | ✅ |
+| Mensaje motivacional | `proyeccionMen` (cuánto suma el próximo entreno/partido) | ✅ |
+| Rendimiento en partido → progreso | `EstadisticaPartido` **no alimenta nada** | ❌ |
+| Hábitos semanales → MEN | `ProgresoSemanal` es un sistema de XP aparte | ❌ |
+| Línea de proyección punteada (§6) | — | ❌ |
+| Vista de seguimiento para el DT | — | ❌ |
+
+**Parámetros vigentes** (`CURVA` en `src/lib/curva.ts`): ventana móvil de **30
+días**, **+0.6** por entrenamiento asistido, **+1.2** por partido, tope de
+**+12**, penalización de **−1.5** por cada ausencia a partir de la tercera. El
+bonus se **recalcula desde cero** en cada corrida: por eso el cron es idempotente
+y la recuperación es natural (las ausencias envejecen y salen de la ventana).
 
 ---
 
@@ -159,42 +188,70 @@ Buena noticia: gran parte de las piezas ya están en el código.
 |---|---|
 | Stats/OVR por medición | ✅ `stats-engine` + evaluaciones |
 | Evolución histórica (línea sólida) | ✅ `EvolutionChart` en el hub |
-| Hábitos semanales → MEN/XP | 🟡 Existe `ProgresoSemanal` + `progreso/engine`; falta conectarlo a MEN de la carta y al día a día |
-| Asistencia | ✅ Modelo `Asistencia` (la registra el DT) — hoy no alimenta nada |
-| Estadística de partido | ✅ `EstadisticaPartido` (recién hecha) — hoy informativa |
-| Parámetros configurables por escuela | ✅ Fase 1 (extensible a los pesos de progreso) |
-| Proyección y banda por edad | ❌ A construir |
-| Decaimiento de MEN | ❌ A construir |
-| Crecimiento diario (job) | ❌ A construir |
+| Asistencia → MEN | ✅ **Construido**: `Asistencia` alimenta `calcularMenBonus` |
+| Crecimiento diario (job) | ✅ **Construido**: cron `men-diario` a las 06:00 UTC |
+| Decaimiento por ausencias | ✅ **Construido**: −1.5 desde la 3ª ausencia, recuperable |
+| Efecto en vivo sobre la carta | ✅ **Construido**: `obtenerHub` recalcula el OVR con el MEN efectivo |
+| Parámetros configurables por escuela | 🟡 Existe la infra (`ParametroEscuela`), pero los pesos de `CURVA` son constantes globales |
+| Hábitos semanales → MEN | ❌ `ProgresoSemanal` sigue siendo un sistema de XP aparte |
+| **Rendimiento en partido → progreso** | ❌ `EstadisticaPartido` (goles, asistencias, minutos, tarjetas) **no alimenta nada** |
+| Proyección punteada y banda por edad | ❌ A construir |
+| Vista de seguimiento para el DT | ❌ A construir |
 
-Lo que falta es **conectar** lo que ya registramos (asistencia, partidos,
-hábitos) a un acumulador de MEN/XP, y agregar la capa de proyección. No hay que
-reinventar el motor de stats: se mantiene puro y se le pasa el MEN acumulado.
+El hueco más importante es el del **rendimiento**: hoy la curva premia la
+**presencia**, no lo que pasó en la cancha. Un jugador que marca tres goles suma
+exactamente lo mismo que uno que fue y se quedó en el banco. El dato ya se
+registra (`EstadisticaPartido`, lo carga el DT en el Modo Sesión); falta
+conectarlo.
 
 ---
 
-## 9. Plan de implementación por etapas (cuando se decida construir)
+## 9. Plan de implementación por etapas
 
-1. **Conectar lo que ya se registra** (sin schema nuevo): que asistencia,
-   minutos de partido y hábitos semanales sumen a MEN/XP. Mostrar el efecto en
-   la carta. *Riesgo bajo, impacto alto, es el 80% del valor.*
-2. **Latido diario + decaimiento**: un cálculo (cron diario o al abrir el hub)
-   que ajusta MEN por constancia reciente, con techo y caída suave.
-3. **Proyección y banda por edad**: la línea punteada y el rango esperable; pura
-   visualización sobre datos que ya existen.
-4. **Afinado y parámetros por escuela**: exponer los pesos de la §5 en el panel
-   de parámetros (reusa la infra de la Fase 1).
+### ✅ Etapa 1 — Asistencia → MEN, con decaimiento y efecto en vivo (HECHA)
+Las decisiones que estaban abiertas quedaron cerradas así:
 
-### Decisiones abiertas (cerrar antes de construir)
-- **Magnitud del día a día**: ¿cuánto puede mover MEN el esfuerzo diario por
-  mes? (sugerencia: que el efecto total de MEN sobre el OVR siga acotado al
-  ~10%, para no desbalancear).
-- **Cron vs. cálculo perezoso**: ¿un job diario actualiza a todos, o se calcula
-  al abrir el hub del jugador? (perezoso es más simple y suficiente al inicio).
-- **Decaimiento**: ¿desde cuántos días sin asistencia empieza a caer MEN y a qué
-  ritmo?
-- **Banda por edad**: ¿de dónde sale el rango esperable? (de los `RANGOS_POR_GRUPO`
-  del motor, o de datos propios cuando haya histórico).
+- **Magnitud**: tope de **+12** de MEN. Como `PESO_MEN_EN_OVR` ronda el 10%, el
+  efecto sobre el OVR queda acotado y no desbalancea.
+- **Cron vs. perezoso**: **cron diario** (`men-diario`, 06:00 UTC). Se eligió
+  frente al cálculo perezoso porque el bonus tiene que estar bien aunque la
+  familia no abra la app, y porque recalcular desde la ventana lo vuelve
+  idempotente.
+- **Decaimiento**: no por días sin asistir, sino por **ausencias a convocatorias**
+  — penaliza faltar a algo que existía, no que la escuela no haya programado nada.
+  Arranca en la 3ª ausencia, a −1.5, y la ganancia por volver supera la
+  penalización: siempre se puede recuperar.
+- **Ventana**: 30 días móviles, recalculada desde cero.
+
+### ❌ Etapa 2 — Rendimiento → progreso (el hueco actual)
+Que `EstadisticaPartido` (goles, asistencias, minutos, tarjetas) alimente MEN y
+XP. Es lo que convierte la curva de "premio por venir" a "premio por lo que hacés
+cuando venís".
+
+**Decisiones a cerrar antes de construir:**
+- ¿Los minutos jugados pesan por sí solos, o solo el rendimiento (goles/asistencias)?
+  Cuidado: premiar minutos castiga al suplente por una decisión del DT, no propia.
+- ¿Las tarjetas restan? Si sí, ¿rojas solamente? Son menores: el copy tiene que
+  ser constructivo y el efecto, recuperable.
+- ¿El tope de +12 se comparte con la asistencia o el rendimiento tiene el suyo?
+- ¿Cómo se evita que un goleador de una categoría floja infle más que un defensor
+  sólido de una fuerte?
+
+### ❌ Etapa 3 — Proyección y seguimiento
+La línea punteada de §6 y una **vista de seguimiento para el DT**: hoy nadie
+puede ver "este chico ganó X este mes, y fue por esto". El dato existe; falta
+mostrarlo. Es lo que convierte la curva en una herramienta de trabajo del DT y no
+solo en un adorno del hub.
+
+### ❌ Etapa 4 — Parámetros por escuela
+Exponer los pesos de `CURVA` en el panel de parámetros (reusa `ParametroEscuela`).
+Hoy son constantes globales.
+
+### Lo que NO se va a hacer
+Los stats **físicos y técnicos** (RIT, TIR, PAS, REG, DEF, FIS) **no** se mueven
+por entrenar ni por jugar: solo por una medición real. Es la §2 de este documento
+y la tesis del producto. Si alguna vez se cambia, tiene que ser una decisión
+explícita en `DECISIONES.md`, no un efecto lateral de esta curva.
 
 ---
 
