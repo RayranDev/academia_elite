@@ -31,15 +31,73 @@ export interface MedidasNormalizadas {
   regT: number;
 }
 
+/** Los 6 stats de carta, en el orden en que se muestran. */
+export const STATS_DERIVADOS = ["rit", "tir", "pas", "reg", "def", "fis"] as const;
+export type StatDerivado = (typeof STATS_DERIVADOS)[number];
+
+/** Coeficientes de una derivación: por stat, qué medida pesa cuánto. */
+export type Coeficientes = Record<
+  StatDerivado,
+  Partial<Record<keyof MedidasNormalizadas, number>>
+>;
+
+/**
+ * Coeficientes de la derivación de JUGADOR DE CAMPO. Cada fila suma 1.0, así que
+ * el resultado queda en rango sin re-escalar.
+ *
+ * Viven como DATO y no incrustados en la función a propósito: la planilla Excel
+ * (`plantilla-simulador.service.ts`) replica estas mismas fórmulas, y leyendo de
+ * acá no pueden divergir. Si estuvieran escritos dos veces, cambiar uno dejaría
+ * al otro mintiendo en silencio — y una planilla que miente es peor que ninguna,
+ * porque el número se cree.
+ */
+export const COEF_CAMPO: Coeficientes = {
+  rit: { vel: 0.65, agi: 0.35 },
+  tir: { tirT: 0.75, pot: 0.25 },
+  pas: { pasT: 0.75, ctrl: 0.25 },
+  reg: { regT: 0.55, agi: 0.25, ctrl: 0.2 },
+  def: { res: 0.45, pot: 0.3, ctrl: 0.25 },
+  fis: { res: 0.5, pot: 0.35, vel: 0.15 },
+};
+
+/**
+ * Coeficientes del PORTERO. Mismas cuatro columnas técnicas, otro oficio:
+ * `ctrl` es blocaje, `pasT` distribución, `tirT` juego aéreo y `regT` achique.
+ */
+export const COEF_PORTERO: Coeficientes = {
+  // Achique y reacción: llegar antes que el delantero.
+  rit: { agi: 0.6, vel: 0.4 },
+  // Despeje de puños y salida aérea; el salto manda tanto como la técnica.
+  tir: { tirT: 0.6, pot: 0.4 },
+  // Distribución: saque de mano y de pie. La potencia ayuda al saque largo.
+  pas: { pasT: 0.8, pot: 0.2 },
+  // Salir y ganar el mano a mano.
+  reg: { regT: 0.6, agi: 0.4 },
+  // El núcleo del arquero: blocaje, agilidad para llegar y juego aéreo.
+  def: { ctrl: 0.5, agi: 0.25, tirT: 0.25 },
+  // El físico se mide igual que en un jugador de campo.
+  fis: { res: 0.5, pot: 0.35, vel: 0.15 },
+};
+
+/** Coeficientes que le tocan a una posición. */
+export function coeficientesDe(posicion: Posicion): Coeficientes {
+  return posicion === "POR" ? COEF_PORTERO : COEF_CAMPO;
+}
+
+function aplicar(n: MedidasNormalizadas, coef: Coeficientes) {
+  const resultado = {} as Record<StatDerivado, number>;
+  for (const stat of STATS_DERIVADOS) {
+    let suma = 0;
+    for (const [medida, peso] of Object.entries(coef[stat])) {
+      suma += n[medida as keyof MedidasNormalizadas] * (peso as number);
+    }
+    resultado[stat] = suma;
+  }
+  return resultado;
+}
+
 export function derivaStats(n: MedidasNormalizadas) {
-  return {
-    rit: n.vel * 0.65 + n.agi * 0.35,
-    tir: n.tirT * 0.75 + n.pot * 0.25,
-    pas: n.pasT * 0.75 + n.ctrl * 0.25,
-    reg: n.regT * 0.55 + n.agi * 0.25 + n.ctrl * 0.2,
-    def: n.res * 0.45 + n.pot * 0.3 + n.ctrl * 0.25,
-    fis: n.res * 0.5 + n.pot * 0.35 + n.vel * 0.15,
-  };
+  return aplicar(n, COEF_CAMPO);
 }
 
 /**
@@ -58,23 +116,10 @@ export function derivaStats(n: MedidasNormalizadas) {
  * Cada fila suma 1.0, igual que la de campo.
  */
 export function derivaStatsPortero(n: MedidasNormalizadas) {
-  return {
-    // Achique y reacción: llegar antes que el delantero.
-    rit: n.agi * 0.6 + n.vel * 0.4,
-    // Despeje de puños y salida aérea; el salto manda tanto como la técnica.
-    tir: n.tirT * 0.6 + n.pot * 0.4,
-    // Distribución: saque de mano y de pie. La potencia ayuda al saque largo.
-    pas: n.pasT * 0.8 + n.pot * 0.2,
-    // Salir y ganar el mano a mano.
-    reg: n.regT * 0.6 + n.agi * 0.4,
-    // El núcleo del arquero: blocaje, agilidad para llegar y juego aéreo.
-    def: n.ctrl * 0.5 + n.agi * 0.25 + n.tirT * 0.25,
-    // El físico se mide igual que en un jugador de campo.
-    fis: n.res * 0.5 + n.pot * 0.35 + n.vel * 0.15,
-  };
+  return aplicar(n, COEF_PORTERO);
 }
 
 /** Elige la derivación que corresponde a la posición. */
 export function derivaStatsPorPosicion(n: MedidasNormalizadas, posicion: Posicion) {
-  return posicion === "POR" ? derivaStatsPortero(n) : derivaStats(n);
+  return aplicar(n, coeficientesDe(posicion));
 }

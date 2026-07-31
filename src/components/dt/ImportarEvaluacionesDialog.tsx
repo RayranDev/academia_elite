@@ -20,6 +20,9 @@ export function ImportarEvaluacionesDialog({ escuelaId }: { escuelaId?: string }
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Solo el SUPER_ADMIN llega con `escuelaId`: entra a un tenant ajeno por una
+  // sesión de soporte, y toda escritura suya exige un motivo auditado (§5/M1).
+  const [motivo, setMotivo] = useState("");
 
   const plantillaHref = escuelaId
     ? `/api/plantilla-evaluaciones?escuelaId=${encodeURIComponent(escuelaId)}`
@@ -29,6 +32,7 @@ export function ImportarEvaluacionesDialog({ escuelaId }: { escuelaId?: string }
     setResultado(null);
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
+    setMotivo("");
   }
 
   function abrir() {
@@ -50,9 +54,16 @@ export function ImportarEvaluacionesDialog({ escuelaId }: { escuelaId?: string }
       setError("Adjunta un archivo Excel (.xlsx).");
       return;
     }
+    if (escuelaId && !motivo.trim()) {
+      setError("Indica el motivo del soporte: queda en la auditoría.");
+      return;
+    }
     const fd = new FormData();
     fd.set("archivo", archivo);
-    if (escuelaId) fd.set("escuelaId", escuelaId);
+    if (escuelaId) {
+      fd.set("escuelaId", escuelaId);
+      fd.set("motivo", motivo.trim());
+    }
     startTransition(async () => {
       const res = await importarEvaluacionesAction(undefined, fd);
       if (res.ok) {
@@ -112,6 +123,25 @@ export function ImportarEvaluacionesDialog({ escuelaId }: { escuelaId?: string }
                 required
                 className="block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
               />
+              {escuelaId && (
+                <div>
+                  <label
+                    className="mb-1 block text-xs text-muted"
+                    htmlFor="motivo-jornada"
+                  >
+                    Motivo del soporte (queda en la auditoría)
+                  </label>
+                  <input
+                    id="motivo-jornada"
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    maxLength={200}
+                    required
+                    placeholder="Ej.: la escuela pidió cargar la jornada del 12/08"
+                    className="w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
+                  />
+                </div>
+              )}
               {error && (
                 <p className="text-sm text-alerta" role="alert">
                   {error}

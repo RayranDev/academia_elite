@@ -13,6 +13,25 @@ Auditoría de seguridad aplicada a **cada** frontera de la aplicación.
   `assertTenant` (cruce de tenant → **404**, no 403), `assertOwnPlayer` /
   `requireEscuela` y el *scoping* por categorías del DT. El proxy (Barrera 1) es
   solo UX.
+
+### Los guards y qué responde cada uno
+
+Dos preguntas distintas, y confundirlas es el origen de los dos agujeros de
+acceso ambiental que se cerraron el 2026-07-31:
+
+| Guard | Responde | Falla con |
+|---|---|---|
+| `requireRole(ctx, [roles])` | **quién sos** | `ForbiddenError` (403) |
+| `requirePermiso(ctx, permiso)` | **qué podés hacer en la plataforma** — permisos de `PERMISOS_POR_ROL` (hoy todos en el SUPER_ADMIN): catálogos globales, parámetros, gestión de escuelas. **No dice nada sobre a qué tenant podés entrar.** | `ForbiddenError` (403) |
+| `assertTenant(ctx, escuelaId)` | **a qué escuela podés entrar**. Para el SUPER_ADMIN exige **sesión de soporte activa para esa escuela** | `ForbiddenError` sin sesión; `TenantMismatchError` (→ **404**) contra otra |
+| `assertSoportePuedeEscribir(ctx)` | si la sesión de soporte **puede escribir** (nace en solo-lectura) | `ForbiddenError` |
+| `assertMotivoSoporte(ctx, motivo)` | si el SA declaró **por qué** entra (solo escrituras, M1) | `ValidationError` |
+| `requireEscuela(ctx)` | devuelve el `escuelaId` garantizado del actor | `ForbiddenError` |
+| `assertOwnPlayer(ctx, id, propios)` | si el padre/jugador opera sobre **su** jugador | `TenantMismatchError` |
+
+> **Regla:** cuando el `escuelaId` llega del **request** (body, query), ni
+> `requireRole` ni `requirePermiso` alcanzan — hace falta `assertTenant`. Los
+> primeros dicen quién sos; solo el tercero dice dónde podés mirar.
 - **Validación**: toda entrada externa se valida con **Zod** en la Capa 2
   (`safeParse`); lo inválido devuelve mensaje genérico (`ValidationError`).
 - **Errores**: `mapError` convierte cualquier error de dominio en `{ ok:false,
@@ -81,6 +100,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **progreso** · validarSemana (responsable) | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
 | **progreso** · validarSemanaDt (DT, sus categorías) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ |
 | **importación** · importarJugadores XLSX (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **importación** · jornada de medición XLSX (DT/Escuela/SA) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | ✓ |
 | **métricas** · fijar/quitarMetrica (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **fondos** · equiparFondo (responsable) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **gestión** · editarJugador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -175,6 +195,44 @@ activa `assertTenant` lanza `ForbiddenError`, y contra otra escuela
   pertenencia). Se verifica que el fondo esté **desbloqueado** (cumple el
   requisito o ya estaba registrado) antes de equiparlo. Es cosmético: no toca
   OVR ni datos personales.
+
+### Acceso ambiental del SA cerrado en las plantillas (2026-07-31)
+
+Hallazgos **preexistentes**, detectados al revisar un cambio vecino. Dos rutas
+resolvían el alcance del `SUPER_ADMIN` tomando el `escuelaId` **del request**:
+
+1. `plantilla-simulador.service.ts` (`?escuela=` del route) — solo verificaba
+   `requirePermiso`, que es un permiso de **plataforma**, no un control de
+   tenant. Exponía nombre, slug, rangos físicos efectivos, peso de MEN y
+   umbrales de cualquier escuela. Corregido con `assertTenant`.
+2. `importacion-evaluaciones.service.ts` — el caso grave, detallado abajo.
+
+> **Patrón a recordar:** `requireRole` y `requirePermiso` responden *quién sos*;
+> `assertTenant` responde *a qué escuela podés entrar*. Cuando el `escuelaId`
+> llega del request, hacen falta los dos.
+
+`importacion-evaluaciones.service.ts` resolvía el alcance del `SUPER_ADMIN`
+tomando el `escuelaId` **del request** (`formData` de la action y `?escuelaId=`
+del route `/api/plantilla-evaluaciones`) con solo `requireRole`.
+
+- **Lectura**: la plantilla embebe la nómina completa de jugadores activos
+  (código, apellido, nombre, categoría). Un SA se llevaba los datos de menores de
+  **cualquier escuela** escribiendo su id, sin sesión de soporte, por un GET.
+- **Escritura**: `importarEvaluaciones` crea jugadores y evaluaciones (hasta 300
+  filas) sobre esa misma escuela.
+
+Contradecía §5 de `AGENTS.md`: *el SUPER_ADMIN no tiene acceso ambiental*.
+Corregido con los **tres** guards de la familia M1/M2:
+- `assertTenant(ctx, escuelaId)` en la rama del SA — exige sesión de soporte
+  activa **para esa escuela**.
+- `assertSoportePuedeEscribir(ctx)` en la importación — la sesión nace en
+  solo-lectura.
+- `assertMotivoSoporte(ctx, motivo)` — el motivo se pide en el diálogo (solo al
+  SA), pasa por `textoSeguro({ max: 200 })` y encabeza el `motivo` del
+  `AuditLog`. Antes ese campo guardaba solo los conteos (`evaluados=… nuevos=…`):
+  telemetría con la ropa del motivo. Registraba **cuánto**, nunca **por qué** —
+  y una entrada de auditoría que parece completa y no lo está es peor que una
+  vacía, porque nadie la va a ir a buscar.
 
 ### Cobranza / ERP (hito 18)
 - Todas las acciones son **ESCUELA_ADMIN** + `requireEscuela`; el SUPER_ADMIN no

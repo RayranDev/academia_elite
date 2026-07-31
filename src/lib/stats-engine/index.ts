@@ -15,9 +15,16 @@ export {
 } from "./normalize";
 export {
   PESOS_POSICION,
+  COEF_CAMPO,
+  COEF_PORTERO,
+  STATS_DERIVADOS,
+  coeficientesDe,
   derivaStats,
   derivaStatsPortero,
   derivaStatsPorPosicion,
+  type Coeficientes,
+  type StatDerivado,
+  type MedidasNormalizadas,
 } from "./weights";
 export {
   RANGOS_POR_GRUPO,

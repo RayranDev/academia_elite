@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requirePermiso } from "@/lib/auth/guards";
+import { requirePermiso, assertTenant } from "@/lib/auth/guards";
 import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import {
@@ -8,8 +8,36 @@ import {
   type ConfigSimulador,
 } from "@/services/parametro.service";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
-import { PESOS_POSICION, type GrupoEdad } from "@/lib/stats-engine";
+import {
+  PESOS_POSICION,
+  COEF_CAMPO,
+  COEF_PORTERO,
+  type Coeficientes,
+  type StatDerivado,
+  type MedidasNormalizadas,
+  type GrupoEdad,
+} from "@/lib/stats-engine";
 import { POSICIONES } from "@/types";
+
+/**
+ * Columna auxiliar (oculta) donde vive cada medida normalizada en la hoja
+ * "Jugadores". Es el puente entre los coeficientes del motor y las celdas del
+ * Excel: los pesos salen de `COEF_*`, las direcciones de acá.
+ */
+// Tipado contra `keyof MedidasNormalizadas` y NO con una union copiada a mano:
+// si el motor suma una medida, esto deja de compilar acá, que es donde hay que
+// decidir en que columna vive. Con la union transcrita, el Excel emitia
+// `undefined2*0.3` y la planilla salia rota en silencio.
+const COLUMNA_MEDIDA: Record<keyof MedidasNormalizadas, string> = {
+  vel: "AA",
+  pot: "AB",
+  agi: "AC",
+  res: "AD",
+  ctrl: "AE",
+  pasT: "AF",
+  tirT: "AG",
+  regT: "AH",
+};
 
 /**
  * Genera una planilla Excel que replica el motor de stats con FÓRMULAS nativas:
@@ -56,6 +84,11 @@ export async function generarPlantillaSimulador(
   escuelaId?: string,
 ): Promise<{ filename: string; buffer: Buffer }> {
   requirePermiso(ctx, "EDITAR_CATALOGOS");
+  // `escuelaId` llega del REQUEST (`?escuela=` del route). `requirePermiso` es un
+  // permiso de PLATAFORMA, no un control de tenant: sin este guard el SA se
+  // llevaba nombre, slug, rangos y umbrales de cualquier escuela escribiendo su
+  // id. Mismo agujero que ya se cerró en `importacion-evaluaciones.service.ts`.
+  if (escuelaId) assertTenant(ctx, escuelaId);
   const config: ConfigSimulador = escuelaId
     ? await obtenerConfigSimuladorEscuela(ctx, escuelaId)
     : await obtenerConfigSimulador(ctx);
@@ -160,10 +193,14 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   const wcol = (col: string) => `INDEX(Parametros!$${col}$10:$${col}$13,${mp})`;
 
   // Normalización física: normal (val-min)/(max-min); inversa (max-val)/(max-min).
+  // `max - min || 1` replica la guarda de `normalizaFisica`: si una escuela deja
+  // min == max, la app devuelve un número y sin esto el Excel daba #DIV/0!.
+  const amplitud = (minC: string, maxC: string) =>
+    `IF(${idx(maxC)}-${idx(minC)}=0,1,${idx(maxC)}-${idx(minC)})`;
   const fisN = (val: string, minC: string, maxC: string) =>
-    `ROUND(40+MIN(MAX((${val}-${idx(minC)})/(${idx(maxC)}-${idx(minC)}),0),1)*59,0)`;
+    `ROUND(40+MIN(MAX((${val}-${idx(minC)})/${amplitud(minC, maxC)},0),1)*59,0)`;
   const fisInv = (val: string, minC: string, maxC: string) =>
-    `ROUND(40+MIN(MAX((${idx(maxC)}-${val})/(${idx(maxC)}-${idx(minC)}),0),1)*59,0)`;
+    `ROUND(40+MIN(MAX((${idx(maxC)}-${val})/${amplitud(minC, maxC)},0),1)*59,0)`;
   const nota = (cell: string) => `MIN(MAX(ROUND(${cell}*9.9,0),1),99)`;
   const clampStat = (expr: string) => `MIN(MAX(ROUND(${expr},0),1),99)`;
 
@@ -188,28 +225,35 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   f(`AQ${r}`, wcol("F")); // wDef
   f(`AR${r}`, wcol("G")); // wFis
 
-  // Stats base. El PORTERO usa otra derivación (`derivaStatsPortero`): sus cuatro
-  // notas técnicas son blocaje / distribución / juego aéreo / achique, no
-  // control / pase / tiro / regate. Si esta planilla no ramificara igual que el
-  // motor, mostraría un OVR distinto al real para cada arquero.
-  const porCampo = (portero: string, campo: string) =>
-    clampStat(`IF($B${r}="POR",${portero},${campo})`);
+  // Stats base. Las fórmulas se ARMAN desde los mismos coeficientes que usa el
+  // motor (`COEF_CAMPO` / `COEF_PORTERO`), no se transcriben: así no pueden
+  // divergir. Antes estaban escritas dos veces y cambiar una dejaba a la otra
+  // mintiendo en silencio — y una planilla que miente es peor que ninguna,
+  // porque el número se cree.
+  //
+  // El portero ramifica porque sus cuatro notas técnicas miden otro oficio
+  // (blocaje / distribución / juego aéreo / achique).
+  const formula = (coef: Coeficientes, stat: StatDerivado) =>
+    Object.entries(coef[stat])
+      .map(([medida, peso]) => `${COLUMNA_MEDIDA[medida as keyof MedidasNormalizadas]}${r}*${peso}`)
+      .join("+");
 
-  f(`P${r}`, porCampo(`AC${r}*0.60+AA${r}*0.40`, `AA${r}*0.65+AC${r}*0.35`)); // RIT
-  f(`Q${r}`, porCampo(`AG${r}*0.60+AB${r}*0.40`, `AG${r}*0.75+AB${r}*0.25`)); // TIR
-  f(`R${r}`, porCampo(`AF${r}*0.80+AB${r}*0.20`, `AF${r}*0.75+AE${r}*0.25`)); // PAS
-  f(
-    `S${r}`,
-    porCampo(`AH${r}*0.60+AC${r}*0.40`, `AH${r}*0.55+AC${r}*0.25+AE${r}*0.20`),
-  ); // REG
-  f(
-    `T${r}`,
-    porCampo(
-      `AE${r}*0.50+AC${r}*0.25+AG${r}*0.25`,
-      `AD${r}*0.45+AB${r}*0.30+AE${r}*0.25`,
-    ),
-  ); // DEF
-  f(`U${r}`, clampStat(`AD${r}*0.50+AB${r}*0.35+AA${r}*0.15`)); // FIS (igual en ambas)
+  const celdaStat = (columna: string, stat: StatDerivado) => {
+    const campo = formula(COEF_CAMPO, stat);
+    const portero = formula(COEF_PORTERO, stat);
+    // Si ambas derivaciones coinciden (FIS), no hace falta el IF.
+    f(
+      `${columna}${r}`,
+      clampStat(campo === portero ? campo : `IF($B${r}="POR",${portero},${campo})`),
+    );
+  };
+
+  celdaStat("P", "rit");
+  celdaStat("Q", "tir");
+  celdaStat("R", "pas");
+  celdaStat("S", "reg");
+  celdaStat("T", "def");
+  celdaStat("U", "fis");
   // MEN = promedio de las 4 notas de mentalidad normalizadas.
   f(`V${r}`, clampStat(`(AI${r}+AJ${r}+AK${r}+AL${r})/4`));
   // OVR = (1-pesoMen)*Σ(stat×wPos) + pesoMen*MEN.

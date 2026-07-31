@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 import { rateLimit } from "@/lib/rate-limit";
 import { jugadorSchema } from "@/lib/validators/jugador";
 import { evaluacionSchema } from "@/lib/validators/evaluacion";
@@ -121,8 +122,22 @@ export async function importarEvaluacionesAction(
     }
     const escuelaIdRaw = formData.get("escuelaId");
     const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;
+    // Motivo del soporte (solo lo exige el SA). Es texto libre del usuario, así
+    // que pasa por `textoSeguro` como cualquier otro (AGENTS.md §5).
+    const motivoRaw = formData.get("motivo");
+    // `safeParse` y no `parse`: un `ZodError` no es `DomainError`, asi que
+    // `mapError` lo trataria como inesperado y el usuario veria el mensaje
+    // generico en vez de saber que corregir.
+    let motivo: string | undefined;
+    if (typeof motivoRaw === "string" && motivoRaw.trim()) {
+      const parsedMotivo = textoSeguro({ max: 200 }).safeParse(motivoRaw);
+      if (!parsedMotivo.success) {
+        throw new ValidationError(primerError(parsedMotivo.error.issues));
+      }
+      motivo = parsedMotivo.data;
+    }
     const buffer = Buffer.from(await archivo.arrayBuffer());
-    const data = await importarEvaluaciones(ctx, buffer, escuelaId);
+    const data = await importarEvaluaciones(ctx, buffer, escuelaId, motivo);
     revalidatePath("/dt");
     revalidatePath("/admin/escuelas");
     return { ok: true, data };

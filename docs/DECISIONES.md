@@ -381,13 +381,27 @@ cada adaptación, regla 0.8.)
     la de campo. El DEF pasa a ser `blocaje × 0.50 + agilidad × 0.25 + aéreo × 0.25`
     y el RIT prioriza la agilidad sobre la velocidad pura (el achique es reacción,
     no carrera larga). El FIS se mide igual en ambas: el físico es físico.
-61. **La planilla del simulador ramifica igual que el motor.**
-    `plantilla-simulador.service.ts` **replica las fórmulas a mano en Excel**, así
-    que sin ramificarla habría mostrado un OVR distinto al real para cada arquero.
-    Lleva `IF($B{fila}="POR", …)` en los cinco stats que difieren. **Cualquier
-    cambio futuro en `derivaStats*` tiene que replicarse ahí**, o las dos verdades
-    se separan en silencio.
-62. **Las cartas de arquero ya emitidas NO se recalculan.** Las evaluaciones son
+61. **Los coeficientes de derivación son DATO compartido, no código duplicado.**
+    `plantilla-simulador.service.ts` replica el motor con fórmulas nativas de
+    Excel. Estaban escritas dos veces —una en la función, otra como string—, así
+    que cambiar una dejaba a la otra mintiendo en silencio; y una planilla que
+    miente es peor que ninguna, porque el número se cree. Ahora los pesos viven
+    en `COEF_CAMPO` / `COEF_PORTERO` (`weights.ts`) y **ambos leen de ahí**: la
+    planilla arma la fórmula desde los mismos coeficientes, con `COLUMNA_MEDIDA`
+    como único puente hacia las celdas. La divergencia deja de ser posible por
+    construcción, en vez de depender de que alguien se acuerde.
+    La planilla omite el `IF($B="POR", …)` cuando ambas derivaciones coinciden
+    (hoy solo `FIS`); un test fija esa condición para que la optimización no se
+    vuelva incorrecta en silencio.
+    Se replicó además la guarda `span || 1` de `normalizaFisica`: con `min == max`
+    la app devolvía un número y el Excel daba `#DIV/0!`.
+62. **Los CUATRO consumidores del motor dicen lo mismo.** El reetiquetado no sirve
+    de nada si solo lo aplica el formulario: quedaría un lugar pidiendo "regate"
+    mientras el motor lee "achique". Están alineados el formulario del DT, el
+    simulador del SUPER_ADMIN, la planilla Excel del simulador y **la plantilla de
+    la jornada de medición** (`importacion-evaluaciones.service.ts`), que es el
+    camino realista para evaluar una escuela entera y fue el que más costó ver.
+63. **Las cartas de arquero ya emitidas NO se recalculan.** Las evaluaciones son
     inmutables por diseño: los 8 arqueros con carta al momento del cambio
     conservan sus números viejos hasta que el DT los vuelva a evaluar. No se hace
     una migración de datos — reescribir una medición histórica sería mentir sobre

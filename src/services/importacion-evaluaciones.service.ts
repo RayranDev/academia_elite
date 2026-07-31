@@ -1,6 +1,12 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { ValidationError, DomainError } from "@/lib/errors";
-import { requireRole, requireEscuela } from "@/lib/auth/guards";
+import {
+  requireRole,
+  requireEscuela,
+  assertTenant,
+  assertSoportePuedeEscribir,
+  assertMotivoSoporte,
+} from "@/lib/auth/guards";
 import { parseXlsx, plantillaXlsx } from "@/lib/xlsx";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { evaluarJugadorCore } from "@/services/evaluacion.service";
@@ -79,6 +85,12 @@ async function resolverAlcance(ctx: AuthContext, escuelaId?: string): Promise<Al
     ctx.rol === "SUPER_ADMIN"
       ? (() => {
           if (!escuelaId) throw new ValidationError("Falta la escuela.");
+          // El `escuelaId` llega del REQUEST (body de la action, `?escuelaId=` del
+          // route), así que no alcanza con `requireRole`: sin este guard el SA se
+          // llevaba la nómina completa de menores de cualquier escuela con solo
+          // escribir su id. `assertTenant` exige una sesión de soporte ACTIVA para
+          // esa escuela — el SUPER_ADMIN no tiene acceso ambiental (AGENTS.md §5).
+          assertTenant(ctx, escuelaId);
           return escuelaId;
         })()
       : requireEscuela(ctx);
@@ -105,6 +117,15 @@ export async function generarPlantillaEvaluaciones(
   escuelaId?: string,
 ): Promise<{ filename: string; buffer: Buffer }> {
   const { escuelaId: id, categoriaIds } = await resolverAlcance(ctx, escuelaId);
+  // La plantilla EMBEBE la nómina (código, apellido, nombre, categoría de cada
+  // jugador activo): es una descarga de datos de menores y queda en el AuditLog,
+  // mismo criterio que los exports (`export-membresias.service.ts`).
+  await registrarAuditoria(ctx, {
+    accion: "EXPORT_PLANTILLA_EVALUACIONES",
+    entidad: "Escuela",
+    entidadId: id,
+    escuelaId: id,
+  });
   const [categorias, jugadores] = await Promise.all([
     listarCategorias(id),
     listarPlantilla(id, categoriaIds),
@@ -117,6 +138,11 @@ export async function generarPlantillaEvaluaciones(
     "EVALUAR NUEVO: deja 'codigoJugador' vacío y rellena nombre, apellido, fechaNacimiento (AAAA-MM-DD), posicion (POR/DEF/MED/DEL) y categoria.",
     "Medidas físicas reales: sprint30m (s), saltoCm (cm), agilidadSeg (s), yoyoNivel.",
     "Técnica y mentalidad (1-10): control, pase, tiro, regate, actitud, concentracion, trabajoEquipo, resiliencia.",
+    "",
+    "PORTEROS: esas cuatro notas técnicas miden otro oficio. Si la posicion es POR, cargá:",
+    "   control → BLOCAJE / ATAJADA · pase → DISTRIBUCIÓN / SAQUE",
+    "   tiro → JUEGO AÉREO · regate → ACHIQUE Y 1v1",
+    "El motor ya lo tiene en cuenta: para un arquero el DEF sale del blocaje, no de la resistencia.",
     "",
     `Categorías válidas: ${misCategorias.map((c) => c.nombre).join(", ") || "(sin categorías)"}`,
     "",
@@ -145,8 +171,16 @@ export async function importarEvaluaciones(
   ctx: AuthContext,
   buffer: Buffer,
   escuelaId?: string,
+  /** Por qué el SUPER_ADMIN entra a escribir en este tenant (M1). */
+  motivo?: string,
 ): Promise<ResultadoImportEval> {
   const { escuelaId: id, categoriaIds, entrenadorFijo } = await resolverAlcance(ctx, escuelaId);
+  // Esto ESCRIBE (crea jugadores y evaluaciones). Una sesión de soporte nace en
+  // solo-lectura: sin habilitarla, el SUPER_ADMIN no puede importar (AGENTS.md §5).
+  assertSoportePuedeEscribir(ctx);
+  // Y toda escritura del SA sobre datos de un tenant exige un motivo (M1): el
+  // AuditLog tiene que poder responder POR QUÉ entró, no solo cuántas filas tocó.
+  assertMotivoSoporte(ctx, motivo);
   const categorias = await listarCategorias(id);
   const porNombre = new Map(
     categorias
@@ -275,7 +309,14 @@ export async function importarEvaluaciones(
     entidad: "Escuela",
     entidadId: id,
     escuelaId: id,
-    motivo: `evaluados=${evaluados} nuevos=${creadosNuevos} errores=${errores.length}`,
+    // El motivo del SA va PRIMERO: es el porqué. Los conteos son el qué, y
+    // solos no responden la pregunta que se hace después de un incidente.
+    motivo: [
+      motivo?.trim(),
+      `evaluados=${evaluados} nuevos=${creadosNuevos} errores=${errores.length}`,
+    ]
+      .filter(Boolean)
+      .join(" · "),
   });
 
   return { evaluados, creadosNuevos, errores };

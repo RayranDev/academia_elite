@@ -4,6 +4,9 @@ import {
   derivaStats,
   derivaStatsPortero,
   derivaStatsPorPosicion,
+  COEF_CAMPO,
+  COEF_PORTERO,
+  STATS_DERIVADOS,
 } from "@/lib/stats-engine";
 import { medidasTecnicas, CLAVES_TECNICAS } from "@/lib/medidas-tecnicas";
 import type { MedidasEvaluacion } from "@/lib/stats-engine/types";
@@ -118,6 +121,43 @@ describe("computeStats — integración por posición", () => {
       expect(v).toBeGreaterThanOrEqual(1);
       expect(v).toBeLessThanOrEqual(99);
     }
+  });
+});
+
+describe("coeficientes compartidos con la planilla Excel", () => {
+  // La planilla de simulación replica el motor con fórmulas nativas. Antes los
+  // coeficientes estaban escritos DOS veces (función + string de Excel): cambiar
+  // uno dejaba al otro mintiendo, y una planilla que miente es peor que ninguna
+  // porque el número se cree. Ahora ambos leen de acá.
+  it("cada fila de las dos derivaciones pondera exactamente 1.0", () => {
+    for (const coef of [COEF_CAMPO, COEF_PORTERO]) {
+      for (const stat of STATS_DERIVADOS) {
+        const suma = Object.values(coef[stat]).reduce((a, b) => a + (b ?? 0), 0);
+        expect(suma).toBeCloseTo(1, 6);
+      }
+    }
+  });
+
+  it("los coeficientes describen exactamente lo que calcula la función", () => {
+    // Si alguien edita `COEF_*` sin tocar `derivaStats*`, o al revés, esto falla.
+    const porStat = (coef: typeof COEF_CAMPO, stat: (typeof STATS_DERIVADOS)[number]) =>
+      Object.entries(coef[stat]).reduce(
+        (acc, [medida, peso]) => acc + NORM[medida as keyof typeof NORM] * (peso ?? 0),
+        0,
+      );
+    for (const stat of STATS_DERIVADOS) {
+      expect(derivaStats(NORM)[stat]).toBeCloseTo(porStat(COEF_CAMPO, stat), 6);
+      expect(derivaStatsPortero(NORM)[stat]).toBeCloseTo(porStat(COEF_PORTERO, stat), 6);
+    }
+  });
+
+  it("solo el FIS es igual en ambas derivaciones", () => {
+    // La planilla omite el IF cuando campo y portero coinciden: si esto cambia,
+    // hay que revisar esa optimización.
+    const iguales = STATS_DERIVADOS.filter(
+      (s) => JSON.stringify(COEF_CAMPO[s]) === JSON.stringify(COEF_PORTERO[s]),
+    );
+    expect(iguales).toEqual(["fis"]);
   });
 });
 
