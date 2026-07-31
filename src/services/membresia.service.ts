@@ -23,6 +23,7 @@ import { resolverArancel, referenciaDePrecio } from "@/lib/aranceles";
 import {
   estadoEfectivo,
   estadoCuenta,
+  netoCuota,
   periodoDe,
   type CuotaParaDeuda,
 } from "@/lib/cobranza";
@@ -41,6 +42,12 @@ export interface MembresiaDTO {
   concepto: string;
   monto: number | null;
   descuento: number | null;
+  /**
+   * Lo que la familia realmente debe (monto − descuento). Viaja calculado en
+   * el DTO y no se reimplementa en la tabla: el día que el neto sume un
+   * recargo por mora, el dashboard y el listado tienen que decir lo mismo.
+   */
+  neto: number | null;
   /**
    * Estado REAL, ya derivado: una pendiente de un mes cerrado llega como
    * VENCIDA sin que nadie la haya marcado (A.3). La UI muestra esto.
@@ -248,6 +255,13 @@ export async function listarMembresiasEscuela(
       concepto: m.concepto,
       monto: aNumero(m.monto),
       descuento: aNumero(m.descuento),
+      neto: netoCuota({
+        periodo: m.periodo,
+        concepto: m.concepto,
+        estado: m.estado,
+        monto: aNumero(m.monto),
+        descuento: aNumero(m.descuento),
+      }),
       estado: estadoEfectivo(m.estado, m.periodo, hoy),
       estadoGuardado: m.estado,
       pagadaEn: m.pagadaEn?.toISOString() ?? null,

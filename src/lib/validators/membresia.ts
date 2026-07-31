@@ -66,6 +66,17 @@ export const etiquetaConcepto = (v: string) => etiquetar(ETIQUETA_CONCEPTO, v);
 export const etiquetaEstado = (v: string) => etiquetar(ETIQUETA_ESTADO, v);
 export const etiquetaMedioPago = (v: string) => etiquetar(ETIQUETA_MEDIO_PAGO, v);
 
+/**
+ * Período mensual AAAA-MM. El mes se acota de verdad: `/\d{2}/` dejaba pasar
+ * "2026-00" y "2026-13". Un `<input type="month">` no los produce, pero una
+ * Server Action recibe el FormData que le manden, y "2026-00" ordena por debajo
+ * de cualquier período real: la cuota quedaría vencida para siempre.
+ */
+const periodoSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, { error: "El período debe ser AAAA-MM." });
+
 /** Monto opcional venido de un `<input type="number">` (llega "" si está vacío). */
 const montoOpcional = z
   .union([z.literal(""), z.coerce.number().min(0).max(99999999)])
@@ -75,10 +86,7 @@ const montoOpcional = z
 export const membresiaSchema = z.object({
   jugadorId: z.string().min(1, { error: "Elige un jugador." }),
   // Período mensual en formato AAAA-MM (ej: 2026-06).
-  periodo: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}$/, { error: "El período debe ser AAAA-MM." }),
+  periodo: periodoSchema,
   concepto: z.enum(CONCEPTOS_MEMBRESIA).default("MENSUALIDAD"),
   monto: montoOpcional,
   descuento: montoOpcional,
@@ -122,9 +130,6 @@ export type CambiarEstadoMembresiaInput = z.infer<
 
 /** Generación masiva de la cobranza de un período. */
 export const generarCuotasSchema = z.object({
-  periodo: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}$/, { error: "El período debe ser AAAA-MM." }),
+  periodo: periodoSchema,
   concepto: z.enum(CONCEPTOS_MEMBRESIA).default("MENSUALIDAD"),
 });

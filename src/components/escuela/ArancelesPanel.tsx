@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
+import { formatearMonto } from "@/lib/cobranza";
 import type { ActionResult } from "@/lib/action-result";
 import type { ArancelDTO } from "@/services/arancel.service";
 
@@ -126,7 +127,7 @@ export function ArancelesPanel({
                   <td className="px-4 py-2 text-muted">
                     {etiquetaConcepto(a.concepto)}
                   </td>
-                  <td className="px-4 py-2 tabular">{a.monto}</td>
+                  <td className="px-4 py-2 tabular">{formatearMonto(a.monto)}</td>
                   <td className="px-4 py-2 text-muted">
                     <FechaLocal iso={a.vigenteDesde} formato="d MMM yyyy" />
                   </td>

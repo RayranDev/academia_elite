@@ -8,6 +8,7 @@ import { listarCodigosEscuela } from "@/services/codigo.service";
 import { resumenMembresias } from "@/services/membresia.service";
 import { Card } from "@/components/ui/Card";
 import { FechaLocal } from "@/components/ui/FechaLocal";
+import { formatearMonto } from "@/lib/cobranza";
 
 export default async function EscuelaDashboardPage() {
   const ctx = await requireAuthContext();
@@ -118,7 +119,7 @@ export default async function EscuelaDashboardPage() {
             valor={
               membresias.montoVencido === 0
                 ? "—"
-                : membresias.montoVencido.toLocaleString("es-CO")
+                : formatearMonto(membresias.montoVencido)
             }
             alerta={membresias.montoVencido > 0}
             href="/escuela/membresias?estado=VENCIDA"
@@ -220,7 +221,7 @@ export default async function EscuelaDashboardPage() {
                       <td className="px-4 py-3 text-muted">
                         {p.ultimaEvaluacion ? (
                           <FechaLocal
-                            iso={new Date(p.ultimaEvaluacion).toISOString()}
+                            iso={p.ultimaEvaluacion}
                             formato="dd/MM/yyyy"
                           />
                         ) : (
@@ -298,7 +299,7 @@ function Kpi({
         .join(" ")}
     >
       <div
-        className={`text-3xl font-black tabular-nums ${alerta ? "text-alerta" : ""}`}
+        className={`text-3xl font-black tabular ${alerta ? "text-alerta" : ""}`}
       >
         {valor}
       </div>
@@ -344,7 +345,7 @@ function Tile({
   return (
     <Link href={href}>
       <Card className="transition-colors hover:border-brand/50">
-        <div className="text-3xl font-black tabular-nums">{valor}</div>
+        <div className="text-3xl font-black tabular">{valor}</div>
         <div className="mt-1 text-sm text-muted">{titulo}</div>
       </Card>
     </Link>

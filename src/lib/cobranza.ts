@@ -80,6 +80,15 @@ export interface EstadoCuenta {
   enMora: boolean;
 }
 
+/**
+ * Formato de plata, en un solo lugar. Sin esto el dashboard mostraba "1.250.000"
+ * y la tabla de cuotas "250000" a una pantalla de distancia: mismo dato, dos
+ * formas. Sin símbolo de moneda porque toda la app opera en una sola.
+ */
+export function formatearMonto(valor: number): string {
+  return valor.toLocaleString("es-CO", { maximumFractionDigits: 0 });
+}
+
 /** Neto de una cuota: lo que la familia realmente debe. */
 export function netoCuota(cuota: CuotaParaDeuda): number | null {
   if (cuota.monto == null) return null;

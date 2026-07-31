@@ -7,6 +7,7 @@ import {
   cambiarEstadoMembresiaAction,
 } from "@/actions/membresia.actions";
 import {
+  ESTADOS_MEMBRESIA,
   ESTADOS_EDITABLES,
   CONCEPTOS_MEMBRESIA,
   MEDIOS_PAGO,
@@ -18,17 +19,24 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
+import { formatearMonto } from "@/lib/cobranza";
 import type { ActionResult } from "@/lib/action-result";
 import type { MembresiaDTO } from "@/services/membresia.service";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
-const TONO: Record<string, "pitch" | "oro" | "alerta"> = {
+// Tipado contra la union por el mismo motivo que las etiquetas: al sumar un
+// estado, TypeScript avisa que le falta el tono en vez de caer a uno cualquiera.
+const TONO: Record<(typeof ESTADOS_MEMBRESIA)[number], "pitch" | "oro" | "alerta"> = {
   PAGADA: "pitch",
   PENDIENTE: "oro",
   VENCIDA: "alerta",
 };
+
+/** El DTO trae el estado como `string`, así que la búsqueda cae a un tono neutro. */
+const tonoEstado = (v: string) =>
+  (TONO as Record<string, "pitch" | "oro" | "alerta">)[v] ?? "oro";
 
 export function MembresiasPanel({
   membresias,
@@ -174,22 +182,25 @@ export function MembresiasPanel({
                   <td className="px-4 py-2 text-muted">
                     {etiquetaConcepto(m.concepto)}
                   </td>
+                  {/* El neto viene calculado del servicio (`netoCuota`): la tabla
+                      no reimplementa la resta, para que no pueda divergir del
+                      total del dashboard. */}
                   <td className="px-4 py-2 tabular">
-                    {m.monto == null ? (
+                    {m.neto == null ? (
                       "—"
                     ) : (
                       <>
-                        {m.monto - (m.descuento ?? 0)}
+                        {formatearMonto(m.neto)}
                         {m.descuento ? (
                           <span className="ml-1 text-xs text-muted">
-                            (−{m.descuento})
+                            (−{formatearMonto(m.descuento)})
                           </span>
                         ) : null}
                       </>
                     )}
                   </td>
                   <td className="px-4 py-2">
-                    <Badge tono={TONO[m.estado] ?? "oro"}>{etiquetaEstado(m.estado)}</Badge>
+                    <Badge tono={tonoEstado(m.estado)}>{etiquetaEstado(m.estado)}</Badge>
                   </td>
                   <td className="px-4 py-2 text-xs text-muted">
                     {m.pagadaEn ? (
@@ -262,7 +273,6 @@ function ComboboxJugador({
         // Cierre diferido: deja que el click en una opción se registre primero.
         onBlur={() => setTimeout(() => setAbierto(false), 120)}
         placeholder="Buscá por nombre o apellido…"
-        aria-label="Buscar jugador"
         autoComplete="off"
         className={input}
       />
