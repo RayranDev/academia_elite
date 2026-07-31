@@ -7,6 +7,11 @@ import { crearEvaluacionAction } from "@/actions/dt.actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PlayerCard } from "@/components/cards/PlayerCard";
+import {
+  CLAVES_TECNICAS,
+  medidasTecnicas,
+  tituloBloqueTecnico,
+} from "@/lib/medidas-tecnicas";
 import type { ActionResult } from "@/lib/action-result";
 import type { ResultadoStats } from "@/lib/stats-engine";
 import type { PlayerCardData, Posicion } from "@/types";
@@ -50,12 +55,6 @@ const FISICAS: [string, string, string, string][] = [
     "Nivel alcanzado en el test Yo-Yo de recuperación intermitente.",
   ],
 ];
-const TECNICAS: [string, string, string][] = [
-  ["controlBalon", "Control", "Primer toque y dominio del balón bajo presión."],
-  ["pase", "Pase", "Precisión y peso del pase, corto y largo."],
-  ["tiro", "Tiro", "Potencia, colocación y definición frente al arco."],
-  ["regate", "Regate", "Conducción y capacidad de superar al rival."],
-];
 const MENTALIDAD: [string, string, string][] = [
   ["actitud", "Actitud", "Compromiso en el entrenamiento y ante la adversidad."],
   ["concentracion", "Concentración", "Sostiene la atención durante todo el trabajo."],
@@ -69,9 +68,15 @@ const RUBRICA =
 
 // Las 8 notas 1-10 (técnicas + mentalidad). Se evalúan con botones, no con un
 // input con default 5: el 5 precargado invita a "evaluar todo 5" sin pensar.
-const NOTAS = [...TECNICAS, ...MENTALIDAD].map(([name]) => name);
+//
+// Las 4 técnicas viajan siempre en las mismas columnas, pero lo que significan
+// depende de la posición: a un arquero no se le evalúa el regate sino el achique
+// (`src/lib/medidas-tecnicas.ts`), y el motor lo deriva con otra fórmula.
+const NOTAS = [...CLAVES_TECNICAS, ...MENTALIDAD.map(([name]) => name)];
 
 export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
+  // Qué se le pide puntuar al DT depende de la posición del jugador.
+  const tecnicas = medidasTecnicas(jugador.posicion);
   const [state, action, pending] = useActionState<
     ActionResult<ResultadoStats> | undefined,
     FormData
@@ -160,19 +165,24 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
       </Card>
 
       <Card>
-        <h3 className="mb-1 text-lg font-bold text-brand">Técnicas (1–10)</h3>
+        <h3 className="mb-1 text-lg font-bold text-brand">
+          {tituloBloqueTecnico(jugador.posicion)} (1–10)
+        </h3>
         <p className="mb-3 text-[11px] leading-snug text-muted">{RUBRICA}</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {TECNICAS.map(([name, label, ayuda]) => (
-            <Nota
-              key={name}
-              name={name}
-              label={label}
-              ayuda={ayuda}
-              valor={notas[name]}
-              onElegir={(v) => setNotas((prev) => ({ ...prev, [name]: v }))}
-            />
-          ))}
+          {CLAVES_TECNICAS.map((name) => {
+            const { etiqueta, ayuda } = tecnicas[name];
+            return (
+              <Nota
+                key={name}
+                name={name}
+                label={etiqueta}
+                ayuda={ayuda}
+                valor={notas[name]}
+                onElegir={(v) => setNotas((prev) => ({ ...prev, [name]: v }))}
+              />
+            );
+          })}
         </div>
       </Card>
 

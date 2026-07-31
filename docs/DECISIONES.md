@@ -357,3 +357,38 @@ cada adaptación, regla 0.8.)
     Dejar que el DT ajuste la carta con taps contradice eso. Puede ser la decisión
     correcta, pero tiene que decidirse acá y de frente — no colarse como efecto
     lateral de un track de UX. Sin esa entrada, no se construye.
+
+## Evaluación del portero (2026-07-31)
+
+58. **El portero tiene su propia derivación, no solo su propia fila de pesos.**
+    Hasta ahora lo único específico de un arquero en todo el código era una fila
+    en `PESOS_POSICION`. Las cuatro notas técnicas seguían siendo `controlBalon`,
+    `pase`, `tiro` y `regate` — habilidades de jugador de campo —, y su **DEF**,
+    el stat de mayor peso para él (0.35), salía de
+    `resistencia Yo-Yo × 0.45 + salto × 0.30 + control × 0.25`. La capacidad de
+    atajar de un arquero no tiene casi nada que ver con cuánto aguanta un Yo-Yo.
+    **Ponderar distinto una medida equivocada no la arregla.**
+59. **Se reetiquetan las notas, no se cambia el schema.** Las mismas cuatro
+    columnas de `Evaluacion` significan otra cosa cuando el jugador es POR:
+    control→**blocaje/atajada**, pase→**distribución/saque**, tiro→**juego
+    aéreo**, regate→**achique y 1v1** (`src/lib/medidas-tecnicas.ts`). La nota
+    sigue siendo un 1–10 que pone el DT; lo que cambia es **qué se le pide
+    puntuar**. Se eligió sobre agregar columnas nuevas porque da el 80% del valor
+    sin migración, sin formulario condicional y sin tocar el importador. Si algún
+    día el arquero necesita medidas propias de verdad, ese archivo ya deja escrito
+    qué significa cada una.
+60. **`derivaStatsPortero` es una función aparte y cada fila suma 1.0**, igual que
+    la de campo. El DEF pasa a ser `blocaje × 0.50 + agilidad × 0.25 + aéreo × 0.25`
+    y el RIT prioriza la agilidad sobre la velocidad pura (el achique es reacción,
+    no carrera larga). El FIS se mide igual en ambas: el físico es físico.
+61. **La planilla del simulador ramifica igual que el motor.**
+    `plantilla-simulador.service.ts` **replica las fórmulas a mano en Excel**, así
+    que sin ramificarla habría mostrado un OVR distinto al real para cada arquero.
+    Lleva `IF($B{fila}="POR", …)` en los cinco stats que difieren. **Cualquier
+    cambio futuro en `derivaStats*` tiene que replicarse ahí**, o las dos verdades
+    se separan en silencio.
+62. **Las cartas de arquero ya emitidas NO se recalculan.** Las evaluaciones son
+    inmutables por diseño: los 8 arqueros con carta al momento del cambio
+    conservan sus números viejos hasta que el DT los vuelva a evaluar. No se hace
+    una migración de datos — reescribir una medición histórica sería mentir sobre
+    lo que se midió ese día.

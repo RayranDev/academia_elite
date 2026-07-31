@@ -103,6 +103,14 @@ equipo y viven en [ACADEMIA-ELITE-DEMO.md](ACADEMIA-ELITE-DEMO.md), no acá.
    privadas. Al guardar, **la carta nace/recalcula** con OVR y sello MEN. Las
    evaluaciones no se editan: si te equivocás, pedile al admin que la anule y
    creá una nueva.
+   - **Si el jugador es portero, el bloque técnico cambia solo**: en vez de
+     control, pase, tiro y regate te pide **blocaje/atajada**,
+     **distribución/saque**, **juego aéreo** y **achique y 1v1**. Son las cuatro
+     notas de su oficio, y el motor las usa con una fórmula propia — el DEF de un
+     arquero lo manda su blocaje, no su resistencia.
+   - Los arqueros evaluados **antes** de este cambio conservan su carta anterior
+     hasta que los vuelvas a medir: una evaluación es la foto de un día y no se
+     reescribe hacia atrás.
 5. **Ficha del jugador**: además del historial de evaluaciones, ahí ves el
    **historial de observaciones** que cargaste sobre ese jugador (visibles a
    la familia o privadas), y podés fijarle un objetivo de desarrollo (stat +

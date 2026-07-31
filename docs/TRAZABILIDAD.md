@@ -43,6 +43,7 @@
 | 17 | Ronda `mejoras.pdf`: onboarding, Apartado Eventos, Entrenamiento dinámico, notificaciones, endurecimiento de validación | 2026-07-25 → 2026-07-29 | ✅ |
 | 18 | Giro a ERP — cobranza: dinero en `Decimal`, registro de pago, aranceles, generación masiva y deuda derivada | 2026-07-31 | ✅ (A.0–A.4) |
 | 19 | Sincronización de la documentación con el código | 2026-07-31 | ✅ |
+| 20 | Evaluación del portero: derivación propia en el motor | 2026-07-31 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -522,6 +523,41 @@ contra el repo y la base:
 **Regla que se estaba incumpliendo** (AGENTS.md §8): la doc se actualiza en la
 misma ronda que el código, no cada tanto. Una doc que miente es peor que una que
 falta: manda a construir lo que ya existe.
+
+## 20. Evaluación del portero (2026-07-31)
+
+**El problema.** Lo único específico de un arquero en todo el código era **una
+fila** de `PESOS_POSICION`. Las cuatro notas técnicas seguían siendo control,
+pase, tiro y regate — habilidades de jugador de campo — y ninguna medía blocaje,
+achique, juego aéreo ni distribución. Peor: el **DEF** del arquero, su stat de
+mayor peso (0.35), se calculaba con
+`resistencia Yo-Yo × 0.45 + salto × 0.30 + control × 0.25`.
+
+La app aparentaba evaluar arqueros y en realidad los medía con la vara de un
+delantero.
+
+**Qué se hizo** (detalle y porqués en `DECISIONES.md` §58-62):
+- `src/lib/medidas-tecnicas.ts` (nuevo): las mismas cuatro columnas de
+  `Evaluacion` se reetiquetan según la posición. Para POR: blocaje/atajada,
+  distribución/saque, juego aéreo, achique y 1v1. **Sin cambio de schema.**
+- `derivaStatsPortero` en `weights.ts`: derivación propia, cada fila suma 1.0. El
+  DEF pasa a `blocaje × 0.50 + agilidad × 0.25 + aéreo × 0.25`; el RIT prioriza
+  agilidad sobre velocidad; el FIS se mide igual que en campo.
+- `compute.ts` elige la derivación con `derivaStatsPorPosicion(norm, posicion)`.
+- `EvaluationForm` pide lo que corresponde según la posición del jugador, con el
+  título del bloque y las ayudas cambiadas.
+- `plantilla-simulador.service.ts` ramifica las fórmulas del Excel con
+  `IF($B{fila}="POR", …)`: esa planilla **replica el motor a mano**, y sin
+  ramificarla habría mostrado un OVR distinto al real para cada arquero.
+
+**Verificación.** 12 tests nuevos (`tests/unit/portero.test.ts`), incluidos dos
+que fijan el defecto y su arreglo: con la fórmula de arquero, subir la resistencia
+Yo-Yo **ya no mueve** el DEF, y subir el blocaje sí; con la de campo, el Yo-Yo lo
+movía. `typecheck` y `lint` limpios, **260 tests** en verde.
+
+**Nota operativa.** Los **8 arqueros** que ya tenían carta conservan sus números
+viejos: las evaluaciones son inmutables y no se hace migración de datos.
+Se corrigen solos en la próxima jornada de medición.
 
 ---
 

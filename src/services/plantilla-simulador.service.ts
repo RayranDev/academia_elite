@@ -30,10 +30,12 @@ const CABECERAS = [
   "Salto (cm)",
   "Agilidad (s)",
   "Yo-Yo (nivel)",
-  "Control",
-  "Pase",
-  "Tiro",
-  "Regate",
+  // Para POR estas cuatro columnas se leen como blocaje / distribucion /
+  // juego aereo / achique: el motor las deriva con `derivaStatsPortero`.
+  "Control (POR: blocaje)",
+  "Pase (POR: distribución)",
+  "Tiro (POR: juego aéreo)",
+  "Regate (POR: achique 1v1)",
   "Actitud",
   "Concentración",
   "Trabajo equipo",
@@ -127,6 +129,13 @@ export async function generarPlantillaSimulador(
     "4. Las columnas RIT, TIR, PAS, REG, DEF, FIS, MEN, OVR y Nivel se calculan SOLAS.",
     "5. Los parámetros (rangos por grupo, pesos por posición, peso de MEN y umbrales) viven en la hoja 'Parametros'.",
     "",
+    "PORTEROS — las cuatro notas técnicas miden otro oficio. Si la Posición es POR, cargá:",
+    "   Control → BLOCAJE / ATAJADA",
+    "   Pase → DISTRIBUCIÓN / SAQUE",
+    "   Tiro → JUEGO AÉREO",
+    "   Regate → ACHIQUE Y 1v1",
+    "Las fórmulas ya lo tienen en cuenta: para POR el DEF sale del blocaje, no de la resistencia.",
+    "",
     "Nota: es el MISMO motor del simulador. Si abrís el archivo y no recalcula, forzá el recálculo (F9).",
   ].forEach((t) => wi.addRow([t]));
 
@@ -179,13 +188,28 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   f(`AQ${r}`, wcol("F")); // wDef
   f(`AR${r}`, wcol("G")); // wFis
 
-  // Stats base (derivaStats).
-  f(`P${r}`, clampStat(`AA${r}*0.65+AC${r}*0.35`)); // RIT
-  f(`Q${r}`, clampStat(`AG${r}*0.75+AB${r}*0.25`)); // TIR
-  f(`R${r}`, clampStat(`AF${r}*0.75+AE${r}*0.25`)); // PAS
-  f(`S${r}`, clampStat(`AH${r}*0.55+AC${r}*0.25+AE${r}*0.20`)); // REG
-  f(`T${r}`, clampStat(`AD${r}*0.45+AB${r}*0.30+AE${r}*0.25`)); // DEF
-  f(`U${r}`, clampStat(`AD${r}*0.50+AB${r}*0.35+AA${r}*0.15`)); // FIS
+  // Stats base. El PORTERO usa otra derivación (`derivaStatsPortero`): sus cuatro
+  // notas técnicas son blocaje / distribución / juego aéreo / achique, no
+  // control / pase / tiro / regate. Si esta planilla no ramificara igual que el
+  // motor, mostraría un OVR distinto al real para cada arquero.
+  const porCampo = (portero: string, campo: string) =>
+    clampStat(`IF($B${r}="POR",${portero},${campo})`);
+
+  f(`P${r}`, porCampo(`AC${r}*0.60+AA${r}*0.40`, `AA${r}*0.65+AC${r}*0.35`)); // RIT
+  f(`Q${r}`, porCampo(`AG${r}*0.60+AB${r}*0.40`, `AG${r}*0.75+AB${r}*0.25`)); // TIR
+  f(`R${r}`, porCampo(`AF${r}*0.80+AB${r}*0.20`, `AF${r}*0.75+AE${r}*0.25`)); // PAS
+  f(
+    `S${r}`,
+    porCampo(`AH${r}*0.60+AC${r}*0.40`, `AH${r}*0.55+AC${r}*0.25+AE${r}*0.20`),
+  ); // REG
+  f(
+    `T${r}`,
+    porCampo(
+      `AE${r}*0.50+AC${r}*0.25+AG${r}*0.25`,
+      `AD${r}*0.45+AB${r}*0.30+AE${r}*0.25`,
+    ),
+  ); // DEF
+  f(`U${r}`, clampStat(`AD${r}*0.50+AB${r}*0.35+AA${r}*0.15`)); // FIS (igual en ambas)
   // MEN = promedio de las 4 notas de mentalidad normalizadas.
   f(`V${r}`, clampStat(`(AI${r}+AJ${r}+AK${r}+AL${r})/4`));
   // OVR = (1-pesoMen)*Σ(stat×wPos) + pesoMen*MEN.

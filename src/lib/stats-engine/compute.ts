@@ -2,7 +2,11 @@ import type { MedidasEvaluacion, OpcionesComputo, ResultadoStats } from "./types
 import { VERSION_FORMULA } from "./types";
 import { RANGOS_POR_GRUPO } from "./ranges";
 import { normalizaFisica, normalizaNota, TECHO, PISO_TECNICA } from "./normalize";
-import { derivaStats, PESOS_POSICION, type MedidasNormalizadas } from "./weights";
+import {
+  derivaStatsPorPosicion,
+  PESOS_POSICION,
+  type MedidasNormalizadas,
+} from "./weights";
 import { nivelPorOvr } from "./levels";
 import type { StatCarta, Posicion } from "@/types";
 
@@ -62,8 +66,9 @@ export function computeStats(
     regT: normalizaNota(medidas.regate),
   };
 
-  // 2) Stats base derivados (enteros 1-99)
-  const base = derivaStats(norm);
+  // 2) Stats base derivados (enteros 1-99). El portero usa su propia derivación:
+  // las cuatro notas técnicas son otras cosas para él (ver `medidas-tecnicas.ts`).
+  const base = derivaStatsPorPosicion(norm, opts.posicion);
   const stats: Record<Lowercase<StatCarta>, number> = {
     rit: entero(base.rit),
     tir: entero(base.tir),

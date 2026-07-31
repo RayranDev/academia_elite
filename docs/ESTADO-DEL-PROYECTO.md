@@ -90,6 +90,13 @@ app | components  →  actions  →  services  →  repositories  →  prisma
 - **AuditLog** para acciones sensibles. **Rate limiting** en memoria (Fase 1).
 - **Motor de stats puro** (`src/lib/stats-engine`): mismas entradas → mismas
   salidas, sin Prisma ni React. Reutilizado por evaluaciones y simulador.
+  El **portero** tiene derivación propia (`derivaStatsPortero`): sus cuatro notas
+  técnicas miden blocaje, distribución, juego aéreo y achique, no control/pase/
+  tiro/regate (`DECISIONES.md` §58-62).
+
+> ⚠️ **`plantilla-simulador.service.ts` replica las fórmulas del motor a mano en
+> Excel.** Todo cambio en `derivaStats*` o en los pesos tiene que replicarse ahí,
+> o la planilla y la app muestran OVR distintos para el mismo jugador.
 
 ### Modelos de datos (36)
 

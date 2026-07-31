@@ -17,6 +17,7 @@ import {
   type RangosFisicos,
   type UmbralesNivel,
 } from "@/lib/stats-engine";
+import { CLAVES_TECNICAS, medidasTecnicas } from "@/lib/medidas-tecnicas";
 import { POSICIONES, type Posicion, type PlayerCardData } from "@/types";
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
@@ -35,16 +36,31 @@ const FISICAS: CampoMedida[] = [
   { key: "agilidadIllinoisSeg", label: "Agilidad Illinois (s) — menos es mejor", min: 13, max: 25, step: 0.1 },
   { key: "resistenciaYoyoNivel", label: "Resistencia Yo-Yo (nivel)", min: 1, max: 22, step: 0.5 },
 ];
-const NOTAS: CampoMedida[] = [
-  { key: "controlBalon", label: "Control de balón (1-10)", min: 1, max: 10, step: 0.5 },
-  { key: "pase", label: "Pase (1-10)", min: 1, max: 10, step: 0.5 },
-  { key: "tiro", label: "Tiro (1-10)", min: 1, max: 10, step: 0.5 },
-  { key: "regate", label: "Regate (1-10)", min: 1, max: 10, step: 0.5 },
+const MENTALIDAD: CampoMedida[] = [
   { key: "actitud", label: "Actitud (1-10)", min: 1, max: 10, step: 0.5 },
   { key: "concentracion", label: "Concentración (1-10)", min: 1, max: 10, step: 0.5 },
   { key: "trabajoEquipo", label: "Trabajo en equipo (1-10)", min: 1, max: 10, step: 0.5 },
   { key: "resiliencia", label: "Resiliencia (1-10)", min: 1, max: 10, step: 0.5 },
 ];
+
+/**
+ * Las cuatro notas técnicas según la posición elegida. El simulador ofrece POR,
+ * y para un arquero el motor usa `derivaStatsPortero`: si los sliders siguieran
+ * diciendo "Regate", el SA estaría moviendo el achique sin saberlo.
+ */
+function notasDe(posicion: Posicion): CampoMedida[] {
+  const tecnicas = medidasTecnicas(posicion);
+  return [
+    ...CLAVES_TECNICAS.map((key) => ({
+      key,
+      label: `${tecnicas[key].etiqueta} (1-10)`,
+      min: 1,
+      max: 10,
+      step: 0.5,
+    })),
+    ...MENTALIDAD,
+  ];
+}
 
 const INICIAL: MedidasEvaluacion = {
   sprint30mSeg: 5.5,
@@ -205,7 +221,7 @@ export function SimuladorCarta({
         </Card>
         <Card>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Técnica y mentalidad (notas 1-10)</h2>
-          <div className="grid gap-3 sm:grid-cols-2">{NOTAS.map(campo)}</div>
+          <div className="grid gap-3 sm:grid-cols-2">{notasDe(posicion).map(campo)}</div>
         </Card>
         <Card>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Apariencia (prueba)</h2>

@@ -13,7 +13,12 @@ export {
   PISO_FISICO,
   TECHO,
 } from "./normalize";
-export { PESOS_POSICION, derivaStats } from "./weights";
+export {
+  PESOS_POSICION,
+  derivaStats,
+  derivaStatsPortero,
+  derivaStatsPorPosicion,
+} from "./weights";
 export {
   RANGOS_POR_GRUPO,
   grupoEdadPorEdad,
