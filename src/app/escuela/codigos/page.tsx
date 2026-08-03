@@ -6,6 +6,7 @@ import { CrearCodigoDialog } from "@/components/escuela/CrearCodigoDialog";
 import { EnviarCodigoForm } from "@/components/escuela/EnviarCodigoForm";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 
 export default async function CodigosPage() {
   const ctx = await requireAuthContext();
@@ -51,7 +52,7 @@ export default async function CodigosPage() {
               <p className="mt-2 text-xs text-muted">{c.categoriaNombre}</p>
               <p className="text-xs text-muted">
                 Usos {c.usos}/{c.usosMaximos} · Expira{" "}
-                {new Date(c.expiraEn).toLocaleDateString("es")}
+                <FechaLocal iso={c.expiraEn} formato="d MMM yyyy" />
               </p>
               {c.vigente && <EnviarCodigoForm codigoId={c.id} />}
               {c.activo && (

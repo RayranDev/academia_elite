@@ -1,5 +1,11 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
+import {
+  requireRole,
+  requireEscuela,
+  assertTenant,
+  assertSoportePuedeEscribir,
+  assertMotivoSoporte,
+} from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
 import { parseXlsx, plantillaJugadoresXlsx } from "@/lib/xlsx";
 import { jugadorSchema } from "@/lib/validators/jugador";
@@ -100,14 +106,29 @@ export async function importarJugadores(
   ctx: AuthContext,
   buffer: Buffer,
   escuelaId?: string,
+  /** Por qué el SUPER_ADMIN entra a escribir en este tenant (M1). */
+  motivo?: string,
 ): Promise<ResultadoImportacion> {
   const id = escuelaObjetivo(ctx, escuelaId);
   const escuela = await obtenerEscuela(id);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
+  // Esto ESCRIBE (crea jugadores). Una sesión de soporte nace en solo-lectura:
+  // sin habilitarla, el SUPER_ADMIN no puede importar (AGENTS.md §5). Y toda
+  // escritura suya sobre un tenant exige un motivo (M1): el AuditLog tiene que
+  // poder responder POR QUÉ entró, no solo cuántas filas tocó.
+  assertSoportePuedeEscribir(ctx);
+  assertMotivoSoporte(ctx, motivo);
 
   const filas = await parseXlsx(buffer);
   if (filas.length === 0) throw new ValidationError("El archivo está vacío.");
   validarCabeceras(filas[0]);
+  // El tope se valida ANTES del loop, no adentro: cortando a mitad de la carga el
+  // throw salía sin pasar por `registrarAuditoria`, dejando creados hasta 500
+  // jugadores sin una sola entrada de auditoría (mismo defecto ya corregido en
+  // `importacion-evaluaciones.service.ts`).
+  if (filas.length - 1 > MAX_FILAS) {
+    throw new ValidationError(`El archivo supera el máximo de ${MAX_FILAS} jugadores.`);
+  }
 
   // Mapa de categorías por nombre (normalizado) y set de duplicados existentes.
   const categorias = await listarCategorias(id);
@@ -120,18 +141,13 @@ export async function importarJugadores(
   const errores: { fila: number; mensaje: string }[] = [];
   let creados = 0;
   let omitidos = 0;
-  let procesadas = 0;
 
   // Empezamos en 1 para saltar la fila de cabeceras.
   for (let i = 1; i < filas.length; i += 1) {
     const cols = filas[i].map((v) => (v ?? "").trim());
     if (cols.every((c) => c === "")) continue; // fila vacía → se ignora
 
-    procesadas += 1;
     const numeroFila = i + 1; // 1-based, contando la cabecera
-    if (procesadas > MAX_FILAS) {
-      throw new ValidationError(`El archivo supera el máximo de ${MAX_FILAS} jugadores.`);
-    }
 
     // Primero, campos obligatorios presentes (mensaje claro por campo).
     const faltan = OBLIGATORIAS.filter((o) => !cols[o.idx]).map((o) => o.etiqueta);
@@ -184,7 +200,11 @@ export async function importarJugadores(
     entidad: "Escuela",
     entidadId: id,
     escuelaId: id,
-    motivo: `creados=${creados} omitidos=${omitidos} errores=${errores.length}`,
+    // El motivo del SA va primero: es el porqué. Los conteos son el qué, y solos
+    // no responden la pregunta que se hace después de un incidente.
+    motivo: [motivo?.trim(), `creados=${creados} omitidos=${omitidos} errores=${errores.length}`]
+      .filter(Boolean)
+      .join(" · "),
   });
 
   return { creados, omitidos, errores };

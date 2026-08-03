@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 import { rateLimit } from "@/lib/rate-limit";
 import { urlBase } from "@/lib/url";
 import { avisarSetPassword } from "@/services/recuperacion.service";
@@ -389,9 +390,20 @@ export async function importarJugadoresAction(
     }
     const escuelaIdRaw = formData.get("escuelaId");
     const escuelaId = typeof escuelaIdRaw === "string" && escuelaIdRaw ? escuelaIdRaw : undefined;
+    // Motivo del soporte (solo lo exige el SA). Es texto libre del usuario, así
+    // que pasa por `textoSeguro` como cualquier otro (AGENTS.md §5).
+    const motivoRaw = formData.get("motivo");
+    let motivo: string | undefined;
+    if (typeof motivoRaw === "string" && motivoRaw.trim()) {
+      const parsedMotivo = textoSeguro({ max: 200 }).safeParse(motivoRaw);
+      if (!parsedMotivo.success) {
+        throw new ValidationError(parsedMotivo.error.issues[0]?.message ?? "Motivo inválido.");
+      }
+      motivo = parsedMotivo.data;
+    }
 
     const buffer = Buffer.from(await archivo.arrayBuffer());
-    const data = await importarJugadores(ctx, buffer, escuelaId);
+    const data = await importarJugadores(ctx, buffer, escuelaId, motivo);
     revalidarGestion();
     return { ok: true, data };
   } catch (e) {

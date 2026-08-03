@@ -99,7 +99,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **progreso** · validarSemana (responsable) | ✓ | ✓ | ✓ | ✓³ | ✓ | ✓ | ✓ | ✓ |
 | **progreso** · validarSemanaDt (DT, sus categorías) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | ✓ |
-| **importación** · importarJugadores XLSX (Escuela/SA) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| **importación** · importarJugadores XLSX (Escuela/SA) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | ✓ |
 | **importación** · jornada de medición XLSX (DT/Escuela/SA) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | ✓ |
 | **métricas** · fijar/quitarMetrica (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **fondos** · equiparFondo (responsable) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
@@ -196,16 +196,25 @@ activa `assertTenant` lanza `ForbiddenError`, y contra otra escuela
   requisito o ya estaba registrado) antes de equiparlo. Es cosmético: no toca
   OVR ni datos personales.
 
-### Acceso ambiental del SA cerrado en las plantillas (2026-07-31)
+### Acceso ambiental del SA cerrado en las plantillas (2026-07-31 → 2026-08-01)
 
-Hallazgos **preexistentes**, detectados al revisar un cambio vecino. Dos rutas
-resolvían el alcance del `SUPER_ADMIN` tomando el `escuelaId` **del request**:
+Hallazgos **preexistentes**, detectados al revisar cambios vecinos. Tres rutas
+de importación/exportación por Excel resolvían el alcance del `SUPER_ADMIN`
+tomando el `escuelaId` **del request** sin los tres guards de la familia M1/M2:
 
 1. `plantilla-simulador.service.ts` (`?escuela=` del route) — solo verificaba
    `requirePermiso`, que es un permiso de **plataforma**, no un control de
    tenant. Exponía nombre, slug, rangos físicos efectivos, peso de MEN y
    umbrales de cualquier escuela. Corregido con `assertTenant`.
 2. `importacion-evaluaciones.service.ts` — el caso grave, detallado abajo.
+3. `importacion.service.ts` (`importarJugadores`) — mismo patrón que (2), un
+   escalón atrás: `assertTenant` estaba, pero faltaban
+   `assertSoportePuedeEscribir` y `assertMotivoSoporte`. Una sesión de soporte
+   en **solo lectura** podía crear hasta 500 jugadores en el tenant, y el
+   `AuditLog` solo registraba conteos, nunca el motivo. Corregido con el mismo
+   patrón: `motivo` pedido en `ImportarJugadoresDialog` (solo cuando hay
+   `escuelaId`), sanitizado con `textoSeguro({ max: 200 })` y encabezando el
+   `motivo` del `AuditLog`.
 
 > **Patrón a recordar:** `requireRole` y `requirePermiso` responden *quién sos*;
 > `assertTenant` responde *a qué escuela podés entrar*. Cuando el `escuelaId`

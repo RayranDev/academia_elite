@@ -44,6 +44,7 @@
 | 18 | Giro a ERP — cobranza: dinero en `Decimal`, registro de pago, aranceles, generación masiva y deuda derivada | 2026-07-31 | ✅ (A.0–A.4) |
 | 19 | Sincronización de la documentación con el código | 2026-07-31 | ✅ |
 | 20 | Evaluación del portero: derivación propia en el motor | 2026-07-31 | ✅ |
+| 21 | Limpieza de riesgo: auditoría de `importarJugadores` + fechas de servidor a `FechaLocal` | 2026-08-01 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -558,6 +559,45 @@ movía. `typecheck` y `lint` limpios, **260 tests** en verde.
 **Nota operativa.** Los **8 arqueros** que ya tenían carta conservan sus números
 viejos: las evaluaciones son inmutables y no se hace migración de datos.
 Se corrigen solos en la próxima jornada de medición.
+
+---
+
+## 21. Limpieza de riesgo (2026-08-01)
+
+Dos ítems chicos de `PENDIENTES.md`, cerrados juntos por ser mecánicos y de bajo
+riesgo.
+
+**`importarJugadores` — la auditoría ya no se salteaba.** Mismo defecto que se
+había corregido en `importacion-evaluaciones.service.ts` (hito 20): el `throw`
+por exceso de filas estaba **dentro** del loop, así que salía sin pasar por
+`registrarAuditoria`. Con hasta 500 jugadores creados antes del corte, quedaba
+la escritura más grande sin ninguna entrada de auditoría. Se movió la validación
+de `filas.length` antes del loop, mismo patrón ya usado en el hermano.
+
+**Fechas de servidor → `FechaLocal`.** Cinco Server Components seguían formateando
+fechas con `toLocaleDateString("es")`/`toLocaleString("es")` en el servidor:
+`jugador/page.tsx`, `admin/page.tsx`, `dt/solicitudes/page.tsx`,
+`escuela/codigos/page.tsx`, `admin/auditoria/page.tsx`. El SSR corre en UTC
+(Vercel) y Colombia es UTC-5, así que una fecha de la tarde se mostraba con el
+día siguiente. Se reemplazaron por `<FechaLocal iso={…} formato="…" />`, que
+formatea en cliente. Se confirmó primero que los cinco campos ya llegaban como
+`string` ISO desde sus DTOs (`.toISOString()` en el servicio) — sin conversión
+de tipos, solo el componente de render.
+
+**`importarJugadores` — el mismo acceso ambiental que ya se había cerrado en su
+hermano.** Detectado por la revisión al aplicar el fix anterior: `escuelaObjetivo`
+tenía `assertTenant`, pero no `assertSoportePuedeEscribir` ni
+`assertMotivoSoporte`. Una sesión de soporte en **solo lectura** podía crear
+hasta 500 jugadores en el tenant, y el `AuditLog` solo guardaba conteos, nunca
+el motivo. Mismo patrón que `importacion-evaluaciones.service.ts` (hito 18):
+`motivo` pedido en `ImportarJugadoresDialog` (solo con `escuelaId`, es decir
+solo al SA), sanitizado con `textoSeguro({ max: 200 })`, encabezando el `motivo`
+del `AuditLog`.
+
+Verificación: `typecheck`/`lint`/`test` limpios, 263 tests en verde (sin tests
+nuevos: `importarJugadores` no tiene infraestructura de mocks para Prisma en
+este repo, mismo criterio que su hermano; las fechas son reemplazo mecánico de
+componente ya probado).
 
 ---
 

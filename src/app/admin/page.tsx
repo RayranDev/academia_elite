@@ -3,6 +3,7 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { saludPlataforma } from "@/services/admin-metrics.service";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { LABEL_ESTADO_LEAD } from "@/components/admin/EstadoLeadBadge";
 import { ESTADOS_LEAD } from "@/types";
 
@@ -111,7 +112,7 @@ export default async function AdminOverviewPage() {
                   </span>
                 </span>
                 <span className="shrink-0 text-muted">
-                  {new Date(a.createdAt).toLocaleString("es")}
+                  <FechaLocal iso={a.createdAt} formato="d MMM yyyy, HH:mm" />
                 </span>
               </li>
             ))}

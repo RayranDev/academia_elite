@@ -8,6 +8,7 @@ import { OnboardingBienvenida } from "@/components/jugador/OnboardingBienvenida"
 import { ProximoPartidoTile } from "@/components/jugador/ProximoPartidoTile";
 import { EvolutionChart } from "@/components/charts/EvolutionChart";
 import { UpcomingList } from "@/components/calendar/UpcomingList";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import { NoticiasList } from "@/components/jugador/NoticiasList";
 import { Card } from "@/components/ui/Card";
 
@@ -126,7 +127,7 @@ export default async function JugadorHubPage() {
                   </span>
                   <span className="text-muted">
                     {p.goles}G · {p.asistencias}A ·{" "}
-                    {new Date(p.inicio).toLocaleDateString("es")}
+                    <FechaLocal iso={p.inicio} formato="d MMM yyyy" />
                   </span>
                 </li>
               ))}

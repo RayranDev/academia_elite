@@ -6,6 +6,7 @@ import {
 } from "@/actions/dt.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 
 export default async function SolicitudesPage() {
   const ctx = await requireAuthContext();
@@ -33,7 +34,7 @@ export default async function SolicitudesPage() {
                 </p>
                 <p className="text-xs text-muted">
                   {s.categoriaNombre} · Nac.{" "}
-                  {new Date(s.fechaNacimiento).toLocaleDateString("es")}
+                  <FechaLocal iso={s.fechaNacimiento} formato="d MMM yyyy" />
                 </p>
                 {s.padreEmail && (
                   <p className="text-xs text-muted">

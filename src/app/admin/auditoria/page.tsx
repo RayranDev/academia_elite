@@ -3,6 +3,7 @@ import { requireAuthContext } from "@/lib/auth/session";
 import { listarAuditoria } from "@/services/audit.service";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 
 /** Valor de un query param que puede venir repetido; toma el primero no vacío. */
 function primerValor(v: string | string[] | undefined): string | undefined {
@@ -135,7 +136,7 @@ export default async function AuditoriaPage({
               {registros.map((r) => (
                 <tr key={r.id} className="border-b border-subtle/50">
                   <td className="whitespace-nowrap px-4 py-2 text-muted">
-                    {new Date(r.createdAt).toLocaleString("es")}
+                    <FechaLocal iso={r.createdAt} formato="d MMM yyyy, HH:mm" />
                   </td>
                   <td className="px-4 py-2">
                     <Badge tono="info">{r.accion}</Badge>
