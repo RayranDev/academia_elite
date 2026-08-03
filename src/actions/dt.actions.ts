@@ -125,9 +125,9 @@ export async function importarEvaluacionesAction(
     // Motivo del soporte (solo lo exige el SA). Es texto libre del usuario, así
     // que pasa por `textoSeguro` como cualquier otro (AGENTS.md §5).
     const motivoRaw = formData.get("motivo");
-    // `safeParse` y no `parse`: un `ZodError` no es `DomainError`, asi que
-    // `mapError` lo trataria como inesperado y el usuario veria el mensaje
-    // generico en vez de saber que corregir.
+    // `safeParse` y no `parse`: un `ZodError` no es `DomainError`, así que
+    // `mapError` lo trataría como inesperado y el usuario vería el mensaje
+    // genérico en vez de saber qué corregir.
     let motivo: string | undefined;
     if (typeof motivoRaw === "string" && motivoRaw.trim()) {
       const parsedMotivo = textoSeguro({ max: 200 }).safeParse(motivoRaw);

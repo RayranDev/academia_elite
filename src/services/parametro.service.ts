@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requirePermiso } from "@/lib/auth/guards";
+import { requirePermiso, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   listarParametrosGlobal,
@@ -95,6 +95,13 @@ export async function obtenerConfigSimuladorEscuela(
   escuelaId: string,
 ): Promise<ConfigSimulador> {
   requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
+  // `requirePermiso` responde QUÉ puede hacer en la plataforma, no A QUÉ TENANT
+  // puede entrar: el `escuelaId` llega del request en los dos llamadores (la
+  // página `/admin/simulador?escuela=` y la descarga de la planilla). El guard va
+  // ACÁ, en el punto de paso, y no en cada consumidor — puesto arriba cerraba una
+  // puerta y dejaba la otra abierta, que es lo que pasó (AGENTS.md §5: la
+  // seguridad real vive en los servicios).
+  assertTenant(ctx, escuelaId);
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }

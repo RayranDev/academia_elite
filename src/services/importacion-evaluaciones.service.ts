@@ -139,7 +139,7 @@ export async function generarPlantillaEvaluaciones(
     "Medidas físicas reales: sprint30m (s), saltoCm (cm), agilidadSeg (s), yoyoNivel.",
     "Técnica y mentalidad (1-10): control, pase, tiro, regate, actitud, concentracion, trabajoEquipo, resiliencia.",
     "",
-    "PORTEROS: esas cuatro notas técnicas miden otro oficio. Si la posicion es POR, cargá:",
+    "PORTEROS: esas cuatro notas técnicas miden otro oficio. Si la posición es POR, cargá:",
     "   control → BLOCAJE / ATAJADA · pase → DISTRIBUCIÓN / SAQUE",
     "   tiro → JUEGO AÉREO · regate → ACHIQUE Y 1v1",
     "El motor ya lo tiene en cuenta: para un arquero el DEF sale del blocaje, no de la resistencia.",
@@ -191,11 +191,17 @@ export async function importarEvaluaciones(
   const filas = await parseXlsx(buffer);
   if (filas.length === 0) throw new ValidationError("El archivo está vacío.");
   validarCabeceras(filas[0]);
+  // El tope se valida ANTES del loop. Cortando adentro, el throw salia sin pasar
+  // por `registrarAuditoria`: se habian creado hasta 300 jugadores y evaluaciones
+  // en el tenant y no quedaba UNA sola entrada de auditoria — justo el camino que
+  // mas escribe era el que menos registraba.
+  if (filas.length - 1 > MAX_FILAS) {
+    throw new ValidationError(`El archivo supera el máximo de ${MAX_FILAS} filas.`);
+  }
 
   const errores: { fila: number; mensaje: string }[] = [];
   let evaluados = 0;
   let creadosNuevos = 0;
-  let procesadas = 0;
 
   // Caché de entrenador por categoría (para el SA/Escuela).
   const entrenadorPorCategoria = new Map<string, string | null>();
@@ -211,11 +217,7 @@ export async function importarEvaluaciones(
     const cols = filas[i].map((v) => (v ?? "").trim());
     if (cols.every((c) => c === "")) continue;
 
-    procesadas += 1;
     const numeroFila = i + 1;
-    if (procesadas > MAX_FILAS) {
-      throw new ValidationError(`El archivo supera el máximo de ${MAX_FILAS} filas.`);
-    }
 
     try {
       const m = medidasSchema.safeParse({

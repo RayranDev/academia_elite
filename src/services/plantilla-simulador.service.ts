@@ -1,5 +1,5 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { requirePermiso, assertTenant } from "@/lib/auth/guards";
+import { requirePermiso } from "@/lib/auth/guards";
 import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import {
@@ -8,6 +8,7 @@ import {
   type ConfigSimulador,
 } from "@/services/parametro.service";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { registrarAuditoria } from "@/services/audit.service";
 import {
   PESOS_POSICION,
   COEF_CAMPO,
@@ -26,8 +27,8 @@ import { POSICIONES } from "@/types";
  */
 // Tipado contra `keyof MedidasNormalizadas` y NO con una union copiada a mano:
 // si el motor suma una medida, esto deja de compilar acá, que es donde hay que
-// decidir en que columna vive. Con la union transcrita, el Excel emitia
-// `undefined2*0.3` y la planilla salia rota en silencio.
+// decidir en qué columna vive. Con la unión transcrita, el Excel emitía
+// `undefined2*0.3` y la planilla salía rota en silencio.
 const COLUMNA_MEDIDA: Record<keyof MedidasNormalizadas, string> = {
   vel: "AA",
   pot: "AB",
@@ -58,8 +59,8 @@ const CABECERAS = [
   "Salto (cm)",
   "Agilidad (s)",
   "Yo-Yo (nivel)",
-  // Para POR estas cuatro columnas se leen como blocaje / distribucion /
-  // juego aereo / achique: el motor las deriva con `derivaStatsPortero`.
+  // Para POR estas cuatro columnas se leen como blocaje / distribución /
+  // juego aéreo / achique: el motor las deriva con `derivaStatsPortero`.
   "Control (POR: blocaje)",
   "Pase (POR: distribución)",
   "Tiro (POR: juego aéreo)",
@@ -83,16 +84,27 @@ export async function generarPlantillaSimulador(
   ctx: AuthContext,
   escuelaId?: string,
 ): Promise<{ filename: string; buffer: Buffer }> {
-  requirePermiso(ctx, "EDITAR_CATALOGOS");
-  // `escuelaId` llega del REQUEST (`?escuela=` del route). `requirePermiso` es un
-  // permiso de PLATAFORMA, no un control de tenant: sin este guard el SA se
-  // llevaba nombre, slug, rangos y umbrales de cualquier escuela escribiendo su
-  // id. Mismo agujero que ya se cerró en `importacion-evaluaciones.service.ts`.
-  if (escuelaId) assertTenant(ctx, escuelaId);
+  // El permiso que corresponde a lo que este servicio LEE (rangos, umbrales,
+  // peso de MEN), no `EDITAR_CATALOGOS`: hoy da igual porque el SA los tiene
+  // todos, pero `guards.ts` anticipa partir el rol y ahí importa.
+  requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
+  // El guard de tenant vive en `obtenerConfigSimuladorEscuela` (el punto de paso
+  // de TODOS los llamadores), no acá.
   const config: ConfigSimulador = escuelaId
     ? await obtenerConfigSimuladorEscuela(ctx, escuelaId)
     : await obtenerConfigSimulador(ctx);
   const escuela = escuelaId ? await obtenerEscuela(escuelaId) : null;
+  // Extraer la configuración de un tenant ajeno queda en el AuditLog, igual que
+  // su hermana `generarPlantillaEvaluaciones`: cerrar el guard de tenant sin
+  // auditar deja la mitad del problema abierta.
+  if (escuelaId) {
+    await registrarAuditoria(ctx, {
+      accion: "EXPORT_PLANTILLA_SIMULADOR",
+      entidad: "Escuela",
+      entidadId: escuelaId,
+      escuelaId,
+    });
+  }
 
   const wb = new ExcelJS.Workbook();
   wb.creator = "Academia Elite";
@@ -241,10 +253,17 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   const celdaStat = (columna: string, stat: StatDerivado) => {
     const campo = formula(COEF_CAMPO, stat);
     const portero = formula(COEF_PORTERO, stat);
-    // Si ambas derivaciones coinciden (FIS), no hace falta el IF.
+    // Si ambas derivaciones coinciden (FIS), no hace falta el IF. Se comparan los
+    // COEFICIENTES y no las cadenas generadas: reordenar las claves de un objeto
+    // da la misma matemática pero otro string, y colaba un IF inútil.
+    const mismosCoeficientes =
+      Object.keys(COEF_CAMPO[stat]).length === Object.keys(COEF_PORTERO[stat]).length &&
+      Object.entries(COEF_CAMPO[stat]).every(
+        ([medida, peso]) => COEF_PORTERO[stat][medida as keyof MedidasNormalizadas] === peso,
+      );
     f(
       `${columna}${r}`,
-      clampStat(campo === portero ? campo : `IF($B${r}="POR",${portero},${campo})`),
+      clampStat(mismosCoeficientes ? campo : `IF($B${r}="POR",${portero},${campo})`),
     );
   };
 
