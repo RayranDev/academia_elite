@@ -17,9 +17,11 @@ import {
 } from "@/repositories/jugador.repository";
 import { contarCategoriasDeEscuela } from "@/repositories/categoria.repository";
 import { actualizarPasswordUser } from "@/repositories/user.repository";
+import { cuotasImpagasDeJugadores } from "@/repositories/membresia.repository";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { registrarAuditoria } from "@/services/audit.service";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
+import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorEditarInput } from "@/lib/validators/gestion";
 import type { Posicion } from "@/types";
 
@@ -42,6 +44,18 @@ export interface JugadorGestionDTO {
   familiaNombre: string | null;
   bloqueado: boolean;
   bloqueoTipo: string | null;
+  /** Deuda de cobranza (Track A). No aplica al SUPER_ADMIN: ver `listarJugadoresGestion`. */
+  enMora: boolean;
+  montoVencido: number;
+}
+
+/**
+ * `Decimal` de Prisma nunca sale hacia la UI (AGENTS.md §4: DTOs planos). No se
+ * usa `?? null` sobre el valor convertido porque un monto de 0 es legítimo y
+ * `0` es falsy: la ausencia se decide sobre el valor original.
+ */
+function aNumero(valor: { toString(): string } | null): number | null {
+  return valor == null ? null : Number(valor.toString());
 }
 
 type JugadorGestionRow = NonNullable<
@@ -66,6 +80,10 @@ function aDTO(j: JugadorGestionRow): JugadorGestionDTO {
     familiaNombre: j.padre?.nombre ?? null,
     bloqueado: familia?.bloqueado ?? false,
     bloqueoTipo: j.padre?.bloqueoTipo ?? null,
+    // Se completa después de mapear (requiere una segunda consulta agregada
+    // por página); acá el valor por defecto es "sin deuda conocida".
+    enMora: false,
+    montoVencido: 0,
   };
 }
 
@@ -130,6 +148,31 @@ export async function listarJugadoresGestion(
   ]);
 
   const items = rows.map(aDTO);
+
+  // La deuda es exclusiva de ESCUELA_ADMIN: la cobranza no tiene acceso
+  // ambiental del SUPER_ADMIN, ni siquiera con sesión de soporte activa —
+  // mismo alcance que el resto de los servicios de `membresia.service.ts`.
+  if (ctx.rol === "ESCUELA_ADMIN" && items.length > 0) {
+    const impagas = await cuotasImpagasDeJugadores(escuelaId, items.map((j) => j.id));
+    const porJugador = new Map<string, CuotaParaDeuda[]>();
+    for (const c of impagas) {
+      const lista = porJugador.get(c.jugadorId) ?? [];
+      lista.push({
+        periodo: c.periodo,
+        concepto: c.concepto,
+        estado: c.estado,
+        monto: aNumero(c.monto),
+        descuento: aNumero(c.descuento),
+      });
+      porJugador.set(c.jugadorId, lista);
+    }
+    const hoy = new Date();
+    for (const j of items) {
+      const cuenta = estadoCuenta(porJugador.get(j.id) ?? [], hoy);
+      j.enMora = cuenta.enMora;
+      j.montoVencido = cuenta.montoVencido;
+    }
+  }
 
   return {
     items,

@@ -50,7 +50,7 @@ mes, y estado/deuda derivados. Lo que sigue:
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| **Badge de deuda en las listas** | Chico | `estadoCuenta` ya existe y el dashboard lo usa, pero falta el badge por jugador en `escuela/jugadores` y en la ficha que ve el DT: hoy la deuda se ve en el agregado, no al lado del chico. |
+| **Badge de deuda en la ficha del DT** | Chico | El badge por jugador ya está en `escuela/jugadores` (ESCUELA_ADMIN). Falta decidir si el DT debe ver mora: hoy **ningún** servicio de cobranza es accesible para DT (todo `membresia.service.ts` es `ESCUELA_ADMIN`-only, ni siquiera el SA con sesión de soporte). Exponerlo cruzaría esa frontera — requiere una decisión explícita, no un agregado silencioso. |
 | **F — Ficha administrativa y médica** | Grande | `Jugador` no tiene documento, EPS, RH, alergias, apto médico con vencimiento, contacto de emergencia propio ni autorización de traslado. Es lo que el DT necesita cuando un chico se lesiona de visitante. **Bloqueante previo:** son datos sensibles de salud de menores (Ley 1581) — `HABEAS-DATA.md` se actualiza en el mismo PR que el schema, no después. |
 | **Descuentos con regla** | Medio | Hoy el descuento se tipea por cuota. Falta representarlo como regla (hermano, beca) para que la generación masiva lo aplique sola. |
 | **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |

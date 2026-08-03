@@ -17,6 +17,7 @@ import {
   restaurarJugadorAction,
 } from "@/actions/gestion.actions";
 import type { PaginatedJugadoresDTO, JugadorGestionDTO } from "@/services/gestion-jugadores.service";
+import { formatearMonto } from "@/lib/cobranza";
 
 type Accion = "editar" | "estado" | "bloqueo" | "eliminar";
 
@@ -188,6 +189,9 @@ export function JugadoresGestion({
                 <div className="flex items-center gap-1.5">
                   <Badge tono={TONO_ESTADO[j.estado] ?? "neutral"}>{j.estado}</Badge>
                   {j.bloqueado && <Badge tono="alerta">Bloqueado</Badge>}
+                  {j.enMora && (
+                    <Badge tono="alerta">Debe {formatearMonto(j.montoVencido)}</Badge>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-1">
                   {j.estado === "ELIMINADO" ? (

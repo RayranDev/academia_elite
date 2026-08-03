@@ -144,6 +144,26 @@ export function cuotasImpagas(escuelaId: string) {
   });
 }
 
+/**
+ * Cuotas impagas de un conjunto acotado de jugadores (una página de la lista, no
+ * toda la escuela). Mismo shape que `cuotasImpagas`, para que ambas alimenten
+ * `estadoCuenta` sin conversión extra.
+ */
+export function cuotasImpagasDeJugadores(escuelaId: string, jugadorIds: string[]) {
+  if (jugadorIds.length === 0) return Promise.resolve([]);
+  return db.membresia.findMany({
+    where: { escuelaId, jugadorId: { in: jugadorIds }, estado: { not: "PAGADA" } },
+    select: {
+      jugadorId: true,
+      periodo: true,
+      concepto: true,
+      estado: true,
+      monto: true,
+      descuento: true,
+    },
+  });
+}
+
 /** Familias (rol JUGADOR) con el acceso bloqueado en la escuela. */
 export function contarFamiliasBloqueadas(escuelaId: string) {
   return db.user.count({

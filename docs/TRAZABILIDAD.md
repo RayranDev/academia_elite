@@ -45,6 +45,7 @@
 | 19 | Sincronización de la documentación con el código | 2026-07-31 | ✅ |
 | 20 | Evaluación del portero: derivación propia en el motor | 2026-07-31 | ✅ |
 | 21 | Limpieza de riesgo: auditoría de `importarJugadores` + fechas de servidor a `FechaLocal` | 2026-08-01 | ✅ |
+| 22 | Badge de deuda por jugador en `escuela/jugadores` | 2026-08-01 | ✅ (ficha del DT: gateada a decisión de acceso) |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -598,6 +599,39 @@ Verificación: `typecheck`/`lint`/`test` limpios, 263 tests en verde (sin tests
 nuevos: `importarJugadores` no tiene infraestructura de mocks para Prisma en
 este repo, mismo criterio que su hermano; las fechas son reemplazo mecánico de
 componente ya probado).
+
+## 22. Badge de deuda por jugador (2026-08-01)
+
+`estadoCuenta` (hito 18) ya alimentaba el agregado del dashboard
+(`resumenMembresias`); faltaba verlo al lado de cada jugador en la lista de
+gestión.
+
+- `cuotasImpagasDeJugadores(escuelaId, jugadorIds)` (nuevo repo): mismo shape
+  que `cuotasImpagas`, pero acotado a los IDs de la página actual (20, no toda
+  la escuela) — evita traer el tenant completo para pintar una lista paginada.
+- `JugadorGestionDTO` gana `enMora`/`montoVencido`. Se completan **después**
+  de mapear las filas (`aDTO` no tiene las cuotas a mano) con una segunda
+  consulta agrupada por jugador, mismo patrón de `resumenMembresias`.
+- **La deuda solo se calcula para `ESCUELA_ADMIN`.** Se verificó primero que
+  ningún servicio de `membresia.service.ts` es accesible para el SUPER_ADMIN,
+  ni con sesión de soporte activa (comentario explícito en `resumenMembresias`:
+  "el SUPER_ADMIN no tiene acceso ambiental al tenant"). Exponer mora en el
+  panel del SA habría cruzado esa frontera ya decidida; para SA, `enMora`
+  queda en `false` por defecto y la consulta ni se ejecuta.
+- Badge `Debe {monto}` en `JugadoresGestion.tsx`, con `formatearMonto` (ya
+  existente en `src/lib/cobranza.ts`).
+- Verificado contra la base real (solo lectura): 10 cuotas impagas sobre 13
+  jugadores de la escuela demo, mezcla `PENDIENTE`/`VENCIDA`.
+
+**Quedó fuera a propósito:** el mismo badge en la ficha que ve el DT. Es una
+decisión de acceso a datos financieros de una familia, no un agregado
+mecánico — se deja pendiente de una respuesta explícita del usuario, ver
+`PENDIENTES.md`.
+
+Verificación: `typecheck`/`lint` limpios, 263 tests en verde (sin test nuevo
+para la consulta agregada — mismo criterio que `resumenMembresias`, que
+tampoco lo tiene; `estadoCuenta`, la función pura que hace el cálculo, ya
+está cubierta en `tests/unit/cobranza.test.ts`).
 
 ---
 
