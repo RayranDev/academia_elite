@@ -406,3 +406,28 @@ cada adaptación, regla 0.8.)
     conservan sus números viejos hasta que el DT los vuelva a evaluar. No se hace
     una migración de datos — reescribir una medición histórica sería mentir sobre
     lo que se midió ese día.
+
+## El DT ve QUE hay mora, nunca CUÁNTO (2026-08-01)
+
+64. **Frontera de acceso deliberadamente acotada.** Se agregó un badge de deuda
+    por jugador en `escuela/jugadores` (`ESCUELA_ADMIN`) y, al construirlo, se
+    encontró que **ningún** servicio de cobranza es accesible para el DT — ni
+    siquiera el SUPER_ADMIN con sesión de soporte activa puede verla
+    (`membresia.service.ts` es `ESCUELA_ADMIN`-only en las seis funciones que
+    expone). Extender el badge a la ficha del DT sin decidirlo habría cruzado
+    esa frontera en silencio.
+    Decisión del usuario: el DT **sí** ve que una familia tiene pagos
+    pendientes (contexto social — puede explicar por qué no llegó el
+    uniforme, por ejemplo), pero **nunca el monto ni el detalle**. La cifra
+    sigue siendo exclusiva de quien administra la cobranza.
+65. **Implementación que no reabre la frontera de `membresia.service.ts`.**
+    `jugador.service.ts` no importa ese servicio: llama directo a
+    `cuotasImpagasDeJugadores` (repositorio) y a `estadoCuenta` (la función pura
+    de `src/lib/cobranza.ts`), bajo el guard de tenant+categoría que
+    `obtenerDetalleJugadorDt` ya aplicaba (`categoriasDelDt`). El DT sigue sin
+    poder llamar ninguna función de `membresia.service.ts`; solo se calcula un
+    booleano derivado bajo su propia autorización ya existente.
+    `estaEnMora` pasa `monto: null, descuento: null` a `estadoCuenta` a
+    propósito: `enMora` no depende del monto (una cuota vencida sin monto ya
+    cuenta), así que no hace falta convertir el `Decimal` de Prisma para un
+    valor que nunca sale hacia la UI del DT.

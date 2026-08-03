@@ -45,7 +45,7 @@
 | 19 | Sincronización de la documentación con el código | 2026-07-31 | ✅ |
 | 20 | Evaluación del portero: derivación propia en el motor | 2026-07-31 | ✅ |
 | 21 | Limpieza de riesgo: auditoría de `importarJugadores` + fechas de servidor a `FechaLocal` | 2026-08-01 | ✅ |
-| 22 | Badge de deuda por jugador en `escuela/jugadores` | 2026-08-01 | ✅ (ficha del DT: gateada a decisión de acceso) |
+| 22 | Badge de deuda por jugador (`escuela/jugadores` + ficha del DT, sin monto) | 2026-08-01 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -623,15 +623,22 @@ gestión.
 - Verificado contra la base real (solo lectura): 10 cuotas impagas sobre 13
   jugadores de la escuela demo, mezcla `PENDIENTE`/`VENCIDA`.
 
-**Quedó fuera a propósito:** el mismo badge en la ficha que ve el DT. Es una
-decisión de acceso a datos financieros de una familia, no un agregado
-mecánico — se deja pendiente de una respuesta explícita del usuario, ver
-`PENDIENTES.md`.
+**La ficha del DT — resuelto con el usuario, sin monto.** Se preguntó
+explícitamente antes de construirlo: el DT ve *que* una familia tiene pagos
+pendientes (contexto social), **nunca la cifra**. `jugador.service.ts` no
+importa `membresia.service.ts` — llama directo al repositorio
+(`cuotasImpagasDeJugadores`) y a la función pura `estadoCuenta`, bajo el
+guard de tenant+categoría que la ficha del DT ya tenía
+(`categoriasDelDt`). `estaEnMora` pasa `monto: null` a propósito: `enMora`
+no depende del monto, así que ni hace falta convertir el `Decimal`.
+Detalle de la decisión en `DECISIONES.md` §64-65.
 
 Verificación: `typecheck`/`lint` limpios, 263 tests en verde (sin test nuevo
 para la consulta agregada — mismo criterio que `resumenMembresias`, que
 tampoco lo tiene; `estadoCuenta`, la función pura que hace el cálculo, ya
-está cubierta en `tests/unit/cobranza.test.ts`).
+está cubierta en `tests/unit/cobranza.test.ts`). `estaEnMora` se corrió con
+`tsx` contra la base real con un jugador conocido en mora (`true`) y uno sin
+deuda (`false`).
 
 ---
 

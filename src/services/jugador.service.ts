@@ -11,10 +11,30 @@ import {
 } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
+import { cuotasImpagasDeJugadores } from "@/repositories/membresia.repository";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
 import { evaluacionVencida } from "@/lib/evaluacion";
+import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorInput } from "@/lib/validators/jugador";
 import type { PlayerCardData, Posicion } from "@/types";
+
+/**
+ * Solo SI hay deuda, nunca la cifra: es la frontera de acceso que el DT tiene a
+ * cobranza (decisión de producto — ver DECISIONES.md). `enMora` no depende del
+ * monto (una cuota vencida sin monto ya cuenta como mora), así que no hace
+ * falta convertir el `Decimal` de Prisma para esto.
+ */
+async function estaEnMora(escuelaId: string, jugadorId: string): Promise<boolean> {
+  const impagas = await cuotasImpagasDeJugadores(escuelaId, [jugadorId]);
+  const cuotas: CuotaParaDeuda[] = impagas.map((c) => ({
+    periodo: c.periodo,
+    concepto: c.concepto,
+    estado: c.estado,
+    monto: null,
+    descuento: null,
+  }));
+  return estadoCuenta(cuotas, new Date()).enMora;
+}
 
 export interface PlantillaItemDTO {
   id: string;
@@ -175,6 +195,8 @@ export interface DetalleJugadorDTO {
   estado: string;
   card: PlayerCardData | null;
   historial: { fecha: string; ovr: number; nivel: string }[];
+  /** Solo si hay cuotas vencidas; nunca el monto (frontera de acceso del DT a cobranza). */
+  enMora: boolean;
 }
 
 export async function obtenerDetalleJugadorDt(
@@ -186,7 +208,10 @@ export async function obtenerDetalleJugadorDt(
   if (!jugador || !categoriaIds.includes(jugador.categoriaId)) {
     throw new NotFoundError("Jugador no encontrado.");
   }
-  const evaluaciones = await listarEvaluacionesJugador(escuelaId, jugadorId);
+  const [evaluaciones, enMora] = await Promise.all([
+    listarEvaluacionesJugador(escuelaId, jugadorId),
+    estaEnMora(escuelaId, jugadorId),
+  ]);
   const stats = jugador.stats[0] ?? null;
 
   return {
@@ -205,5 +230,6 @@ export async function obtenerDetalleJugadorDt(
         ovr: e.statsCalculados!.ovr,
         nivel: e.statsCalculados!.nivel,
       })),
+    enMora,
   };
 }

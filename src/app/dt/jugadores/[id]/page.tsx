@@ -54,6 +54,14 @@ export default async function JugadorDetallePage({
             <Badge tono={detalle.estado === "ACTIVO" ? "pitch" : "neutral"}>
               {detalle.estado}
             </Badge>
+            {/* Solo si hay deuda, nunca la cifra: la cobranza sigue siendo de la
+                escuela, esto es apenas contexto para el DT. */}
+            {detalle.enMora && (
+              <>
+                {" "}
+                <Badge tono="alerta">Pagos pendientes</Badge>
+              </>
+            )}
           </p>
         </div>
         <Link href={`/dt/jugadores/${detalle.id}/evaluar`}>
