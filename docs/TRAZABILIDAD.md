@@ -50,6 +50,7 @@
 | 24 | KPI de aptos médicos vencidos + export de contactos de emergencia | 2026-08-04 | ✅ |
 | 25 | Localización a Colombia: voseo → tuteo neutro (27 archivos) + 3 fixes de `FechaLocal` | 2026-08-04 | ✅ |
 | 26 | Caja / egresos: modelo `Egreso`, caja neta del mes contra la cobranza pagada | 2026-08-04 | ✅ |
+| 27 | Guardián de tenant: cobertura de `create`/`createMany` y de llamadas `tx.` en transacciones | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -809,6 +810,48 @@ tests, 9 nuevos). Migración `20260804120000_egreso` aplicada a producción
 transacción y `ROLLBACK`: confirmó que `sumaEgresosDelPeriodo` acota
 correctamente por mes (dos egresos en meses distintos, la suma del período
 solo cuenta el que corresponde), sin dejar datos de prueba persistidos.
+
+## 27. Guardián de tenant: cobertura de `create`/`createMany` y `tx.` (2026-08-04)
+
+Primer ítem del paquete "Riesgo de plataforma". El test guardián
+(`tests/unit/aislamiento-tenant.test.ts`) solo cubría métodos con `where`
+(`find*`, `update*`, `delete*`, `count`, `aggregate`, `groupBy`, `upsert`) y
+solo llamadas `db.`, nunca `tx.` — dentro de un `db.$transaction(async (tx)
+=> ...)` cualquier query quedaba invisible para el guardián, sin importar el
+método.
+
+Antes de tocar el test se auditaron a mano los ~30 `create`/`createMany` de
+`src/repositories/` contra el schema: de los modelos-tenant (con
+`escuelaId`), todos menos uno ya pasaban `escuelaId` explícito en el bloque
+`data`. La única excepción real: `crearProgresoSemana`
+(`progreso.repository.ts`) recibía `data: CrearProgresoInput` completo y lo
+pasaba opaco (`create({ data })`) — type-safe (la interfaz exige
+`escuelaId`), pero invisible para un chequeo estático de texto. Se
+desestructuró `escuelaId` explícito en la firma, mismo patrón ya usado en
+el resto de los repos (`categoria`, `codigo`, `arancel`, `evento`,
+`objetivo`, `egreso`, `jugador`).
+
+Dos hallazgos que **no** eran huecos reales, a pesar de estar mencionados en
+el ítem original de `PENDIENTES.md`: `notificacion` y `jugadorConvocado` no
+tienen columna `escuelaId` en el schema (se acotan por relación —
+`userId`/`eventoId`), así que nunca estuvieron dentro del alcance de este
+guardián en particular; no había nada que arreglar ahí.
+
+Implementación: `METODOS` suma `create|createMany`; una función nueva
+`tenantEnData` (análoga a `tenantFiltrado` pero mirando `data:` en vez de
+`where:`, porque Prisma no acepta `where` en un create) decide si el bloque
+de escritura es seguro; el regex de detección pasa de `db\.` a
+`(?:db|tx)\.`. Se auditaron a mano los `tx.` ya existentes en transacciones
+(`evento.repository.ts`, `registro.repository.ts`, `escuela.repository.ts`)
+para confirmar que ya estaban bien filtrados o anotados — cero sorpresas al
+correr el test extendido.
+
+Verificación: además de `typecheck`/`lint`/`test` (281 tests), se probó el
+guardián con un caso negativo deliberado (un archivo temporal
+`scratch-negativo.repository.ts` con un `create` sin `escuelaId`) para
+confirmar que SÍ lo atrapa, con archivo y línea exactos en el mensaje de
+falla — no alcanza con que la suite quede en verde, hay que ver al guardián
+fallar antes de confiar en que funciona. Archivo de prueba borrado después.
 
 ---
 

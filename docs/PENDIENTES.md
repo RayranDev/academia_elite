@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 4).
+> Última actualización: 2026-08-04 (noche, 5).
 
 ---
 
@@ -73,18 +73,6 @@ no dejarlos indefinidamente atrás.
   una `Posicion` nueva compila igual y la planilla queda mal en silencio —
   mismo modo de falla que ya se cerró para `COLUMNA_MEDIDA`. Fix: derivar los
   rangos de fila de la longitud real de los arrays en vez de escribirlos.
-- **El guardián de tenant no cubre `create`/`createMany`** (Chico → Medio).
-  `tests/unit/aislamiento-tenant.test.ts` arma su regex de detección desde la
-  constante `METODOS`, que hoy no incluye los métodos de creación. Todo el
-  código actual pasa `escuelaId` correctamente en sus creates, pero el
-  **próximo** `create` que se olvide de hacerlo no lo va a detectar nadie —
-  y escribir una fila en el tenant equivocado es peor que filtrar mal una
-  lectura. Al implementarlo: un `create` no tiene `where`, así que el test
-  tiene que mirar el bloque `data`; varios creates existentes lo arman de
-  forma opaca (`progresoSemanal`, `notificacion`, `jugadorConvocado` — pasan
-  el objeto completo en vez de listar campos), así que van a necesitar
-  anotación explícita o reescribirse para que el test los pueda inspeccionar.
-  Ameríta su propio PR, no mezclarlo con otro paquete.
 
 ## Paquete — Aranceles: cerrar el ciclo de precios
 

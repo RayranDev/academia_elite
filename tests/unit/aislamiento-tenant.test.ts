@@ -8,15 +8,27 @@ import path from "node:path";
  * Lee el código fuente de los repositorios y falla si alguna consulta Prisma
  * sobre un modelo con columna `escuelaId` no está acotada por tenant. Es la red
  * que evita que una query nueva olvide el filtro de escuela y filtre datos de
- * otra escuela.
+ * otra escuela. Cubre tanto `db.modelo.metodo()` como `tx.modelo.metodo()`
+ * dentro de `db.$transaction(async (tx) => ...)`.
  *
- * Una consulta sobre un modelo-tenant se considera SEGURA si:
+ * Una consulta de LECTURA/ACTUALIZACIÓN (`find*`, `update*`, `delete*`, `count`,
+ * `aggregate`, `groupBy`, `upsert`) sobre un modelo-tenant se considera SEGURA
+ * si:
  *   1. su bloque `where` contiene `escuelaId` (filtro inline), o
  *   2. su bloque `where` contiene `...scope` (patrón scope del repo:
  *      `const scope = escuelaId === null ? {} : { escuelaId }`), o
  *   3. tiene encima una anotación `// tenant-global: <razón>` que justifica una
  *      consulta legítimamente cross-tenant (crons, lookups por clave única,
  *      acceso por propiedad ya verificado aguas arriba).
+ *
+ * Un `create`/`createMany` (sin `where`) se considera SEGURO si su bloque
+ * `data` contiene `escuelaId` o `...scope` — no importa si es un objeto
+ * literal, un array o el resultado de un `.map()`. Si `data` es una variable
+ * opaca (`{ data }`, `data: input`) sin el literal `escuelaId` visible en la
+ * llamada, rompe el test: la solución es desestructurar `escuelaId` en la
+ * firma de la función repo (patrón ya usado en la mayoría de los `create`),
+ * no silenciarlo con una anotación — la escritura SÍ es tenant-scoped, solo
+ * hay que hacerlo visible para este chequeo estático.
  *
  * Cualquier otra consulta sobre un modelo-tenant rompe este test.
  */
@@ -42,7 +54,10 @@ for (const m of SCHEMA.matchAll(/model\s+(\w+)\s*\{([^}]*)\}/g)) {
 const EXCLUDE = new Set(["user", "auditLog", "logro", "lead", "soporteSesion"]);
 
 const METODOS =
-  "findUnique|findFirst|findMany|update|updateMany|delete|deleteMany|count|aggregate|groupBy|upsert";
+  "findUnique|findFirst|findMany|update|updateMany|delete|deleteMany|count|aggregate|groupBy|upsert|create|createMany";
+
+/** Métodos de escritura sin `where` (Prisma no lo acepta): se verifican por `data`, no por `where`. */
+const METODOS_DATA = new Set(["create", "createMany"]);
 
 // Excepciones explícitas adicionales (formato `archivo: accesor`). Las anotaciones
 // `// tenant-global:` son el mecanismo preferido; este allowlist queda para casos
@@ -72,6 +87,22 @@ function tenantFiltrado(args: string): boolean {
   return /\bescuelaId\b/.test(whereBlock) || /\.\.\.scope\b/.test(whereBlock);
 }
 
+/**
+ * ¿El `data` de un `create`/`createMany` incluye `escuelaId` (inline o vía
+ * `...scope`)? A diferencia de `tenantFiltrado`, no balancea el bloque: basta
+ * con que el token aparezca desde `data:` en adelante, sea un objeto literal
+ * (`{ escuelaId, ... }`), un array (`filas.map(f => ({ escuelaId, ...f }))`) o
+ * cualquier expresión que lo mencione. Si `data` es una variable opaca sin el
+ * literal `escuelaId` en ningún lado (`{ data }`, `data: input`), no matchea a
+ * propósito — esa opacidad es justo el caso que este chequeo tiene que atrapar.
+ */
+function tenantEnData(args: string): boolean {
+  const d = args.search(/\bdata\s*:/);
+  if (d === -1) return false;
+  const resto = args.slice(d);
+  return /\bescuelaId\b/.test(resto) || /\.\.\.scope\b/.test(resto);
+}
+
 describe("aislamiento multi-tenant", () => {
   it("toda query sobre un modelo con escuelaId filtra por escuelaId o está justificada", () => {
     const fallos: string[] = [];
@@ -80,7 +111,9 @@ describe("aislamiento multi-tenant", () => {
       f.endsWith(".repository.ts"),
     )) {
       const src = readFileSync(path.join(REPO_DIR, file), "utf8");
-      const re = new RegExp(`db\\.(\\w+)\\.(${METODOS})\\s*\\(`, "g");
+      // `(?:db|tx)`: dentro de `db.$transaction(async (tx) => ...)` las llamadas
+      // van por `tx.modelo.metodo()`, no por `db.`, y quedaban invisibles.
+      const re = new RegExp(`(?:db|tx)\\.(\\w+)\\.(${METODOS})\\s*\\(`, "g");
       let match: RegExpExecArray | null;
 
       while ((match = re.exec(src))) {
@@ -101,7 +134,10 @@ describe("aislamiento multi-tenant", () => {
           }
         }
         const args = src.slice(open, i + 1);
-        if (tenantFiltrado(args)) continue;
+        const seguro = METODOS_DATA.has(metodo)
+          ? tenantEnData(args)
+          : tenantFiltrado(args);
+        if (seguro) continue;
 
         // ¿Anotación `// tenant-global:` en las líneas inmediatamente previas?
         const before = src.slice(0, match.index);

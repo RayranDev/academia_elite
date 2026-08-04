@@ -42,5 +42,6 @@ export function listarSemana(
 }
 
 export function crearProgresoSemana(data: CrearProgresoInput) {
-  return db.progresoSemanal.create({ data });
+  const { escuelaId, ...resto } = data;
+  return db.progresoSemanal.create({ data: { escuelaId, ...resto } });
 }
