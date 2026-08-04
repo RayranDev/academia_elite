@@ -16,9 +16,18 @@ import {
   type Coeficientes,
   type StatDerivado,
   type MedidasNormalizadas,
-  type GrupoEdad,
 } from "@/lib/stats-engine";
 import { POSICIONES } from "@/types";
+import {
+  GRUPOS,
+  FILA_GRUPOS_DESDE,
+  FILA_GRUPOS_HASTA,
+  FILA_POS_TITULO,
+  FILA_POS_CABECERA,
+  FILA_POSICIONES_DESDE,
+  FILA_POSICIONES_HASTA,
+  FILA_ESCALARES_DESDE,
+} from "@/lib/plantilla-simulador-layout";
 
 /**
  * Columna auxiliar (oculta) donde vive cada medida normalizada en la hoja
@@ -46,8 +55,6 @@ const COLUMNA_MEDIDA: Record<keyof MedidasNormalizadas, string> = {
  * OVR y Nivel sola, usando los parámetros elegidos (globales o de una escuela).
  * Solo SUPER_ADMIN. `XLSX_MIME` es el content-type del route.
  */
-
-const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
 // Hoja "Jugadores": A nombre, B Posición, C GrupoEdad, D..O las 12 medidas,
 // P..U los 6 stats, V MEN, W OVR, X Nivel. Helpers ocultos AA..AR.
@@ -111,14 +118,12 @@ export async function generarPlantillaSimulador(
   wb.created = new Date();
 
   // --- Hoja Parametros (fuente de los lookups de las fórmulas) ---
-  // Layout fijo: filas 1 (cabecera) y 2..6 (grupos); fila 9 (cabecera pesos) y
-  // 10..13 (posiciones); filas 16..19 (escalares). Direcciones absolutas en las
-  // fórmulas dependen de este layout.
+  // Filas derivadas de FILA_* arriba, no escritas a mano.
   const wp = wb.addWorksheet("Parametros");
   wp.getRow(1).values = ["Grupo", "sprintMin", "sprintMax", "saltoMin", "saltoMax", "agiMin", "agiMax", "yoyoMin", "yoyoMax"];
   GRUPOS.forEach((g, i) => {
     const r = config.rangosPorGrupo[g];
-    wp.getRow(2 + i).values = [
+    wp.getRow(FILA_GRUPOS_DESDE + i).values = [
       g,
       r.sprint30mSeg.min, r.sprint30mSeg.max,
       r.saltoVerticalCm.min, r.saltoVerticalCm.max,
@@ -126,16 +131,16 @@ export async function generarPlantillaSimulador(
       r.resistenciaYoyoNivel.min, r.resistenciaYoyoNivel.max,
     ];
   });
-  wp.getRow(8).values = ["Pesos por posición"];
-  wp.getRow(9).values = ["Pos", "wRit", "wTir", "wPas", "wReg", "wDef", "wFis"];
+  wp.getRow(FILA_POS_TITULO).values = ["Pesos por posición"];
+  wp.getRow(FILA_POS_CABECERA).values = ["Pos", "wRit", "wTir", "wPas", "wReg", "wDef", "wFis"];
   POSICIONES.forEach((p, i) => {
     const w = PESOS_POSICION[p];
-    wp.getRow(10 + i).values = [p, w.rit, w.tir, w.pas, w.reg, w.def, w.fis];
+    wp.getRow(FILA_POSICIONES_DESDE + i).values = [p, w.rit, w.tir, w.pas, w.reg, w.def, w.fis];
   });
-  wp.getRow(16).values = ["pesoMen", config.pesoMen];
-  wp.getRow(17).values = ["umbralPlata", config.umbrales.plata];
-  wp.getRow(18).values = ["umbralOro", config.umbrales.oro];
-  wp.getRow(19).values = ["umbralHeroe", config.umbrales.heroe];
+  wp.getRow(FILA_ESCALARES_DESDE).values = ["pesoMen", config.pesoMen];
+  wp.getRow(FILA_ESCALARES_DESDE + 1).values = ["umbralPlata", config.umbrales.plata];
+  wp.getRow(FILA_ESCALARES_DESDE + 2).values = ["umbralOro", config.umbrales.oro];
+  wp.getRow(FILA_ESCALARES_DESDE + 3).values = ["umbralHeroe", config.umbrales.heroe];
   wp.getColumn(1).width = 18;
 
   // --- Hoja Jugadores ---
@@ -198,11 +203,13 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   const f = (addr: string, formula: string) => {
     ws.getCell(addr).value = { formula, result: 0 };
   };
-  // Lookups en Parametros.
-  const m = `MATCH($C${r},Parametros!$A$2:$A$6,0)`; // fila del grupo
-  const idx = (col: string) => `INDEX(Parametros!$${col}$2:$${col}$6,${m})`;
-  const mp = `MATCH($B${r},Parametros!$A$10:$A$13,0)`; // fila de la posición
-  const wcol = (col: string) => `INDEX(Parametros!$${col}$10:$${col}$13,${mp})`;
+  // Lookups en Parametros. Rangos derivados de FILA_* (arriba), no literales.
+  const m = `MATCH($C${r},Parametros!$A$${FILA_GRUPOS_DESDE}:$A$${FILA_GRUPOS_HASTA},0)`; // fila del grupo
+  const idx = (col: string) =>
+    `INDEX(Parametros!$${col}$${FILA_GRUPOS_DESDE}:$${col}$${FILA_GRUPOS_HASTA},${m})`;
+  const mp = `MATCH($B${r},Parametros!$A$${FILA_POSICIONES_DESDE}:$A$${FILA_POSICIONES_HASTA},0)`; // fila de la posición
+  const wcol = (col: string) =>
+    `INDEX(Parametros!$${col}$${FILA_POSICIONES_DESDE}:$${col}$${FILA_POSICIONES_HASTA},${mp})`;
 
   // Normalización física: normal (val-min)/(max-min); inversa (max-val)/(max-min).
   // `max - min || 1` replica la guarda de `normalizaFisica`: si una escuela deja
@@ -276,12 +283,13 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   // MEN = promedio de las 4 notas de mentalidad normalizadas.
   f(`V${r}`, clampStat(`(AI${r}+AJ${r}+AK${r}+AL${r})/4`));
   // OVR = (1-pesoMen)*Σ(stat×wPos) + pesoMen*MEN.
-  const pm = "Parametros!$B$16";
+  const pm = `Parametros!$B$${FILA_ESCALARES_DESDE}`;
   const sumaPos = `P${r}*AM${r}+Q${r}*AN${r}+R${r}*AO${r}+S${r}*AP${r}+T${r}*AQ${r}+U${r}*AR${r}`;
   f(`W${r}`, clampStat(`(1-${pm})*(${sumaPos})+${pm}*V${r}`));
   // Nivel por umbrales.
+  const umbral = (offset: number) => `Parametros!$B$${FILA_ESCALARES_DESDE + offset}`;
   f(
     `X${r}`,
-    `IF(W${r}>=Parametros!$B$19,"HEROE",IF(W${r}>=Parametros!$B$18,"ORO",IF(W${r}>=Parametros!$B$17,"PLATA","BRONCE")))`,
+    `IF(W${r}>=${umbral(3)},"HEROE",IF(W${r}>=${umbral(2)},"ORO",IF(W${r}>=${umbral(1)},"PLATA","BRONCE")))`,
   );
 }

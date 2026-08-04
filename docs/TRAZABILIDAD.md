@@ -51,6 +51,7 @@
 | 25 | Localización a Colombia: voseo → tuteo neutro (27 archivos) + 3 fixes de `FechaLocal` | 2026-08-04 | ✅ |
 | 26 | Caja / egresos: modelo `Egreso`, caja neta del mes contra la cobranza pagada | 2026-08-04 | ✅ |
 | 27 | Guardián de tenant: cobertura de `create`/`createMany` y de llamadas `tx.` en transacciones | 2026-08-04 | ✅ |
+| 28 | Planilla del simulador: layout de la hoja Parametros derivado, no hardcodeado | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -852,6 +853,43 @@ guardián con un caso negativo deliberado (un archivo temporal
 confirmar que SÍ lo atrapa, con archivo y línea exactos en el mensaje de
 falla — no alcanza con que la suite quede en verde, hay que ver al guardián
 fallar antes de confiar en que funciona. Archivo de prueba borrado después.
+
+## 28. Planilla del simulador: layout derivado (2026-08-04)
+
+Segundo y último ítem de código puro del paquete "Riesgo de plataforma"
+(el resto — Auth, backups, observabilidad, CI — quedó diferido a producción
+100%, `DECISIONES.md` §74). `plantilla-simulador.service.ts` escribía la
+hoja "Parametros" del Excel con `GRUPOS.forEach`/`POSICIONES.forEach`, pero
+las fórmulas de la hoja "Jugadores" apuntaban a rangos **literales**
+(`Parametros!$A$2:$A$6`, `$A$10:$A$13`, escalares en `$B$16..$B$19`). Sumar
+un `GrupoEdad` o una `Posicion` nueva compilaba igual y la planilla generada
+quedaba mal en silencio — mismo modo de falla que ya se había cerrado para
+`COLUMNA_MEDIDA` en el mismo archivo.
+
+Fix: el layout completo (dónde empieza cada bloque — grupos, título de
+posiciones, cabecera, posiciones, escalares) se extrajo a un módulo nuevo,
+puro y sin Prisma: `src/lib/plantilla-simulador-layout.ts` (mismo principio
+que `stats-engine`/`cobranza.ts` — testeable sin `db`). Cada bloque se
+calcula 2 filas después de que termina el anterior (fila en blanco +
+encabezado); con los arrays de hoy (5 grupos, 4 posiciones) da exactamente
+el layout de siempre (grupos 2-6, posiciones 10-13, escalares 16-19) — cero
+cambio de comportamiento, solo deja de estar hardcodeado.
+
+Se intentó primero un test que importaba directo del servicio, y falló: el
+servicio importa (transitivamente) `@/lib/db`, que instancia el cliente
+Prisma en el import y explota sin `DATABASE_URL` en el entorno de test. Es
+la razón real por la que el layout se separó a `src/lib/` en vez de solo
+exportar las constantes desde el servicio — no es una preferencia de
+organización, es lo que lo hace testeable sin base de datos.
+
+Verificación: `tests/unit/plantilla-simulador.test.ts` (4 tests nuevos)
+fija tanto la relación derivada (ancho de rango = longitud del array, cada
+bloque a +2 filas del anterior) como el layout numérico concreto de hoy —
+si alguien rompe cualquiera de las dos cosas, falla acá y no en un Excel
+generado en silencio. `typecheck`/`lint`/`test` limpios (285 tests). Sin
+smoke de generación real del `.xlsx` (requiere una sesión SUPER_ADMIN
+autenticada contra la base real) — se confirmó por lectura cuidadosa que
+cada referencia migró a la constante derivada correspondiente.
 
 ---
 

@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 6).
+> Última actualización: 2026-08-04 (noche, 7).
 
 ---
 
@@ -24,7 +24,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Riesgo de plataforma (código)](#paquete--riesgo-de-plataforma-código) | Chico | Planilla del simulador hardcodeada. Auth/backups/observabilidad/CI diferidos a producción 100% (ver Diferidos) |
 | [Aranceles: cerrar el ciclo de precios](#paquete--aranceles-cerrar-el-ciclo-de-precios) | Medio | Editar, evitar duplicados, describir "OTRO", navegación |
 | [Membresías operativas](#paquete--membresías-operativas) | Medio | Paginación, filtro por mes/jugador, export conectado al filtro |
 | [Bloqueo por mora: acción directa y masiva](#paquete--bloqueo-por-mora-acción-directa-y-masiva) | Grande | Bloquear desde la lista de cuotas vencidas, ver morosos y elegir a quién bloquear |
@@ -37,21 +36,6 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Riesgo de plataforma (código)
-
-El resto del riesgo de plataforma (Auth, backups, observabilidad, CI) se
-diferió a propósito — ver la sección de Diferidos más abajo. Lo que queda
-acá es el único ítem que es código puro, sin depender de una decisión de
-infraestructura:
-
-- **La planilla del simulador hardcodea el layout del Excel** (Chico).
-  `GRUPOS` es una lista (no `Record<GrupoEdad, …>`) y las filas de los
-  lookups (`$A$10:$A$13`, escalares en las filas 16-19 del generador) están
-  escritas a mano en el servicio que arma la planilla. Sumar un `GrupoEdad` o
-  una `Posicion` nueva compila igual y la planilla queda mal en silencio —
-  mismo modo de falla que ya se cerró para `COLUMNA_MEDIDA`. Fix: derivar los
-  rangos de fila de la longitud real de los arrays en vez de escribirlos.
 
 ## Paquete — Aranceles: cerrar el ciclo de precios
 
