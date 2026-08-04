@@ -48,6 +48,7 @@
 | 22 | Badge de deuda por jugador (`escuela/jugadores` + ficha del DT, sin monto) | 2026-08-01 | ✅ |
 | 23 | Ficha administrativa y médica (datos sensibles de salud) | 2026-08-01 | ✅ |
 | 24 | KPI de aptos médicos vencidos + export de contactos de emergencia | 2026-08-04 | ✅ |
+| 25 | Localización a Colombia: voseo → tuteo neutro (27 archivos) + 3 fixes de `FechaLocal` | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -720,6 +721,36 @@ Verificación: `typecheck`/`lint`/`test` limpios (272 tests, sin casos nuevos �
 son un conteo Prisma envuelto en guards y tres columnas de export, sin lógica
 propia que amerite un test unitario). Sin smoke manual en browser para este
 incremento puntual.
+
+## 25. Localización a Colombia: voseo → tuteo neutro (2026-08-04)
+
+El estimado viejo de "~18 archivos" con voseo rioplatense se auditó de
+nuevo desde cero (el plan original ya no existe en el repo, por convención
+de este doc) y resultó en **27 archivos** genuinos: 26 de copy de
+UI/acciones/servicios + `src/lib/email/plantillas.ts` aparte. Reemplazo
+contextual (no mecánico): "tenés/podés/vos/guardá" → "tienes/puedes/tú/
+guarda", con atención a la acentuación en formas con enclítico
+("avisanos" → "avísanos", "ignoralo" → "ignóralo", no solo cambiar la
+desinencia). `plantillas.ts` se revisó con más cuidado por ser email
+transaccional (un error ahí no se corrige con un redeploy): 7 funciones
+corregidas en sus tres variantes (subject/html/text); `confirmacionLead` y
+`avisoLeadEquipo` ya estaban en tuteo neutro, no se tocaron.
+
+De paso, el mismo barrido encontró 3 violaciones de la regla `FechaLocal`
+(AGENTS.md §6) sin relación con el voseo: `ThreadView.tsx` formateaba con
+`toLocaleString` (con hora) directo en un Server Component — bug real de
+desfase horario UTC-5/hydration, no solo de tono. `ThreadList.tsx` y
+`ObjetivosList.tsx` mismo patrón con `toLocaleDateString` (solo fecha,
+menor severidad). Los tres migrados a `<FechaLocal>`; el dato de origen ya
+era string ISO en los tres DTOs, sin conversión adicional.
+
+Se confirmó además que el `"es-AR"` suelto que el plan viejo señalaba como
+pendiente **ya se había corregido** en una sesión anterior (queda solo un
+comentario en `escuela/page.tsx` documentando el fix).
+
+Verificación: `typecheck`/`lint`/`test` limpios (272 tests). Sin smoke en
+browser para este lote — es texto más un fix de formateo ya cubierto por el
+patrón `FechaLocal` existente.
 
 ---
 

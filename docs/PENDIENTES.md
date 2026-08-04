@@ -8,7 +8,7 @@
 > Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
 > Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Última actualización: 2026-08-04.
+> Última actualización: 2026-08-04 (tarde).
 
 ---
 
@@ -55,12 +55,6 @@ mes, y estado/deuda derivados. Lo que sigue:
 | **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |
 | **Staff más allá del DT** | Medio | Solo existe `Entrenador`: no hay coordinador, preparador físico ni utilero. **Sin rol nuevo** (decisión de producto, `DECISIONES.md` §73): los roles quedan cerrados en `SUPER_ADMIN`/`ESCUELA_ADMIN`/`DT`/`JUGADOR`; si se construye, es como datos gestionados por `ESCUELA_ADMIN`, no como un rol `STAFF` con login propio. |
 | **V — Vigencia y bloqueo automático** | Medio | Cron que bloquea vencidos y desbloquea al día, sobre A.4. **Gateado**: no se construye hasta que una escuela real haya cerrado un ciclo de cobro completo y el bloqueo manual resulte repetitivo. Mitigaciones ya diseñadas: `bloqueado: false` en el WHERE del bloqueo automático (no pisa un bloqueo manual) y `bloqueoTipo: "VIGENCIA_VENCIDA"` en el del desbloqueo (no levanta un bloqueo por comportamiento). |
-
-## 🎨 Localización a Colombia
-
-| Ítem | Tamaño | Detalle |
-|---|---|---|
-| **Tuteo neutro** | Chico | ~18 archivos con voseo rioplatense; suena extranjero en una demo colombiana. Incluye `src/lib/email/plantillas.ts`, que conviene en tanda aparte (un email mal formateado no se corrige con un redeploy). |
 
 ## 📈 Progresión del jugador (curva de desarrollo)
 
