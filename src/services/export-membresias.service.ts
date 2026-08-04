@@ -8,6 +8,7 @@ import { listarMembresias } from "@/repositories/membresia.repository";
 import { listarJugadoresGestion } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
+import { estadoEfectivo } from "@/lib/cobranza";
 
 /**
  * Exporta la cobranza (cuotas / mora) a Excel: es el listado que el dueño usa
@@ -66,7 +67,7 @@ export async function exportarMembresias(
   });
 
   const [membresias, jugadores] = await Promise.all([
-    listarMembresias(escuelaId, opciones.periodo),
+    listarMembresias(escuelaId, { periodo: opciones.periodo }),
     listarJugadoresGestion(escuelaId, {
       estados: ["PENDIENTE", "ACTIVO", "INACTIVO"],
       take: 100_000,
@@ -74,8 +75,13 @@ export async function exportarMembresias(
   ]);
   const porId = new Map(jugadores.map((j) => [j.id, j]));
 
+  // El estado que filtra y el que se muestra son el DERIVADO
+  // (`estadoEfectivo`), no la columna cruda: una cuota PENDIENTE de un
+  // período ya cerrado se ve como Vencida en la lista (A.3), y el export
+  // tiene que decir lo mismo que la pantalla, no menos.
+  const hoy = new Date();
   const filtradas = opciones.estado
-    ? membresias.filter((m) => m.estado === opciones.estado)
+    ? membresias.filter((m) => estadoEfectivo(m.estado, m.periodo, hoy) === opciones.estado)
     : membresias;
 
   const wb = new ExcelJS.Workbook();
@@ -103,7 +109,7 @@ export async function exportarMembresias(
       protegerCelda(familia?.email ?? ""),
       m.periodo,
       m.concepto,
-      m.estado,
+      estadoEfectivo(m.estado, m.periodo, hoy),
       monto ?? "",
       descuento ?? "",
       neto ?? "",

@@ -55,8 +55,6 @@ export function MembresiasPanel({
     undefined,
   );
 
-  const vencidas = membresias.filter((m) => m.estado === "VENCIDA").length;
-
   return (
     <div className="space-y-4">
       <Card>
@@ -155,7 +153,6 @@ export function MembresiasPanel({
       <Card className="overflow-x-auto p-0">
         <div className="flex items-center justify-between p-4">
           <h2 className="text-lg font-bold">Cuotas</h2>
-          {vencidas > 0 && <Badge tono="alerta">{vencidas} vencida(s)</Badge>}
         </div>
         {membresias.length === 0 ? (
           <p className="p-4 pt-0 text-sm text-muted">Sin cuotas registradas.</p>

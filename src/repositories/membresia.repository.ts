@@ -1,13 +1,51 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 
 // Repositorio de membresías / cuotas (Capa 4). Firma con escuelaId (multi-tenant).
 // El modelo Membresia no tiene relación Prisma a Jugador: los nombres se
 // resuelven aparte con obtenerJugadoresMinimos.
 
-export function listarMembresias(escuelaId: string, periodo?: string) {
+/** Filtros comunes a `listarMembresias` y `contarMembresias`. */
+interface FiltrosMembresia {
+  periodo?: string;
+  jugadorId?: string;
+  estadoCondicion?: Record<string, unknown>;
+}
+
+/**
+ * Arma el `AND` de filtros. AND explícito, no spread de objetos:
+ * `estadoCondicion` (VENCIDA) puede traer su propio `periodo: { lt: ... }`, y
+ * un spread lo pisaría si el usuario también filtra por un `periodo` exacto
+ * al mismo tiempo.
+ */
+function condicionesMembresia(
+  escuelaId: string,
+  filtros: FiltrosMembresia,
+): Prisma.MembresiaWhereInput[] {
+  const AND: Prisma.MembresiaWhereInput[] = [{ escuelaId }];
+  if (filtros.periodo) AND.push({ periodo: filtros.periodo });
+  if (filtros.jugadorId) AND.push({ jugadorId: filtros.jugadorId });
+  if (filtros.estadoCondicion) {
+    AND.push(filtros.estadoCondicion as Prisma.MembresiaWhereInput);
+  }
+  return AND;
+}
+
+export function listarMembresias(
+  escuelaId: string,
+  filtros: FiltrosMembresia & { skip?: number; take?: number } = {},
+) {
   return db.membresia.findMany({
-    where: { escuelaId, ...(periodo ? { periodo } : {}) },
+    where: { AND: condicionesMembresia(escuelaId, filtros) },
     orderBy: [{ periodo: "desc" }],
+    skip: filtros.skip,
+    take: filtros.take,
+  });
+}
+
+export function contarMembresias(escuelaId: string, filtros: FiltrosMembresia = {}) {
+  return db.membresia.count({
+    where: { AND: condicionesMembresia(escuelaId, filtros) },
   });
 }
 

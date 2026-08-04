@@ -3,6 +3,7 @@ import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { NotFoundError } from "@/lib/errors";
 import {
   listarMembresias,
+  contarMembresias,
   obtenerMembresia,
   upsertMembresia,
   registrarPagoMembresia,
@@ -25,9 +26,12 @@ import {
   estadoCuenta,
   netoCuota,
   periodoDe,
+  condicionEstadoEfectivo,
   type CuotaParaDeuda,
+  type EstadoCuota,
 } from "@/lib/cobranza";
 import { registrarAuditoria } from "@/services/audit.service";
+import { ESTADOS_MEMBRESIA } from "@/lib/validators/membresia";
 import type {
   MembresiaInput,
   CambiarEstadoMembresiaInput,
@@ -225,26 +229,71 @@ export async function generarCuotasDelPeriodo(
   return { creadas, yaExistian: jugadores.length - creadas, sinPrecio };
 }
 
-/** Lista las cuotas de la escuela (opcional: filtrar por período AAAA-MM). */
+export interface PaginatedMembresiasDTO {
+  items: MembresiaDTO[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Lista las cuotas de la escuela, paginadas. `estado` es el DERIVADO (el que
+ * ve el usuario): se traduce a una condición real vía `condicionEstadoEfectivo`
+ * antes de tocar la base, para que filtrar no dé un número distinto al que
+ * ya muestra `estadoEfectivo` fila por fila (A.3).
+ */
 export async function listarMembresiasEscuela(
   ctx: AuthContext,
-  periodo?: string,
-): Promise<MembresiaDTO[]> {
+  filtros: {
+    periodo?: string;
+    jugadorId?: string;
+    estado?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<PaginatedMembresiasDTO> {
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
-  const rows = await listarMembresias(escuelaId, periodo);
-  if (rows.length === 0) return [];
+  const page = Math.max(1, filtros.page ?? 1);
+  const limit = Math.max(1, filtros.limit ?? 20);
+  const skip = (page - 1) * limit;
+  const hoy = new Date();
+  const periodoActual = periodoDe(hoy);
+
+  const estadoCondicion =
+    filtros.estado && (ESTADOS_MEMBRESIA as readonly string[]).includes(filtros.estado)
+      ? condicionEstadoEfectivo(filtros.estado as EstadoCuota, periodoActual)
+      : undefined;
+
+  const [rows, total] = await Promise.all([
+    listarMembresias(escuelaId, {
+      periodo: filtros.periodo,
+      jugadorId: filtros.jugadorId,
+      estadoCondicion,
+      skip,
+      take: limit,
+    }),
+    contarMembresias(escuelaId, {
+      periodo: filtros.periodo,
+      jugadorId: filtros.jugadorId,
+      estadoCondicion,
+    }),
+  ]);
+
+  if (rows.length === 0) {
+    return { items: [], total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
+  }
 
   // Un solo "ahora" para todas las filas: si cada una llamara a `new Date()`, dos
   // cuotas del mismo listado podrían caer a distinto lado de un cambio de mes.
-  const hoy = new Date();
   const jugadores = await obtenerJugadoresMinimos(
     escuelaId,
     [...new Set(rows.map((r) => r.jugadorId))],
   );
   const porId = new Map(jugadores.map((j) => [j.id, j]));
 
-  return rows.map((m) => {
+  const items = rows.map((m) => {
     const j = porId.get(m.jugadorId);
     return {
       id: m.id,
@@ -269,6 +318,48 @@ export async function listarMembresiasEscuela(
       referenciaPago: m.referenciaPago,
     };
   });
+
+  return { items, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) };
+}
+
+/** Contadores por pestaña de estado, respetando `periodo`/`jugadorId` si están filtrados. */
+export interface ContadoresMembresiasDTO {
+  todas: number;
+  PENDIENTE: number;
+  PAGADA: number;
+  VENCIDA: number;
+}
+
+/**
+ * Cuenta cuotas por cada estado derivado, para los números de las pestañas
+ * (`Todas`, `Pagada`, `Pendiente`, `Vencida`). Independiente de qué pestaña
+ * esté activa: siempre da los 4 números sobre el mismo `periodo`/`jugadorId`.
+ */
+export async function contarMembresiasPorPestana(
+  ctx: AuthContext,
+  filtros: { periodo?: string; jugadorId?: string } = {},
+): Promise<ContadoresMembresiasDTO> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  const periodoActual = periodoDe(new Date());
+  const base = { periodo: filtros.periodo, jugadorId: filtros.jugadorId };
+
+  const [todas, pendiente, pagada, vencida] = await Promise.all([
+    contarMembresias(escuelaId, base),
+    contarMembresias(escuelaId, {
+      ...base,
+      estadoCondicion: condicionEstadoEfectivo("PENDIENTE", periodoActual),
+    }),
+    contarMembresias(escuelaId, {
+      ...base,
+      estadoCondicion: condicionEstadoEfectivo("PAGADA", periodoActual),
+    }),
+    contarMembresias(escuelaId, {
+      ...base,
+      estadoCondicion: condicionEstadoEfectivo("VENCIDA", periodoActual),
+    }),
+  ]);
+  return { todas, PENDIENTE: pendiente, PAGADA: pagada, VENCIDA: vencida };
 }
 
 /** Crea o actualiza la cuota de un jugador para un período. Auditado. */

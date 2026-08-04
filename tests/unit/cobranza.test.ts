@@ -5,7 +5,9 @@ import {
   estadoEfectivo,
   netoCuota,
   estadoCuenta,
+  condicionEstadoEfectivo,
   type CuotaParaDeuda,
+  type EstadoCuota,
 } from "@/lib/cobranza";
 
 // Cobranza derivada (Track A · A.3 y A.4). El estado de una cuota y la deuda de
@@ -182,5 +184,73 @@ describe("estadoCuenta", () => {
     );
     expect(r.cuotasVencidas).toBe(2);
     expect(r.montoVencido).toBe(125000);
+  });
+});
+
+describe("condicionEstadoEfectivo", () => {
+  // Fila mínima: lo que la condición evalúa (`estado`/`periodo` crudos).
+  interface FilaCruda {
+    estado: string;
+    periodo: string;
+  }
+
+  /**
+   * Aplica "a mano", en JS, la misma forma de condición que devuelve
+   * `condicionEstadoEfectivo`: comparaciones de igualdad, `{ lt }`/`{ gte }`
+   * sobre `periodo`, y `OR` de sub-condiciones. No reimplementa el criterio de
+   * negocio — solo interpreta la forma del objeto — así que si el objeto que
+   * devuelve la función cambia de forma sin que el criterio sea equivalente a
+   * `estadoEfectivo`, el test lo detecta.
+   */
+  function matchea(fila: FilaCruda, condicion: Record<string, unknown>): boolean {
+    if ("OR" in condicion) {
+      const ramas = condicion.OR as Record<string, unknown>[];
+      return ramas.some((rama) => matchea(fila, rama));
+    }
+    for (const [campo, valor] of Object.entries(condicion)) {
+      const actual = fila[campo as keyof FilaCruda];
+      if (valor != null && typeof valor === "object") {
+        const op = valor as { lt?: string; gte?: string };
+        if (op.lt != null && !(actual < op.lt)) return false;
+        if (op.gte != null && !(actual >= op.gte)) return false;
+      } else if (actual !== valor) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  const FILAS: FilaCruda[] = [
+    { estado: "PAGADA", periodo: "2026-05" }, // pagada de un mes cerrado
+    { estado: "PAGADA", periodo: "2026-07" }, // pagada del mes en curso
+    { estado: "PENDIENTE", periodo: "2026-07" }, // pendiente del mes en curso: sigue PENDIENTE
+    { estado: "PENDIENTE", periodo: "2026-06" }, // pendiente de un mes YA CERRADO: es VENCIDA (A.3)
+    { estado: "PENDIENTE", periodo: "2026-08" }, // pendiente de un mes futuro: sigue PENDIENTE
+    { estado: "VENCIDA", periodo: "2026-04" }, // vencida ya guardada
+  ];
+
+  const ESTADOS: EstadoCuota[] = ["PENDIENTE", "PAGADA", "VENCIDA"];
+
+  for (const estadoObjetivo of ESTADOS) {
+    it(`da el mismo resultado que estadoEfectivo fila por fila para ${estadoObjetivo}`, () => {
+      const condicion = condicionEstadoEfectivo(estadoObjetivo, periodoDe(HOY));
+      const porCondicion = FILAS.filter((f) => matchea(f, condicion));
+      const porEstadoEfectivo = FILAS.filter(
+        (f) => estadoEfectivo(f.estado, f.periodo, HOY) === estadoObjetivo,
+      );
+      expect(porCondicion).toEqual(porEstadoEfectivo);
+    });
+  }
+
+  it("la PENDIENTE de un período cerrado aparece bajo VENCIDA y no bajo PENDIENTE", () => {
+    const filaVieja: FilaCruda = { estado: "PENDIENTE", periodo: "2026-06" };
+    const periodoActual = periodoDe(HOY);
+
+    expect(matchea(filaVieja, condicionEstadoEfectivo("VENCIDA", periodoActual))).toBe(
+      true,
+    );
+    expect(
+      matchea(filaVieja, condicionEstadoEfectivo("PENDIENTE", periodoActual)),
+    ).toBe(false);
   });
 });

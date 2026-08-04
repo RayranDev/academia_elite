@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 8).
+> Última actualización: 2026-08-04 (noche, 9).
 
 ---
 
@@ -24,7 +24,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Membresías operativas](#paquete--membresías-operativas) | Medio | Paginación, filtro por mes/jugador, export conectado al filtro |
 | [Bloqueo por mora: acción directa y masiva](#paquete--bloqueo-por-mora-acción-directa-y-masiva) | Grande | Bloquear desde la lista de cuotas vencidas, ver morosos y elegir a quién bloquear |
 | [Unificar el motivo de soporte](#paquete--unificar-el-motivo-de-soporte) | Chico | Decisión de estilo entre dos patrones ya usados en el código |
 | [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
@@ -36,33 +35,6 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Membresías operativas
-
-Reportado en uso real, verificado contra `src/repositories/membresia.repository.ts`,
-`src/services/membresia.service.ts`, `src/app/escuela/membresias/page.tsx`,
-`src/components/escuela/MembresiasPanel.tsx`, `src/services/export-membresias.service.ts`.
-
-- **Paginación.** `listarMembresias` (repo, líneas 7-12) y
-  `listarMembresiasEscuela` (servicio, líneas 229-272) traen TODAS las filas
-  sin `skip`/`take` — con una escuela real generando cobranza mes a mes, esto
-  no escala. Sumar paginación de servidor con el mismo patrón ya usado en
-  `listarJugadoresGestion`/`contarJugadoresGestion`
-  (`jugador.repository.ts`): parámetros `skip`/`take` + una función de
-  conteo aparte para el total de páginas.
-- **Filtro por período y por jugador** en la lista. Hoy `membresias/page.tsx`
-  (líneas 67-97) solo filtra por `estado` vía querystring. Sumar `?periodo=`
-  (reusar `periodoSchema` de `validators/membresia.ts`) y `?jugadorId=` (o un
-  buscador de texto por nombre, similar al de `escuela/jugadores`). El
-  `ComboboxJugador` que ya existe en `MembresiasPanel.tsx` (líneas 241-300)
-  es para el formulario de alta, no sirve directo para filtrar la lista —
-  hay que decidir si se reusa el componente o se arma un filtro más liviano.
-- **Conectar el export al filtro activo.** El botón "Descargar cobranza"
-  (`membresias/page.tsx:52-57`) apunta a `/api/membresias-export` con un
-  `href` estático, sin querystring. El backend (`export-membresias.service.ts:52-79`
-  y la route de la API) **ya soporta** `?estado=` y `?periodo=` — el fix es
-  chico: armar el `href` del botón dinámicamente con los filtros activos en
-  pantalla, en vez de un link fijo.
 
 ## Paquete — Bloqueo por mora: acción directa y masiva
 

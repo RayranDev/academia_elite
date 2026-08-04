@@ -58,6 +58,30 @@ export function estadoEfectivo(
   return periodoCerrado(periodo, hoy) ? "VENCIDA" : "PENDIENTE";
 }
 
+/**
+ * Traduce el estado DERIVADO (`estadoEfectivo`) a una condición sobre las
+ * columnas reales `estado`/`periodo`. VENCIDA no siempre está guardada (A.3):
+ * una PENDIENTE de un período ya cerrado también cuenta. Mismo criterio que
+ * `estadoEfectivo` — filtrar por estado en una lista no puede dar un número
+ * distinto al que ya muestra `estadoEfectivo` fila por fila.
+ */
+export function condicionEstadoEfectivo(
+  estado: EstadoCuota,
+  periodoActual: string,
+): Record<string, unknown> {
+  if (estado === "PAGADA") return { estado: "PAGADA" };
+  if (estado === "VENCIDA") {
+    return {
+      OR: [
+        { estado: "VENCIDA" },
+        { estado: "PENDIENTE", periodo: { lt: periodoActual } },
+      ],
+    };
+  }
+  // PENDIENTE derivado: guardado PENDIENTE Y el período todavía no cerró.
+  return { estado: "PENDIENTE", periodo: { gte: periodoActual } };
+}
+
 /** Cuota mínima que necesita el cálculo de deuda. */
 export interface CuotaParaDeuda {
   periodo: string;

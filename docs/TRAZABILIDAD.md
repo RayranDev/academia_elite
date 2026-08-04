@@ -53,6 +53,7 @@
 | 27 | Guardián de tenant: cobertura de `create`/`createMany` y de llamadas `tx.` en transacciones | 2026-08-04 | ✅ |
 | 28 | Planilla del simulador: layout de la hoja Parametros derivado, no hardcodeado | 2026-08-04 | ✅ |
 | 29 | Aranceles: editar, evitar duplicados con aviso, descripción libre, navegación | 2026-08-04 | ✅ |
+| 30 | Membresías operativas: paginación, filtro por período/jugador, export conectado | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -945,6 +946,60 @@ queda inactivo y la columna `descripcion` persiste) hechos directamente, sin
 delegar. Se sumaron 4 tests a `tests/unit/aranceles.test.ts` (descripción
 sanitizada, `editarArancelSchema` exige `id`) — el sub-agente no los había
 escrito. `typecheck`/`lint`/`test` limpios (289 tests).
+
+## 30. Membresías operativas (2026-08-04)
+
+Tres gaps reportados en uso real, sobre las cobranzas acumulándose:
+paginación, filtro por período/jugador, export desconectado del filtro.
+
+**El problema de fondo, no solo "agregar paginación".** El `estado` que ve
+el usuario es DERIVADO (`estadoEfectivo` en `cobranza.ts`): una cuota
+`PENDIENTE` cuyo período ya cerró se muestra como "Vencida" sin que nadie la
+haya marcado (A.3). Un `where: { estado: "VENCIDA" }` literal en la base
+habría mostrado de menos justo el filtro que la escuela usa para cobrar —
+una regresión real, no solo un detalle. Se resolvió con una función pura
+nueva, `condicionEstadoEfectivo(estado, periodoActual)` en `cobranza.ts`,
+que traduce el estado derivado a la condición real equivalente (`PAGADA`
+directo; `VENCIDA` = guardada `VENCIDA` **o** `PENDIENTE` con período
+cerrado; `PENDIENTE` = guardada `PENDIENTE` con período todavía abierto).
+Testeada con un verificador cruzado: para una tabla de filas de prueba,
+filtrar "a mano" por la condición tiene que dar exactamente el mismo
+subconjunto que filtrar llamando a `estadoEfectivo` fila por fila — si las
+dos lógicas alguna vez divergen, el test lo detecta.
+
+**Repositorio**: `listarMembresias`/`contarMembresias` arman el `where` como
+un `AND` explícito (`condicionesMembresia`, helper compartido), no un spread
+de objetos — un spread habría dejado que el `periodo: { lt: ... }` de
+`condicionEstadoEfectivo("VENCIDA", ...)` pisara un filtro de `periodo`
+exacto si el usuario combina ambos al mismo tiempo (período + pestaña
+Vencida). Mismo shape que `PaginatedJugadoresDTO`/`Paginacion` ya
+existentes — reusado tal cual, no se inventó un componente de paginación
+nuevo.
+
+**Contadores de las pestañas** (`contarMembresiasPorPestana`, nueva):
+4 counts en paralelo (Todas/Pendiente/Pagada/Vencida), independientes de
+cuál pestaña está activa, respetando el período/jugador filtrado — ya no se
+calculan filtrando en memoria un array que ahora es solo una página parcial.
+
+**Filtro de jugador** (`FiltroJugadorMembresias.tsx`, nuevo): mismo patrón
+de búsqueda-mientras-escribís que `ComboboxJugador`, pero navega
+(`router.push`) en vez de setear un campo de formulario — reusa la lista de
+jugadores que la página ya cargaba para el combobox de alta, sin fetch
+nuevo. Cambiar cualquier filtro (pestaña, período, jugador) resetea `page`
+a 1; las pestañas de estado preservan período/jugador activos.
+
+**Export**: el link de "Descargar cobranza" arma su querystring con
+`estado`/`periodo` activos (el backend ya los soportaba, solo faltaba
+conectar la UI). `jugadorId` queda fuera del export a propósito — el
+backend no lo soporta y no era parte del alcance de este paquete.
+
+Implementación delegada a un sub-agente con el plan (incluida la traducción
+`condicionEstadoEfectivo`) como instrucción exacta. Revisión de diff propia,
+más un chequeo de solo lectura contra la base real (`elite-escuela`): los 3
+contadores de estado suman exacto el total (68 = 52+6+10), y `take` limita
+la paginación correctamente. Sin mutaciones, no hizo falta `ROLLBACK`.
+`typecheck`/`lint`/`test` limpios (293 tests, 4 nuevos para
+`condicionEstadoEfectivo`).
 
 ---
 
