@@ -281,6 +281,34 @@ export async function actualizarJugadorDatos(
 }
 
 /**
+ * Ficha administrativa y médica (datos sensibles, HABEAS-DATA.md). El servicio
+ * decide qué persistir según `autorizaDatosSalud` — este repositorio escribe
+ * exactamente lo que recibe, sin lógica de consentimiento.
+ */
+export function actualizarFichaMedica(
+  escuelaId: string | null,
+  id: string,
+  data: {
+    tipoDocumento: string | null;
+    numeroDocumento: string | null;
+    eps: string | null;
+    rh: string | null;
+    alergias: string | null;
+    condicionesMedicas: string | null;
+    aptoMedicoVence: Date | null;
+    contactoEmergenciaNombre: string | null;
+    contactoEmergenciaTelefono: string | null;
+    contactoEmergenciaParentesco: string | null;
+    autorizaTraslado: boolean;
+    autorizaDatosSalud: boolean;
+    autorizacionDatosSaludEn: Date | null;
+  },
+) {
+  const scope = escuelaId === null ? {} : { escuelaId };
+  return db.jugador.updateMany({ where: { id, ...scope }, data });
+}
+
+/**
  * Actualiza SOLO la identidad (nombre/apellido) de un jugador VINCULADO al
  * usuario (padre/tutor). La propiedad va en el `where` como defensa en
  * profundidad: aunque el guard fallara, solo toca jugadores del propio usuario.

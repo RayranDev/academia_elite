@@ -1,7 +1,7 @@
 # Política de Tratamiento de Datos Personales y Habeas Data
 
 **Plataforma:** Academia Elite — Fútbol Career Mode
-**Última actualización:** 2026-07-31 · **Versión:** 1.0 (borrador)
+**Última actualización:** 2026-08-01 · **Versión:** 1.0 (borrador)
 
 > ⚠️ **AVISO LEGAL.** Este documento es un **borrador técnico** preparado por el
 > equipo de desarrollo conforme a la **Ley 1581 de 2012**, el **Decreto 1377 de
@@ -44,13 +44,17 @@ Transferencia y Transmisión, conforme a la ley.
 |---|---|---|
 | Identificación de la familia/tutor | nombre, correo, teléfono | adulto responsable |
 | Identificación del menor (jugador) | nombre, apellido, fecha de nacimiento, posición, categoría, dorsal | NNA (menor) |
-| **Datos sensibles del menor** | **fotografía/imagen** del menor | NNA (menor) |
+| **Datos sensibles del menor — imagen** | **fotografía/imagen** del menor | NNA (menor) |
+| **Datos sensibles del menor — salud** | EPS, RH, alergias, condiciones médicas, vencimiento del apto médico | NNA (menor) |
+| Identificación oficial del menor | tipo y número de documento (RC/TI/CC/CE) | NNA (menor) |
+| Contacto de emergencia | nombre, teléfono y parentesco de un contacto distinto al tutor registrado; autorización de traslado en caso de lesión | adulto designado por el tutor |
 | Datos deportivos | medidas físicas, técnicas y de mentalidad; stats calculados; evaluaciones; progreso | NNA (menor) |
 | Cuenta y seguridad | email, contraseña (hash bcrypt), rol, registros de auditoría | usuarios |
 | Contacto comercial (leads) | nombre, escuela, email, teléfono, ciudad, mensaje | prospecto |
 
-> La **fotografía de un menor** es un dato **sensible** (permite identificarlo) y
-> recibe protección reforzada (§7).
+> La **fotografía** y los **datos de salud** de un menor son datos **sensibles**
+> (arts. 5 y 6 Ley 1581: la salud es sensible por naturaleza; la imagen lo es
+> porque permite identificar al menor) y reciben protección reforzada (§7).
 
 ## 5. Finalidades del Tratamiento
 
@@ -74,6 +78,11 @@ deportivos internos, ni venta de datos.
   del Aviso de Privacidad antes de crear la cuenta.
 - La **fotografía del menor** exige una **autorización específica y separada**
   (consentimiento granular), que puede **revocarse en cualquier momento**.
+- Los **datos de salud del menor** (EPS, RH, alergias, condiciones médicas)
+  exigen, por la misma razón, una **autorización específica y separada** de la
+  aceptación general de la Política. Es **opcional**: la escuela puede operar
+  sin esta ficha, y la familia decide cargarla o no. Sin la autorización, esos
+  campos no se muestran a nadie aunque estén guardados.
 
 ## 7. Tratamiento de datos de niños, niñas y adolescentes (NNA)
 
@@ -93,6 +102,30 @@ Conforme al art. 7 de la Ley 1581 y el Decreto 1377:
     avatar).
   - No existe canal de mensajería directo adulto↔menor.
   - No hay rankings ni exposición pública de métricas de menores.
+  - Los **datos de salud del menor** (ficha administrativa/médica) exigen su
+    propio consentimiento, registrado con fecha (`autorizaDatosSalud`,
+    `autorizacionDatosSaludEn`) — el mismo mecanismo que la foto, aplicado a una
+    categoría de dato distinta.
+  - **Acceso restringido por rol, no solo por sesión.** El DT (entrenador en
+    cancha) solo ve el contacto de emergencia, las alergias y la vigencia del
+    apto médico — lo que necesita si un chico se lesiona en un partido de
+    visitante. El documento de identidad y la EPS quedan reservados a
+    `ESCUELA_ADMIN`. Es una restricción **adicional** al aislamiento
+    multi-tenant: no toda persona con acceso legítimo al tenant accede a toda la
+    ficha.
+  - **La lectura de la ficha completa queda en `AuditLog`**, no solo su
+    escritura: por su sensibilidad, se audita quién abrió la ficha (documento,
+    EPS, condiciones médicas) de un menor y cuándo. Aplica a la vista dedicada
+    de `ESCUELA_ADMIN`/`SUPER_ADMIN` — es una acción deliberada de consultar el
+    expediente, no una visita rutinaria.
+  - La vista **acotada** que ve el DT (alergias, apto médico, contacto de
+    emergencia) es contexto incidental dentro de la ficha del jugador que ya
+    usa para evaluar y convocar: se abre decenas de veces por sesión, así que
+    auditar cada vista ahogaría el registro. Mismo criterio ya aplicado a la
+    mora de cobranza que ve el DT: se deriva un valor acotado bajo su propia
+    autorización, sin generar una entrada de auditoría por cada consulta.
+  - Revocar la autorización oculta los campos de salud al instante, igual que
+    la foto — el dato puede quedar guardado, pero deja de mostrarse.
 
 ## 8. Derechos del Titular (Habeas Data)
 
@@ -188,7 +221,7 @@ canales habituales.
 | Cifrado en reposo de fotos | ✅ Cubierto por el cifrado en reposo de Supabase Storage (bucket **privado**); no hay cifrado adicional a nivel de aplicación | Supabase Storage |
 | RLS en BD gestionada | ✅ Implementado — habilitado en **todas** las tablas del esquema `public`; las migraciones que crean tablas reaplican el bloque | `enable_rls`, `enable_rls_observacion` |
 | Política publicada y enlazada en la web | ✅ Implementado — `/legal` con versión visible, enlazada desde el footer y desde el registro | `Footer`, `AceptarTerminos`, `/legal` |
-| Datos sensibles de salud (EPS, RH, alergias) | ⚪ **No aplica todavía** — no se recogen. Si se agrega la ficha médica, exige autorización específica y este documento se actualiza **en el mismo PR** que el schema | ver `PENDIENTES.md` |
+| Datos sensibles de salud (EPS, RH, alergias) | ✅ **Implementado** (2026-08-01) — consentimiento específico que gatea guardado Y lectura (`autorizaDatosSalud`); acceso restringido por rol (DT: solo emergencia/alergias/apto médico; ESCUELA_ADMIN: todo); lectura de la ficha completa auditada | `Jugador` (ficha), `gestion-jugadores.service.ts`, `AuditLog` |
 
 ## Anexo B — Texto sugerido de autorización (registro)
 

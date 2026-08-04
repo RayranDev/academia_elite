@@ -7,7 +7,9 @@ import { textoSeguro } from "@/lib/validators/sanitizar";
 
 // Teléfono opcional de contacto de la familia (nómina / emergencias). Vacío se
 // normaliza a null. Acepta dígitos, espacios y los signos habituales (+ - ( )).
-const telefonoOpcional = z
+// Exportado: lo reusa también el contacto de emergencia de la ficha médica
+// (misma forma de dato, otro dueño del campo).
+export const telefonoOpcional = z
   .string()
   .trim()
   .max(30, { error: "Teléfono demasiado largo." })

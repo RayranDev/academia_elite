@@ -13,6 +13,7 @@ import {
   contarJugadoresGestion,
   obtenerJugadorGestion,
   actualizarJugadorDatos,
+  actualizarFichaMedica as repoActualizarFichaMedica,
   actualizarEstadoJugador,
 } from "@/repositories/jugador.repository";
 import { contarCategoriasDeEscuela } from "@/repositories/categoria.repository";
@@ -22,7 +23,7 @@ import { categoriasDelDt } from "@/services/dt-scope";
 import { registrarAuditoria } from "@/services/audit.service";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
-import type { JugadorEditarInput } from "@/lib/validators/gestion";
+import type { JugadorEditarInput, FichaMedicaInput } from "@/lib/validators/gestion";
 import type { Posicion } from "@/types";
 
 // Gestión de jugadores (G3/G5): Escuela y Súper Admin; el DT solo resetea
@@ -224,6 +225,119 @@ export async function editarJugador(
   });
 }
 
+// --- Ficha administrativa y médica (HABEAS-DATA.md, datos sensibles) -------
+//
+// `autorizaDatosSalud` gatea el subconjunto de SALUD (eps, rh, alergias,
+// condicionesMedicas, aptoMedicoVence) en los dos sentidos: sin consentimiento
+// no se GUARDA (art. 9 Ley 1581: autorización previa a la recolección, no solo
+// a la exhibición) y, en lectura, se vuelve a filtrar como defensa en
+// profundidad. Documento, número y contacto de emergencia NO son datos de
+// salud — quedan cubiertos por la autorización general de la Política y no
+// dependen de este consentimiento específico.
+
+export interface FichaMedicaEscuelaDTO {
+  jugadorId: string;
+  nombre: string;
+  apellido: string;
+  categoriaNombre: string;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  autorizaDatosSalud: boolean;
+  autorizacionDatosSaludEn: string | null;
+  eps: string | null;
+  rh: string | null;
+  alergias: string | null;
+  condicionesMedicas: string | null;
+  aptoMedicoVence: string | null;
+  contactoEmergenciaNombre: string | null;
+  contactoEmergenciaTelefono: string | null;
+  contactoEmergenciaParentesco: string | null;
+  autorizaTraslado: boolean;
+}
+
+/**
+ * Ficha completa (ESCUELA_ADMIN / SUPER_ADMIN). Es una lectura deliberada del
+ * expediente de un menor — a diferencia de la vista acotada del DT, que es
+ * contexto incidental — así que queda en `AuditLog`.
+ */
+export async function obtenerFichaMedicaEscuela(
+  ctx: AuthContext,
+  jugadorId: string,
+): Promise<FichaMedicaEscuelaDTO> {
+  const jugador = await cargarJugador(ctx, jugadorId);
+  await registrarAuditoria(ctx, {
+    accion: "LEER_FICHA_MEDICA",
+    entidad: "Jugador",
+    entidadId: jugador.id,
+    escuelaId: jugador.escuelaId,
+  });
+
+  const hayConsentimiento = jugador.autorizaDatosSalud;
+  return {
+    jugadorId: jugador.id,
+    nombre: jugador.nombre,
+    apellido: jugador.apellido,
+    categoriaNombre: jugador.categoria.nombre,
+    tipoDocumento: jugador.tipoDocumento,
+    numeroDocumento: jugador.numeroDocumento,
+    autorizaDatosSalud: jugador.autorizaDatosSalud,
+    autorizacionDatosSaludEn: jugador.autorizacionDatosSaludEn?.toISOString() ?? null,
+    eps: hayConsentimiento ? jugador.eps : null,
+    rh: hayConsentimiento ? jugador.rh : null,
+    alergias: hayConsentimiento ? jugador.alergias : null,
+    condicionesMedicas: hayConsentimiento ? jugador.condicionesMedicas : null,
+    aptoMedicoVence: hayConsentimiento
+      ? (jugador.aptoMedicoVence?.toISOString() ?? null)
+      : null,
+    contactoEmergenciaNombre: jugador.contactoEmergenciaNombre,
+    contactoEmergenciaTelefono: jugador.contactoEmergenciaTelefono,
+    contactoEmergenciaParentesco: jugador.contactoEmergenciaParentesco,
+    autorizaTraslado: jugador.autorizaTraslado,
+  };
+}
+
+/** Edita la ficha médica (Escuela de su tenant o Súper Admin). Auditada. */
+export async function actualizarFichaMedica(
+  ctx: AuthContext,
+  data: FichaMedicaInput,
+  motivo?: string,
+): Promise<void> {
+  assertMotivoSoporte(ctx, motivo);
+  assertSoportePuedeEscribir(ctx);
+  const jugador = await cargarJugador(ctx, data.jugadorId);
+
+  const res = await repoActualizarFichaMedica(ctx.escuelaId, jugador.id, {
+    tipoDocumento: data.tipoDocumento,
+    numeroDocumento: data.numeroDocumento,
+    // Sin consentimiento, se descarta lo enviado: no alcanza con ocultarlo
+    // después, la autorización tiene que ser previa a la recolección.
+    eps: data.autorizaDatosSalud ? data.eps : null,
+    rh: data.autorizaDatosSalud ? data.rh : null,
+    alergias: data.autorizaDatosSalud ? data.alergias : null,
+    condicionesMedicas: data.autorizaDatosSalud ? data.condicionesMedicas : null,
+    aptoMedicoVence: data.autorizaDatosSalud ? data.aptoMedicoVence : null,
+    contactoEmergenciaNombre: data.contactoEmergenciaNombre,
+    // `telefonoOpcional` es `.nullish()` (permite no enviar el campo): se
+    // normaliza `undefined` a `null` para la columna, que no distingue "no
+    // llegó" de "se borró".
+    contactoEmergenciaTelefono: data.contactoEmergenciaTelefono ?? null,
+    contactoEmergenciaParentesco: data.contactoEmergenciaParentesco,
+    autorizaTraslado: data.autorizaTraslado,
+    autorizaDatosSalud: data.autorizaDatosSalud,
+    // Mismo patrón que `consentimientoFotoFecha`: se sella `now()` en cada
+    // guardado con consentimiento activo, no solo la primera vez.
+    autorizacionDatosSaludEn: data.autorizaDatosSalud ? new Date() : null,
+  });
+  if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
+  await registrarAuditoria(ctx, {
+    accion: "EDITAR_FICHA_MEDICA",
+    entidad: "Jugador",
+    entidadId: jugador.id,
+    escuelaId: jugador.escuelaId,
+    motivo,
+  });
+}
+
 /** Inactiva o reactiva un jugador, con motivo obligatorio (auditado). */
 export async function cambiarEstadoJugadorGestion(
   ctx: AuthContext,
@@ -355,7 +469,7 @@ export async function resetPasswordFamiliaDt(
 }
 
 /** Email de la familia para la ficha del DT (sin exponer más datos). */
-export async function credencialesFamiliaDt(
+export async function obtenerCredencialesFamiliaDt(
   ctx: AuthContext,
   jugadorId: string,
 ): Promise<{ email: string | null; bloqueado: boolean }> {

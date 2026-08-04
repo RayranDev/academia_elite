@@ -2,6 +2,7 @@ import { z } from "zod";
 import { POSICIONES, TIPOS_BLOQUEO } from "@/types";
 import { formatearNombre } from "@/lib/texto/formatear-nombre";
 import { textoSeguro } from "@/lib/validators/sanitizar";
+import { telefonoOpcional, PARENTESCOS } from "@/lib/validators/cuenta";
 
 // Validadores de la gestión administrativa (Sprint G).
 
@@ -87,6 +88,60 @@ export const cambiarPasswordSchema = z
     error: "La confirmación no coincide.",
     path: ["confirmacion"],
   });
+
+// --- Ficha administrativa y médica (HABEAS-DATA.md, datos sensibles) -------
+
+export const TIPOS_DOCUMENTO = ["RC", "TI", "CC", "CE"] as const;
+
+/** Tipos sanguíneos como catálogo cerrado: es un dato que importa en una
+ *  urgencia, así que no se deja como texto libre. */
+export const TIPOS_RH = ["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"] as const;
+
+const textoOpcional = (max: number) =>
+  z
+    .union([z.literal(""), textoSeguro({ max })])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v));
+
+const fechaOpcional = z
+  .union([z.literal(""), z.coerce.date()])
+  .optional()
+  .transform((v) => (v === "" || v == null ? null : v));
+
+export const fichaMedicaSchema = z.object({
+  jugadorId: z.string().min(1),
+  tipoDocumento: z
+    .union([z.literal(""), z.enum(TIPOS_DOCUMENTO)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
+  numeroDocumento: textoOpcional(30),
+  // Datos de salud propiamente dichos (art. 5 Ley 1581): el servicio los
+  // descarta si `autorizaDatosSalud` viene en false, sin importar lo que
+  // llegue acá — el consentimiento es una regla de negocio, no de formato.
+  eps: textoOpcional(80),
+  rh: z
+    .union([z.literal(""), z.enum(TIPOS_RH)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
+  alergias: textoOpcional(300),
+  condicionesMedicas: textoOpcional(300),
+  aptoMedicoVence: fechaOpcional,
+  // Contacto de emergencia: no es dato de salud, cubierto por la autorización
+  // general de la Política (no exige el consentimiento específico).
+  contactoEmergenciaNombre: z
+    .union([z.literal(""), textoSeguro({ max: 60 })])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : formatearNombre(v))),
+  contactoEmergenciaTelefono: telefonoOpcional,
+  contactoEmergenciaParentesco: z
+    .union([z.literal(""), z.enum(PARENTESCOS)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
+  autorizaTraslado: z.boolean(),
+  autorizaDatosSalud: z.boolean(),
+});
+
+export type FichaMedicaInput = z.infer<typeof fichaMedicaSchema>;
 
 export type JugadorEditarInput = z.infer<typeof jugadorEditarSchema>;
 export type DtEditarInput = z.infer<typeof dtEditarSchema>;

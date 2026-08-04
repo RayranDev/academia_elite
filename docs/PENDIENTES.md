@@ -8,7 +8,7 @@
 > Convención: cada ítem lleva **tamaño** estimado y una línea de qué y por qué.
 > Cuando algo se termina, se borra de acá y se resume en TRAZABILIDAD.
 >
-> Última actualización: 2026-07-31.
+> Última actualización: 2026-08-01.
 
 ---
 
@@ -50,7 +50,9 @@ mes, y estado/deuda derivados. Lo que sigue:
 
 | Ítem | Tamaño | Detalle |
 |---|---|---|
-| **F — Ficha administrativa y médica** | Grande | `Jugador` no tiene documento, EPS, RH, alergias, apto médico con vencimiento, contacto de emergencia propio ni autorización de traslado. Es lo que el DT necesita cuando un chico se lesiona de visitante. **Bloqueante previo:** son datos sensibles de salud de menores (Ley 1581) — `HABEAS-DATA.md` se actualiza en el mismo PR que el schema, no después. |
+| **KPI de aptos médicos vencidos** | Chico | La ficha médica (hito 23) ya guarda `aptoMedicoVence` y la ficha del DT lo marca vencido; falta el contador agregado en el dashboard de escuela, igual que "Cuotas vencidas". Requiere una consulta agregada nueva (no hay una hoy que agrupe por vencimiento de apto médico). |
+| **Export de contactos con datos de emergencia** | Chico | `export-contactos.service.ts` ya existe; falta sumarle contacto de emergencia/parentesco/teléfono de la ficha médica (respetando el mismo consentimiento: si no hay `autorizaDatosSalud`, esos campos ya vienen `null` desde el modelo, así que no hace falta lógica extra — solo agregar las columnas). |
+| **Unificar el patrón de motivo de soporte** | Chico | `editarJugador` y familia reusan `ctx.soporte?.motivo` (capturado al abrir la sesión); `importarJugadores`/`importarEvaluaciones` (hitos 20-21) piden un motivo NUEVO por cada import vía un campo de texto propio. Ninguno está mal, pero es una inconsistencia de estilo — decidir si los imports masivos ameritan de verdad un motivo más específico que el de sesión, o si conviene unificar. Detalle en `DECISIONES.md` §72. |
 | **Descuentos con regla** | Medio | Hoy el descuento se tipea por cuota. Falta representarlo como regla (hermano, beca) para que la generación masiva lo aplique sola. |
 | **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |
 | **Staff más allá del DT** | Medio | Solo existe `Entrenador`: no hay coordinador, preparador físico ni utilero. |

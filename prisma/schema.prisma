@@ -18,35 +18,35 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  email            String         @unique
-  passwordHash     String
-  nombre           String
-  rol              String // enum: SUPER_ADMIN | ESCUELA_ADMIN | DT | JUGADOR
-  telefono         String? // contacto de la familia (nómina / emergencias)
-  escuelaId        String?
-  escuela          Escuela?       @relation(fields: [escuelaId], references: [id])
-  entrenador       Entrenador?
-  jugadores        Jugador[] // un padre puede tener varios hijos
-  jugadorCuenta    Jugador?       @relation("CuentaJugador")
-  mensajesEnviados Mensaje[]      @relation("MensajesEnviados")
-  notificaciones   Notificacion[]
-  tokensAuth       TokenAuth[]
-  activo           Boolean        @default(true)
+  id                  String         @id @default(cuid())
+  email               String         @unique
+  passwordHash        String
+  nombre              String
+  rol                 String // enum: SUPER_ADMIN | ESCUELA_ADMIN | DT | JUGADOR
+  telefono            String? // contacto de la familia (nómina / emergencias)
+  escuelaId           String?
+  escuela             Escuela?       @relation(fields: [escuelaId], references: [id])
+  entrenador          Entrenador?
+  jugadores           Jugador[] // un padre puede tener varios hijos
+  jugadorCuenta       Jugador?       @relation("CuentaJugador")
+  mensajesEnviados    Mensaje[]      @relation("MensajesEnviados")
+  notificaciones      Notificacion[]
+  tokensAuth          TokenAuth[]
+  activo              Boolean        @default(true)
   // Verificación de correo (G-email): el responsable confirma su correo.
-  emailVerificado    Boolean   @default(false)
-  emailVerificadoEn  DateTime?
+  emailVerificado     Boolean        @default(false)
+  emailVerificadoEn   DateTime?
   // Habeas data: prueba de aceptación de la Política de Tratamiento de Datos al
   // registrarse (art. 6 Ley 1581 — autorización conservada con fecha y versión).
   terminosAceptadosEn DateTime?
   terminosVersion     String?
   // Bloqueo de acceso (familias): lo gestionan Escuela y Súper Admin.
-  bloqueado        Boolean        @default(false)
-  bloqueoTipo      String? // enum: PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO
-  bloqueoMensaje   String? // solo PERSONALIZADO
-  bloqueadoEn      DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  bloqueado           Boolean        @default(false)
+  bloqueoTipo         String? // enum: PAGO | COMPORTAMIENTO | CONTACTA_DT | PERSONALIZADO
+  bloqueoMensaje      String? // solo PERSONALIZADO
+  bloqueadoEn         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   @@index([escuelaId])
 }
@@ -55,18 +55,18 @@ model User {
 // verificación de email, OTP). Se guarda el HASH SHA-256 del token/código, nunca
 // el texto. Por usuario (no por tenant): no lleva escuelaId.
 model TokenAuth {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tipo      String // enum: RECUPERACION | SET_PASSWORD | VERIFICACION_EMAIL | OTP | CAMBIO_EMAIL
-  tokenHash String    @unique // SHA-256 del token/código (nunca el texto)
-  intentos  Int       @default(0) // guard anti-fuerza-bruta para OTP
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo       String // enum: RECUPERACION | SET_PASSWORD | VERIFICACION_EMAIL | OTP | CAMBIO_EMAIL
+  tokenHash  String    @unique // SHA-256 del token/código (nunca el texto)
+  intentos   Int       @default(0) // guard anti-fuerza-bruta para OTP
   // Correo pendiente de confirmar (solo tipo CAMBIO_EMAIL): el nuevo email al
   // que se aplicará el cambio recién cuando el usuario confirme el código.
   emailNuevo String?
-  expiraEn  DateTime
-  usadoEn   DateTime?
-  createdAt DateTime  @default(now())
+  expiraEn   DateTime
+  usadoEn    DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([userId, tipo])
 }
@@ -152,45 +152,62 @@ model EntrenadorCategoria {
 }
 
 model Jugador {
-  id                      String             @id @default(cuid())
-  escuelaId               String
-  escuela                 Escuela            @relation(fields: [escuelaId], references: [id])
-  categoriaId             String
-  categoria               Categoria          @relation(fields: [categoriaId], references: [id])
-  padreUserId             String?
-  padre                   User?              @relation(fields: [padreUserId], references: [id])
-  cuentaUserId            String?            @unique
-  cuentaUser              User?              @relation("CuentaJugador", fields: [cuentaUserId], references: [id])
-  codigoJugador           String?            @unique // código propio del jugador para que el padre lo vincule
-  codigoRef               String?            @unique // código humano de referencia (soporte): "JUG-7F4A2"
-  nombre                  String
-  apellido                String
-  fechaNacimiento         DateTime
-  parentescoAcudiente     String? // relación del acudiente (Madre, Padre, Tío…)
-  posicion                String // enum: POR | DEF | MED | DEL
-  dorsal                  Int?
-  estado                  String             @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO
-  fotoUrl                 String?
-  avatarConfig            String? // JSON del avatar SVG (género, piel, peinado, cabello)
-  consentimientoFoto      Boolean            @default(false)
-  consentimientoFotoFecha DateTime?
-  evaluaciones            Evaluacion[]
-  stats                   StatsCalculados[]
-  asistencias             Asistencia[]
-  convocatorias           JugadorConvocado[]
-  estadisticasPartido     EstadisticaPartido[]
-  logros                  LogroJugador[]
-  objetivos               ObjetivoJugador[]
-  observaciones           ObservacionJugador[]
-  progresos               ProgresoSemanal[]
-  fondosDesbloqueados     FondoDesbloqueado[]
-  fondoEquipadoId         String?
-  fondoEquipado           FondoCarta?        @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
+  id                           String               @id @default(cuid())
+  escuelaId                    String
+  escuela                      Escuela              @relation(fields: [escuelaId], references: [id])
+  categoriaId                  String
+  categoria                    Categoria            @relation(fields: [categoriaId], references: [id])
+  padreUserId                  String?
+  padre                        User?                @relation(fields: [padreUserId], references: [id])
+  cuentaUserId                 String?              @unique
+  cuentaUser                   User?                @relation("CuentaJugador", fields: [cuentaUserId], references: [id])
+  codigoJugador                String?              @unique // código propio del jugador para que el padre lo vincule
+  codigoRef                    String?              @unique // código humano de referencia (soporte): "JUG-7F4A2"
+  nombre                       String
+  apellido                     String
+  fechaNacimiento              DateTime
+  parentescoAcudiente          String? // relación del acudiente (Madre, Padre, Tío…)
+  posicion                     String // enum: POR | DEF | MED | DEL
+  dorsal                       Int?
+  estado                       String               @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO
+  fotoUrl                      String?
+  avatarConfig                 String? // JSON del avatar SVG (género, piel, peinado, cabello)
+  consentimientoFoto           Boolean              @default(false)
+  consentimientoFotoFecha      DateTime?
+  // Ficha administrativa y médica (HABEAS-DATA.md, datos sensibles de salud).
+  // Todo opcional: la escuela opera sin esta ficha, la familia decide cargarla.
+  // Sin `autorizaDatosSalud`, los campos de salud no se muestran a nadie aunque
+  // estén guardados (mismo patrón que `consentimientoFoto`, categoría distinta).
+  tipoDocumento                String? // RC | TI | CC | CE
+  numeroDocumento              String?
+  autorizaDatosSalud           Boolean              @default(false)
+  autorizacionDatosSaludEn     DateTime?
+  eps                          String?
+  rh                           String?
+  alergias                     String?
+  condicionesMedicas           String?
+  aptoMedicoVence              DateTime?
+  contactoEmergenciaNombre     String?
+  contactoEmergenciaTelefono   String?
+  contactoEmergenciaParentesco String?
+  autorizaTraslado             Boolean              @default(false)
+  evaluaciones                 Evaluacion[]
+  stats                        StatsCalculados[]
+  asistencias                  Asistencia[]
+  convocatorias                JugadorConvocado[]
+  estadisticasPartido          EstadisticaPartido[]
+  logros                       LogroJugador[]
+  objetivos                    ObjetivoJugador[]
+  observaciones                ObservacionJugador[]
+  progresos                    ProgresoSemanal[]
+  fondosDesbloqueados          FondoDesbloqueado[]
+  fondoEquipadoId              String?
+  fondoEquipado                FondoCarta?          @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
   // Curva de desarrollo: bonus de MEN ganado por asistencia entre evaluaciones
   // (lo recalcula a diario el cron; acotado y recuperable, ver src/lib/curva.ts).
-  menBonus                Float              @default(0)
-  menBonusActualizado     DateTime?
-  createdAt               DateTime           @default(now())
+  menBonus                     Float                @default(0)
+  menBonusActualizado          DateTime?
+  createdAt                    DateTime             @default(now())
 
   @@index([escuelaId, categoriaId])
   @@index([padreUserId])
@@ -264,13 +281,13 @@ model StatsCalculados {
 }
 
 model Evento {
-  id                 String             @id @default(cuid())
+  id                 String               @id @default(cuid())
   escuelaId          String
-  escuela            Escuela            @relation(fields: [escuelaId], references: [id])
+  escuela            Escuela              @relation(fields: [escuelaId], references: [id])
   categoriaId        String
-  categoria          Categoria          @relation(fields: [categoriaId], references: [id])
+  categoria          Categoria            @relation(fields: [categoriaId], references: [id])
   canchaId           String?
-  cancha             Cancha?            @relation(fields: [canchaId], references: [id])
+  cancha             Cancha?              @relation(fields: [canchaId], references: [id])
   tipo               String // enum: PARTIDO | ENTRENAMIENTO | EVALUACION | OTRO
   titulo             String // "vs. Academia Sur" / "Entrenamiento técnico"
   rival              String? // solo PARTIDO
@@ -278,7 +295,7 @@ model Evento {
   inicio             DateTime
   fin                DateTime
   notas              String?
-  cancelado          Boolean            @default(false)
+  cancelado          Boolean              @default(false)
   resultadoLocal     Int? // carga post-partido (opcional, para el hub)
   resultadoVisitante Int?
   // Modo Sesión (PLAN-UX-DT PR-1): el DT corre el evento como flujo guiado.
@@ -288,14 +305,14 @@ model Evento {
   // Partido v2: estructura real del partido (dos tiempos, alargue, penales).
   // enum: NO_INICIADO | PRIMER_TIEMPO | ENTRETIEMPO | SEGUNDO_TIEMPO |
   //       ALARGUE_1 | DESCANSO_ALARGUE | ALARGUE_2 | PENALES | FINALIZADO
-  periodo            String             @default("NO_INICIADO")
+  periodo            String               @default("NO_INICIADO")
   periodoIniciadoAt  DateTime? // base del cronómetro DEL PERÍODO en curso
   penalesLocal       Int? // definición por penales: marcador aparte del de juego
   penalesVisitante   Int?
   convocados         JugadorConvocado[]
   asistencias        Asistencia[]
   estadisticas       EstadisticaPartido[]
-  createdAt          DateTime           @default(now())
+  createdAt          DateTime             @default(now())
 
   @@index([escuelaId, categoriaId, inicio])
 }
@@ -564,28 +581,28 @@ model ParametroFormula {
 // configurable por fondo: SIEMPRE, LOGRO (código), NIVEL_CARTA (Bronce/Plata/
 // Oro/Héroe) o NIVEL_PERSONAL (nivel mínimo de progreso personal).
 model FondoCarta {
-  id            String              @id @default(cuid())
-  codigo        String              @unique
-  nombre        String
-  descripcion   String
-  estilo        String // CSS (gradiente/patrón) que se aplica a TODA la carta
-  colorTexto    String? // color de texto para contraste sobre el fondo (def. claro)
-  requisitoTipo String // SIEMPRE | LOGRO | NIVEL_CARTA | NIVEL_PERSONAL
+  id             String              @id @default(cuid())
+  codigo         String              @unique
+  nombre         String
+  descripcion    String
+  estilo         String // CSS (gradiente/patrón) que se aplica a TODA la carta
+  colorTexto     String? // color de texto para contraste sobre el fondo (def. claro)
+  requisitoTipo  String // SIEMPRE | LOGRO | NIVEL_CARTA | NIVEL_PERSONAL
   requisitoValor String? // logro.codigo · nivel de carta · nivel personal (número)
-  orden         Int                 @default(0)
-  efecto        String              @default("NINGUNO") // NINGUNO | METALICO | HIELO | TRAMA | HOLOGRAFICO
-  efectoParams  Json? // { intensidad?, tinte?, tramaPatron?, velocidad? } — afina el efecto
-  desbloqueos   FondoDesbloqueado[]
-  equipadoPor   Jugador[]           @relation("FondoEquipado")
+  orden          Int                 @default(0)
+  efecto         String              @default("NINGUNO") // NINGUNO | METALICO | HIELO | TRAMA | HOLOGRAFICO
+  efectoParams   Json? // { intensidad?, tinte?, tramaPatron?, velocidad? } — afina el efecto
+  desbloqueos    FondoDesbloqueado[]
+  equipadoPor    Jugador[]           @relation("FondoEquipado")
 }
 
 model FondoDesbloqueado {
-  id            String     @id @default(cuid())
-  jugadorId     String
-  jugador       Jugador    @relation(fields: [jugadorId], references: [id])
-  fondoId       String
-  fondo         FondoCarta @relation(fields: [fondoId], references: [id])
-  desbloqueadoEn DateTime  @default(now())
+  id             String     @id @default(cuid())
+  jugadorId      String
+  jugador        Jugador    @relation(fields: [jugadorId], references: [id])
+  fondoId        String
+  fondo          FondoCarta @relation(fields: [fondoId], references: [id])
+  desbloqueadoEn DateTime   @default(now())
 
   @@unique([jugadorId, fondoId])
   @@index([jugadorId])
@@ -620,20 +637,20 @@ model AuditLog {
 }
 
 model Membresia {
-  id        String @id @default(cuid())
-  escuelaId String
-  jugadorId String
-  periodo   String // "2026-06"
+  id             String    @id @default(cuid())
+  escuelaId      String
+  jugadorId      String
+  periodo        String // "2026-06"
   // Qué se está cobrando. Una escuela no cobra solo la mensualidad: también
   // matrícula, indumentaria, torneos. Por eso el unique incluye el concepto.
-  concepto  String @default("MENSUALIDAD") // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
-  estado    String @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
+  concepto       String    @default("MENSUALIDAD") // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
+  estado         String    @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
   // Dinero en Decimal, nunca Float: en punto flotante 0.1 + 0.2 !== 0.3, y una
   // cobranza que arrastra ese error termina en diferencias de centavos que nadie
   // puede explicar. Los DTOs lo convierten a `number` (nunca sale un Decimal de
   // Prisma hacia la UI).
-  monto     Decimal? @db.Decimal(12, 2)
-  descuento Decimal? @db.Decimal(12, 2) // becas, descuento por hermano, etc.
+  monto          Decimal?  @db.Decimal(12, 2)
+  descuento      Decimal?  @db.Decimal(12, 2) // becas, descuento por hermano, etc.
   // Registro del pago: un estado "PAGADA" sin cuándo, cómo ni comprobante no es
   // auditable ni sirve para conciliar contra el banco.
   pagadaEn       DateTime?

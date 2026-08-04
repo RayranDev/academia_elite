@@ -46,6 +46,7 @@
 | 20 | Evaluación del portero: derivación propia en el motor | 2026-07-31 | ✅ |
 | 21 | Limpieza de riesgo: auditoría de `importarJugadores` + fechas de servidor a `FechaLocal` | 2026-08-01 | ✅ |
 | 22 | Badge de deuda por jugador (`escuela/jugadores` + ficha del DT, sin monto) | 2026-08-01 | ✅ |
+| 23 | Ficha administrativa y médica (datos sensibles de salud) | 2026-08-01 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -639,6 +640,57 @@ tampoco lo tiene; `estadoCuenta`, la función pura que hace el cálculo, ya
 está cubierta en `tests/unit/cobranza.test.ts`). `estaEnMora` se corrió con
 `tsx` contra la base real con un jugador conocido en mora (`true`) y uno sin
 deuda (`false`).
+
+## 23. Ficha administrativa y médica (2026-08-01)
+
+Primer ítem "Grande" del ERP: datos sensibles de salud de menores
+(`DECISIONES.md` §66-72, `HABEAS-DATA.md` actualizado en el mismo cambio que
+el schema — antes, no después).
+
+**Schema** (13 columnas nuevas en `Jugador`, todas opcionales): `tipoDocumento`,
+`numeroDocumento`, `autorizaDatosSalud` + `autorizacionDatosSaludEn`
+(consentimiento específico, mismo patrón que `consentimientoFoto`), `eps`,
+`rh`, `alergias`, `condicionesMedicas`, `aptoMedicoVence`,
+`contactoEmergenciaNombre/Telefono/Parentesco`, `autorizaTraslado`. Migración
+aplicada a producción (27 filas en `Jugador`, `ADD COLUMN` puro, sin romper
+código desplegado).
+
+**Consentimiento más estricto que el de fotos.** La foto solo gatea su
+*exhibición*; los datos de salud gatean también su *guardado* —
+`actualizarFichaMedica` descarta `eps`/`rh`/`alergias`/`condicionesMedicas`/
+`aptoMedicoVence` si `autorizaDatosSalud` viene en `false`, sin importar lo
+que llegue. Verificado contra la base real con una transacción con
+`ROLLBACK`: sin consentimiento esos campos quedan `null`; con consentimiento
+se guardan y `autorizacionDatosSaludEn` se sella. El contacto de emergencia y
+el documento NO son datos de salud — no dependen de este consentimiento.
+
+**Acceso por rol:** `ESCUELA_ADMIN`/`SUPER_ADMIN` ven la ficha completa
+(auditada en `AuditLog`, `LEER_FICHA_MEDICA`/`EDITAR_FICHA_MEDICA`); el DT ve
+solo contacto de emergencia, autorización de traslado, alergias y apto
+médico — nunca documento ni EPS. La vista del DT NO se audita por consulta
+(mismo criterio que `enMora`, hito 22): es contexto incidental de una página
+que se abre decenas de veces por sesión.
+
+**UI:** modal en `escuela/jugadores` (no página — el proxy asigna un rol fijo
+por prefijo de ruta y este componente se comparte con `/admin/escuelas/[id]`
+para el SA; una página bajo `/escuela` no habría sido alcanzable para el SA
+sin duplicarla). La ficha se trae **on-demand** al abrir el modal
+(`obtenerFichaMedicaAction`), no precargada con la lista paginada — evita
+auditar 20 lecturas por cada carga de la página. Primer uso en el repo de una
+Server Action de **lectura** bajo demanda desde un cliente.
+
+En la ficha del DT, sección "Emergencia" nueva en `dt/jugadores/[id]`, con
+badge de apto médico vencido si corresponde.
+
+Verificación: `typecheck`/`lint` limpios, 272 tests en verde (9 nuevos para
+el validador). Sin navegador disponible en el entorno para clickear el flujo
+completo; se verificó en su lugar (a) la regla de consentimiento contra la
+base real con rollback, y (b) que las páginas `/escuela/jugadores` y
+`/dt/jugadores/[id]` renderizan sin error del lado del servidor con sesión
+real, incluyendo los elementos nuevos (botón "Ficha", sección "Emergencia").
+La interacción del modal (fetch on-demand, toggle del checkbox) queda sin
+probar de punta a punta; su código replica línea por línea el patrón de los
+modales hermanos ya en producción.
 
 ---
 

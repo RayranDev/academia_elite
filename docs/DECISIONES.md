@@ -431,3 +431,70 @@ cada adaptación, regla 0.8.)
     propósito: `enMora` no depende del monto (una cuota vencida sin monto ya
     cuenta), así que no hace falta convertir el `Decimal` de Prisma para un
     valor que nunca sale hacia la UI del DT.
+
+## Ficha administrativa y médica (2026-08-01)
+
+66. **`HABEAS-DATA.md` se actualizó ANTES que el schema**, como manda la regla
+    del proyecto para datos sensibles de menores: nueva categoría de datos
+    (salud), sección reforzada con el mismo nivel de detalle que la de fotos
+    (§7), y checklist actualizado. El código se escribió después, sobre un
+    documento que ya reflejaba lo que se iba a construir — no al revés.
+67. **El consentimiento (`autorizaDatosSalud`) gatea DOS veces, no una: al
+    guardar y al leer.** El precedente de la foto (`consentimientoFoto`) solo
+    gatea la *exhibición*: `subirFoto` no exige consentimiento previo, guarda
+    igual y `obtenerHub`/el endpoint de archivos deciden mostrarla o no. Para
+    salud se decidió ir más estricto: sin `autorizaDatosSalud`, el servicio
+    **descarta** lo que llegue en `eps`/`rh`/`alergias`/`condicionesMedicas`/
+    `aptoMedicoVence` — no se guarda, no solo se oculta. Motivo: la salud es un
+    dato sensible por naturaleza (art. 5 Ley 1581), no porque identifique al
+    menor como la foto; y el art. 9 exige autorización **previa** a la
+    recolección, no solo a la exhibición. El documento de identidad y el
+    contacto de emergencia NO son datos de salud — no dependen de este
+    consentimiento, cubiertos por la autorización general de la Política.
+    En lectura se vuelve a filtrar como defensa en profundidad (si algún día
+    ese invariante de escritura falla, la exhibición sigue protegida).
+68. **Acceso por rol, ortogonal al consentimiento.** `ESCUELA_ADMIN`/`SUPER_ADMIN`
+    ven la ficha completa (`obtenerFichaMedicaEscuela`); el DT ve un
+    subconjunto fijo — contacto de emergencia, autorización de traslado,
+    alergias y vencimiento del apto médico — nunca documento ni EPS. Documento
+    y EPS son más sensibles operativamente (identidad, aseguradora) sin ser lo
+    que el DT necesita en cancha.
+69. **Auditoría de lectura, pero no de cada vista.** Abrir la ficha completa
+    (`ESCUELA_ADMIN`/`SUPER_ADMIN`) es una acción deliberada de consultar el
+    expediente y queda en `AuditLog`. La vista acotada del DT es contexto
+    incidental dentro de una página que se abre decenas de veces por sesión
+    (para evaluar, convocar, etc.) — auditar cada carga ahogaría el registro
+    sin agregar trazabilidad real. Mismo criterio ya aplicado a `enMora` (§65):
+    se deriva un valor bajo la autorización propia del DT, sin generar una
+    entrada de auditoría por cada consulta rutinaria.
+70. **Lectura on-demand, no precargada con la lista.** El modal de ficha
+    (`ESCUELA_ADMIN`) no recibe los datos como prop desde la lista paginada —
+    los trae con una Server Action al abrirse (`obtenerFichaMedicaAction`).
+    Precargar la ficha de los 20 jugadores de una página habría auditado 20
+    lecturas por cada carga de la lista, sin que nadie hubiera abierto ninguna
+    de verdad. Es el primer uso en el repo de una Server Action que **lee**
+    (no solo escribe) bajo demanda desde un componente cliente — precedente
+    nuevo, documentado acá para que el próximo caso similar lo reutilice en vez
+    de inventar otro patrón.
+71. **La ficha vive en un modal, no en una página de detalle**, a pesar de
+    tener más campos que cualquier otro modal de `JugadoresGestion`. Se evaluó
+    una página dedicada (`/escuela/jugadores/[id]/ficha`, mismo patrón que
+    `dt/jugadores/[id]`) y se descartó: el proxy asigna un rol fijo por
+    prefijo de ruta (`/escuela` → `ESCUELA_ADMIN`, `/admin` → `SUPER_ADMIN`,
+    sin prefijos compartidos), y `JugadoresGestion` se usa tanto en
+    `/escuela/jugadores` como en `/admin/escuelas/[id]` (SA con sesión de
+    soporte). Una página bajo `/escuela` no habría sido alcanzable para el SA
+    sin duplicarla bajo `/admin`. El modal, en cambio, funciona igual en los
+    dos contextos sin route alguna — mismo motivo por el que Editar/Estado/
+    Bloqueo ya eran modales y no páginas.
+72. **El motivo de soporte reusa `ctx.soporte?.motivo`, no un campo nuevo.**
+    `editarJugador` y sus vecinas en `gestion-jugadores.service.ts` ya
+    resuelven el motivo del SA desde la sesión de soporte (capturado una vez
+    al abrirla), no desde un campo por-acción. `actualizarFichaMedica` sigue
+    ese mismo patrón. **Nota de consistencia**: `importarJugadores` e
+    `importarEvaluaciones` (hitos 20-21) en cambio piden un motivo NUEVO por
+    cada import, vía un campo de texto en el diálogo — un patrón distinto,
+    introducido antes de encontrar este precedente. Ninguno de los dos está
+    mal (uno reusa el motivo de sesión, el otro pide uno más específico para
+    una escritura de mayor volumen), pero es una inconsistencia de estilo que
+    vale unificar más adelante — anotado en `PENDIENTES.md`.

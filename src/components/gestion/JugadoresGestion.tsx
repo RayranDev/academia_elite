@@ -10,6 +10,7 @@ import { JugadorEditarModal } from "@/components/gestion/JugadorEditarModal";
 import { JugadorEstadoModal } from "@/components/gestion/JugadorEstadoModal";
 import { JugadorBloqueoModal } from "@/components/gestion/JugadorBloqueoModal";
 import { JugadorEliminarModal } from "@/components/gestion/JugadorEliminarModal";
+import { FichaMedicaModal } from "@/components/gestion/FichaMedicaModal";
 import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { Paginacion } from "@/components/ui/Paginacion";
 import {
@@ -19,7 +20,7 @@ import {
 import type { PaginatedJugadoresDTO, JugadorGestionDTO } from "@/services/gestion-jugadores.service";
 import { formatearMonto } from "@/lib/cobranza";
 
-type Accion = "editar" | "estado" | "bloqueo" | "eliminar";
+type Accion = "editar" | "estado" | "bloqueo" | "eliminar" | "ficha";
 
 const TONO_ESTADO: Record<string, "pitch" | "neutral" | "alerta" | "info"> = {
   ACTIVO: "pitch",
@@ -208,6 +209,9 @@ export function JugadoresGestion({
                       <Button variant="ghost" size="sm" onClick={() => setModal({ accion: "estado", jugador: j })}>
                         Estado
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setModal({ accion: "ficha", jugador: j })}>
+                        Ficha
+                      </Button>
                       {j.familiaEmail && (
                         <>
                           <Button variant="ghost" size="sm" onClick={() => setModal({ accion: "bloqueo", jugador: j })}>
@@ -246,6 +250,13 @@ export function JugadoresGestion({
       )}
       {modal?.accion === "estado" && (
         <JugadorEstadoModal jugador={modal.jugador} onClose={cerrarModal} />
+      )}
+      {modal?.accion === "ficha" && (
+        <FichaMedicaModal
+          jugadorId={modal.jugador.id}
+          nombreCompleto={`${modal.jugador.nombre} ${modal.jugador.apellido}`}
+          onClose={cerrarModal}
+        />
       )}
       {modal?.accion === "bloqueo" && (
         <JugadorBloqueoModal jugador={modal.jugador} onClose={cerrarModal} />

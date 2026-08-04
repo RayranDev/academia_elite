@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleJugadorDt } from "@/services/jugador.service";
-import { credencialesFamiliaDt } from "@/services/gestion-jugadores.service";
+import { obtenerCredencialesFamiliaDt } from "@/services/gestion-jugadores.service";
 import { listarObservacionesJugadorDt } from "@/services/sesion.service";
 import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
@@ -30,7 +30,7 @@ export default async function JugadorDetallePage({
   try {
     [detalle, credenciales, observaciones] = await Promise.all([
       obtenerDetalleJugadorDt(ctx, id),
-      credencialesFamiliaDt(ctx, id),
+      obtenerCredencialesFamiliaDt(ctx, id),
       listarObservacionesJugadorDt(ctx, id),
     ]);
   } catch (e) {
@@ -110,6 +110,8 @@ export default async function JugadorDetallePage({
           )}
         </Card>
       </div>
+
+      <FichaEmergencia ficha={detalle.fichaEmergencia} />
 
       <Card className="max-w-xl">
         <h2 className="mb-3 text-lg font-bold">Observaciones del jugador</h2>
@@ -214,5 +216,75 @@ export default async function JugadorDetallePage({
         </form>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Subconjunto acotado de la ficha médica: lo que hace falta si un chico se
+ * lesiona en un partido de visitante. Nunca documento ni EPS — esos quedan
+ * para la escuela (HABEAS-DATA.md).
+ */
+function FichaEmergencia({
+  ficha,
+}: {
+  ficha: {
+    contactoEmergenciaNombre: string | null;
+    contactoEmergenciaTelefono: string | null;
+    contactoEmergenciaParentesco: string | null;
+    autorizaTraslado: boolean;
+    alergias: string | null;
+    aptoMedicoVence: string | null;
+  };
+}) {
+  const hayContacto = ficha.contactoEmergenciaNombre || ficha.contactoEmergenciaTelefono;
+  const hayAlgo = hayContacto || ficha.alergias || ficha.aptoMedicoVence;
+  const aptoVencido =
+    ficha.aptoMedicoVence != null && new Date(ficha.aptoMedicoVence) < new Date();
+
+  return (
+    <Card className="max-w-xl">
+      <h2 className="mb-3 text-lg font-bold">Emergencia</h2>
+      {!hayAlgo ? (
+        <p className="text-sm text-muted">
+          La escuela todavía no cargó contacto de emergencia ni alergias para
+          este jugador.
+        </p>
+      ) : (
+        <div className="space-y-2 text-sm">
+          {hayContacto && (
+            <p>
+              <span className="text-muted">Contacto: </span>
+              {ficha.contactoEmergenciaNombre ?? "—"}
+              {ficha.contactoEmergenciaParentesco && (
+                <span className="text-muted"> ({ficha.contactoEmergenciaParentesco})</span>
+              )}
+              {ficha.contactoEmergenciaTelefono && (
+                <span> · {ficha.contactoEmergenciaTelefono}</span>
+              )}
+            </p>
+          )}
+          <p>
+            <Badge tono={ficha.autorizaTraslado ? "pitch" : "alerta"}>
+              {ficha.autorizaTraslado
+                ? "Autoriza traslado en caso de lesión"
+                : "NO autoriza traslado"}
+            </Badge>
+          </p>
+          {ficha.alergias && (
+            <p>
+              <span className="text-muted">Alergias: </span>
+              {ficha.alergias}
+            </p>
+          )}
+          {ficha.aptoMedicoVence && (
+            <p>
+              <span className="text-muted">Apto médico: </span>
+              <FechaLocal iso={ficha.aptoMedicoVence} formato="d MMM yyyy" />{" "}
+              {aptoVencido && <Badge tono="alerta">Vencido</Badge>}
+            </p>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }

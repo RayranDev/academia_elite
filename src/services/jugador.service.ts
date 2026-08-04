@@ -197,6 +197,21 @@ export interface DetalleJugadorDTO {
   historial: { fecha: string; ovr: number; nivel: string }[];
   /** Solo si hay cuotas vencidas; nunca el monto (frontera de acceso del DT a cobranza). */
   enMora: boolean;
+  /**
+   * Subconjunto de la ficha médica que el DT necesita en cancha: contacto de
+   * emergencia y alergias/apto médico, nunca documento ni EPS (frontera de
+   * acceso del DT — HABEAS-DATA.md). Alergias y apto médico son datos de
+   * salud: solo viajan si `autorizaDatosSalud` está activo. El contacto de
+   * emergencia no es dato de salud, así que no depende de ese consentimiento.
+   */
+  fichaEmergencia: {
+    contactoEmergenciaNombre: string | null;
+    contactoEmergenciaTelefono: string | null;
+    contactoEmergenciaParentesco: string | null;
+    autorizaTraslado: boolean;
+    alergias: string | null;
+    aptoMedicoVence: string | null;
+  };
 }
 
 export async function obtenerDetalleJugadorDt(
@@ -231,5 +246,15 @@ export async function obtenerDetalleJugadorDt(
         nivel: e.statsCalculados!.nivel,
       })),
     enMora,
+    fichaEmergencia: {
+      contactoEmergenciaNombre: jugador.contactoEmergenciaNombre,
+      contactoEmergenciaTelefono: jugador.contactoEmergenciaTelefono,
+      contactoEmergenciaParentesco: jugador.contactoEmergenciaParentesco,
+      autorizaTraslado: jugador.autorizaTraslado,
+      alergias: jugador.autorizaDatosSalud ? jugador.alergias : null,
+      aptoMedicoVence: jugador.autorizaDatosSalud
+        ? (jugador.aptoMedicoVence?.toISOString() ?? null)
+        : null,
+    },
   };
 }

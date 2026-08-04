@@ -17,14 +17,18 @@ import {
   usuarioEditarSchema,
   escuelaEditarSchema,
   cambiarPasswordSchema,
+  fichaMedicaSchema,
 } from "@/lib/validators/gestion";
 import {
   editarJugador,
+  obtenerFichaMedicaEscuela,
+  actualizarFichaMedica,
   cambiarEstadoJugadorGestion,
   eliminarJugadorLogico,
   restaurarJugador,
   resetPasswordFamilia,
   resetPasswordFamiliaDt,
+  type FichaMedicaEscuelaDTO,
 } from "@/services/gestion-jugadores.service";
 import {
   bloquearAccesoJugador,
@@ -51,6 +55,57 @@ const RUTAS_GESTION = ["/escuela/jugadores", "/admin/escuelas", "/escuela/dts"];
 
 function revalidarGestion() {
   for (const ruta of RUTAS_GESTION) revalidatePath(ruta, "layout");
+}
+
+/**
+ * Trae la ficha bajo demanda (al abrir el modal), no precargada con la lista:
+ * es una lectura de datos sensibles y queda auditada — auditar las 20 filas de
+ * la página solo por listarlas sería ruido, no trazabilidad.
+ */
+export async function obtenerFichaMedicaAction(
+  jugadorId: string,
+): Promise<ActionResult<FichaMedicaEscuelaDTO>> {
+  try {
+    const ctx = await requireAuthContext();
+    const data = await obtenerFichaMedicaEscuela(ctx, jugadorId);
+    return { ok: true, data };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Ficha administrativa y médica (datos sensibles, HABEAS-DATA.md). Auditada. */
+export async function actualizarFichaMedicaAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = fichaMedicaSchema.safeParse({
+      jugadorId: formData.get("jugadorId"),
+      tipoDocumento: formData.get("tipoDocumento") ?? "",
+      numeroDocumento: formData.get("numeroDocumento") ?? "",
+      eps: formData.get("eps") ?? "",
+      rh: formData.get("rh") ?? "",
+      alergias: formData.get("alergias") ?? "",
+      condicionesMedicas: formData.get("condicionesMedicas") ?? "",
+      aptoMedicoVence: formData.get("aptoMedicoVence") ?? "",
+      contactoEmergenciaNombre: formData.get("contactoEmergenciaNombre") ?? "",
+      contactoEmergenciaTelefono: formData.get("contactoEmergenciaTelefono") ?? "",
+      contactoEmergenciaParentesco: formData.get("contactoEmergenciaParentesco") ?? "",
+      autorizaTraslado: formData.get("autorizaTraslado") === "on",
+      autorizaDatosSalud: formData.get("autorizaDatosSalud") === "on",
+    });
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+    }
+    // En modo soporte el motivo de la sesión justifica y audita la escritura.
+    await actualizarFichaMedica(ctx, parsed.data, ctx.soporte?.motivo);
+    revalidarGestion();
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function editarJugadorAction(
