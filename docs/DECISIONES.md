@@ -498,3 +498,15 @@ cada adaptación, regla 0.8.)
     mal (uno reusa el motivo de sesión, el otro pide uno más específico para
     una escritura de mayor volumen), pero es una inconsistencia de estilo que
     vale unificar más adelante — anotado en `PENDIENTES.md`.
+73. **Los roles quedan cerrados en cuatro: `SUPER_ADMIN`, `ESCUELA_ADMIN`, `DT`,
+    `JUGADOR`.** Decisión explícita del producto (2026-08-04): ningún ítem de
+    `PENDIENTES.md` puede introducir un quinto rol de autenticación. En
+    particular, **"Staff más allá del DT"** (coordinador, preparador físico,
+    utilero) no se resuelve con un rol `STAFF` nuevo — si se construye, tiene
+    que modelarse como datos/registros bajo un rol existente (p. ej. gestión
+    de `ESCUELA_ADMIN` sobre un modelo de staff sin login propio, o una
+    extensión de `Entrenador`), nunca como una entrada más en `ROLES` ni en
+    `PREFIJO_ROL` (`src/proxy.ts`). Motivo: cuatro roles con un prefijo de
+    ruta fijo cada uno es una invariante que atraviesa el proxy, los guards de
+    `src/lib/auth/guards.ts` y buena parte de la UI condicional — sumar un rol
+    no es una migración de schema, es tocar la arquitectura de acceso entera.

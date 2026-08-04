@@ -53,7 +53,7 @@ mes, y estado/deuda derivados. Lo que sigue:
 | **Unificar el patrón de motivo de soporte** | Chico | `editarJugador` y familia reusan `ctx.soporte?.motivo` (capturado al abrir la sesión); `importarJugadores`/`importarEvaluaciones` (hitos 20-21) piden un motivo NUEVO por cada import vía un campo de texto propio. Ninguno está mal, pero es una inconsistencia de estilo — decidir si los imports masivos ameritan de verdad un motivo más específico que el de sesión, o si conviene unificar. Detalle en `DECISIONES.md` §72. |
 | **Descuentos con regla** | Medio | Hoy el descuento se tipea por cuota. Falta representarlo como regla (hermano, beca) para que la generación masiva lo aplique sola. |
 | **Caja / egresos** | Grande | Solo se modela lo que entra. La escuela paga canchas, arbitrajes e indumentaria. |
-| **Staff más allá del DT** | Medio | Solo existe `Entrenador`: no hay coordinador, preparador físico ni utilero. |
+| **Staff más allá del DT** | Medio | Solo existe `Entrenador`: no hay coordinador, preparador físico ni utilero. **Sin rol nuevo** (decisión de producto, `DECISIONES.md` §73): los roles quedan cerrados en `SUPER_ADMIN`/`ESCUELA_ADMIN`/`DT`/`JUGADOR`; si se construye, es como datos gestionados por `ESCUELA_ADMIN`, no como un rol `STAFF` con login propio. |
 | **V — Vigencia y bloqueo automático** | Medio | Cron que bloquea vencidos y desbloquea al día, sobre A.4. **Gateado**: no se construye hasta que una escuela real haya cerrado un ciclo de cobro completo y el bloqueo manual resulte repetitivo. Mitigaciones ya diseñadas: `bloqueado: false` en el WHERE del bloqueo automático (no pisa un bloqueo manual) y `bloqueoTipo: "VIGENCIA_VENCIDA"` en el del desbloqueo (no levanta un bloqueo por comportamiento). |
 
 ## 🎨 Localización a Colombia
