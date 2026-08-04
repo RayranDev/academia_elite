@@ -6,6 +6,7 @@ import {
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
+import { MEDIOS_PAGO } from "@/lib/validators/membresia";
 import type { Posicion } from "@/types";
 
 /**
@@ -225,17 +226,37 @@ export async function crearAcademiaElite(
   const periodoAnterior = periodo(new Date(now.getFullYear(), now.getMonth() - 1, 1));
   const ESTADOS = ["PAGADA", "PENDIENTE", "VENCIDA"] as const;
   const activos = creados.filter((c) => c.def.estado !== "PENDIENTE");
+  const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const membresias = activos.map((c, i) => ({
-    escuelaId: escuela.id,
-    jugadorId: c.id,
-    periodo: periodoActual,
-    estado: ESTADOS[i % ESTADOS.length] as string,
-    monto: 45000,
-  }));
+  const membresias = activos.map((c, i) => {
+    const estado = ESTADOS[i % ESTADOS.length] as string;
+    const pagada = estado === "PAGADA";
+    return {
+      escuelaId: escuela.id,
+      jugadorId: c.id,
+      periodo: periodoActual,
+      estado,
+      monto: 45000,
+      // Sin esto, "PAGADA" no es un pago real todavía (Track A.3): la caja neta
+      // (hito 26) suma por `pagadaEn`, no por `estado`, y daba siempre $0 acá.
+      // Acotado a [inicioMes, now] para no caer fuera del período actual.
+      pagadaEn: pagada
+        ? new Date(Math.min(now.getTime(), inicioMes.getTime() + (i + 1) * DIA))
+        : null,
+      medioPago: pagada ? MEDIOS_PAGO[i % MEDIOS_PAGO.length] : null,
+    };
+  });
   // Un par arrastra mora del período anterior (para la vista de vencidas).
   for (const c of activos.slice(0, 2)) {
-    membresias.push({ escuelaId: escuela.id, jugadorId: c.id, periodo: periodoAnterior, estado: "VENCIDA", monto: 45000 });
+    membresias.push({
+      escuelaId: escuela.id,
+      jugadorId: c.id,
+      periodo: periodoAnterior,
+      estado: "VENCIDA",
+      monto: 45000,
+      pagadaEn: null,
+      medioPago: null,
+    });
   }
   await db.membresia.createMany({ data: membresias });
 

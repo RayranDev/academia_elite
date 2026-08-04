@@ -778,14 +778,26 @@ esa suma con `sumaEgresosDelPeriodo` del mismo rango. Dos KPIs nuevos en el
 dashboard de escuela: "Egresos del mes" y "Caja neta del mes" (con alerta si
 da negativo).
 
-**Hallazgo fuera de alcance, anotado y no corregido acá**: al verificar
+**Hallazgo corregido en la misma sesión, más tarde ese día**: al verificar
 `sumaIngresosDelPeriodo` contra la base real, las membresías `PAGADA` de la
-escuela demo curada tienen `pagadaEn: null` — el seed
+escuela demo curada tenían `pagadaEn: null` — el seed
 (`prisma/seed-academia-elite.ts`) las crea directo por Prisma sin pasar por
-`cambiarEstadoMembresiaEscuela`, así que nunca sella esa fecha. Efecto: "Caja
-neta del mes" siempre da $0 de ingresos en la demo hasta que se corrija el
-seed (o se cargue una cuota real por la UI). Es un fix de datos, no de este
-módulo — anotado en `PENDIENTES.md`.
+`cambiarEstadoMembresiaEscuela`, así que nunca sellaba esa fecha. Efecto:
+"Caja neta del mes" daba siempre $0 de ingresos en la demo. Dos partes del
+arreglo:
+
+1. **Script fuente**: el `map`/`push` que arma las `Membresia` del seed ahora
+   sella `pagadaEn` (acotado a `[inicioDeMes, ahora]`, nunca en el futuro) y
+   `medioPago` cuando `estado === "PAGADA"`; las `VENCIDA` quedan explícitas
+   en `null`/`null`. Corrige cualquier `db:reset` futuro.
+2. **Datos ya en producción**: `npm run db:seed` **borra toda la base**
+   (`seed.ts` §"Idempotente: limpia y recrea... solo entorno local") — correrlo
+   contra producción habría sido destructivo. En su lugar, un script puntual
+   (`npx tsx`, no commiteado) hizo `update` fila por fila **solo** sobre las 5
+   `Membresia` `PAGADA` de `elite-escuela` con `pagadaEn: null` (encontradas
+   primero en modo lectura, sin tocar nada), replicando la misma lógica de
+   fecha del seed corregido. Verificado después: `sumaIngresosDelPeriodo` pasó
+   de `0` a `225000` para el período actual.
 
 Implementación delegada a un sub-agente con el plan aprobado como instrucción
 exacta (patrón ya usado en este mismo día para ficha médica y tuteo neutro);
