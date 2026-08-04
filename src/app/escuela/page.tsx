@@ -6,6 +6,7 @@ import { listarSedesEscuela } from "@/services/sede.service";
 import { listarDts } from "@/services/entrenador.service";
 import { listarCodigosEscuela } from "@/services/codigo.service";
 import { resumenMembresias } from "@/services/membresia.service";
+import { contarAptosMedicosVencidosEscuela } from "@/services/gestion-jugadores.service";
 import { Card } from "@/components/ui/Card";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { formatearMonto } from "@/lib/cobranza";
@@ -13,7 +14,7 @@ import { formatearMonto } from "@/lib/cobranza";
 export default async function EscuelaDashboardPage() {
   const ctx = await requireAuthContext();
 
-  const [resumen, categorias, sedes, dts, codigos, membresias] =
+  const [resumen, categorias, sedes, dts, codigos, membresias, aptosVencidos] =
     await Promise.all([
       resumenEscuela(ctx),
       listarCategoriasEscuela(ctx),
@@ -21,6 +22,7 @@ export default async function EscuelaDashboardPage() {
       listarDts(ctx),
       listarCodigosEscuela(ctx),
       resumenMembresias(ctx),
+      contarAptosMedicosVencidosEscuela(ctx),
     ]);
 
   const codigosVigentes = codigos.filter((c) => c.vigente).length;
@@ -130,6 +132,11 @@ export default async function EscuelaDashboardPage() {
             valor={membresias.bloqueados}
             alerta={membresias.bloqueados > 0}
             href="/escuela/jugadores?bloqueado=1"
+          />
+          <Kpi
+            titulo="Aptos médicos vencidos"
+            valor={aptosVencidos}
+            alerta={aptosVencidos > 0}
           />
         </div>
       </section>

@@ -308,6 +308,18 @@ export function actualizarFichaMedica(
   return db.jugador.updateMany({ where: { id, ...scope }, data });
 }
 
+/** Jugadores ACTIVO con apto médico vencido y consentimiento de salud vigente. */
+export function contarAptosMedicosVencidos(escuelaId: string, hoy: Date) {
+  return db.jugador.count({
+    where: {
+      escuelaId,
+      estado: "ACTIVO",
+      autorizaDatosSalud: true,
+      aptoMedicoVence: { lt: hoy },
+    },
+  });
+}
+
 /**
  * Actualiza SOLO la identidad (nombre/apellido) de un jugador VINCULADO al
  * usuario (padre/tutor). La propiedad va en el `where` como defensa en

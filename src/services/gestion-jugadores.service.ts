@@ -14,6 +14,7 @@ import {
   obtenerJugadorGestion,
   actualizarJugadorDatos,
   actualizarFichaMedica as repoActualizarFichaMedica,
+  contarAptosMedicosVencidos,
   actualizarEstadoJugador,
 } from "@/repositories/jugador.repository";
 import { contarCategoriasDeEscuela } from "@/repositories/categoria.repository";
@@ -336,6 +337,19 @@ export async function actualizarFichaMedica(
     escuelaId: jugador.escuelaId,
     motivo,
   });
+}
+
+/**
+ * KPI del dashboard: cuántos jugadores activos tienen el apto médico vencido.
+ * Es un conteo agregado, no expone fichas individuales — mismo criterio que
+ * `enMora` (hito 22): no se audita por consulta.
+ */
+export async function contarAptosMedicosVencidosEscuela(
+  ctx: AuthContext,
+): Promise<number> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+  return contarAptosMedicosVencidos(escuelaId, new Date());
 }
 
 /** Inactiva o reactiva un jugador, con motivo obligatorio (auditado). */

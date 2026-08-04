@@ -24,6 +24,9 @@ const CABECERAS = [
   "Parentesco",
   "Teléfono",
   "Email",
+  "Contacto de emergencia",
+  "Parentesco (emergencia)",
+  "Teléfono de emergencia",
 ] as const;
 
 function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
@@ -75,6 +78,11 @@ export async function exportarContactos(
       protegerCelda(j.parentescoAcudiente ?? ""),
       protegerCelda(familia?.telefono ?? ""),
       protegerCelda(familia?.email ?? ""),
+      // Contacto de emergencia (ficha médica, hito 23): no depende de
+      // `autorizaDatosSalud` — no es un dato de salud, ver DECISIONES.md §67.
+      protegerCelda(j.contactoEmergenciaNombre ?? ""),
+      protegerCelda(j.contactoEmergenciaParentesco ?? ""),
+      protegerCelda(j.contactoEmergenciaTelefono ?? ""),
     ]);
   }
 

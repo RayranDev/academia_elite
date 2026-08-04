@@ -47,6 +47,7 @@
 | 21 | Limpieza de riesgo: auditoría de `importarJugadores` + fechas de servidor a `FechaLocal` | 2026-08-01 | ✅ |
 | 22 | Badge de deuda por jugador (`escuela/jugadores` + ficha del DT, sin monto) | 2026-08-01 | ✅ |
 | 23 | Ficha administrativa y médica (datos sensibles de salud) | 2026-08-01 | ✅ |
+| 24 | KPI de aptos médicos vencidos + export de contactos de emergencia | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -683,14 +684,42 @@ En la ficha del DT, sección "Emergencia" nueva en `dt/jugadores/[id]`, con
 badge de apto médico vencido si corresponde.
 
 Verificación: `typecheck`/`lint` limpios, 272 tests en verde (9 nuevos para
-el validador). Sin navegador disponible en el entorno para clickear el flujo
-completo; se verificó en su lugar (a) la regla de consentimiento contra la
-base real con rollback, y (b) que las páginas `/escuela/jugadores` y
+el validador). En el commit original no había navegador disponible en el
+entorno; se verificó entonces (a) la regla de consentimiento contra la base
+real con rollback, y (b) que las páginas `/escuela/jugadores` y
 `/dt/jugadores/[id]` renderizan sin error del lado del servidor con sesión
-real, incluyendo los elementos nuevos (botón "Ficha", sección "Emergencia").
-La interacción del modal (fetch on-demand, toggle del checkbox) queda sin
-probar de punta a punta; su código replica línea por línea el patrón de los
-modales hermanos ya en producción.
+real. Con `chrome-devtools` MCP agregado después, se probó el flujo completo
+de punta a punta contra la escuela demo: login `escuela@demo.app`, botón
+"Ficha" abre el modal con fetch on-demand, el checkbox de autorización
+habilita/deshabilita EPS/RH/apto médico/alergias/condiciones en vivo, guardar
+persiste y se confirma reabriendo la ficha, cero errores de consola. Datos
+del jugador de prueba restaurados a su estado original al terminar.
+
+## 24. KPI de aptos médicos vencidos + export de contactos de emergencia (2026-08-04)
+
+Los dos ítems chicos que quedaron colgando del hito 23.
+
+**KPI.** `contarAptosMedicosVencidos` (repositorio, nuevo): cuenta jugadores
+`ACTIVO` con `autorizaDatosSalud: true` y `aptoMedicoVence` en el pasado — el
+consentimiento vigente es parte de la condición, no solo el vencimiento, para
+no contar fichas que nunca se autorizaron a guardar la fecha. Servicio
+`contarAptosMedicosVencidosEscuela` en `gestion-jugadores.service.ts`: conteo
+agregado, no expone fichas individuales, mismo criterio que `enMora` (hito
+22) — no se audita por consulta. Tile nuevo en la sección "Administración"
+del dashboard de escuela, sin `href`: hoy `/escuela/jugadores` no tiene un
+filtro por vencimiento de apto médico, así que no hay a dónde navegar
+todavía (quedaría para cuando se necesite).
+
+**Export.** `export-contactos.service.ts` suma tres columnas (contacto de
+emergencia, parentesco, teléfono) leyendo directo de `listarJugadoresGestion`,
+que ya trae esos campos por `include`. Sin lógica de consentimiento nueva: el
+contacto de emergencia no es dato de salud (DECISIONES.md §67), así que no
+depende de `autorizaDatosSalud`.
+
+Verificación: `typecheck`/`lint`/`test` limpios (272 tests, sin casos nuevos —
+son un conteo Prisma envuelto en guards y tres columnas de export, sin lógica
+propia que amerite un test unitario). Sin smoke manual en browser para este
+incremento puntual.
 
 ---
 
