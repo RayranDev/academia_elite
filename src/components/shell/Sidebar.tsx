@@ -28,6 +28,7 @@ import {
   ClipboardCheck,
   Trophy,
   Wallet,
+  Receipt,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -60,6 +61,7 @@ export const ICONOS: Record<string, LucideIcon> = {
   asistencia: ClipboardCheck,
   ranking: Trophy,
   membresias: Wallet,
+  egresos: Receipt,
   cuenta: Settings,
 };
 

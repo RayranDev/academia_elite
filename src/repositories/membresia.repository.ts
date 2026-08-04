@@ -170,3 +170,24 @@ export function contarFamiliasBloqueadas(escuelaId: string) {
     where: { escuelaId, rol: "JUGADOR", bloqueado: true },
   });
 }
+
+/**
+ * Suma de ingresos (monto − descuento) de las cuotas PAGADA con `pagadaEn`
+ * dentro de `[desde, hasta)`. No es un `aggregate`: Prisma no resta dos
+ * columnas Decimal en el agregado, así que se traen las filas y se suma en JS.
+ */
+export async function sumaIngresosDelPeriodo(
+  escuelaId: string,
+  desde: Date,
+  hasta: Date,
+): Promise<number> {
+  const filas = await db.membresia.findMany({
+    where: { escuelaId, estado: "PAGADA", pagadaEn: { gte: desde, lt: hasta } },
+    select: { monto: true, descuento: true },
+  });
+  return filas.reduce(
+    (total, m) =>
+      total + Number(m.monto?.toString() ?? "0") - Number(m.descuento?.toString() ?? "0"),
+    0,
+  );
+}

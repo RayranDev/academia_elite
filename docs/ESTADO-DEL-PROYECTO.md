@@ -235,9 +235,8 @@ El detalle vive en **[PENDIENTES.md](PENDIENTES.md)** (con tamaño y razón). En
 titulares:
 
 - **Riesgo**: la **decisión de Auth** (sigue en v5 beta) y **observabilidad** real.
-- **ERP**: ficha administrativa y médica del jugador (documento, EPS, RH,
-  alergias, apto médico, contacto de emergencia), descuentos como regla, caja y
-  egresos, staff más allá del DT.
+- **ERP**: descuentos como regla, staff más allá del DT (sin rol nuevo — ver
+  `DECISIONES.md` §73), unificar el patrón de motivo de soporte.
 - **Progresión**: conectar el rendimiento en partido a la curva y una vista de
   seguimiento para el DT.
 - **Localización**: pasar el copy de voseo a tuteo neutro para Colombia.
@@ -318,9 +317,8 @@ estado/deuda derivados. Detalle en el hito 18 de
 [TRAZABILIDAD.md](TRAZABILIDAD.md).
 
 ### Próximo
-Cerrar el módulo administrativo (ficha del jugador, descuentos como regla, caja)
-y conectar el rendimiento en partido a la curva de desarrollo. Ver
-[PENDIENTES.md](PENDIENTES.md).
+Descuentos como regla y staff más allá del DT, y conectar el rendimiento en
+partido a la curva de desarrollo. Ver [PENDIENTES.md](PENDIENTES.md).
 
 ---
 

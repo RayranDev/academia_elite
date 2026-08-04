@@ -49,6 +49,7 @@
 | 23 | Ficha administrativa y médica (datos sensibles de salud) | 2026-08-01 | ✅ |
 | 24 | KPI de aptos médicos vencidos + export de contactos de emergencia | 2026-08-04 | ✅ |
 | 25 | Localización a Colombia: voseo → tuteo neutro (27 archivos) + 3 fixes de `FechaLocal` | 2026-08-04 | ✅ |
+| 26 | Caja / egresos: modelo `Egreso`, caja neta del mes contra la cobranza pagada | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -751,6 +752,51 @@ comentario en `escuela/page.tsx` documentando el fix).
 Verificación: `typecheck`/`lint`/`test` limpios (272 tests). Sin smoke en
 browser para este lote — es texto más un fix de formateo ya cubierto por el
 patrón `FechaLocal` existente.
+
+## 26. Caja / egresos (2026-08-04)
+
+Cierra el módulo de dinero: hasta acá solo se modelaba lo que entra
+(`Membresia`, Track A). Modelo nuevo `Egreso` (tabla propia con relación
+Prisma a `Escuela`, a diferencia de `Membresia` que filtra a mano): `monto`
+**obligatorio** (un egreso sin monto no es un gasto, al revés de la cuota que
+puede crearse sin precio resuelto), `fecha` del gasto separada de `createdAt`
+(cuándo se cargó el registro) para que la caja del período ubique el gasto en
+su fecha real aunque se cargue tarde. Concepto cerrado: `CANCHA`, `ARBITRO`,
+`INDUMENTARIA`, `TRANSPORTE`, `MANTENIMIENTO`, `SUELDOS`, `OTRO` — decisión de
+producto validada con el usuario antes de escribir código. Sin edición de
+campos (solo crear/eliminar, igual que `Membresia`) y **sin acceso de
+`SUPER_ADMIN`**: es una herramienta interna de la escuela, mismo alcance que
+`membresia.service.ts` completo, así que no hereda la inconsistencia del
+patrón de motivo de soporte (`DECISIONES.md` §72) — no hay SA en la ecuación.
+
+**Caja neta**: `sumaIngresosDelPeriodo` (nueva, en `membresia.repository.ts`)
+suma `monto − descuento` de cuotas `PAGADA` por **`pagadaEn`**, no por
+`periodo` — son conceptos distintos: `periodo` es el mes que la cuota
+factura, `pagadaEn` es cuándo entró la plata de verdad, y una caja de flujo
+real tiene que mirar lo segundo. `resumenCaja` en `egreso.service.ts` combina
+esa suma con `sumaEgresosDelPeriodo` del mismo rango. Dos KPIs nuevos en el
+dashboard de escuela: "Egresos del mes" y "Caja neta del mes" (con alerta si
+da negativo).
+
+**Hallazgo fuera de alcance, anotado y no corregido acá**: al verificar
+`sumaIngresosDelPeriodo` contra la base real, las membresías `PAGADA` de la
+escuela demo curada tienen `pagadaEn: null` — el seed
+(`prisma/seed-academia-elite.ts`) las crea directo por Prisma sin pasar por
+`cambiarEstadoMembresiaEscuela`, así que nunca sella esa fecha. Efecto: "Caja
+neta del mes" siempre da $0 de ingresos en la demo hasta que se corrija el
+seed (o se cargue una cuota real por la UI). Es un fix de datos, no de este
+módulo — anotado en `PENDIENTES.md`.
+
+Implementación delegada a un sub-agente con el plan aprobado como instrucción
+exacta (patrón ya usado en este mismo día para ficha médica y tuteo neutro);
+revisión de diff, migración a producción y smoke test contra la base real con
+`ROLLBACK` hechos directamente, sin delegar, por tratarse de una migración de
+schema y datos de dinero. Verificación: `typecheck`/`lint`/`test` limpios (281
+tests, 9 nuevos). Migración `20260804120000_egreso` aplicada a producción
+(`CREATE TABLE` puro, sin tocar tablas existentes). Smoke test con
+transacción y `ROLLBACK`: confirmó que `sumaEgresosDelPeriodo` acota
+correctamente por mes (dos egresos en meses distintos, la suma del período
+solo cuenta el que corresponde), sin dejar datos de prueba persistidos.
 
 ---
 

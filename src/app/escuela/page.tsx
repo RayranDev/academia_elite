@@ -6,6 +6,7 @@ import { listarSedesEscuela } from "@/services/sede.service";
 import { listarDts } from "@/services/entrenador.service";
 import { listarCodigosEscuela } from "@/services/codigo.service";
 import { resumenMembresias } from "@/services/membresia.service";
+import { resumenCaja } from "@/services/egreso.service";
 import { contarAptosMedicosVencidosEscuela } from "@/services/gestion-jugadores.service";
 import { Card } from "@/components/ui/Card";
 import { FechaLocal } from "@/components/ui/FechaLocal";
@@ -14,7 +15,7 @@ import { formatearMonto } from "@/lib/cobranza";
 export default async function EscuelaDashboardPage() {
   const ctx = await requireAuthContext();
 
-  const [resumen, categorias, sedes, dts, codigos, membresias, aptosVencidos] =
+  const [resumen, categorias, sedes, dts, codigos, membresias, aptosVencidos, caja] =
     await Promise.all([
       resumenEscuela(ctx),
       listarCategoriasEscuela(ctx),
@@ -23,6 +24,7 @@ export default async function EscuelaDashboardPage() {
       listarCodigosEscuela(ctx),
       resumenMembresias(ctx),
       contarAptosMedicosVencidosEscuela(ctx),
+      resumenCaja(ctx),
     ]);
 
   const codigosVigentes = codigos.filter((c) => c.vigente).length;
@@ -137,6 +139,12 @@ export default async function EscuelaDashboardPage() {
             titulo="Aptos médicos vencidos"
             valor={aptosVencidos}
             alerta={aptosVencidos > 0}
+          />
+          <Kpi titulo="Egresos del mes" valor={formatearMonto(caja.egresos)} />
+          <Kpi
+            titulo="Caja neta del mes"
+            valor={formatearMonto(caja.neto)}
+            alerta={caja.neto < 0}
           />
         </div>
       </section>

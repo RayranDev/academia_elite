@@ -92,6 +92,7 @@ model Escuela {
   codigos                  CodigoInvitacion[]
   parametros               ParametroEscuela[]
   aranceles                Arancel[]
+  egresos                  Egreso[]
   createdAt                DateTime           @default(now())
 }
 
@@ -682,6 +683,28 @@ model Arancel {
   createdAt    DateTime   @default(now())
 
   @@index([escuelaId, concepto])
+}
+
+// Egreso de caja de la escuela (gasto operativo: cancha, árbitro, sueldos, ...).
+// A diferencia de `Membresia.monto` (opcional: una cuota puede crearse antes de
+// tener precio resuelto), acá `monto` es obligatorio — un egreso sin monto no
+// es un gasto, es un recordatorio, y este módulo no modela recordatorios.
+// `fecha` es cuándo se pagó/gastó, no `createdAt` (cuándo se cargó el registro):
+// una escuela puede cargar hoy un gasto de la semana pasada, y el reporte de
+// caja del período tiene que ubicarlo en su fecha real, no en la de carga.
+model Egreso {
+  id             String   @id @default(cuid())
+  escuelaId      String
+  escuela        Escuela  @relation(fields: [escuelaId], references: [id])
+  concepto       String // enum: CANCHA | ARBITRO | INDUMENTARIA | TRANSPORTE | MANTENIMIENTO | SUELDOS | OTRO
+  monto          Decimal  @db.Decimal(12, 2)
+  fecha          DateTime
+  descripcion    String?
+  medioPago      String? // EFECTIVO | TRANSFERENCIA | NEQUI | DAVIPLATA | OTRO (mismos valores que Membresia)
+  referenciaPago String?
+  createdAt      DateTime @default(now())
+
+  @@index([escuelaId, fecha])
 }
 
 // Sesión de soporte: puerta explícita, temporal y auditada por la que el
