@@ -5,7 +5,7 @@ import {
   assertMotivoSoporte,
   assertSoportePuedeEscribir,
 } from "@/lib/auth/guards";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { DomainError, NotFoundError, ValidationError } from "@/lib/errors";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { actualizarBloqueoUsers } from "@/repositories/user.repository";
 import { registrarAuditoria } from "@/services/audit.service";
@@ -62,6 +62,40 @@ export async function bloquearAccesoJugador(
     escuelaId: jugador.escuelaId,
     motivo: tipo === "PERSONALIZADO" ? mensaje!.trim() : tipo,
   });
+}
+
+export interface ResultadoBloqueoMasivo {
+  bloqueados: number;
+  fallidos: { jugadorId: string; motivo: string }[];
+}
+
+/**
+ * Bloqueo en lote (panel de morosos). Secuencial y no `Promise.all`: un
+ * jugador sin cuenta de familia vinculada (u otro fallo puntual) no debe
+ * abortar el resto del lote, así que cada intento se reporta aparte. Cada
+ * llamada a `bloquearAccesoJugador` ya audita su propio bloqueo — no hay
+ * auditoría extra por el lote entero, cada bloqueo queda trazable por separado.
+ */
+export async function bloquearAccesoJugadores(
+  ctx: AuthContext,
+  jugadorIds: string[],
+  tipo: TipoBloqueo,
+  mensaje?: string,
+): Promise<ResultadoBloqueoMasivo> {
+  const fallidos: { jugadorId: string; motivo: string }[] = [];
+  let bloqueados = 0;
+  for (const jugadorId of jugadorIds) {
+    try {
+      await bloquearAccesoJugador(ctx, jugadorId, tipo, mensaje);
+      bloqueados++;
+    } catch (e) {
+      fallidos.push({
+        jugadorId,
+        motivo: e instanceof DomainError ? e.message : "Error inesperado",
+      });
+    }
+  }
+  return { bloqueados, fallidos };
 }
 
 export async function desbloquearAccesoJugador(

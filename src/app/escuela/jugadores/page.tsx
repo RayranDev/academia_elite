@@ -7,10 +7,16 @@ import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresD
 export default async function JugadoresEscuelaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string; categoriaId?: string; estado?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    q?: string;
+    categoriaId?: string;
+    estado?: string;
+    jugadorId?: string;
+  }>;
 }) {
   const ctx = await requireAuthContext();
-  const { page: pageStr, q, categoriaId, estado } = await searchParams;
+  const { page: pageStr, q, categoriaId, estado, jugadorId } = await searchParams;
   const page = pageStr ? Math.max(1, parseInt(pageStr, 10)) : 1;
 
   const [res, categorias] = await Promise.all([
@@ -20,6 +26,7 @@ export default async function JugadoresEscuelaPage({
       search: q,
       categoriaId,
       estado,
+      id: jugadorId,
     }),
     listarCategoriasEscuela(ctx),
   ]);

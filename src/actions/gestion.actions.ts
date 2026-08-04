@@ -13,6 +13,7 @@ import {
   estadoJugadorSchema,
   eliminarJugadorSchema,
   bloqueoSchema,
+  bloqueoMasivoSchema,
   dtEditarSchema,
   usuarioEditarSchema,
   escuelaEditarSchema,
@@ -32,7 +33,9 @@ import {
 } from "@/services/gestion-jugadores.service";
 import {
   bloquearAccesoJugador,
+  bloquearAccesoJugadores,
   desbloquearAccesoJugador,
+  type ResultadoBloqueoMasivo,
 } from "@/services/bloqueo.service";
 import { actualizarDt, resetPasswordDt } from "@/services/entrenador.service";
 import {
@@ -247,6 +250,46 @@ export async function desbloquearAccesoAction(
     await desbloquearAccesoJugador(ctx, jugadorId, ctx.soporte?.motivo);
     revalidarGestion();
     return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/**
+ * Bloqueo en lote (panel de morosos, `/escuela/morosos`). `jugadorIds` viaja
+ * como JSON en el FormData porque son varios ids, no un campo suelto — mismo
+ * patrón que `entradas` en `validarSemanaDtAction`.
+ */
+export async function bloquearAccesoJugadoresAction(
+  _prev: ActionResult<ResultadoBloqueoMasivo> | undefined,
+  formData: FormData,
+): Promise<ActionResult<ResultadoBloqueoMasivo>> {
+  try {
+    const ctx = await requireAuthContext();
+    let jugadorIds: unknown;
+    try {
+      jugadorIds = JSON.parse((formData.get("jugadorIds") as string) ?? "[]");
+    } catch {
+      throw new ValidationError("Selección de jugadores inválida.");
+    }
+    const parsed = bloqueoMasivoSchema.safeParse({
+      jugadorIds,
+      tipo: formData.get("tipo"),
+      mensaje: formData.get("mensaje")?.toString() || undefined,
+    });
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+    }
+    const data = await bloquearAccesoJugadores(
+      ctx,
+      parsed.data.jugadorIds,
+      parsed.data.tipo,
+      parsed.data.mensaje,
+    );
+    revalidatePath("/escuela/morosos");
+    revalidatePath("/escuela/jugadores");
+    revalidatePath("/escuela/membresias");
+    return { ok: true, data };
   } catch (e) {
     return mapError(e);
   }

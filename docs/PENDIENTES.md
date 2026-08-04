@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 9).
+> Última actualización: 2026-08-04 (noche, 10).
 
 ---
 
@@ -24,9 +24,9 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Bloqueo por mora: acción directa y masiva](#paquete--bloqueo-por-mora-acción-directa-y-masiva) | Grande | Bloquear desde la lista de cuotas vencidas, ver morosos y elegir a quién bloquear |
 | [Unificar el motivo de soporte](#paquete--unificar-el-motivo-de-soporte) | Chico | Decisión de estilo entre dos patrones ya usados en el código |
 | [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
+| [Filtro `?bloqueado=1` no implementado en Jugadores](#paquete--filtro-bloqueado1-no-implementado-en-jugadores) | Chico | El KPI "Familias bloqueadas" del dashboard enlaza a un filtro que no existe |
 | [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
 | [Acceso parcial del jugador bloqueado](#paquete--acceso-parcial-del-jugador-bloqueado) | Medio | Hoy es bloqueo total; requiere diseño de auth antes de tocar código |
@@ -36,33 +36,21 @@
 
 ---
 
-## Paquete — Bloqueo por mora: acción directa y masiva
+## Paquete — Filtro `?bloqueado=1` no implementado en Jugadores
 
-Reportado en uso real como "corrección grande" — así quedó marcado. Verificado
-contra `src/services/bloqueo.service.ts` (función `bloquearAccesoJugador`,
-líneas 37-65) y `src/components/gestion/JugadorBloqueoModal.tsx`.
-
-- **Acceso directo desde una cuota vencida.** Hoy `MembresiasPanel.tsx` no
-  tiene ningún link hacia el bloqueo de jugador; el texto de la página dice
-  explícitamente que "el acceso por mora se gestiona desde la ficha del
-  jugador" — pero no hay atajo para llegar ahí desde una fila vencida. Sumar
-  un link/botón en cada fila de cuota `VENCIDA` que lleve directo a
-  `JugadorBloqueoModal` para ese jugador (mismo modal que ya usa
-  `JugadoresGestion`, no hace falta uno nuevo).
-- **Acción masiva "Ver morosos".** No existe ninguna vista que liste a todos
-  los jugadores con cuota vencida y permita elegir a quién bloquear en un
-  solo paso. Diseño sugerido: un botón en el dashboard o en Membresías que
-  abra un modal/página con la lista de morosos (reusar
-  `resumenMembresias`/`cuotasImpagas` de `membresia.repository.ts` para
-  traerlos), cada uno con checkbox, y un botón "Bloquear seleccionados" —
-  **nunca** un bloqueo automático sin que el humano elija explícitamente
-  (ver el criterio ya aplicado en el cron gateado de Vigencia, más abajo:
-  la escuela decide, el sistema no bloquea solo por comportamiento).
-- **Extender `bloquearAccesoJugador`** para aceptar múltiples ids, o iterar
-  llamándola una vez por jugador manteniendo la auditoría individual por
-  cada bloqueo (no un solo registro de `AuditLog` para todo el lote — cada
-  bloqueo es una acción sobre un jugador puntual y tiene que quedar
-  trazable por separado).
+Chico. Hallazgo colateral del hito 31 (Bloqueo por mora), no introducido por
+ese paquete. El KPI "Familias bloqueadas" en `src/app/escuela/page.tsx`
+enlaza a `/escuela/jugadores?bloqueado=1`, pero ni
+`JugadoresGestion.tsx` ni `listarJugadoresGestion` (servicio o repo) leen
+ese query param — es un link muerto preexistente. No es un cambio de una
+línea como el filtro `id`/`jugadorId` que sí se sumó en el hito 31: el
+`where` de `listarJugadoresGestion`/`contarJugadoresGestion`
+(`jugador.repository.ts`) ya usa `OR: condSearch` para la búsqueda por
+texto, y bloqueado vive en `padre.bloqueado`/`cuentaUser.bloqueado` (no en
+`Jugador`), así que sumarlo exige un segundo `OR` que colisiona con el que
+ya existe — hay que reestructurar ambas funciones envolviendo todo en
+`AND` (mismo patrón que ya se usó para `condicionEstadoEfectivo` en
+Membresías, hito 30) en vez de agregar una clave más al objeto `where`.
 
 ## Paquete — Unificar el motivo de soporte
 

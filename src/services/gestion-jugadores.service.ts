@@ -114,6 +114,7 @@ export async function listarJugadoresGestion(
   ctx: AuthContext,
   filtros: {
     escuelaId?: string;
+    id?: string;
     categoriaId?: string;
     estado?: string;
     search?: string;
@@ -136,6 +137,7 @@ export async function listarJugadoresGestion(
 
   const [rows, total] = await Promise.all([
     repoListar(escuelaId, {
+      id: filtros.id,
       categoriaId: filtros.categoriaId,
       estados,
       search: filtros.search,
@@ -143,6 +145,7 @@ export async function listarJugadoresGestion(
       take: limit,
     }),
     contarJugadoresGestion(escuelaId, {
+      id: filtros.id,
       categoriaId: filtros.categoriaId,
       estados,
       search: filtros.search,
@@ -183,6 +186,18 @@ export async function listarJugadoresGestion(
     limit,
     totalPages: Math.ceil(total / limit),
   };
+}
+
+/**
+ * Jugadores activos en mora (Escuela Admin únicamente: la deuda no es un dato
+ * ambiental del SUPER_ADMIN, ver `listarJugadoresGestion`). Reusa el cruce de
+ * cobranza ya calculado ahí — no reimplementa `enMora`/`montoVencido`. El
+ * límite alto asume que ninguna escuela supera 5000 jugadores activos.
+ */
+export async function listarMorosos(ctx: AuthContext): Promise<JugadorGestionDTO[]> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const res = await listarJugadoresGestion(ctx, { estado: "ACTIVO", limit: 5000 });
+  return res.items.filter((j) => j.enMora);
 }
 
 async function cargarJugador(ctx: AuthContext, jugadorId: string) {

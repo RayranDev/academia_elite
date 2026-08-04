@@ -54,6 +54,7 @@
 | 28 | Planilla del simulador: layout de la hoja Parametros derivado, no hardcodeado | 2026-08-04 | ✅ |
 | 29 | Aranceles: editar, evitar duplicados con aviso, descripción libre, navegación | 2026-08-04 | ✅ |
 | 30 | Membresías operativas: paginación, filtro por período/jugador, export conectado | 2026-08-04 | ✅ |
+| 31 | Bloqueo por mora: atajo directo desde una cuota vencida + acción masiva de morosos | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1000,6 +1001,63 @@ contadores de estado suman exacto el total (68 = 52+6+10), y `take` limita
 la paginación correctamente. Sin mutaciones, no hizo falta `ROLLBACK`.
 `typecheck`/`lint`/`test` limpios (293 tests, 4 nuevos para
 `condicionEstadoEfectivo`).
+
+## 31. Bloqueo por mora: acción directa y masiva (2026-08-04)
+
+El usuario lo marcó explícitamente como "corrección grande" al usar la app.
+Hasta acá el bloqueo por falta de pago (`bloqueo.service.ts`) funcionaba
+de a un jugador por vez, alcanzable solo desde su ficha — nada conectaba
+la lista de cuotas vencidas ni el dashboard con la acción de bloquear.
+
+**Atajo directo** (decisión tomada con el usuario entre dos opciones: se
+eligió la de menor superficie de código, no el modal embebido). Cada fila
+`VENCIDA` de `MembresiasPanel.tsx` suma un link "Bloquear" hacia
+`/escuela/jugadores?jugadorId=<id>` — la lista de Jugadores queda filtrada
+a ese único jugador, donde el botón de bloqueo (que ya abre
+`JugadorBloqueoModal` con el `JugadorGestionDTO` completo) funciona sin
+tocarlo. Requirió sumar `id?` a los filtros de
+`listarJugadoresGestion`/`contarJugadoresGestion` (repo y servicio) — un
+filtro más del mismo tipo que `categoriaId`, no una feature nueva.
+
+**Vista "Morosos"** (`/escuela/morosos`, nueva): `listarMorosos(ctx)`
+**no reimplementa** el cruce cuotas↔jugador — llama a
+`listarJugadoresGestion(ctx, { estado: "ACTIVO", limit: 5000 })` (el mismo
+que ya calcula `enMora`/`montoVencido` para toda la app) y filtra el
+resultado a `enMora === true`. Evita que la definición de "estar en mora"
+viva en dos lugares que puedan divergir. `MorososPanel.tsx` calca el
+patrón de selección de `ProgresoMasivo.tsx` (único precedente de
+lista-con-checkboxes-y-acción-en-lote del repo): `Set<string>` de ids,
+"marcar todos visibles", un solo `FormData` con los ids serializados. Los
+jugadores ya bloqueados se siguen mostrando (badge "Ya bloqueado") pero
+quedan fuera de "marcar todos" — bloquear de nuevo no tiene efecto y solo
+confunde si aparece seleccionable.
+
+**Bloqueo en lote sin auditoría agregada.** Nueva
+`bloquearAccesoJugadores` en `bloqueo.service.ts` reusa
+`bloquearAccesoJugador` en un loop **secuencial** (no `Promise.all`): un
+jugador sin cuenta de familia vinculada no aborta el lote entero, se
+reporta aparte en `fallidos` (usa `instanceof DomainError` para distinguir
+un fallo de validación esperado de uno inesperado). Cada bloqueo sigue
+auditando individualmente — se descartó a propósito el patrón de
+auditoría agregada de `generarCuotasDelPeriodo`: bloquear el acceso de una
+familia es una acción sensible por jugador, no un registro administrativo
+barato, y tiene que quedar trazable uno por uno.
+
+**Hallazgo colateral, no corregido acá** (anotado en `PENDIENTES.md`): el
+KPI "Familias bloqueadas" del dashboard enlaza a
+`/escuela/jugadores?bloqueado=1`, pero ese filtro nunca estuvo
+implementado — preexistente, no introducido por este paquete. Sumarlo no
+es trivial como el filtro `id` (bloqueado vive en `padre`/`cuentaUser`, no
+en `Jugador`, y colisiona con el `OR` de búsqueda por texto ya existente).
+
+Implementación delegada a un sub-agente con el plan (aprobado tras resolver
+con el usuario la disyuntiva del atajo directo) como instrucción exacta.
+Revisión de diff propia, más un chequeo de solo lectura contra la base real
+(`elite-escuela`): `listarMorosos` da 8 jugadores ACTIVO en mora, igual que
+el cálculo de `jugadoresEnMora` que ya usa el dashboard. Sin schema nuevo,
+sin migración. `typecheck`/`lint`/`test` limpios (293 tests, sin casos
+nuevos — es wiring y un loop sobre una función ya auditada/testeada por
+otros caminos).
 
 ---
 

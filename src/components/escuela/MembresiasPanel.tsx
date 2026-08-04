@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   registrarMembresiaAction,
   cambiarEstadoMembresiaAction,
@@ -198,6 +199,14 @@ export function MembresiasPanel({
                   </td>
                   <td className="px-4 py-2">
                     <Badge tono={tonoEstado(m.estado)}>{etiquetaEstado(m.estado)}</Badge>
+                    {m.estado === "VENCIDA" && (
+                      <Link
+                        href={`/escuela/jugadores?jugadorId=${m.jugadorId}`}
+                        className="ml-2 text-xs font-semibold text-brand hover:underline"
+                      >
+                        Bloquear
+                      </Link>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-xs text-muted">
                     {m.pagadaEn ? (

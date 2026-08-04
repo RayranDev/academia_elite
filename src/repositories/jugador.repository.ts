@@ -189,6 +189,7 @@ export function listarHijos(userId: string) {
 export function listarJugadoresGestion(
   escuelaId: string,
   filtros: {
+    id?: string;
     categoriaId?: string;
     estados?: string[];
     search?: string;
@@ -207,6 +208,7 @@ export function listarJugadoresGestion(
   return db.jugador.findMany({
     where: {
       escuelaId,
+      id: filtros.id || undefined,
       estado: condEstados,
       categoriaId: condCategoria,
       OR: condSearch,
@@ -227,6 +229,7 @@ export function listarJugadoresGestion(
 export function contarJugadoresGestion(
   escuelaId: string,
   filtros: {
+    id?: string;
     categoriaId?: string;
     estados?: string[];
     search?: string;
@@ -243,6 +246,7 @@ export function contarJugadoresGestion(
   return db.jugador.count({
     where: {
       escuelaId,
+      id: filtros.id || undefined,
       estado: condEstados,
       categoriaId: condCategoria,
       OR: condSearch,

@@ -92,9 +92,19 @@ export default async function EscuelaDashboardPage() {
 
       {/* Administración: la cobranza, que es lo que sostiene la escuela. */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
-          Administración
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted">
+            Administración
+          </h2>
+          {membresias.jugadoresEnMora > 0 && (
+            <Link
+              href="/escuela/morosos"
+              className="text-sm font-semibold text-brand hover:underline"
+            >
+              Ver morosos →
+            </Link>
+          )}
+        </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Kpi
             titulo="Cuotas al día"

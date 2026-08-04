@@ -41,6 +41,15 @@ export const bloqueoSchema = z.object({
   mensaje: textoSeguro({ max: 300 }).optional(),
 });
 
+/** Bloqueo en lote (panel de morosos): mismos campos, `jugadorId` en plural. */
+export const bloqueoMasivoSchema = z.object({
+  jugadorIds: z
+    .array(z.string().min(1))
+    .min(1, { error: "Selecciona al menos un jugador." }),
+  tipo: z.enum(TIPOS_BLOQUEO),
+  mensaje: textoSeguro({ max: 300 }).optional(),
+});
+
 export const dtEditarSchema = z.object({
   entrenadorId: z.string().min(1),
   nombre: textoSeguro({ min: 2, max: 120, error: "Nombre requerido." }).transform(
