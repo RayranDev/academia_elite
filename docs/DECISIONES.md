@@ -510,3 +510,13 @@ cada adaptación, regla 0.8.)
     ruta fijo cada uno es una invariante que atraviesa el proxy, los guards de
     `src/lib/auth/guards.ts` y buena parte de la UI condicional — sumar un rol
     no es una migración de schema, es tocar la arquitectura de acceso entera.
+74. **El riesgo de infraestructura (Auth, backups, observabilidad, CI) se
+    difiere a cuando el proyecto esté 100% en producción con dominio propio.**
+    Decisión explícita (2026-08-04): no tiene sentido cerrar una decisión de
+    arquitectura (¿Auth.js v4, v5 estable, o Supabase Auth?) ni aprovisionar
+    infraestructura (proyecto Supabase de CI, verificar PITR, elegir
+    observabilidad) para un entorno que todavía puede cambiar de dominio.
+    Movidos a la sección Diferido de `PENDIENTES.md`. **No** aplica al
+    guardián de tenant (hito 27, `create`/`createMany` + `tx.`) ni a la
+    planilla del simulador — esos son código puro, sin dependencia de
+    infraestructura, y siguen como paquete activo.

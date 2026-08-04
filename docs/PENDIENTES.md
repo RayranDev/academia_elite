@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 5).
+> Última actualización: 2026-08-04 (noche, 6).
 
 ---
 
@@ -24,7 +24,7 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Riesgo de plataforma](#paquete--riesgo-de-plataforma) | Media | Auth, backups, observabilidad, CI, dos gaps de guardianes de calidad |
+| [Riesgo de plataforma (código)](#paquete--riesgo-de-plataforma-código) | Chico | Planilla del simulador hardcodeada. Auth/backups/observabilidad/CI diferidos a producción 100% (ver Diferidos) |
 | [Aranceles: cerrar el ciclo de precios](#paquete--aranceles-cerrar-el-ciclo-de-precios) | Medio | Editar, evitar duplicados, describir "OTRO", navegación |
 | [Membresías operativas](#paquete--membresías-operativas) | Medio | Paginación, filtro por mes/jugador, export conectado al filtro |
 | [Bloqueo por mora: acción directa y masiva](#paquete--bloqueo-por-mora-acción-directa-y-masiva) | Grande | Bloquear desde la lista de cuotas vencidas, ver morosos y elegir a quién bloquear |
@@ -38,34 +38,13 @@
 
 ---
 
-## Paquete — Riesgo de plataforma
+## Paquete — Riesgo de plataforma (código)
 
-No son features, son huecos que se pagan caro si se posponen mucho (datos de
-menores en producción). No bloquean el resto de los paquetes, pero conviene
-no dejarlos indefinidamente atrás.
+El resto del riesgo de plataforma (Auth, backups, observabilidad, CI) se
+diferió a propósito — ver la sección de Diferidos más abajo. Lo que queda
+acá es el único ítem que es código puro, sin depender de una decisión de
+infraestructura:
 
-- **Decisión de Auth** (Media). Sigue en **Auth.js v5 beta**. Opciones: (a)
-  estabilizar en v4, (b) migrar a Supabase Auth, (c) quedarse en v5 con
-  cobertura E2E completa del flujo de login/recuperación/OTP y un plan de
-  rollback documentado. Es el riesgo más señalado del proyecto por tratarse
-  de datos de menores. Antes de decidir, revisar el changelog de v5 estable
-  más reciente — puede que ya haya salido de beta.
-- **Backups / PITR** (Chico, config). Verificar en el dashboard de Supabase
-  que el Point-in-Time Recovery esté activo para el proyecto de producción.
-  Sin esto, un `DELETE`/`DROP` accidental (humano o de un bug) es
-  irreversible. Es una casilla para tildar, no código.
-- **Observabilidad** (Media). Hoy solo hay logs de runtime de Vercel y el
-  `digest` del error boundary (`src/app/error.tsx`/`global-error.tsx`).
-  Sentry se descartó dos veces: incompatibilidad con Next 16 + Turbopack, y
-  porque es un procesador externo que recibiría PII de menores (requeriría
-  pasar por `HABEAS-DATA.md` primero, como cualquier tercero nuevo).
-  Reevaluar cuando el SDK de Sentry madure para Turbopack, o buscar una
-  alternativa self-hosted que no saque datos del proyecto.
-- **`build` y `e2e` en el workflow de CI** (Media). Hoy el workflow
-  (`.github/workflows/`) corre `typecheck`/`lint`/`test` (unit). Sumar
-  `build` y `test:e2e` exige un proyecto Supabase **dedicado a CI** (no el de
-  producción) con sus propios secretos en GitHub Actions — hay que
-  aprovisionarlo antes de tocar el YAML.
 - **La planilla del simulador hardcodea el layout del Excel** (Chico).
   `GRUPOS` es una lista (no `Record<GrupoEdad, …>`) y las filas de los
   lookups (`$A$10:$A$13`, escalares en las filas 16-19 del generador) están
@@ -286,6 +265,34 @@ carta" (ver más abajo, bloqueado): `statsLatest` en
 
 ## 🟡 Diferido — depende de algo externo, no entra en un paquete todavía
 
+> **Decisión (2026-08-04): el resto del riesgo de plataforma se retoma cuando
+> el proyecto esté 100% en producción**, junto con la implementación del
+> dominio propio — no antes. Hasta entonces, no tiene sentido cerrar una
+> decisión de arquitectura (Auth) o de infraestructura (backups,
+> observabilidad, CI) para un entorno que todavía puede cambiar.
+
+- **Decisión de Auth** (Media). Sigue en **Auth.js v5 beta**. Opciones: (a)
+  estabilizar en v4, (b) migrar a Supabase Auth, (c) quedarse en v5 con
+  cobertura E2E completa del flujo de login/recuperación/OTP y un plan de
+  rollback documentado. Es el riesgo más señalado del proyecto por tratarse
+  de datos de menores. Antes de decidir, revisar el changelog de v5 estable
+  más reciente — puede que ya haya salido de beta.
+- **Backups / PITR** (Chico, config). Verificar en el dashboard de Supabase
+  que el Point-in-Time Recovery esté activo para el proyecto de producción.
+  Sin esto, un `DELETE`/`DROP` accidental (humano o de un bug) es
+  irreversible. Es una casilla para tildar, no código.
+- **Observabilidad** (Media). Hoy solo hay logs de runtime de Vercel y el
+  `digest` del error boundary (`src/app/error.tsx`/`global-error.tsx`).
+  Sentry se descartó dos veces: incompatibilidad con Next 16 + Turbopack, y
+  porque es un procesador externo que recibiría PII de menores (requeriría
+  pasar por `HABEAS-DATA.md` primero, como cualquier tercero nuevo).
+  Reevaluar cuando el SDK de Sentry madure para Turbopack, o buscar una
+  alternativa self-hosted que no saque datos del proyecto.
+- **`build` y `e2e` en el workflow de CI** (Media). Hoy el workflow
+  (`.github/workflows/`) corre `typecheck`/`lint`/`test` (unit). Sumar
+  `build` y `test:e2e` exige un proyecto Supabase **dedicado a CI** (no el de
+  producción) con sus propios secretos en GitHub Actions — hay que
+  aprovisionarlo antes de tocar el YAML.
 - **Credenciales por link en alta de DT y jugador** (Chico). Hoy el alta
   muestra la contraseña temporal una vez; se podría mandar además un link
   (`emitirSetPassword`, ya usado en recuperación). Depende del correo:
