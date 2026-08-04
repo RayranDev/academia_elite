@@ -236,7 +236,7 @@ export function FotoConsentimiento({
           <p className="text-muted leading-relaxed">
             La compresión, el recorte y la remoción de fondo se hacen 100% en tu
             navegador. Si la iluminación no es óptima y el recorte no queda
-            perfecto, probá con buena luz y un fondo claro o neutro, o usá el
+            perfecto, prueba con buena luz y un fondo claro o neutro, o usa el
             avatar mientras tanto.
           </p>
         </div>

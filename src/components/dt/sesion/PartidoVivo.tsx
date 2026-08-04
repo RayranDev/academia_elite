@@ -270,7 +270,7 @@ export function PartidoVivo({
 
       <div>
         <p className="mb-2 text-xs text-muted">
-          Tocá un jugador para tarjeta u observación.
+          Toca un jugador para tarjeta u observación.
         </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {presentes.map((p) => {

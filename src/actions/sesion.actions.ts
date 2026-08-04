@@ -88,7 +88,7 @@ export async function agregarConvocadoAction(
 const observacionSchema = z.object({
   jugadorId: z.string().min(1),
   eventoId: z.string().min(1).optional(),
-  texto: textoSeguro({ min: 1, max: 500, error: "Escribí la observación." }),
+  texto: textoSeguro({ min: 1, max: 500, error: "Escribe la observación." }),
   visiblePadre: z.boolean(),
 });
 

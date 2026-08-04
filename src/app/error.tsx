@@ -31,7 +31,7 @@ export default function Error({
       <h1 className="text-2xl font-black italic uppercase">Algo salió mal</h1>
       <p className="max-w-md text-sm text-muted">
         Tuvimos un problema al cargar esta sección. Tus datos están a salvo:
-        probá de nuevo y, si sigue pasando, avisanos.
+        prueba de nuevo y, si sigue pasando, avísanos.
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-2">

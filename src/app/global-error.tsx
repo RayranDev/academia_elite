@@ -42,8 +42,8 @@ export default function GlobalError({
           Algo salió mal
         </h1>
         <p style={{ maxWidth: "28rem", fontSize: "0.875rem", color: "#94a3b8", margin: 0 }}>
-          La aplicación no pudo cargar. Tus datos están a salvo. Probá de nuevo y,
-          si sigue pasando, avisanos.
+          La aplicación no pudo cargar. Tus datos están a salvo. Prueba de nuevo y,
+          si sigue pasando, avísanos.
         </p>
         <button
           type="button"

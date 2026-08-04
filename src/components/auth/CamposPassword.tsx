@@ -53,7 +53,7 @@ export function CamposPassword({
       </div>
       <div>
         <label htmlFor="confirmacion" className="mb-1 block text-xs text-muted">
-          Repetí la contraseña
+          Repite la contraseña
         </label>
         <input
           id="confirmacion"

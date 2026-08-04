@@ -73,7 +73,7 @@ export function AvisoImportante({
       >
         <p className="flex items-center gap-2 text-lg font-black italic uppercase">
           <Bell className="h-5 w-5 text-brand" aria-hidden />
-          {avisos.length > 1 ? "Tenés avisos" : "Tenés un aviso"}
+          {avisos.length > 1 ? "Tienes avisos" : "Tienes un aviso"}
         </p>
         <ul className="mt-3 space-y-2">
           {avisos.map((n) => (

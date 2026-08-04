@@ -58,7 +58,7 @@ export default function LegalPage() {
             El responsable del tratamiento de tus datos es{" "}
             <Dato>[Razón social]</Dato>, NIT <Dato>[NIT]</Dato>, con domicilio en{" "}
             <Dato>[Dirección, Ciudad]</Dato>, Colombia. Para cualquier asunto
-            relacionado con tus datos podés escribir a{" "}
+            relacionado con tus datos puedes escribir a{" "}
             <Dato>[correo de protección de datos]</Dato>.
           </p>
         </Seccion>
@@ -129,7 +129,7 @@ export default function LegalPage() {
         </Seccion>
 
         <Seccion titulo="5. Tus derechos (Habeas Data)">
-          <p>Como titular (o representante legal del menor) podés:</p>
+          <p>Como titular (o representante legal del menor) puedes:</p>
           <ul className="list-disc space-y-1 pl-5">
             <li>Conocer, actualizar y rectificar tus datos.</li>
             <li>Solicitar prueba de la autorización otorgada.</li>
@@ -142,7 +142,7 @@ export default function LegalPage() {
 
         <Seccion titulo="6. Cómo ejercer tus derechos">
           <p>
-            Escribí a <Dato>[correo de protección de datos]</Dato> indicando tu
+            Escribe a <Dato>[correo de protección de datos]</Dato> indicando tu
             identificación, la descripción del pedido y una dirección de contacto.
             Las consultas se atienden en un máximo de 10 días hábiles y los reclamos
             en un máximo de 15 días hábiles, en los términos de la Ley 1581 de 2012.

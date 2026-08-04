@@ -33,7 +33,7 @@ export function CamaraCaptura({
 
     async function abrir() {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setError("Tu dispositivo no permite usar la cámara. Usá “Elegir foto”.");
+        setError("Tu dispositivo no permite usar la cámara. Usa “Elegir foto”.");
         return;
       }
       try {
@@ -64,7 +64,7 @@ export function CamaraCaptura({
       } catch (err) {
         console.error("Error abriendo cámara:", err);
         setError(
-          "No se pudo acceder a la cámara. Revisá los permisos o usá “Elegir foto”.",
+          "No se pudo acceder a la cámara. Revisa los permisos o usa “Elegir foto”.",
         );
       }
     }

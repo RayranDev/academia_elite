@@ -139,7 +139,7 @@ export async function generarPlantillaEvaluaciones(
     "Medidas físicas reales: sprint30m (s), saltoCm (cm), agilidadSeg (s), yoyoNivel.",
     "Técnica y mentalidad (1-10): control, pase, tiro, regate, actitud, concentracion, trabajoEquipo, resiliencia.",
     "",
-    "PORTEROS: esas cuatro notas técnicas miden otro oficio. Si la posición es POR, cargá:",
+    "PORTEROS: esas cuatro notas técnicas miden otro oficio. Si la posición es POR, carga:",
     "   control → BLOCAJE / ATAJADA · pase → DISTRIBUCIÓN / SAQUE",
     "   tiro → JUEGO AÉREO · regate → ACHIQUE Y 1v1",
     "El motor ya lo tiene en cuenta: para un arquero el DEF sale del blocaje, no de la resistencia.",

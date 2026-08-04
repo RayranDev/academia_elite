@@ -35,12 +35,12 @@ export function SesionVivo({
 
       {presentes.length === 0 ? (
         <p className="rounded-lg border border-dashed border-subtle p-6 text-center text-sm text-muted">
-          Nadie marcado como presente todavía. Volvé a la lista para pasarla.
+          Nadie marcado como presente todavía. Vuelve a la lista para pasarla.
         </p>
       ) : (
         <>
           <p className="text-xs text-muted">
-            Tocá un jugador para anotar una observación.
+            Toca un jugador para anotar una observación.
           </p>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {presentes.map((p) => (

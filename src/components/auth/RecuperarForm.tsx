@@ -79,7 +79,7 @@ export function RecuperarForm({
     });
   }
 
-  const titulo = directoACodigo ? "Activá tu cuenta" : "Recuperar acceso";
+  const titulo = directoACodigo ? "Activa tu cuenta" : "Recuperar acceso";
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
@@ -115,7 +115,7 @@ export function RecuperarForm({
         ) : paso === "email" ? (
           <form onSubmit={pedirCodigo} className="space-y-4">
             <p className="text-sm text-muted">
-              Ingresá tu correo y te enviamos un código para crear una contraseña
+              Ingresa tu correo y te enviamos un código para crear una contraseña
               nueva.
             </p>
             <div>
@@ -144,7 +144,7 @@ export function RecuperarForm({
           <form onSubmit={confirmar} className="space-y-4">
             {codigoEnviado && (
               <p className="rounded-lg border border-pitch/40 bg-pitch/10 px-3 py-2 text-xs text-pitch">
-                Si el correo está registrado, te enviamos un código. Revisá tu
+                Si el correo está registrado, te enviamos un código. Revisa tu
                 bandeja (y el spam).
               </p>
             )}
@@ -220,7 +220,7 @@ export function RecuperarForm({
                 htmlFor="confirmacion"
                 className="mb-1 block text-sm font-medium text-muted"
               >
-                Repetí la contraseña
+                Repite la contraseña
               </label>
               <input
                 id="confirmacion"

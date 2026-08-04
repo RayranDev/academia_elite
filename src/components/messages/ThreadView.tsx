@@ -1,5 +1,6 @@
 import { cn } from "@/lib/cn";
 import { Composer } from "@/components/messages/Composer";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import type { ConversacionDetalleDTO } from "@/services/mensaje.service";
 
 export function ThreadView({ conv }: { conv: ConversacionDetalleDTO }) {
@@ -25,7 +26,7 @@ export function ThreadView({ conv }: { conv: ConversacionDetalleDTO }) {
               )}
               <p className="whitespace-pre-wrap">{m.cuerpo}</p>
               <p className="mt-1 text-[10px] opacity-60">
-                {new Date(m.createdAt).toLocaleString("es")}
+                <FechaLocal iso={m.createdAt} formato="d MMM yyyy, HH:mm" />
               </p>
             </div>
           </div>

@@ -79,7 +79,7 @@ export async function fijarPasswordAction(
     15 * 60_000,
   );
   if (!limit.ok) {
-    return { ok: false, error: "Demasiados intentos. Esperá un momento." };
+    return { ok: false, error: "Demasiados intentos. Espera un momento." };
   }
 
   try {
@@ -100,7 +100,7 @@ export async function reenviarVerificacionAction(): Promise<ActionResult> {
     const ctx = await requireAuthContext();
     const limit = await rateLimit(`reverif:${ctx.userId}`, 3, 30 * 60_000);
     if (!limit.ok) {
-      return { ok: false, error: "Esperá un momento antes de reenviar." };
+      return { ok: false, error: "Espera un momento antes de reenviar." };
     }
     await reenviarVerificacion(ctx.userId);
     return { ok: true };
@@ -118,7 +118,7 @@ export async function verificarMiEmailAction(
     const ctx = await requireAuthContext();
     const limit = await rateLimit(`verifemail:${ctx.userId}`, 10, 30 * 60_000);
     if (!limit.ok) {
-      return { ok: false, error: "Demasiados intentos. Esperá un momento." };
+      return { ok: false, error: "Demasiados intentos. Espera un momento." };
     }
     const parsed = verificarCodigoSchema.safeParse({
       codigo: formData.get("codigo"),

@@ -93,7 +93,7 @@ export async function solicitarCambioEmailAction(
     const ctx = await requireAuthContext();
     const limite = await rateLimit(`cambioemail:${ctx.userId}`, 3, 30 * 60 * 1000);
     if (!limite.ok) {
-      throw new ValidationError("Demasiados intentos. Esperá un momento.");
+      throw new ValidationError("Demasiados intentos. Espera un momento.");
     }
     const parsed = solicitarCambioEmailSchema.safeParse({
       email: formData.get("email"),
@@ -118,7 +118,7 @@ export async function confirmarCambioEmailAction(
     const ctx = await requireAuthContext();
     const limite = await rateLimit(`confirmemail:${ctx.userId}`, 10, 30 * 60 * 1000);
     if (!limite.ok) {
-      throw new ValidationError("Demasiados intentos. Esperá un momento.");
+      throw new ValidationError("Demasiados intentos. Espera un momento.");
     }
     const parsed = confirmarCambioEmailSchema.safeParse({
       codigo: formData.get("codigo"),

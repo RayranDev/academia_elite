@@ -37,7 +37,7 @@ export default async function DtHoyPage() {
         {eventos.length === 0 ? (
           <Card>
             <p className="text-muted">
-              No tenés eventos hoy.{" "}
+              No tienes eventos hoy.{" "}
               <Link href="/dt/calendario" className="font-semibold text-brand hover:underline">
                 Ver el calendario →
               </Link>

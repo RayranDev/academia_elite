@@ -26,7 +26,7 @@ export default async function DtAnunciosPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-display italic uppercase">Anuncios</h1>
         <p className="text-xs text-muted">
-          Así los ven las familias de tus categorías. Podés borrarlos.
+          Así los ven las familias de tus categorías. Puedes borrarlos.
         </p>
         <ListaAnuncios
           anuncios={anuncios}

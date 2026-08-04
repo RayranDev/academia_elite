@@ -236,16 +236,16 @@ export class ErrorRemocionFondo extends Error {
 function descripcionDeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   if (/unsafe-eval|Content Security Policy|CSP/i.test(msg)) {
-    return "El navegador bloqueó el motor de imagen (CSP). Avisá al equipo.";
+    return "El navegador bloqueó el motor de imagen (CSP). Avisa al equipo.";
   }
   if (/fetch|network|Failed to fetch|404/i.test(msg)) {
-    return "No se pudo descargar el modelo de imagen. Revisá tu conexión y probá de nuevo.";
+    return "No se pudo descargar el modelo de imagen. Revisa tu conexión y prueba de nuevo.";
   }
   if (/memory|allocation|out of memory/i.test(msg)) {
-    return "El dispositivo se quedó sin memoria al procesar la foto. Probá con una foto más chica o desde otro dispositivo.";
+    return "El dispositivo se quedó sin memoria al procesar la foto. Prueba con una foto más chica o desde otro dispositivo.";
   }
   if (/SharedArrayBuffer|WebAssembly|wasm/i.test(msg)) {
-    return "Tu navegador no soporta el motor de imagen. Probá con Chrome o Edge actualizados.";
+    return "Tu navegador no soporta el motor de imagen. Prueba con Chrome o Edge actualizados.";
   }
   return `No se pudo quitar el fondo (${msg.slice(0, 120)}).`;
 }

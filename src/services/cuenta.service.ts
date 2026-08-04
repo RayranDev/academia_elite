@@ -209,7 +209,7 @@ export async function confirmarCambioEmail(
   // El correo pudo ocuparse entre la solicitud y la confirmación: revalidamos.
   if (await emailExisteGlobal(registro.emailNuevo)) {
     await marcarTokenUsado(registro.id);
-    throw new ValidationError("Ese correo quedó en uso. Probá con otro.");
+    throw new ValidationError("Ese correo quedó en uso. Prueba con otro.");
   }
 
   await actualizarEmailUser(ctx.userId, registro.emailNuevo);

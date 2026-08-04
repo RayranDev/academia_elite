@@ -175,15 +175,15 @@ function CrecimientoTile({
         partidos.
       </p>
       <p className="mt-1 text-sm">
-        Llevás{" "}
+        Llevas{" "}
         <span className="font-bold text-pitch">+{proyeccion.bonusActual}</span> de
         MEN ganados por asistir{" "}
         <span className="text-muted">(tope +{proyeccion.tope}, ya incluido en tu carta)</span>.
       </p>
       {proyeccion.frenadoPorAusencias ? (
         <p className="mt-2 text-sm text-alerta">
-          Tus faltas están frenando tu crecimiento. Volvé a entrenar y lo
-          recuperás enseguida.
+          Tus faltas están frenando tu crecimiento. Vuelve a entrenar y lo
+          recuperas enseguida.
         </p>
       ) : (
         <p className="mt-2 text-sm text-muted">

@@ -44,8 +44,8 @@ export function OnboardingBienvenida({ nombre }: { nombre: string }) {
           ¡Bienvenido/a, {nombre}!
         </h2>
         <p className="mt-2 text-sm text-muted">
-          Armá tu carta: subí una foto (con el permiso de tu familia) o elegí tu
-          avatar. Lo podés hacer ahora o más tarde, cuando quieras.
+          Arma tu carta: sube una foto (con el permiso de tu familia) o elige tu
+          avatar. Lo puedes hacer ahora o más tarde, cuando quieras.
         </p>
         <div className="mt-5 space-y-2">
           <button

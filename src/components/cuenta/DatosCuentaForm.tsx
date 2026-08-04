@@ -210,7 +210,7 @@ export function DatosCuentaForm({
         {paso === "codigo" && (
           <form onSubmit={confirmar} className="space-y-2">
             <p className="text-xs text-muted">
-              Ingresá el código de 6 dígitos que enviamos a{" "}
+              Ingresa el código de 6 dígitos que enviamos a{" "}
               <strong>{nuevoEmail}</strong>.
             </p>
             <input

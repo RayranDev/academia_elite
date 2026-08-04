@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FechaLocal } from "@/components/ui/FechaLocal";
 import type { ConversacionResumenDTO } from "@/services/mensaje.service";
 
 export function ThreadList({
@@ -22,7 +23,7 @@ export function ThreadList({
             <div className="flex items-center justify-between">
               <span className="font-semibold">{c.asunto}</span>
               <span className="text-[11px] text-muted">
-                {new Date(c.actualizada).toLocaleDateString("es")}
+                <FechaLocal iso={c.actualizada} />
               </span>
             </div>
             <p className="text-xs text-brand">

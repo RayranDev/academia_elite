@@ -124,7 +124,7 @@ export function CierreSesion({
         router.push(`/dt/eventos/${eventoId}`);
         router.refresh();
       } catch {
-        setError("No se pudo guardar el cierre. Probá de nuevo.");
+        setError("No se pudo guardar el cierre. Prueba de nuevo.");
       }
     });
   }
@@ -150,7 +150,7 @@ export function CierreSesion({
         <div>
           <h2 className="text-lg font-bold">Estadísticas</h2>
           <p className="mb-2 text-xs text-muted">
-            Revisá o corregí lo cargado en vivo.
+            Revisa o corrige lo cargado en vivo.
           </p>
           <ul className="divide-y divide-subtle rounded-lg border border-subtle">
             {filas.map((f) => {

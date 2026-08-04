@@ -220,7 +220,7 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
 
       {!completas && (
         <p className="text-xs text-muted">
-          Elegí las 8 notas (técnicas y mentalidad) para poder guardar.
+          Elige las 8 notas (técnicas y mentalidad) para poder guardar.
         </p>
       )}
 

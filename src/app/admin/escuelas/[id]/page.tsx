@@ -97,7 +97,7 @@ export default async function EscuelaDetalleAdminPage({
         <Card>
           <h2 className="text-xl font-bold">Jugadores</h2>
           <p className="mt-2 text-sm text-muted">
-            Para ver y gestionar los jugadores de esta escuela, abrí una{" "}
+            Para ver y gestionar los jugadores de esta escuela, abre una{" "}
             <b>sesión de soporte</b> con el botón de arriba. El acceso a los datos
             del tenant queda auditado.
           </p>

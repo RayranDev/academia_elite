@@ -15,7 +15,7 @@ export async function AvisoVerificarEmail() {
   return (
     <div className="mb-4 flex flex-col gap-2 rounded-lg border border-info/40 bg-info/10 px-4 py-3 text-sm text-info">
       <span>
-        Verificá tu correo para asegurar tu cuenta. Pedí un código y ingresalo
+        Verifica tu correo para asegurar tu cuenta. Pide un código e ingrésalo
         acá.
       </span>
       <VerificarEmailInline />
