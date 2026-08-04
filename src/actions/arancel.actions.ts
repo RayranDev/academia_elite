@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
-import { arancelSchema } from "@/lib/validators/arancel";
+import { arancelSchema, editarArancelSchema } from "@/lib/validators/arancel";
 import {
   crearArancelEscuela,
   desactivarArancelEscuela,
+  editarArancelEscuela,
 } from "@/services/arancel.service";
 
 export async function crearArancelAction(
@@ -20,12 +21,48 @@ export async function crearArancelAction(
       categoriaId: formData.get("categoriaId") ?? "",
       concepto: formData.get("concepto"),
       monto: formData.get("monto"),
+      descripcion: formData.get("descripcion") ?? "",
       vigenteDesde: formData.get("vigenteDesde") ?? "",
     });
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
-    await crearArancelEscuela(ctx, parsed.data);
+    // Presente solo cuando la UI detectó un duplicado activo y el usuario
+    // confirmó el reemplazo (ver ArancelesPanel): no es un campo del form.
+    const reemplazarIdRaw = formData.get("reemplazarId");
+    const reemplazarId =
+      typeof reemplazarIdRaw === "string" && reemplazarIdRaw !== ""
+        ? reemplazarIdRaw
+        : undefined;
+    await crearArancelEscuela(ctx, parsed.data, reemplazarId);
+    revalidatePath("/escuela/aranceles");
+    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
+    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
+    revalidatePath("/escuela/membresias");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function editarArancelAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = editarArancelSchema.safeParse({
+      id: formData.get("id"),
+      categoriaId: formData.get("categoriaId") ?? "",
+      concepto: formData.get("concepto"),
+      monto: formData.get("monto"),
+      descripcion: formData.get("descripcion") ?? "",
+      vigenteDesde: formData.get("vigenteDesde") ?? "",
+    });
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+    }
+    await editarArancelEscuela(ctx, parsed.data);
     revalidatePath("/escuela/aranceles");
     // Membresías también lee la lista de precios (el aviso "todavía no cargaste
     // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.

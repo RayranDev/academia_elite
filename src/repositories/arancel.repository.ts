@@ -33,6 +33,7 @@ export function crearArancel(
     categoriaId: string | null;
     concepto: string;
     monto: number;
+    descripcion: string | null;
     vigenteDesde: Date;
   },
 ) {
@@ -44,5 +45,23 @@ export function desactivarArancel(escuelaId: string, id: string) {
   return db.arancel.updateMany({
     where: { id, escuelaId },
     data: { activo: false },
+  });
+}
+
+/** Edita un precio existente. Acotado por tenant, como toda escritura acá. */
+export function actualizarArancel(
+  escuelaId: string,
+  id: string,
+  data: {
+    categoriaId: string | null;
+    concepto: string;
+    monto: number;
+    descripcion: string | null;
+    vigenteDesde: Date;
+  },
+) {
+  return db.arancel.updateMany({
+    where: { id, escuelaId },
+    data,
   });
 }

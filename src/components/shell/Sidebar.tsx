@@ -29,6 +29,7 @@ import {
   Trophy,
   Wallet,
   Receipt,
+  Tag,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -62,6 +63,7 @@ export const ICONOS: Record<string, LucideIcon> = {
   ranking: Trophy,
   membresias: Wallet,
   egresos: Receipt,
+  precios: Tag,
   cuenta: Settings,
 };
 

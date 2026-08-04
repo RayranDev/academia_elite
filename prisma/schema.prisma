@@ -678,6 +678,9 @@ model Arancel {
   categoria    Categoria? @relation(fields: [categoriaId], references: [id])
   concepto     String // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
   monto        Decimal    @db.Decimal(12, 2)
+  // Texto libre, sobre todo para el concepto OTRO: sin esto, un precio "OTRO"
+  // queda sin contexto para cuando alguien lo audite después.
+  descripcion  String?
   vigenteDesde DateTime   @default(now())
   activo       Boolean    @default(true)
   createdAt    DateTime   @default(now())

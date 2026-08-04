@@ -4,7 +4,7 @@ import {
   referenciaDePrecio,
   type ArancelVigente,
 } from "@/lib/aranceles";
-import { arancelSchema } from "@/lib/validators/arancel";
+import { arancelSchema, editarArancelSchema } from "@/lib/validators/arancel";
 
 // Resolución de precios (Track A · A.1). Es la función que decide cuánto se le
 // cobra a una familia: cada regla tiene su caso.
@@ -188,5 +188,59 @@ describe("arancelSchema — el monto es obligatorio", () => {
     const r = arancelSchema.safeParse({ ...base, monto: "45000" });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.categoriaId).toBeNull();
+  });
+
+  it("descripcion es opcional: vacía o ausente se guarda como null", () => {
+    const r1 = arancelSchema.safeParse({ ...base, monto: "45000", descripcion: "" });
+    expect(r1.success).toBe(true);
+    if (r1.success) expect(r1.data.descripcion).toBeNull();
+
+    const r2 = arancelSchema.safeParse({ ...base, monto: "45000" });
+    expect(r2.success).toBe(true);
+    if (r2.success) expect(r2.data.descripcion).toBeNull();
+  });
+
+  it("descripcion es texto libre del usuario: pasa por textoSeguro", () => {
+    expect(
+      arancelSchema.safeParse({
+        ...base,
+        monto: "45000",
+        descripcion: "<script>alert(1)</script>",
+      }).success,
+    ).toBe(false);
+
+    const ok = arancelSchema.safeParse({
+      ...base,
+      monto: "45000",
+      descripcion: "  Cobro por torneo interno  ",
+    });
+    expect(ok.success).toBe(true);
+    if (ok.success) expect(ok.data.descripcion).toBe("Cobro por torneo interno");
+  });
+});
+
+describe("editarArancelSchema — mismas reglas de arancelSchema + id", () => {
+  const base = {
+    categoriaId: "",
+    concepto: "MENSUALIDAD" as const,
+    monto: "45000",
+    vigenteDesde: "",
+  };
+
+  it("rechaza sin id", () => {
+    expect(editarArancelSchema.safeParse(base).success).toBe(false);
+    expect(editarArancelSchema.safeParse({ ...base, id: "" }).success).toBe(false);
+  });
+
+  it("acepta con id y mantiene las reglas de monto obligatorio", () => {
+    const r = editarArancelSchema.safeParse({ ...base, id: "arancel_1" });
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.id).toBe("arancel_1");
+      expect(r.data.monto).toBe(45000);
+    }
+    expect(
+      editarArancelSchema.safeParse({ ...base, id: "arancel_1", monto: "" }).success,
+    ).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CONCEPTOS_MEMBRESIA } from "@/lib/validators/membresia";
+import { textoSeguro } from "@/lib/validators/sanitizar";
 
 export const arancelSchema = z.object({
   // "" = precio general de la escuela (el <select> manda cadena vacía).
@@ -20,6 +21,12 @@ export const arancelSchema = z.object({
     .refine((n) => Number.isFinite(n), { error: "El monto debe ser un número." })
     .refine((n) => n >= 0, { error: "El monto no puede ser negativo." })
     .refine((n) => n <= 99999999, { error: "El monto es demasiado alto." }),
+  // Texto libre opcional, sobre todo para el concepto OTRO (AGENTS.md §5:
+  // texto libre sanitizado con textoSeguro, no z.string() pelado).
+  descripcion: z
+    .union([z.literal(""), textoSeguro({ max: 200 })])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
   // Desde cuándo rige. Vacío = hoy. Se permite futuro: la escuela puede dejar
   // programado el aumento antes de que entre en vigencia.
   //
@@ -34,3 +41,10 @@ export const arancelSchema = z.object({
 });
 
 export type ArancelInput = z.infer<typeof arancelSchema>;
+
+/** Edición de un precio ya existente: mismas reglas + el id del arancel. */
+export const editarArancelSchema = arancelSchema.extend({
+  id: z.string().min(1, { error: "Falta el precio a editar." }),
+});
+
+export type EditarArancelInput = z.infer<typeof editarArancelSchema>;

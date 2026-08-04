@@ -52,6 +52,7 @@
 | 26 | Caja / egresos: modelo `Egreso`, caja neta del mes contra la cobranza pagada | 2026-08-04 | ✅ |
 | 27 | Guardián de tenant: cobertura de `create`/`createMany` y de llamadas `tx.` en transacciones | 2026-08-04 | ✅ |
 | 28 | Planilla del simulador: layout de la hoja Parametros derivado, no hardcodeado | 2026-08-04 | ✅ |
+| 29 | Aranceles: editar, evitar duplicados con aviso, descripción libre, navegación | 2026-08-04 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -890,6 +891,60 @@ generado en silencio. `typecheck`/`lint`/`test` limpios (285 tests). Sin
 smoke de generación real del `.xlsx` (requiere una sesión SUPER_ADMIN
 autenticada contra la base real) — se confirmó por lectura cuidadosa que
 cada referencia migró a la constante derivada correspondiente.
+
+## 29. Aranceles: cerrar el ciclo de precios (2026-08-04)
+
+Cuatro gaps reportados en uso real y verificados contra el código antes de
+tocar nada (`arancel.repository.ts`, `arancel.service.ts`,
+`validators/arancel.ts`, `ArancelesPanel.tsx`).
+
+**Editar.** `actualizarArancel` nueva en el repo (`updateMany` acotado por
+`escuelaId`, mismo patrón que `desactivarArancel`); `editarArancelEscuela`
+en el service (valida la categoría del tenant, igual que crear; audita
+`"ARANCEL_EDITAR"`); `EditarArancelModal.tsx` nuevo, mismo patrón
+Modal+form+`useActionState` que `FichaMedicaModal`/`JugadorBloqueoModal` —
+a diferencia de la ficha médica, acá no hace falta fetch on-demand: el
+`ArancelDTO` de la fila ya trae todo, no es un dato sensible.
+
+**Duplicados con aviso, no bloqueo ciego.** A propósito el modelo `Arancel`
+sigue sin `@@unique` por (categoría, concepto) — varias filas con distinto
+`vigenteDesde` son historial de precios, un unique lo rompería. La detección
+del duplicado quedó del lado del **cliente**: `ArancelesPanel.tsx` ya tiene
+la lista completa de aranceles como prop, así que antes de enviar el alta
+busca localmente si hay uno activo con la misma categoría+concepto y, si lo
+hay, `window.confirm(...)` con el monto y la fecha del que se va a reemplazar
+— si cancela, no se envía nada. Si confirma, viaja un `reemplazarId` oculto
+en el `FormData`. El servicio, al recibir `reemplazarId`, abre una
+transacción (`db.$transaction`, `tx.arancel.updateMany` + `tx.arancel.create`
+directo desde el service — patrón ya existente en `entrenador.service.ts`,
+no una desviación nueva) que desactiva el viejo y crea el nuevo, auditando
+las dos acciones por separado.
+
+**Descripción libre**, sobre todo para el concepto `OTRO`: columna nueva
+(`descripcion String?`, migración `20260804130000_arancel_descripcion`, pura
+`ALTER TABLE`, sin bloque RLS — no crea tabla, `Arancel` ya la tiene) con
+`textoSeguro()` en el validador.
+
+**Navegación**: "Precios" sumado al `NAV` de `src/app/escuela/layout.tsx`
+(ícono `Tag` nuevo en `Sidebar.tsx`), resolviendo el reclamo de "no hay forma
+de volver" — la ruta ahora vive en el sidebar como cualquier otra.
+
+**Hallazgo colateral, no corregido acá** (anotado en `PENDIENTES.md`): el
+guardián de tenant extendido en el hito 27 solo escanea
+`src/repositories/*.repository.ts`. El `db.$transaction` de
+`arancel.service.ts` (igual que el ya existente en `entrenador.service.ts`)
+queda fuera de ese barrido — hoy está bien escrito, pero el guardián no lo
+vería si algún día no lo estuviera.
+
+Implementación delegada a un sub-agente con el plan ya diseñado como
+instrucción exacta; ese mismo sub-agente hizo una segunda pasada de
+revisión propia antes de entregar. Revisión de diff, migración a producción
+y smoke test contra la base real con `ROLLBACK` (probó el flujo completo de
+reemplazo: crear, desactivar+crear en transacción, confirmar que el viejo
+queda inactivo y la columna `descripcion` persiste) hechos directamente, sin
+delegar. Se sumaron 4 tests a `tests/unit/aranceles.test.ts` (descripción
+sanitizada, `editarArancelSchema` exige `id`) — el sub-agente no los había
+escrito. `typecheck`/`lint`/`test` limpios (289 tests).
 
 ---
 

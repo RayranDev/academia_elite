@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 7).
+> Última actualización: 2026-08-04 (noche, 8).
 
 ---
 
@@ -24,10 +24,10 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Aranceles: cerrar el ciclo de precios](#paquete--aranceles-cerrar-el-ciclo-de-precios) | Medio | Editar, evitar duplicados, describir "OTRO", navegación |
 | [Membresías operativas](#paquete--membresías-operativas) | Medio | Paginación, filtro por mes/jugador, export conectado al filtro |
 | [Bloqueo por mora: acción directa y masiva](#paquete--bloqueo-por-mora-acción-directa-y-masiva) | Grande | Bloquear desde la lista de cuotas vencidas, ver morosos y elegir a quién bloquear |
 | [Unificar el motivo de soporte](#paquete--unificar-el-motivo-de-soporte) | Chico | Decisión de estilo entre dos patrones ya usados en el código |
+| [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
 | [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
 | [Acceso parcial del jugador bloqueado](#paquete--acceso-parcial-del-jugador-bloqueado) | Medio | Hoy es bloqueo total; requiere diseño de auth antes de tocar código |
@@ -36,40 +36,6 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Aranceles: cerrar el ciclo de precios
-
-Reportado en uso real (2026-08-04) y verificado contra el código
-(`src/app/escuela/aranceles/page.tsx`, `src/services/arancel.service.ts`,
-`src/repositories/arancel.repository.ts`, `src/lib/validators/arancel.ts`,
-`ArancelesPanel.tsx`, modelo `Arancel` en `prisma/schema.prisma:672-686`).
-
-- **Editar un arancel existente.** Hoy `arancel.repository.ts` solo tiene
-  `crearArancel`/`desactivarArancel` (línea 43-48, solo togglea `activo`) —
-  no hay `actualizarArancel`. Sumar la función al repo, un
-  `editarArancelAction` en `arancel.actions.ts`, y el botón/modal en
-  `ArancelesPanel.tsx` (hoy solo renderiza "Desactivar", líneas 140, 153-189).
-- **Evitar duplicados silenciosos, con aviso, no con bloqueo ciego.**
-  A propósito el modelo `Arancel` NO tiene `@@unique` por (categoría,
-  concepto) — varias filas con distinto `vigenteDesde` son el historial de
-  precios (ver comentario en la migración `20260731130000_arancel`), así que
-  un unique constraint rompería ese diseño. El fix es a nivel de **servicio**:
-  antes de crear, `crearArancelEscuela` (`arancel.service.ts:47-76`) debería
-  consultar `listarArancelesActivos` para esa (categoría, concepto) y, si ya
-  hay uno activo, devolver esa info a la UI para que muestre "Ya existe un
-  precio activo de $X vigente desde [fecha] — ¿reemplazarlo?" antes de
-  confirmar. Reemplazar = desactivar el viejo + crear el nuevo, en una
-  transacción.
-- **Campo de descripción libre**, sobre todo para el concepto `OTRO`: sin
-  esto, en tres meses nadie sabe a qué correspondía ese precio. Requiere
-  migración de schema (`descripcion String?` en `Arancel`, con `textoSeguro()`
-  en el validador — AGENTS.md §5, es texto libre) + sumarlo al formulario de
-  `ArancelesPanel.tsx` (líneas 45-92) y a la tabla que lista los aranceles.
-- **Navegación**: la ruta no está en el `NAV` de `src/app/escuela/layout.tsx`
-  (solo se llega vía el botón "Precios" de Membresías o desde
-  `GenerarCuotasCard.tsx` cuando no hay precios activos). Sumarla al `NAV`
-  bajo "Administración", junto a "Membresías" — mismo patrón que se usó para
-  agregar "Egresos" (hito 26).
 
 ## Paquete — Membresías operativas
 
@@ -139,6 +105,21 @@ el de sesión (parece razonable: importar 200 filas es una acción bien
 distinta a editar un campo), o si conviene unificar todo bajo el motivo de
 sesión por consistencia. Detalle completo de por qué surgió la
 inconsistencia en `DECISIONES.md` §72.
+
+## Paquete — Guardián de tenant: cubrir `tx.` dentro de `services`
+
+Chico. Hallazgo del hito 29 (Aranceles): el guardián extendido en el hito 27
+solo escanea `src/repositories/*.repository.ts`. Algunos services (
+`entrenador.service.ts`, y ahora `arancel.service.ts` para el flujo de
+reemplazo) abren `db.$transaction(async (tx) => ...)` **directo desde el
+service**, no desde el repositorio — un patrón ya existente en el código,
+no una violación nueva. Hoy esas transacciones están bien escritas
+(`escuelaId` presente en cada `tx.modelo.*`), pero el guardián no las vería
+si alguna vez una nueva no lo estuviera. Extender el barrido de
+`tests/unit/aislamiento-tenant.test.ts` para incluir también
+`src/services/*.service.ts` (mismo mecanismo, otro directorio) cerraría el
+hueco. No es urgente — es hardening sobre código ya correcto, no un bug
+activo.
 
 ## Paquete — Descuentos con regla
 
