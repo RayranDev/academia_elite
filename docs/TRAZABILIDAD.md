@@ -61,6 +61,7 @@
 | 35 | Guardián de tenant: extendido a `src/services/*.service.ts` (antes solo repositories) | 2026-08-05 | ✅ |
 | 36 | Filtro `?bloqueado=1` en Jugadores: link muerto del KPI "Familias bloqueadas" ahora funciona | 2026-08-05 | ✅ |
 | 37 | Descuentos con regla: reglas de descuento reusables (Hermano, Beca) aplicadas solas al generar la cobranza | 2026-08-05 | ✅ |
+| 38 | Acceso parcial del jugador bloqueado: solo mensajes con el DT, resto del panel sigue bloqueado | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1276,6 +1277,48 @@ puramente aditiva) aplicada a producción.
 Implementación delegada a un sub-agente con el plan (investigado y
 aprobado en modo plan) como instrucción exacta; revisión de diff propia
 línea por línea antes de verificar y aplicar la migración.
+
+## 38. Acceso parcial del jugador bloqueado (2026-08-05)
+
+Paquete "Medio" de `PENDIENTES.md`, marcado como sensible por tocar
+funciones centrales de autenticación (datos de menores, AGENTS.md §5). Pedido
+real de uso: una familia bloqueada por mora podía seguir entrando pero solo
+a `/jugador/mensajes`, para hablar con el DT, en vez de un bloqueo total.
+
+Decisiones cerradas antes de diseñar (`DECISIONES.md` §81): guard nuevo más
+laxo en vez de un allowlist de rutas dentro de los guards existentes; el
+aviso convive como banner arriba de mensajes, no reemplaza la pantalla.
+
+**Diseño**: `requirePanelUser`/`requireAuthContext`
+(`src/lib/auth/session.ts`) ganaron un parámetro opcional
+`{ permitirBloqueado: true }` — sin el parámetro (todos los demás
+call-sites de la app) el comportamiento es idéntico al de siempre.
+Confirmado por grep: solo 3 lugares lo usan — el layout de `/jugador`
+(necesita dejar pasar para que algo renderice, y filtra `NAV` a solo
+"Mensajes" si `user.bloqueado`) y las dos páginas de mensajes
+(`mensajes/page.tsx`, `mensajes/[id]/page.tsx`, que además muestran
+`AvisoAccesoLimitado` nuevo con el mensaje real de
+`mensajeDeBloqueo`/`obtenerEstadoBloqueo`, ambos ya existentes). Las otras
+9 páginas de `/jugador` no se tocaron: cada una ya llama su propio
+`requireAuthContext()` sin el flag, así que se siguen auto-bloqueando
+solas apenas el layout deja pasar. `AuthContext` no ganó un campo
+`bloqueado` a propósito — es preocupación de UI de una sola pantalla, no
+de las funciones de servicio que lo reciben en toda la app.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (299 tests, sin
+cambios en unitarios — es lógica de guard de página). `grep` confirmó que
+ningún otro call-site de `requirePanelUser`/`requireAuthContext` pasa el
+parámetro nuevo. `npm run test:e2e`: 11/11 (se sumó un caso nuevo a
+`tests/e2e/04-bloqueo.spec.ts` — familia bloqueada entra directo a
+`/jugador/mensajes` sin redirigir, ve el aviso, el nav solo ofrece
+"Mensajes", y cualquier otra ruta la sigue mandando a `/bloqueado`). Un
+primer intento del test falló por una aserción floja (`getByRole("link",
+{name:"Progreso"})` matcheaba por substring contra el ASUNTO de una
+conversación real, "Progreso de Lucas", no un link de nav) — corregido
+acotando la búsqueda al `<nav>` del Sidebar.
+
+Implementado directamente, sin delegar a un sub-agente, por tocar
+autenticación.
 
 ---
 

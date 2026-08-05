@@ -59,7 +59,15 @@ export async function getAuthContext(): Promise<AuthContext | null> {
  * apunta a un usuario inexistente (p. ej. tras un re-seed) limpia la cookie vía
  * /api/salir. Así nunca se cae con un 500 por sesión obsoleta.
  */
-export async function requireAuthContext(): Promise<AuthContext> {
+export async function requireAuthContext(opts?: {
+  /**
+   * Deja pasar a un JUGADOR bloqueado sin redirigir a /bloqueado. Uso
+   * exclusivo del rincón de acceso limitado (layout de /jugador y sus
+   * páginas de mensajes) — el resto de la app sigue llamando esta función
+   * sin el flag y conserva el bloqueo total de siempre.
+   */
+  permitirBloqueado?: boolean;
+}): Promise<AuthContext> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
   const user = await db.user.findUnique({
@@ -67,8 +75,10 @@ export async function requireAuthContext(): Promise<AuthContext> {
     select: { activo: true, bloqueado: true, rol: true },
   });
   if (!user || !user.activo) redirect("/api/salir");
-  // Familia bloqueada por la escuela → pantalla con el motivo (G2).
-  if (user.bloqueado && user.rol === "JUGADOR") redirect("/bloqueado");
+  // Familia bloqueada por la escuela → pantalla con el motivo (G2), salvo
+  // que el llamador pida explícitamente permitir el acceso limitado.
+  const bloqueado = user.bloqueado && user.rol === "JUGADOR";
+  if (bloqueado && !opts?.permitirBloqueado) redirect("/bloqueado");
   const ctx = await getAuthContext();
   if (!ctx) redirect("/login");
   return ctx;
@@ -78,11 +88,16 @@ export async function requireAuthContext(): Promise<AuthContext> {
  * Guard de página (Server Component): exige sesión y rol concreto. Es la
  * seguridad real (Barrera 2); el proxy es solo UX. Redirige si no cumple.
  */
-export async function requirePanelUser(rol: Rol): Promise<{
+export async function requirePanelUser(
+  rol: Rol,
+  opts?: { permitirBloqueado?: boolean },
+): Promise<{
   id: string;
   rol: Rol;
   escuelaId: string | null;
   nombre: string;
+  /** true si es un JUGADOR bloqueado al que se dejó pasar con `permitirBloqueado`. */
+  bloqueado: boolean;
 }> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -99,14 +114,17 @@ export async function requirePanelUser(rol: Rol): Promise<{
   // Redirige a un endpoint que limpia la cookie (si fuéramos a /login el proxy
   // nos reenviaría al panel y entraríamos en bucle).
   if (!user || !user.activo) redirect("/api/salir");
-  // Familia bloqueada por la escuela → pantalla con el motivo (G2).
-  if (user.bloqueado && actual === "JUGADOR") redirect("/bloqueado");
+  // Familia bloqueada por la escuela → pantalla con el motivo (G2), salvo
+  // que el llamador pida explícitamente permitir el acceso limitado.
+  const bloqueado = user.bloqueado && actual === "JUGADOR";
+  if (bloqueado && !opts?.permitirBloqueado) redirect("/bloqueado");
 
   return {
     id: session.user.id,
     rol: actual,
     escuelaId: session.user.escuelaId ?? null,
     nombre: session.user.name ?? "Usuario",
+    bloqueado,
   };
 }
 

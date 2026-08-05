@@ -588,3 +588,21 @@ cada adaptación, regla 0.8.)
     por vínculo familiar. Sin baja lógica tipo "reemplazar" de Arancel: un
     duplicado (misma categoría+nombre, ambas activas) se rechaza con un
     error, sin flujo de reemplazo con historial.
+81. **Acceso parcial del jugador bloqueado: guard nuevo laxo, solo en
+    mensajes.** Decisiones del usuario (2026-08-05) antes de diseñar: (1) se
+    resuelve con un parámetro opcional `{ permitirBloqueado: true }` en
+    `requirePanelUser`/`requireAuthContext` (`src/lib/auth/session.ts`), no
+    con un allowlist de rutas dentro de los guards — por defecto (sin el
+    parámetro) el comportamiento de ambos guards es idéntico al de siempre
+    en absolutamente todas las demás rutas de la app; (2) el aviso "contactá
+    a la escuela" convive como banner fijo arriba de `/jugador/mensajes` y
+    `/jugador/mensajes/[id]`, no reemplaza la pantalla. Solo esas dos páginas
+    y el layout de `/jugador` (que necesita dejar pasar al usuario para que
+    algo renderice, y filtra el nav a solo "Mensajes" si está bloqueado)
+    pasan el flag; las otras 9 páginas de `/jugador` siguen llamando
+    `requireAuthContext()` a secas y se auto-bloquean solas, sin tocarlas.
+    `AuthContext` (`src/lib/auth/context.ts`) no ganó un campo `bloqueado`
+    a propósito: es una preocupación de UI de una sola pantalla, no algo que
+    necesiten las funciones de servicio (Capa 3) que reciben `AuthContext`
+    en toda la app — las páginas de mensajes consultan
+    `obtenerEstadoBloqueo(ctx.userId)` (ya existía) aparte, para el mensaje.

@@ -1,18 +1,28 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarConversaciones } from "@/services/mensaje.service";
-import { listarHijos } from "@/repositories/jugador.repository";
+import { obtenerMisJugadores, obtenerEstadoBloqueo } from "@/services/cuenta.service";
+import { mensajeDeBloqueo } from "@/lib/bloqueo";
 import { ThreadList } from "@/components/messages/ThreadList";
 import { NuevaConversacionDialog } from "@/components/messages/NuevaConversacionDialog";
+import { AvisoAccesoLimitado } from "@/components/messages/AvisoAccesoLimitado";
 
 export default async function JugadorMensajesPage() {
-  const ctx = await requireAuthContext();
-  const [conversaciones, hijos] = await Promise.all([
+  // permitirBloqueado: mensajes es la única página de /jugador accesible
+  // para una familia bloqueada por mora (ver layout.tsx).
+  const ctx = await requireAuthContext({ permitirBloqueado: true });
+  const [conversaciones, hijos, estado] = await Promise.all([
     listarConversaciones(ctx),
-    listarHijos(ctx.userId),
+    obtenerMisJugadores(ctx),
+    obtenerEstadoBloqueo(ctx.userId),
   ]);
+  const avisoBloqueo =
+    estado?.bloqueado && estado.rol === "JUGADOR"
+      ? mensajeDeBloqueo(estado.bloqueoTipo, estado.bloqueoMensaje)
+      : null;
 
   return (
     <div className="max-w-2xl space-y-3">
+      {avisoBloqueo && <AvisoAccesoLimitado mensaje={avisoBloqueo} />}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-black italic uppercase">Mensajes</h1>
         <NuevaConversacionDialog

@@ -49,3 +49,51 @@ test("una familia bloqueada ve su mensaje al entrar", async ({ page }) => {
   await page.getByRole("button", { name: "Desbloquear", exact: true }).last().click();
   await expect(page.getByText("Bloqueado")).toHaveCount(0, { timeout: 15000 });
 });
+
+// Acceso parcial (PENDIENTES): una familia bloqueada igual puede entrar a
+// /jugador/mensajes (para hablar con el DT), pero el resto de /jugador sigue
+// bloqueado total. El test deja el estado como lo encontró.
+test("una familia bloqueada solo puede entrar a mensajes", async ({ page }) => {
+  // 1) La escuela bloquea a la familia de Lucas.
+  await login(page, "escuela@demo.app", "Demo1234!");
+  await abrirFichaLucas(page);
+  await page.getByRole("button", { name: "Bloquear", exact: true }).first().click();
+  await page.locator('select[name="tipo"]').selectOption("CONTACTA_DT");
+  await page.getByRole("button", { name: "Bloquear acceso" }).click();
+  await expect(page.getByText("Bloqueado").first()).toBeVisible({ timeout: 15000 });
+  await logout(page);
+
+  // 2) La familia inicia sesión: cae en /bloqueado (comportamiento de siempre).
+  await page.goto("/login");
+  await page.fill('input[name="email"]', "jugador@demo.app");
+  await page.fill('input[name="password"]', "Demo1234!");
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await page.waitForURL(/\/bloqueado/, { timeout: 15000 });
+
+  // 3) Navegar directo a mensajes: NO redirige, se ve el aviso de acceso limitado.
+  await page.goto("/jugador/mensajes");
+  await expect(page).toHaveURL(/\/jugador\/mensajes$/);
+  await expect(page.getByText(/comunícate con tu director técnico/i)).toBeVisible();
+  await expect(
+    page.getByText(/podés seguir escribiéndole al entrenador/i),
+  ).toBeVisible();
+
+  // 4) El nav solo ofrece "Mensajes" — ninguna otra sección del panel. Acotado
+  // al <nav> del Sidebar: la propia lista de conversaciones puede tener un
+  // asunto que matchee por texto ("Progreso de Lucas") sin ser un link de nav.
+  const nav = page.getByRole("navigation");
+  await expect(nav.getByRole("link")).toHaveCount(1);
+  await expect(nav.getByRole("link", { name: "Mensajes" })).toBeVisible();
+
+  // 5) Cualquier otra ruta de /jugador sigue redirigiendo a /bloqueado.
+  await page.goto("/jugador/calendario");
+  await page.waitForURL(/\/bloqueado/, { timeout: 15000 });
+  await logout(page);
+
+  // 6) Limpieza: la escuela desbloquea para dejar el estado original.
+  await login(page, "escuela@demo.app", "Demo1234!");
+  await abrirFichaLucas(page);
+  await page.getByRole("button", { name: "Desbloquear", exact: true }).first().click();
+  await page.getByRole("button", { name: "Desbloquear", exact: true }).last().click();
+  await expect(page.getByText("Bloqueado")).toHaveCount(0, { timeout: 15000 });
+});

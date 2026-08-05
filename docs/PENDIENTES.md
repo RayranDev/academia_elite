@@ -18,8 +18,8 @@
 >
 > Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
-> `services`, el filtro `?bloqueado=1` y Descuentos con regla — ver
-> TRAZABILIDAD.md #33-37).
+> `services`, el filtro `?bloqueado=1`, Descuentos con regla y el acceso
+> parcial del jugador bloqueado — ver TRAZABILIDAD.md #33-38).
 
 ---
 
@@ -28,7 +28,6 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
-| [Acceso parcial del jugador bloqueado](#paquete--acceso-parcial-del-jugador-bloqueado) | Medio | Hoy es bloqueo total; requiere diseño de auth antes de tocar código |
 | [Perfil del DT con estadísticas](#paquete--perfil-del-dt-con-estadísticas) | Medio | No existe ninguna pantalla de "mis resultados" para el DT |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
@@ -46,31 +45,6 @@ ejemplo un modelo `Staff` (`escuelaId`, `nombre`, `rol` cerrado
 `COORDINADOR|PREPARADOR_FISICO|UTILERO|OTRO`, contacto), **sin** `userId` ni
 relación a `User` — no inicia sesión, es un registro administrativo, no una
 cuenta.
-
-## Paquete — Acceso parcial del jugador bloqueado
-
-Medio, pero toca funciones centrales — no es un parche puntual. Pedido en uso
-real: cuando un jugador queda bloqueado por falta de pago, debería poder
-entrar igual pero ver un aviso de "contactá a la escuela" y solo acceder a
-los mensajes directos entre el DT y el jugador.
-
-Comportamiento **actual** verificado: el bloqueo es total.
-`requireAuthContext` (`src/lib/auth/session.ts:71`) y `requirePanelUser`
-(línea 103) redirigen a `/bloqueado` a cualquier usuario con
-`bloqueado: true` **antes** de renderizar cualquier página o layout de
-`/jugador` — incluidos los mensajes (`src/app/jugador/mensajes/page.tsx:8`
-llama a la misma función). `/app/bloqueado/page.tsx` solo ofrece "Cerrar
-sesión".
-
-Por qué no es un fix chico: `requireAuthContext`/`requirePanelUser` son las
-funciones que usa **toda la app** para construir el `AuthContext` de sesión
-— no se puede simplemente "dejar pasar" al bloqueado sin decidir con
-precisión qué rutas quedan abiertas y por qué, para no abrir sin querer un
-agujero de acceso. Diseño a cerrar antes de escribir código: ¿se resuelve con
-un allowlist de rutas permitidas para bloqueados dentro del guard, o con un
-nuevo guard más laxo (`requireAuthContextLimitado` o similar) que solo se usa
-en las páginas de mensajes? ¿El aviso de "contactá a la escuela" reemplaza el
-contenido de `/jugador` o convive arriba de los mensajes?
 
 ## Paquete — Perfil del DT con estadísticas
 
