@@ -2,20 +2,13 @@ import { z } from "zod";
 import { TIPOS_EVENTO, CONFIRMACIONES } from "@/types";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 
-/** Un evento arranca y termina el MISMO día (no dura 3 días). */
-function mismoDia(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-const mismoDiaCheck = (d: { inicio: Date; fin: Date }) => mismoDia(d.inicio, d.fin);
-const mismoDiaError = {
-  error: "El evento debe empezar y terminar el mismo día.",
-  path: ["fin"],
-};
+// Tope de duración de un evento. La UI ofrece hasta 6h + 45' (ver
+// CrearEventoDialog/EditarEventoDialog); acá se deja un margen sobre eso
+// porque una Server Action es un endpoint HTTP y el tope de la UI es solo
+// cortesía del navegador — sin este refine, sacar `mismoDia()` (que antes
+// limitaba la duración a <24h como efecto colateral) dejaba la duración sin
+// techo real del lado del servidor.
+const DURACION_MAXIMA_MS = 8 * 60 * 60 * 1000; // 8 horas
 
 export const eventoSchema = z
   .object({
@@ -36,7 +29,10 @@ export const eventoSchema = z
     error: "El fin debe ser posterior al inicio.",
     path: ["fin"],
   })
-  .refine(mismoDiaCheck, mismoDiaError);
+  .refine((d) => d.fin.getTime() - d.inicio.getTime() <= DURACION_MAXIMA_MS, {
+    error: "La duración no puede superar las 8 horas.",
+    path: ["fin"],
+  });
 
 export type EventoInput = z.infer<typeof eventoSchema>;
 
@@ -68,14 +64,16 @@ export const editarEventoSchema = z
     error: "El fin debe ser posterior al inicio.",
     path: ["fin"],
   })
-  .refine(mismoDiaCheck, mismoDiaError);
+  .refine((d) => d.fin.getTime() - d.inicio.getTime() <= DURACION_MAXIMA_MS, {
+    error: "La duración no puede superar las 8 horas.",
+    path: ["fin"],
+  });
 
 export type EditarEventoInput = z.infer<typeof editarEventoSchema>;
 
 /** Estadística individual de un jugador en un partido. */
 export const estadisticaSchema = z.object({
   titular: z.coerce.boolean().optional().default(false),
-  minutos: z.coerce.number().int().min(0).max(200).default(0),
   goles: z.coerce.number().int().min(0).max(99).default(0),
   asistencias: z.coerce.number().int().min(0).max(99).default(0),
   amarillas: z.coerce.number().int().min(0).max(2).default(0),

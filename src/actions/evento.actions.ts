@@ -121,7 +121,6 @@ function parsearEstadisticas(formData: FormData) {
   const registros = jugadorIds.map((jugadorId) => {
     const parsed = estadisticaSchema.safeParse({
       titular: formData.get(`titular_${jugadorId}`) === "on",
-      minutos: formData.get(`minutos_${jugadorId}`) || 0,
       goles: formData.get(`goles_${jugadorId}`) || 0,
       asistencias: formData.get(`asistencias_${jugadorId}`) || 0,
       amarillas: formData.get(`amarillas_${jugadorId}`) || 0,

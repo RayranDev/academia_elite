@@ -3,12 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, LogOut } from "lucide-react";
-import { iniciarSesionAction } from "@/actions/sesion.actions";
+import {
+  iniciarSesionAction,
+  reprogramarEIniciarSesionAction,
+} from "@/actions/sesion.actions";
 import { Cronometro } from "./Cronometro";
 import { ListaViva, type EstadoVisible } from "./ListaViva";
 import { SesionVivo } from "./SesionVivo";
 import { PartidoVivo } from "./PartidoVivo";
 import { CierreSesion } from "./CierreSesion";
+import { AjustarFechaEventoModal } from "./AjustarFechaEventoModal";
 import {
   useAsistenciaOptimista,
   type EstadoAsistencia,
@@ -38,6 +42,8 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
     sesion.sesionCerradaAt ? "CIERRE" : "LISTA",
   );
   const [sumados, setSumados] = useState<ConvocadoSesionDTO[]>([]);
+  const [mostrarAjusteFecha, setMostrarAjusteFecha] = useState(false);
+  const [ajustandoFecha, setAjustandoFecha] = useState(false);
 
   const inicial = useMemo(() => {
     const m = new Map<string, MarcaAsistencia>();
@@ -60,12 +66,53 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
 
   // Arranca el cronómetro al entrar. Idempotente: el server solo lo fija si
   // todavía era null, así que reentrar no lo resetea.
+  //
+  // Antes de arrancar automático, se compara el día PROGRAMADO del evento con
+  // "hoy" en hora LOCAL del navegador (no UTC: acá el DT es quien manda, mismo
+  // criterio que FechaLocal). Si no coinciden y la sesión todavía no arrancó,
+  // se ofrece reprogramar el evento al momento real en vez de arrancar en
+  // silencio con una fecha desactualizada.
   useEffect(() => {
     if (sesion.sesionIniciadaAt || sesion.sesionCerradaAt) return;
+    const programado = new Date(sesion.inicio);
+    const hoy = new Date();
+    const mismoDia =
+      programado.getFullYear() === hoy.getFullYear() &&
+      programado.getMonth() === hoy.getMonth() &&
+      programado.getDate() === hoy.getDate();
+    if (!mismoDia) {
+      // "hoy" solo se conoce en el cliente tras montar (ver GenerarCuotasCard
+      // para el mismo criterio con `new Date()` y AGENTS.md §6).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMostrarAjusteFecha(true);
+      return;
+    }
     void iniciarSesionAction({ eventoId: sesion.eventoId }).then(() =>
       router.refresh(),
     );
-  }, [sesion.eventoId, sesion.sesionIniciadaAt, sesion.sesionCerradaAt, router]);
+  }, [
+    sesion.eventoId,
+    sesion.inicio,
+    sesion.sesionIniciadaAt,
+    sesion.sesionCerradaAt,
+    router,
+  ]);
+
+  function ajustarFechaYArrancar() {
+    setAjustandoFecha(true);
+    void reprogramarEIniciarSesionAction({ eventoId: sesion.eventoId }).then(
+      () => {
+        setMostrarAjusteFecha(false);
+        setAjustandoFecha(false);
+        router.refresh();
+      },
+    );
+  }
+
+  function cancelarAjusteFecha() {
+    setMostrarAjusteFecha(false);
+    router.push(`/dt/eventos/${sesion.eventoId}`);
+  }
 
   // Dedupe por jugadorId: un jugador sumado en cancha reaparece en
   // `sesion.convocados` cuando el server revalida, y sin esto quedaría DOS veces
@@ -123,6 +170,13 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col">
+      <AjustarFechaEventoModal
+        open={mostrarAjusteFecha}
+        fechaProgramada={sesion.inicio}
+        pending={ajustandoFecha}
+        onAjustar={ajustarFechaYArrancar}
+        onCancelar={cancelarAjusteFecha}
+      />
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-subtle bg-surface px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-bold">{sesion.titulo}</p>
@@ -196,7 +250,6 @@ export function ModoSesion({ sesion }: { sesion: SesionDTO }) {
                   agregadoEnCancha: true,
                   // Recién sumado: arranca sin estadística en el partido.
                   estadistica: {
-                    minutos: 0,
                     goles: 0,
                     asistencias: 0,
                     amarillas: 0,

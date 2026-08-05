@@ -1,6 +1,6 @@
 import { addWeeks } from "date-fns";
 import type { AuthContext } from "@/lib/auth/context";
-import { requireRole, assertTenant } from "@/lib/auth/guards";
+import { requireRole, assertTenant, assertOwnPlayer } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { listarHijos, listarPlantilla } from "@/repositories/jugador.repository";
@@ -25,7 +25,6 @@ import {
   listarEventosPaginado,
   type FiltrosListadoEventos,
 } from "@/repositories/evento.repository";
-import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
 import { crearAnuncio } from "@/repositories/anuncio.repository";
 import { listarObservacionesVisiblesDeEvento } from "@/repositories/observacion.repository";
 import { listarSedes } from "@/repositories/sede.repository";
@@ -35,7 +34,6 @@ import type { TipoEvento, Confirmacion, EstadoEvento } from "@/types";
 
 export interface EstadisticaJugadorDTO {
   titular: boolean;
-  minutos: number;
   goles: number;
   asistencias: number;
   amarillas: number;
@@ -461,7 +459,6 @@ export async function obtenerDetalleEventoDt(
         estadistica: s
           ? {
               titular: s.titular,
-              minutos: s.minutos,
               goles: s.goles,
               asistencias: s.asistencias,
               amarillas: s.amarillas,
@@ -482,12 +479,14 @@ export async function confirmarConvocatoria(
   confirmacion: Confirmacion,
 ): Promise<void> {
   requireRole(ctx, ["JUGADOR"]);
-  const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
-  if (!jugador) throw new NotFoundError("Jugador no encontrado.");
-  assertTenant(ctx, jugador.escuelaId);
-  if (ctx.userId !== jugador.padreUserId && ctx.userId !== jugador.cuentaUserId) {
-    throw new NotFoundError("Jugador no encontrado.");
-  }
+  const hijos = await listarHijos(ctx.userId);
+  if (hijos.length === 0) throw new NotFoundError("Jugador no encontrado.");
+  assertTenant(ctx, hijos[0].escuelaId);
+  assertOwnPlayer(
+    ctx,
+    jugadorId,
+    hijos.map((h) => h.id),
+  );
   const conv = await obtenerConvocatoria(eventoId, jugadorId);
   if (!conv) throw new NotFoundError("Convocatoria no encontrada.");
   await actualizarConfirmacion(eventoId, jugadorId, confirmacion);
@@ -738,7 +737,6 @@ export async function obtenerDetalleEventoJugador(
           estadistica: s
             ? {
                 titular: s.titular,
-                minutos: s.minutos,
                 goles: s.goles,
                 asistencias: s.asistencias,
                 amarillas: s.amarillas,
@@ -778,7 +776,6 @@ export interface ResumenPartidosDTO {
   partidos: number;
   goles: number;
   asistencias: number;
-  minutos: number;
   amarillas: number;
   rojas: number;
   ultimos: {

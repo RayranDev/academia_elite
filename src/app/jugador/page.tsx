@@ -106,11 +106,10 @@ export default async function JugadorHubPage() {
       {hub.resumenPartidos.partidos > 0 && (
         <Card>
           <Encabezado icon={Trophy} titulo="Resumen de partidos" />
-          <dl className="grid grid-cols-3 gap-3 text-center sm:grid-cols-6">
+          <dl className="grid grid-cols-3 gap-3 text-center sm:grid-cols-5">
             <ResumenStat label="Partidos" value={hub.resumenPartidos.partidos} />
             <ResumenStat label="Goles" value={hub.resumenPartidos.goles} />
             <ResumenStat label="Asistencias" value={hub.resumenPartidos.asistencias} />
-            <ResumenStat label="Minutos" value={hub.resumenPartidos.minutos} />
             <ResumenStat label="Amarillas" value={hub.resumenPartidos.amarillas} />
             <ResumenStat label="Rojas" value={hub.resumenPartidos.rojas} />
           </dl>

@@ -51,6 +51,25 @@ export async function iniciarSesionAction(
   }
 }
 
+/**
+ * El DT confirmó, ante el aviso de fecha distinta a la programada, que quiere
+ * reprogramar el evento al momento real de ejecución. Sin guard de fecha en el
+ * servidor a propósito: es un ajuste de calidad de dato, no control de acceso
+ * (el aviso y la decisión ya ocurrieron en el cliente).
+ */
+export async function reprogramarEIniciarSesionAction(
+  input: { eventoId: string },
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const { eventoId } = z.object({ eventoId: z.string().min(1) }).parse(input);
+    await sesion.reprogramarEIniciarSesion(ctx, eventoId);
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
 const cerrarSchema = z.object({
   eventoId: z.string().min(1),
   notaSesion: textoSeguro({ max: 1000 }).optional(),

@@ -16,7 +16,7 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-04 (noche, 10).
+> Última actualización: 2026-08-05.
 
 ---
 
@@ -24,6 +24,7 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
+| [Dos specs e2e rotos, sin relación con el hito 32](#paquete--dos-specs-e2e-rotos-sin-relación-con-el-hito-32) | Chico → Medio | `02-flujo-carta` y el cierre de `03-semana-operativa` fallan por código de sesiones anteriores |
 | [Unificar el motivo de soporte](#paquete--unificar-el-motivo-de-soporte) | Chico | Decisión de estilo entre dos patrones ya usados en el código |
 | [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
 | [Filtro `?bloqueado=1` no implementado en Jugadores](#paquete--filtro-bloqueado1-no-implementado-en-jugadores) | Chico | El KPI "Familias bloqueadas" del dashboard enlaza a un filtro que no existe |
@@ -35,6 +36,36 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
+
+## Paquete — Dos specs e2e rotos, sin relación con el hito 32
+
+Encontrado al correr `npm run test:e2e` para validar el hito 32 (eventos:
+duración + aviso de fecha + sacar minutos) — 8/10 specs pasan, incluidos los
+dos que ejercitan directo el cambio de hoy (`05-sesion-entrenamiento`,
+`06-sesion-partido`, ambos en verde). Los dos que fallan tocan código de
+sesiones anteriores, confirmado con `git log` antes de anotarlo acá (no es
+una suposición): ninguno de los dos archivos involucrados tiene commits de
+hoy.
+
+- **`tests/e2e/02-flujo-carta.spec.ts`**: después de "Crear cuenta" en el
+  registro, se espera auto-login a `/jugador` y la URL se queda en
+  `/registro/<código>`. El flujo de registro/OTP (`registro.actions.ts`) no
+  se tocó hoy — último cambio real es de la migración a códigos OTP por
+  correo (varios hitos atrás). Puede ser una carrera entre el submit y la
+  redirección, o un cambio de comportamiento de esa migración que el test
+  nunca reflejó.
+- **`tests/e2e/03-semana-operativa.spec.ts`**: falla en el paso 3 (la
+  familia confirma asistencia) — el clic en "Confirmar" queda bloqueado por
+  un modal `AvisoImportante.tsx` ("Avisos importantes") que tapa el botón.
+  Los pasos 1-2 (crear el partido con la UI nueva de fecha/hora/duración,
+  cargar resultado) pasan bien, así que el hito 32 no es la causa. El
+  componente del modal es preexistente (el único commit de hoy sobre ese
+  archivo fue el tuteo neutro del hito 25, solo texto); el test nunca
+  contempló dismissear ese aviso antes de clickear "Confirmar" — puede ser
+  que antes no apareciera en ese momento del flujo, o que siempre haya sido
+  flaky y no se hubiera notado.
+
+No se investigó más a fondo ni se corrigió — no era parte de este pedido.
 
 ## Paquete — Filtro `?bloqueado=1` no implementado en Jugadores
 

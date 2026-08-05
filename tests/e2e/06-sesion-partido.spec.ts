@@ -23,13 +23,17 @@ test("DT corre un partido en vivo: goles, deshacer, tarjeta y cierre", async ({
   await pd.locator('select[name="categoriaId"]').selectOption({ label: "Sub-10" });
   await pd.fill('input[name="titulo"]', titulo);
 
+  // Hoy: el nuevo aviso de "Iniciar sesión" un día distinto al programado
+  // (ver ModoSesion.tsx) no debe dispararse acá.
   const hoy = new Date();
-  const iso = (h: number, m: number) =>
-    `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(
-      hoy.getDate(),
-    ).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  await pd.fill('input[name="inicio"]', iso(23, 0));
-  await pd.fill('input[name="fin"]', iso(23, 59));
+  const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(
+    hoy.getDate(),
+  ).padStart(2, "0")}`;
+  await pd.getByLabel("Fecha").fill(fechaHoy);
+  await pd.getByLabel("Hora de inicio").selectOption("23");
+  await pd.getByLabel("Minuto de inicio").selectOption("0");
+  await pd.getByLabel("Duración en horas").selectOption("1");
+  await pd.getByLabel("Duración en minutos").selectOption("0");
   await pd.fill('input[name="rival"]', "E2E Rival");
   await pd.getByRole("checkbox", { name: "Lucas García" }).check();
   await pd.getByRole("button", { name: "Crear evento" }).click();

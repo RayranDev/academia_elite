@@ -11,7 +11,7 @@ import type {
 } from "@/services/sesion.service";
 import type { EstadoAsistencia } from "./useAsistenciaOptimista";
 
-type Campo = "minutos" | "goles" | "asistencias" | "amarillas";
+type Campo = "goles" | "asistencias" | "amarillas";
 
 /**
  * Paso 3: resumen + nota + un único botón que cierra (PLAN-UX-DT PR-3 §3.3).
@@ -99,7 +99,6 @@ export function CierreSesion({
             const s = stats.get(f.jugadorId);
             if (!s) continue;
             fd.append("jugadores", f.jugadorId);
-            fd.set(`minutos_${f.jugadorId}`, String(s.minutos));
             fd.set(`goles_${f.jugadorId}`, String(s.goles));
             fd.set(`asistencias_${f.jugadorId}`, String(s.asistencias));
             fd.set(`amarillas_${f.jugadorId}`, String(s.amarillas));
@@ -185,10 +184,9 @@ export function CierreSesion({
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="grid grid-cols-3 gap-2">
                     {(
                       [
-                        ["minutos", "Min"],
                         ["goles", "Goles"],
                         ["asistencias", "Asist"],
                         ["amarillas", "🟨"],
@@ -198,12 +196,8 @@ export function CierreSesion({
                         key={campo}
                         etiqueta={etiqueta}
                         valor={s[campo]}
-                        onMenos={() =>
-                          ajustar(f.jugadorId, campo, campo === "minutos" ? -5 : -1)
-                        }
-                        onMas={() =>
-                          ajustar(f.jugadorId, campo, campo === "minutos" ? 5 : 1)
-                        }
+                        onMenos={() => ajustar(f.jugadorId, campo, -1)}
+                        onMas={() => ajustar(f.jugadorId, campo, 1)}
                       />
                     ))}
                   </div>

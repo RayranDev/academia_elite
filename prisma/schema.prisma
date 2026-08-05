@@ -329,6 +329,10 @@ model EstadisticaPartido {
   jugadorId   String
   jugador     Jugador @relation(fields: [jugadorId], references: [id])
   titular     Boolean @default(false)
+  // Decisión de producto (ver DECISIONES.md #75): la app dejó de leer/escribir
+  // minutos jugados (solo cuenta asistencia, no minutos, para no afectar la
+  // percepción de la familia). La columna NO se elimina: preserva el historial
+  // de partidos ya jugados. Queda con su @default(0) intacto.
   minutos     Int     @default(0)
   goles       Int     @default(0)
   asistencias Int     @default(0)

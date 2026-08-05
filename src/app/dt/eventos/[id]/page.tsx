@@ -222,7 +222,6 @@ export default async function EventoDetallePage({
                 <tr>
                   <th className="py-1 pr-2">Jugador</th>
                   <th className="px-1 text-center">Titular</th>
-                  <th className="px-1 text-center">Min</th>
                   <th className="px-1 text-center">Goles</th>
                   <th className="px-1 text-center">Asist.</th>
                   <th className="px-1 text-center">Amar.</th>
@@ -241,9 +240,6 @@ export default async function EventoDetallePage({
                       </td>
                       <td className="px-1 text-center">
                         <input type="checkbox" name={`titular_${c.jugadorId}`} defaultChecked={s?.titular ?? false} className="accent-[color:var(--brand)]" />
-                      </td>
-                      <td className="px-1">
-                        <input name={`minutos_${c.jugadorId}`} type="number" min={0} max={200} defaultValue={s?.minutos ?? 0} aria-label={`Minutos ${c.nombre}`} className={numInput} />
                       </td>
                       <td className="px-1">
                         <input name={`goles_${c.jugadorId}`} type="number" min={0} max={99} defaultValue={s?.goles ?? 0} aria-label={`Goles ${c.nombre}`} className={numInput} />

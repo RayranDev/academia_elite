@@ -520,3 +520,49 @@ cada adaptación, regla 0.8.)
     guardián de tenant (hito 27, `create`/`createMany` + `tx.`) ni a la
     planilla del simulador — esos son código puro, sin dependencia de
     infraestructura, y siguen como paquete activo.
+75. **Minutos jugados: se saca de toda la app, la columna de la DB se queda.**
+    Decisión de producto (2026-08-05): la ficha de estadística individual del
+    partido (Modo Sesión, detalle del evento, hub del jugador, export a Excel)
+    deja de leer y escribir `EstadisticaPartido.minutos`. Motivo del producto:
+    el DT cargaba minutos a ojo y ese número, mostrado a la familia, generaba
+    más ruido que valor (percepción de "juega poco/mucho" sin base real) — solo
+    la asistencia (presente/ausente/justificado) es un dato confiable hoy. **No**
+    hay migración de schema: la columna `minutos` sigue en `EstadisticaPartido`
+    con su `@default(0)` intacto, para no perder el historial de partidos ya
+    jugados (ver comentario en `prisma/schema.prisma`). Si en el futuro se
+    reintroduce, los datos viejos siguen ahí.
+76. **Se elimina el refine `mismoDía` de `eventoSchema`/`editarEventoSchema`.**
+    Quedó obsoleto al pasar la creación/edición de eventos de "inicio + fin"
+    (dos `datetime-local`) a "fecha + hora de inicio + duración" (§77): con
+    duración, el evento nunca puede cruzar de día porque `fin` se deriva
+    sumándole minutos a `inicio`, así que la validación ya no puede fallar y
+    sobra. De paso tenía un bug latente de zona horaria: comparaba
+    `getFullYear/Month/Date` de dos `Date` ya coercionados por Zod
+    (`z.coerce.date()`, que corre en el servidor), así que un evento cerca de
+    medianoche podía evaluarse en UTC en vez de en la hora de Colombia.
+77. **Alta/edición de evento: de `datetime-local` de inicio/fin a fecha + hora
+    + duración, construidos en el cliente.** Los formularios (`CrearEventoDialog`,
+    `EditarEventoDialog`) mandaban el string crudo de dos `<input
+    type="datetime-local">` tal cual al FormData; sin offset de zona, ese string
+    llegaba al servidor y `z.coerce.date()` lo interpretaba en UTC (el runtime de
+    Vercel), corriendo la hora mostrada respecto a la que tipeó el DT en
+    Colombia. Ahora el formulario junta fecha (`<input type="date">`) + hora de
+    inicio (selects de hora/minuto, franjas de 15 min) + duración (selects de
+    horas 0-6 / minutos de 15 en 15, mínimo 15 min) y arma el `Date` en el
+    CLIENTE con el constructor de componentes locales (`new Date(año, mes-1,
+    día, hora, min)`), nunca parseando el string del `<input type="date">`
+    directo (eso sí se interpreta en UTC y corre el día). Recién ahí se manda
+    `.toISOString()` al FormData. Las actions/servicios/repos no cambiaron:
+    siguen recibiendo `inicio`/`fin` como antes, solo cambió qué string arma el
+    cliente.
+78. **Modo Sesión: aviso si se arranca un día distinto al programado.** Si el DT
+    entra a `/dt/eventos/[id]/sesion` de un evento cuyo `inicio` programado no
+    es el día de hoy (comparado en hora LOCAL del navegador) y la sesión todavía
+    no arrancó, en vez de arrancar el cronómetro en silencio con una fecha
+    vieja se lo aviso con un modal (`AjustarFechaEventoModal`) para reprogramar
+    el evento al momento real de ejecución (preserva la duración original).
+    Nueva función `reprogramarEIniciarSesion` (`sesion.service.ts`) +
+    `reprogramarEventoAAhora` (`evento.repository.ts`), mismo patrón `updateMany`
+    idempotente que `marcarSesionIniciada`. Sin guard de fecha en el servidor a
+    propósito: es una guarda de calidad de dato resuelta en el cliente, no
+    control de acceso.

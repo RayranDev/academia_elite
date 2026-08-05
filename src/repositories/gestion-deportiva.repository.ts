@@ -161,7 +161,6 @@ export function partidosParaExport(escuelaId: string) {
         select: {
           goles: true,
           asistencias: true,
-          minutos: true,
           amarillas: true,
           roja: true,
           azul: true,

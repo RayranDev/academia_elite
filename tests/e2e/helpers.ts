@@ -10,9 +10,23 @@ export async function login(page: Page, email: string, password: string) {
   await expect(page).toHaveURL(/\/(admin|escuela|dt|jugador)/);
 }
 
-/** Valor para <input type="datetime-local"> a N horas en el futuro (siempre > ahora). */
-export function futuroInput(horasDesdeAhora: number): string {
+/**
+ * Fecha/hora/duración de un evento N horas en el futuro, ya en el formato que
+ * espera el formulario nuevo (`CrearEventoDialog`/`EditarEventoDialog`): un
+ * `<input type="date">` + selects de hora/minuto de inicio (franjas de 15') y
+ * de duración en horas/minutos (franjas de 15'). El minuto de inicio se
+ * redondea hacia abajo al múltiplo de 15 más cercano porque el select real
+ * solo ofrece 0/15/30/45.
+ */
+export function eventoFuturo(horasDesdeAhora: number, duracionHoras: number) {
   const t = new Date(Date.now() + horasDesdeAhora * 60 * 60 * 1000);
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}T${p(t.getHours())}:${p(t.getMinutes())}`;
+  const minutoRedondeado = Math.floor(t.getMinutes() / 15) * 15;
+  return {
+    fecha: `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`,
+    hora: String(t.getHours()),
+    minuto: String(minutoRedondeado),
+    duracionHoras: String(duracionHoras),
+    duracionMinutos: "0",
+  };
 }

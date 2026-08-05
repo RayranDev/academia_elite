@@ -10,6 +10,12 @@ import { TIPOS_EVENTO } from "@/types";
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
+/** Franjas de 15 minutos, igual que el `step` que tenían los datetime-local viejos. */
+const MINUTOS = [0, 15, 30, 45] as const;
+const HORAS_DIA = Array.from({ length: 24 }, (_, h) => h);
+const HORAS_DURACION = Array.from({ length: 7 }, (_, h) => h);
+const dosDigitos = (n: number) => String(n).padStart(2, "0");
+
 interface Jugador {
   id: string;
   nombre: string;
@@ -30,7 +36,11 @@ export function CrearEventoDialog({
   const [open, setOpen] = useState(false);
   const [tipo, setTipo] = useState("ENTRENAMIENTO");
   const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "");
-  const [inicio, setInicio] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [horaInicio, setHoraInicio] = useState(16);
+  const [minutoInicio, setMinutoInicio] = useState(0);
+  const [horasDuracion, setHorasDuracion] = useState(1);
+  const [minutosDuracion, setMinutosDuracion] = useState(0);
   const [convocados, setConvocados] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -52,7 +62,26 @@ export function CrearEventoDialog({
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const duracionTotalMin = horasDuracion * 60 + minutosDuracion;
+    if (duracionTotalMin < 15) {
+      setError("La duración mínima es de 15 minutos.");
+      return;
+    }
+    const [anio, mes, dia] = fecha.split("-").map(Number);
+    if (!anio || !mes || !dia) {
+      setError("Elige una fecha.");
+      return;
+    }
+    // Construido con getters/constructor LOCALES a propósito: un <input
+    // type="date"> parseado con `new Date(string)` se interpreta como UTC
+    // medianoche y corre el día en la zona de Colombia. Acá se arma la fecha
+    // en hora local del navegador y recién ahí se manda como ISO.
+    const inicio = new Date(anio, mes - 1, dia, horaInicio, minutoInicio, 0);
+    const fin = new Date(inicio.getTime() + duracionTotalMin * 60_000);
+
     const fd = new FormData(e.currentTarget);
+    fd.set("inicio", inicio.toISOString());
+    fd.set("fin", fin.toISOString());
     startTransition(async () => {
       const res = await crearEventoAction(undefined, fd);
       if (res.ok) {
@@ -136,30 +165,77 @@ export function CrearEventoDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs text-muted">Inicio</label>
-              {/* step 900s = 15 min. Un evento empieza y termina el mismo día. */}
+              <label className="mb-1 block text-xs text-muted">Fecha</label>
               <input
-                name="inicio"
-                type="datetime-local"
+                type="date"
                 required
-                step={900}
-                value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
                 className={input}
+                aria-label="Fecha"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-muted">Fin</label>
-              <input
-                name="fin"
-                type="datetime-local"
-                required
-                step={900}
-                // Acotado al día del inicio: no se puede terminar otro día.
-                min={inicio || undefined}
-                max={inicio ? `${inicio.slice(0, 10)}T23:59` : undefined}
+              <label className="mb-1 block text-xs text-muted">Hora de inicio</label>
+              <div className="flex gap-1">
+                <select
+                  value={horaInicio}
+                  onChange={(e) => setHoraInicio(Number(e.target.value))}
+                  className={input}
+                  aria-label="Hora de inicio"
+                >
+                  {HORAS_DIA.map((h) => (
+                    <option key={h} value={h}>
+                      {dosDigitos(h)}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={minutoInicio}
+                  onChange={(e) => setMinutoInicio(Number(e.target.value))}
+                  className={input}
+                  aria-label="Minuto de inicio"
+                >
+                  {MINUTOS.map((m) => (
+                    <option key={m} value={m}>
+                      {dosDigitos(m)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-muted">Duración (horas)</label>
+              <select
+                value={horasDuracion}
+                onChange={(e) => setHorasDuracion(Number(e.target.value))}
                 className={input}
-              />
+                aria-label="Duración en horas"
+              >
+                {HORAS_DURACION.map((h) => (
+                  <option key={h} value={h}>
+                    {h} h
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-muted">Duración (min)</label>
+              <select
+                value={minutosDuracion}
+                onChange={(e) => setMinutosDuracion(Number(e.target.value))}
+                className={input}
+                aria-label="Duración en minutos"
+              >
+                {MINUTOS.map((m) => (
+                  <option key={m} value={m}>
+                    {m} min
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

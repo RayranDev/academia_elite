@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { login, futuroInput } from "./helpers";
+import { login, eventoFuturo } from "./helpers";
 
 // Flujo crítico 2: evento → convocatoria → confirmación → resultado → noticia.
 test("DT crea partido y carga resultado; la familia confirma y ve la noticia", async ({
@@ -17,8 +17,12 @@ test("DT crea partido y carga resultado; la familia confirma y ve la noticia", a
   await pd.locator('select[name="tipo"]').selectOption("PARTIDO");
   await pd.locator('select[name="categoriaId"]').selectOption({ label: "Sub-10" });
   await pd.fill('input[name="titulo"]', titulo);
-  await pd.fill('input[name="inicio"]', futuroInput(3));
-  await pd.fill('input[name="fin"]', futuroInput(5));
+  const ev = eventoFuturo(3, 2); // arranca en ~3h, dura 2h
+  await pd.getByLabel("Fecha").fill(ev.fecha);
+  await pd.getByLabel("Hora de inicio").selectOption(ev.hora);
+  await pd.getByLabel("Minuto de inicio").selectOption(ev.minuto);
+  await pd.getByLabel("Duración en horas").selectOption(ev.duracionHoras);
+  await pd.getByLabel("Duración en minutos").selectOption(ev.duracionMinutos);
   await pd.fill('input[name="rival"]', "E2E Rival");
   // Convoca al jugador de la familia demo (Lucas García). No usar .first(): la
   // lista se ordena por apellido, así que el primer checkbox NO es Lucas.

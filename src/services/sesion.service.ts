@@ -5,6 +5,7 @@ import {
   obtenerEvento,
   upsertAsistencia,
   marcarSesionIniciada,
+  reprogramarEventoAAhora,
   cerrarSesionEvento,
   crearConvocadoSiFalta,
   ajustarGolVivo,
@@ -75,7 +76,6 @@ function exigirPartido(tipo: string): void {
 
 /** Estadística individual del partido (la que alimenta el gol en vivo). */
 export interface EstadisticaSesionDTO {
-  minutos: number;
   goles: number;
   asistencias: number;
   amarillas: number;
@@ -101,6 +101,9 @@ export interface SesionDTO {
   tipo: string;
   titulo: string;
   categoriaNombre: string;
+  /** Fecha/hora programada del evento (ISO): el cliente la compara con "hoy"
+   *  en su zona local para ofrecer reprogramar si arranca otro día. */
+  inicio: string;
   sesionIniciadaAt: string | null;
   sesionCerradaAt: string | null;
   notaSesion: string | null;
@@ -120,7 +123,6 @@ export interface SesionDTO {
 }
 
 const SIN_ESTADISTICA: EstadisticaSesionDTO = {
-  minutos: 0,
   goles: 0,
   asistencias: 0,
   amarillas: 0,
@@ -179,6 +181,7 @@ export async function obtenerSesionDt(
     tipo: evento.tipo,
     titulo: evento.titulo,
     categoriaNombre: evento.categoria.nombre,
+    inicio: evento.inicio.toISOString(),
     sesionIniciadaAt: evento.sesionIniciadaAt?.toISOString() ?? null,
     sesionCerradaAt: evento.sesionCerradaAt?.toISOString() ?? null,
     notaSesion: evento.notaSesion,
@@ -201,7 +204,6 @@ export async function obtenerSesionDt(
         agregadoEnCancha: a?.agregadoEnCancha ?? false,
         estadistica: s
           ? {
-              minutos: s.minutos,
               goles: s.goles,
               asistencias: s.asistencias,
               amarillas: s.amarillas,
@@ -251,6 +253,22 @@ export async function iniciarSesion(
   eventoId: string,
 ): Promise<void> {
   const { evento, escuelaId } = await eventoDelDt(ctx, eventoId);
+  await marcarSesionIniciada(escuelaId, evento.id);
+}
+
+/**
+ * Reprograma el evento al momento actual (preservando su duración original) y
+ * arranca el cronómetro. Usado cuando el DT confirma, ante el aviso de fecha
+ * distinta a la programada, que quiere ajustar el evento al momento real de
+ * ejecución en vez de dejarlo con la fecha vieja.
+ */
+export async function reprogramarEIniciarSesion(
+  ctx: AuthContext,
+  eventoId: string,
+): Promise<void> {
+  const { evento, escuelaId } = await eventoDelDt(ctx, eventoId);
+  const duracionMs = evento.fin.getTime() - evento.inicio.getTime();
+  await reprogramarEventoAAhora(escuelaId, evento.id, duracionMs);
   await marcarSesionIniciada(escuelaId, evento.id);
 }
 

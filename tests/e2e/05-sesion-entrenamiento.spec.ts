@@ -18,15 +18,19 @@ test("DT corre un entrenamiento en Modo Sesión: lista, observación y cierre", 
   const titulo = `Entrenamiento E2E ${Date.now().toString().slice(-6)}`;
   await page.fill('input[name="titulo"]', titulo);
 
-  // Hoy pero MÁS TARDE: el alta exige que el evento no esté en el pasado, y el
-  // home "Hoy" filtra por el día completo.
+  // Hoy pero MÁS TARDE: el home "Hoy" filtra por el día completo, y el nuevo
+  // aviso de "Iniciar sesión" un día distinto al programado (ver
+  // ModoSesion.tsx) no debe dispararse — el evento tiene que quedar programado
+  // para HOY para que la sesión arranque sola como antes.
   const hoy = new Date();
-  const iso = (h: number, m: number) =>
-    `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(
-      hoy.getDate(),
-    ).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  await page.fill('input[name="inicio"]', iso(23, 0));
-  await page.fill('input[name="fin"]', iso(23, 59));
+  const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(
+    hoy.getDate(),
+  ).padStart(2, "0")}`;
+  await page.getByLabel("Fecha").fill(fechaHoy);
+  await page.getByLabel("Hora de inicio").selectOption("23");
+  await page.getByLabel("Minuto de inicio").selectOption("0");
+  await page.getByLabel("Duración en horas").selectOption("1");
+  await page.getByLabel("Duración en minutos").selectOption("0");
 
   // Un entrenamiento NO tiene convocatoria: a la sesión asiste toda la categoría.
   await page.getByRole("button", { name: "Crear evento" }).click();

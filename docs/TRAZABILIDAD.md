@@ -55,6 +55,7 @@
 | 29 | Aranceles: editar, evitar duplicados con aviso, descripción libre, navegación | 2026-08-04 | ✅ |
 | 30 | Membresías operativas: paginación, filtro por período/jugador, export conectado | 2026-08-04 | ✅ |
 | 31 | Bloqueo por mora: atajo directo desde una cuota vencida + acción masiva de morosos | 2026-08-04 | ✅ |
+| 32 | Eventos: ejecución solo el día programado (con aviso), duración en vez de hora fin, se saca "minutos jugados" | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1058,6 +1059,84 @@ el cálculo de `jugadoresEnMora` que ya usa el dashboard. Sin schema nuevo,
 sin migración. `typecheck`/`lint`/`test` limpios (293 tests, sin casos
 nuevos — es wiring y un loop sobre una función ya auditada/testeada por
 otros caminos).
+
+## 32. Eventos: día programado, duración, sin "minutos jugados" (2026-08-05)
+
+Pedido puntual del usuario para validar en producción vía push. Tres
+cambios relacionados sobre el mismo flujo (entrenamiento y partido),
+investigados a fondo antes de tocar código (dos agentes de exploración en
+paralelo: schema/creación/Modo Sesión por un lado, `minutos` por otro).
+
+**Aviso al iniciar sesión un día distinto al programado.** Antes,
+`ModoSesion.tsx` arrancaba el cronómetro solo, en un `useEffect`, sin mirar
+si `evento.inicio` era de hoy. Ahora compara el día de `evento.inicio`
+contra "hoy" en hora LOCAL del navegador (mismo criterio que `FechaLocal`
+— nunca en el servidor, que en Vercel corre en UTC) y, si no coincide y la
+sesión todavía no arrancó, muestra `AjustarFechaEventoModal` en vez de
+arrancar en silencio. "Ajustar y arrancar" reprograma el evento al momento
+real (`reprogramarEventoAAhora`, preserva la duración original) y recién
+ahí inicia; "Cancelar" no toca nada. Sin guard de fecha en el servidor a
+propósito: no es control de acceso, es calidad de dato, y ya se resolvió en
+el cliente.
+
+**Duración en vez de hora fin, y un bug de zona horaria corregido de paso.**
+`CrearEventoDialog`/`EditarEventoDialog` pasan de dos `datetime-local`
+(inicio/fin) a fecha + hora/minuto de inicio (franjas de 15') + duración en
+horas/minutos (franjas de 15', mínimo 15'). Hallazgo no pedido pero
+directamente relacionado, corregido en el mismo cambio: el código viejo
+mandaba el string crudo del `datetime-local` sin zona horaria, y
+`z.coerce.date()` en el servidor (UTC en Vercel) lo reinterpretaba mal —
+una hora tipeada en Colombia podía guardarse corrida. Ahora el cliente arma
+el `Date` con el constructor de componentes locales
+(`new Date(año, mes-1, día, hora, minuto)`) y manda `.toISOString()`; las
+actions/servicios/repos de evento no cambiaron, siguen recibiendo
+`inicio`/`fin` como siempre. El refine `mismoDía()` de
+`eventoSchema`/`editarEventoSchema` se sacó (quedó obsoleto bajo el modelo
+de duración, y además tenía el mismo bug de zona horaria); se sumó en su
+lugar un tope de 8 horas de duración del lado del servidor — hallazgo de
+una revisión fresca del propio sub-agente que implementó el cambio: sin
+`mismoDía()`, que antes limitaba la duración a <24h como efecto colateral,
+un POST directo a la Server Action habría quedado sin techo real.
+
+**"Minutos jugados" sale de toda la app — la columna de la base se
+conserva.** Decisión de producto: el dato generaba más ruido que valor
+(percepción del padre de "juega poco/mucho" sin base confiable); solo la
+asistencia debe sumar. Se sacó de captura (`CierreSesion.tsx`, tabla del
+detalle del evento), parseo, DTOs, pantallas (hub del jugador, detalle de
+evento) y export — **sin migración de schema**: `EstadisticaPartido.minutos`
+sigue en `prisma/schema.prisma` con su `@default(0)`, con un comentario
+explicando que es intencional (decisión ya tomada con el usuario: hay
+partidos reales con minutos cargados y ese dato no se pierde). Detalle
+completo en `DECISIONES.md` §75-78.
+
+**Hallazgo colateral, corregido porque bloqueaba la validación:** al correr
+`npm run test:e2e` para probar el cambio, el `global-setup` ni siquiera
+llegaba a levantar el server — `prisma/seed.ts` fallaba en `limpiar()` por
+una FK violation de `Arancel`/`Egreso` contra `Escuela` (esas dos tablas,
+sumadas en los hitos 26 y 29, nunca se agregaron al orden de borrado del
+seed). Corregido sumando `arancel.deleteMany()`/`egreso.deleteMany()` antes
+de `escuela.deleteMany()`. No es un bug de producción — el seed principal
+no se corre ahí — pero sin este fix ningún e2e podía correr desde hoy.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (293 tests, sin
+regresión). `npm run test:e2e`: 8/10 specs en verde, incluidos los dos que
+ejercitan directo el cambio de hoy (`05-sesion-entrenamiento`,
+`06-sesion-partido`). Los dos specs que fallan (`02-flujo-carta`, el cierre
+de `03-semana-operativa`) se confirmó con `git log` que tocan código sin
+commits de hoy — no son causados por este hito, quedaron anotados en
+`PENDIENTES.md` sin investigarlos más a fondo (fuera de alcance de este
+pedido). Los specs `03`, `05` y `06` se reescribieron para interactuar con
+los selects nuevos en vez de los `datetime-local` viejos (`tests/e2e/helpers.ts`
+ganó `eventoFuturo()` en reemplazo de `futuroInput()`); se sumó
+`aria-label` a los inputs de fecha y duración que no lo tenían, tanto para
+que los tests los pudieran ubicar como por accesibilidad.
+
+Implementación delegada a un sub-agente con el plan (investigado con dos
+Explore en paralelo) como instrucción exacta; ese mismo sub-agente hizo una
+segunda pasada de revisión propia y encontró los dos temas reales que no
+había resuelto (specs e2e rotos, tope de duración sin techo) — corregidos
+directamente en la revisión final antes de commitear, junto con el fix del
+seed que apareció al intentar correr e2e.
 
 ---
 

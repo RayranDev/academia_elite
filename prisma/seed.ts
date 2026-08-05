@@ -52,6 +52,12 @@ async function limpiar() {
   await db.estadisticaPartido.deleteMany();
   await db.jugadorConvocado.deleteMany();
   await db.membresia.deleteMany();
+  // Arancel/Egreso (Track A, hitos 26/29): faltaban acá, así que
+  // `escuela.deleteMany()` rompía por su FK a Escuela apenas se creó la
+  // primera fila real de cada uno — detectado al correr e2e (schema `e2e`
+  // aislado, no producción).
+  await db.arancel.deleteMany();
+  await db.egreso.deleteMany();
   await db.evento.deleteMany();
   await db.statsCalculados.deleteMany();
   await db.evaluacion.deleteMany();

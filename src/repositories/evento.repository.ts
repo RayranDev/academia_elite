@@ -83,7 +83,6 @@ export async function registrarEstadisticas(
   registros: {
     jugadorId: string;
     titular: boolean;
-    minutos: number;
     goles: number;
     asistencias: number;
     amarillas: number;
@@ -308,6 +307,25 @@ export async function marcarSesionIniciada(escuelaId: string, eventoId: string) 
   });
 }
 
+/**
+ * Reprograma un evento al momento actual (mismo criterio DT en cancha, no la
+ * fecha original agendada), preservando su duración. Usado cuando el DT arranca
+ * la sesión un día distinto al programado y decide ajustar la fecha del evento
+ * en vez de dejarla desactualizada.
+ */
+export async function reprogramarEventoAAhora(
+  escuelaId: string,
+  eventoId: string,
+  duracionMs: number,
+): Promise<void> {
+  const ahora = new Date();
+  const fin = new Date(ahora.getTime() + duracionMs);
+  await db.evento.updateMany({
+    where: { id: eventoId, escuelaId },
+    data: { inicio: ahora, fin },
+  });
+}
+
 /** Cierra la sesión y guarda la nota general del paso de cierre. */
 export async function cerrarSesionEvento(
   escuelaId: string,
@@ -516,7 +534,7 @@ export async function resumenEstadisticasJugador(
   const [agg, rojas] = await Promise.all([
     db.estadisticaPartido.aggregate({
       where: { escuelaId, jugadorId },
-      _sum: { goles: true, asistencias: true, minutos: true, amarillas: true },
+      _sum: { goles: true, asistencias: true, amarillas: true },
       _count: { _all: true },
     }),
     db.estadisticaPartido.count({ where: { escuelaId, jugadorId, roja: true } }),
@@ -525,7 +543,6 @@ export async function resumenEstadisticasJugador(
     partidos: agg._count._all,
     goles: agg._sum.goles ?? 0,
     asistencias: agg._sum.asistencias ?? 0,
-    minutos: agg._sum.minutos ?? 0,
     amarillas: agg._sum.amarillas ?? 0,
     rojas,
   };
