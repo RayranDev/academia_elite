@@ -29,6 +29,7 @@ test("escuela genera código → familia se registra → DT aprueba y evalúa �
   await pf.fill('input[name="padreNombre"]', "Padre E2E");
   await pf.fill('input[name="padreEmail"]', email);
   await pf.fill('input[name="password"]', "Demo1234!");
+  await pf.fill('input[name="confirmacion"]', "Demo1234!");
   await pf.fill('input[name="jugadorNombre"]', "HijoE2E");
   await pf.fill('input[name="jugadorApellido"]', apellido);
   await pf.fill('input[name="fechaNacimiento"]', "2013-05-10");

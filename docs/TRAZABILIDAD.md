@@ -56,6 +56,7 @@
 | 30 | Membresías operativas: paginación, filtro por período/jugador, export conectado | 2026-08-04 | ✅ |
 | 31 | Bloqueo por mora: atajo directo desde una cuota vencida + acción masiva de morosos | 2026-08-04 | ✅ |
 | 32 | Eventos: ejecución solo el día programado (con aviso), duración en vez de hora fin, se saca "minutos jugados" | 2026-08-05 | ✅ |
+| 33 | Fix de 2 specs e2e rotos (registro sin confirmar contraseña, aviso importante tapando "Confirmar") | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1137,6 +1138,37 @@ segunda pasada de revisión propia y encontró los dos temas reales que no
 había resuelto (specs e2e rotos, tope de duración sin techo) — corregidos
 directamente en la revisión final antes de commitear, junto con el fix del
 seed que apareció al intentar correr e2e.
+
+## 33. Fix de 2 specs e2e rotos, sin relación con el hito 32 (2026-08-05)
+
+Los dos specs que el hito 32 dejó anotados en `PENDIENTES.md` sin
+investigar (ya confirmado ahí, vía `git log`, que no los causó ese hito).
+Un agente de exploración diagnosticó la causa raíz exacta de cada uno antes
+de tocar nada; los dos resultaron ser bugs del test, no de la app.
+
+**`02-flujo-carta.spec.ts`**: el form de registro ganó un campo
+`confirmacion` (repetir contraseña) en un hito anterior a este
+(`CamposPassword.tsx`, `required minLength={8}`); el test solo llenaba
+`password`, así que el navegador bloqueaba el submit por validación HTML5
+nativa antes de que la Server Action corriera — de ahí que la URL nunca
+saliera de `/registro/<código>`. El auto-login en sí (`signIn` server-side
++ `router.push` a `/jugador`) funciona correctamente. Fix: el test llena
+también `input[name="confirmacion"]`.
+
+**`03-semana-operativa.spec.ts`**: al convocar jugadores (paso 1 del test),
+`evento.service.ts` dispara una notificación de prioridad alta a los
+padres. `AvisoImportante.tsx` (montado en `PanelShell.tsx`, para todo panel
+autenticado) muestra un modal full-screen ante cualquier notificación no
+leída de prioridad alta/crítica — comportamiento intencional ("interrumpe
+a propósito"), agregado en un hito posterior a la creación de este spec.
+El overlay tapaba el botón "Confirmar" real. Fix: el test cierra el modal
+(botón "Aceptar") antes de confirmar la asistencia.
+
+**Verificación**: `typecheck`/`lint` limpios. `npm run test:e2e` completo:
+10/10 specs en verde (antes 8/10).
+
+Investigación delegada a un agente Explore (solo lectura); fix de los dos
+specs y verificación hechos directamente.
 
 ---
 

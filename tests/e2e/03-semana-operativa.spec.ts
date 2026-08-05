@@ -42,6 +42,11 @@ test("DT crea partido y carga resultado; la familia confirma y ve la noticia", a
   const ctxFam = await browser.newContext();
   const pf = await ctxFam.newPage();
   await login(pf, "jugador@demo.app", "Demo1234!");
+  // La convocatoria del paso 1 dispara una notificación de prioridad alta:
+  // el modal de "Avisos importantes" (AvisoImportante.tsx) tapa el resto de
+  // la pantalla apenas entra la familia. Hay que cerrarlo antes de interactuar
+  // con el contenido de abajo.
+  await pf.getByRole("button", { name: "Aceptar" }).click();
   await pf.getByRole("button", { name: "Confirmar" }).first().click();
   await expect(pf.getByText("Asistencia confirmada").first()).toBeVisible();
   await expect(pf.getByText(`Resultado: ${titulo}`)).toBeVisible();
