@@ -606,3 +606,12 @@ cada adaptación, regla 0.8.)
     necesiten las funciones de servicio (Capa 3) que reciben `AuthContext`
     en toda la app — las páginas de mensajes consultan
     `obtenerEstadoBloqueo(ctx.userId)` (ya existía) aparte, para el mensaje.
+82. **Perfil del DT: qué mostrar y "temporada completa" sin campo propio.**
+    Decisiones del usuario (2026-08-05) antes de diseñar: la pantalla
+    muestra (1) evaluaciones hechas por el DT en el período, (2) resultados
+    de partidos de sus categorías, (3) plantilla evaluada vs. pendiente; el
+    período es elegible (mes actual / temporada completa), no fijo.
+    "Temporada completa" **no es un concepto de datos** — el modelo no tiene
+    campo `temporada` en ningún lado — se define como sin filtro de fecha
+    (todo el histórico del entrenador), la opción más simple, sin inventar
+    una noción que el producto no tiene hoy.

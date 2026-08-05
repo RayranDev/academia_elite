@@ -62,6 +62,7 @@
 | 36 | Filtro `?bloqueado=1` en Jugadores: link muerto del KPI "Familias bloqueadas" ahora funciona | 2026-08-05 | ✅ |
 | 37 | Descuentos con regla: reglas de descuento reusables (Hermano, Beca) aplicadas solas al generar la cobranza | 2026-08-05 | ✅ |
 | 38 | Acceso parcial del jugador bloqueado: solo mensajes con el DT, resto del panel sigue bloqueado | 2026-08-05 | ✅ |
+| 39 | Perfil del DT con estadísticas: evaluaciones, resultados de partidos y plantilla pendiente | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1319,6 +1320,47 @@ acotando la búsqueda al `<nav>` del Sidebar.
 
 Implementado directamente, sin delegar a un sub-agente, por tocar
 autenticación.
+
+## 39. Perfil del DT con estadísticas (2026-08-05)
+
+Paquete "Medio" de `PENDIENTES.md`. No existía ninguna pantalla de "mis
+resultados" para el DT. Decisiones cerradas antes de diseñar
+(`DECISIONES.md` §82): tres secciones (evaluaciones del período, resultados
+de partidos, plantilla evaluada vs. pendiente) con período elegible (mes
+actual / temporada completa); "temporada completa" = sin filtro de fecha,
+no hay concepto de temporada en el modelo de datos.
+
+**Diseño**: mayoría del backend YA EXISTÍA y se reusó tal cual —
+`categoriasDelDt` (scope del DT), `listarPlantillaDt` (`card === null` ya
+distinguía evaluado de pendiente), `listarEventosPaginado` (filtrado
+`{tipo: "PARTIDO", estado: "FINALIZADO", desde}`). Solo se creó
+`listarEvaluacionesPorEntrenador` (`evaluacion.repository.ts`, no existía
+ninguna función que filtrara evaluaciones por entrenador) y el service
+nuevo `dt-perfil.service.ts` que combina las tres fuentes en paralelo.
+Página server component en `/dt/perfil`, UI en `PerfilDt.tsx` (selector de
+período por links `?periodo=`, sin JS de cliente), nueva entrada de nav
+"Mi perfil" (reusa el ícono `perfil` que ya usaba el jugador).
+
+**Hallazgo corregido antes de commitear**: el helper puro `inicioDeMes`
+(nuevo, `src/lib/dt-perfil.ts`) usaba `getFullYear()/getMonth()` del
+proceso — el mismo bug de zona horaria que `periodoDe` (`cobranza.ts`) ya
+documenta: en Vercel el server corre en UTC, así que cerca de medianoche en
+Colombia "Este mes" habría mostrado el mes siguiente hasta 5 horas antes de
+que empezara de verdad. Corregido con el mismo patrón `OFFSET_ESCUELA_HORAS`
+ya establecido. De paso, el test unitario original comparaba con getters
+locales de `Date` (dependientes de la zona horaria de la máquina que corre
+el test) — reescrito con ISOs UTC explícitos y comparación de `.toISOString()`,
+mismo patrón robusto que `cobranza.test.ts` usa para `periodoDe`.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (303 tests, 4 nuevos
+para `inicioDeMes` incluido el borde de medianoche en Colombia). `npm run
+test:e2e`: 11/11 (se corrió igual pese a no ser obligatorio por AGENTS.md
+§7, por tocar el nav compartido del DT).
+
+Implementación delegada a un sub-agente con el plan (investigado y
+aprobado en modo plan) como instrucción exacta; el bug de zona horaria y
+la fragilidad del test se encontraron y corrigieron en la revisión propia
+antes de commitear.
 
 ---
 

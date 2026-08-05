@@ -25,6 +25,7 @@ export default async function DtLayout({
   const nav: NavItem[] = [
     { href: "/dt", label: "Hoy", icon: "inicio" },
     { href: "/dt/plantilla", label: "Plantilla", icon: "plantilla" },
+    { href: "/dt/perfil", label: "Mi perfil", icon: "perfil" },
     { href: "/dt/calendario", label: "Calendario", icon: "calendario" },
     { href: "/dt/progreso", label: "Progreso", icon: "progreso" },
     { href: "/dt/logros", label: "Logros", icon: "logros" },

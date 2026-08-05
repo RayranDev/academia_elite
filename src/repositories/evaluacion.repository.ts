@@ -40,3 +40,34 @@ export function marcarEvaluacionAnulada(escuelaId: string, id: string) {
     data: { anulada: true },
   });
 }
+
+/**
+ * Últimas evaluaciones (no anuladas) hechas por un entrenador, con jugador y
+ * categoría, para el perfil del DT. `desde` acota al período elegido (mes en
+ * curso); sin `desde` trae todo el histórico ("toda la temporada").
+ */
+export function listarEvaluacionesPorEntrenador(
+  escuelaId: string,
+  entrenadorId: string,
+  desde?: Date,
+) {
+  return db.evaluacion.findMany({
+    where: {
+      escuelaId,
+      entrenadorId,
+      anulada: false,
+      ...(desde ? { fecha: { gte: desde } } : {}),
+    },
+    include: {
+      jugador: {
+        select: {
+          nombre: true,
+          apellido: true,
+          categoria: { select: { nombre: true } },
+        },
+      },
+    },
+    orderBy: { fecha: "desc" },
+    take: 50,
+  });
+}

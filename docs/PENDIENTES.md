@@ -18,8 +18,9 @@
 >
 > Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
-> `services`, el filtro `?bloqueado=1`, Descuentos con regla y el acceso
-> parcial del jugador bloqueado — ver TRAZABILIDAD.md #33-38).
+> `services`, el filtro `?bloqueado=1`, Descuentos con regla, el acceso
+> parcial del jugador bloqueado y el perfil del DT — ver TRAZABILIDAD.md
+> #33-39).
 
 ---
 
@@ -28,7 +29,6 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
-| [Perfil del DT con estadísticas](#paquete--perfil-del-dt-con-estadísticas) | Medio | No existe ninguna pantalla de "mis resultados" para el DT |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
@@ -45,19 +45,6 @@ ejemplo un modelo `Staff` (`escuelaId`, `nombre`, `rol` cerrado
 `COORDINADOR|PREPARADOR_FISICO|UTILERO|OTRO`, contacto), **sin** `userId` ni
 relación a `User` — no inicia sesión, es un registro administrativo, no una
 cuenta.
-
-## Paquete — Perfil del DT con estadísticas
-
-Medio. Confirmado que no existe: las rutas de `src/app/dt/` son agenda del
-día (`page.tsx`), plantilla, calendario, `progreso` (que es de los
-**jugadores**, no del DT), logros, mensajes, anuncios, solicitudes y cuenta
-(solo datos de sesión, sin métricas). El nav de `src/app/dt/layout.tsx:25-40`
-no tiene ninguna entrada de tipo "Mi perfil"/"Resultados". Antes de construir
-hay que definir qué debería mostrar — candidatos: evaluaciones hechas en el
-mes/temporada, resultados de los partidos de su equipo, jugadores evaluados
-vs. pendientes histórico. Ninguna de esas agregaciones existe hoy a nivel DT
-(la única vista de resultados/ranking, `escuela/ranking/page.tsx`, pertenece
-al panel de la escuela).
 
 ## Paquete — Vigencia y bloqueo automático
 
