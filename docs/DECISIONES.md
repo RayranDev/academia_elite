@@ -496,8 +496,8 @@ cada adaptación, regla 0.8.)
     cada import, vía un campo de texto en el diálogo — un patrón distinto,
     introducido antes de encontrar este precedente. Ninguno de los dos está
     mal (uno reusa el motivo de sesión, el otro pide uno más específico para
-    una escritura de mayor volumen), pero es una inconsistencia de estilo que
-    vale unificar más adelante — anotado en `PENDIENTES.md`.
+    una escritura de mayor volumen). **Resuelto en §79**: se mantienen los dos
+    patrones a propósito, no es una inconsistencia a unificar.
 73. **Los roles quedan cerrados en cuatro: `SUPER_ADMIN`, `ESCUELA_ADMIN`, `DT`,
     `JUGADOR`.** Decisión explícita del producto (2026-08-04): ningún ítem de
     `PENDIENTES.md` puede introducir un quinto rol de autenticación. En
@@ -566,3 +566,12 @@ cada adaptación, regla 0.8.)
     idempotente que `marcarSesionIniciada`. Sin guard de fecha en el servidor a
     propósito: es una guarda de calidad de dato resuelta en el cliente, no
     control de acceso.
+79. **Motivo de soporte: los dos patrones se quedan, no se unifican (§72).**
+    Decisión del usuario (2026-08-05): un import masivo (200 filas) es una
+    acción bien distinta a editar un campo, y amerita un motivo propio y más
+    específico que quede registrado aparte en el `AuditLog` — no el motivo
+    genérico capturado al abrir la sesión de soporte. `importarJugadores`/
+    `importarEvaluaciones` siguen pidiendo su propio motivo por import;
+    `editarJugador`, `actualizarFichaMedica` y el resto de las acciones de
+    edición puntual del SA siguen reusando `ctx.soporte?.motivo`. Sin cambio
+    de código — se cierra la pregunta abierta y se saca de `PENDIENTES.md`.

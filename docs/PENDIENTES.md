@@ -16,8 +16,8 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-05 (se resolvió el paquete de los 2 specs
-> e2e rotos — ver TRAZABILIDAD.md #33).
+> Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
+> specs e2e rotos y el motivo de soporte — ver TRAZABILIDAD.md #33-34).
 
 ---
 
@@ -25,7 +25,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Unificar el motivo de soporte](#paquete--unificar-el-motivo-de-soporte) | Chico | Decisión de estilo entre dos patrones ya usados en el código |
 | [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
 | [Filtro `?bloqueado=1` no implementado en Jugadores](#paquete--filtro-bloqueado1-no-implementado-en-jugadores) | Chico | El KPI "Familias bloqueadas" del dashboard enlaza a un filtro que no existe |
 | [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
@@ -52,20 +51,6 @@ texto, y bloqueado vive en `padre.bloqueado`/`cuentaUser.bloqueado` (no en
 ya existe — hay que reestructurar ambas funciones envolviendo todo en
 `AND` (mismo patrón que ya se usó para `condicionEstadoEfectivo` en
 Membresías, hito 30) en vez de agregar una clave más al objeto `where`.
-
-## Paquete — Unificar el motivo de soporte
-
-Chico, es una decisión de estilo, no una feature nueva. `editarJugador` y sus
-vecinas en `gestion-jugadores.service.ts` reusan `ctx.soporte?.motivo`
-(capturado una vez al abrir la sesión de soporte del SUPER_ADMIN);
-`importarJugadores`/`importarEvaluaciones` (hitos 20-21) piden un motivo
-**nuevo** por cada import, vía un campo de texto propio en el diálogo.
-Ninguno de los dos patrones está mal — la pregunta a resolver antes de tocar
-código es si un import masivo amerita de verdad un motivo más específico que
-el de sesión (parece razonable: importar 200 filas es una acción bien
-distinta a editar un campo), o si conviene unificar todo bajo el motivo de
-sesión por consistencia. Detalle completo de por qué surgió la
-inconsistencia en `DECISIONES.md` §72.
 
 ## Paquete — Guardián de tenant: cubrir `tx.` dentro de `services`
 

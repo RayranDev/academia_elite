@@ -57,6 +57,7 @@
 | 31 | Bloqueo por mora: atajo directo desde una cuota vencida + acción masiva de morosos | 2026-08-04 | ✅ |
 | 32 | Eventos: ejecución solo el día programado (con aviso), duración en vez de hora fin, se saca "minutos jugados" | 2026-08-05 | ✅ |
 | 33 | Fix de 2 specs e2e rotos (registro sin confirmar contraseña, aviso importante tapando "Confirmar") | 2026-08-05 | ✅ |
+| 34 | Motivo de soporte: se mantienen los dos patrones a propósito, no se unifican | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1169,6 +1170,17 @@ El overlay tapaba el botón "Confirmar" real. Fix: el test cierra el modal
 
 Investigación delegada a un agente Explore (solo lectura); fix de los dos
 specs y verificación hechos directamente.
+
+## 34. Motivo de soporte: se mantienen los dos patrones (2026-08-05)
+
+Cierra la pregunta abierta en `DECISIONES.md` §72. Decisión del usuario: un
+import masivo (200 filas) es una acción bien distinta a editar un campo, y
+amerita un motivo propio registrado aparte en el `AuditLog` — no el motivo
+genérico de la sesión de soporte. `importarJugadores`/`importarEvaluaciones`
+siguen pidiendo su propio motivo por import; `editarJugador`,
+`actualizarFichaMedica` y el resto de las ediciones puntuales del SA siguen
+reusando `ctx.soporte?.motivo`. Sin cambio de código — decisión documentada
+en `DECISIONES.md` §79, paquete sacado de `PENDIENTES.md`.
 
 ---
 
