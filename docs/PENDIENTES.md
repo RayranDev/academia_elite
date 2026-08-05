@@ -17,7 +17,8 @@
 > deja una tarea marcada "lista" a medio hacer.
 >
 > Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
-> specs e2e rotos y el motivo de soporte — ver TRAZABILIDAD.md #33-34).
+> specs e2e rotos, el motivo de soporte y el guardián de tenant en
+> `services` — ver TRAZABILIDAD.md #33-35).
 
 ---
 
@@ -25,7 +26,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Guardián de tenant: cubrir `tx.` dentro de `services`](#paquete--guardián-de-tenant-cubrir-tx-dentro-de-services) | Chico | Hardening — hoy no hay bug activo |
 | [Filtro `?bloqueado=1` no implementado en Jugadores](#paquete--filtro-bloqueado1-no-implementado-en-jugadores) | Chico | El KPI "Familias bloqueadas" del dashboard enlaza a un filtro que no existe |
 | [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
@@ -51,21 +51,6 @@ texto, y bloqueado vive en `padre.bloqueado`/`cuentaUser.bloqueado` (no en
 ya existe — hay que reestructurar ambas funciones envolviendo todo en
 `AND` (mismo patrón que ya se usó para `condicionEstadoEfectivo` en
 Membresías, hito 30) en vez de agregar una clave más al objeto `where`.
-
-## Paquete — Guardián de tenant: cubrir `tx.` dentro de `services`
-
-Chico. Hallazgo del hito 29 (Aranceles): el guardián extendido en el hito 27
-solo escanea `src/repositories/*.repository.ts`. Algunos services (
-`entrenador.service.ts`, y ahora `arancel.service.ts` para el flujo de
-reemplazo) abren `db.$transaction(async (tx) => ...)` **directo desde el
-service**, no desde el repositorio — un patrón ya existente en el código,
-no una violación nueva. Hoy esas transacciones están bien escritas
-(`escuelaId` presente en cada `tx.modelo.*`), pero el guardián no las vería
-si alguna vez una nueva no lo estuviera. Extender el barrido de
-`tests/unit/aislamiento-tenant.test.ts` para incluir también
-`src/services/*.service.ts` (mismo mecanismo, otro directorio) cerraría el
-hueco. No es urgente — es hardening sobre código ya correcto, no un bug
-activo.
 
 ## Paquete — Descuentos con regla
 

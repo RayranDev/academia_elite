@@ -58,6 +58,7 @@
 | 32 | Eventos: ejecución solo el día programado (con aviso), duración en vez de hora fin, se saca "minutos jugados" | 2026-08-05 | ✅ |
 | 33 | Fix de 2 specs e2e rotos (registro sin confirmar contraseña, aviso importante tapando "Confirmar") | 2026-08-05 | ✅ |
 | 34 | Motivo de soporte: se mantienen los dos patrones a propósito, no se unifican | 2026-08-05 | ✅ |
+| 35 | Guardián de tenant: extendido a `src/services/*.service.ts` (antes solo repositories) | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1181,6 +1182,31 @@ siguen pidiendo su propio motivo por import; `editarJugador`,
 `actualizarFichaMedica` y el resto de las ediciones puntuales del SA siguen
 reusando `ctx.soporte?.motivo`. Sin cambio de código — decisión documentada
 en `DECISIONES.md` §79, paquete sacado de `PENDIENTES.md`.
+
+## 35. Guardián de tenant: cobertura de `services` (2026-08-05)
+
+Hallazgo del hito 29 (Aranceles), anotado entonces en `PENDIENTES.md`:
+`tests/unit/aislamiento-tenant.test.ts` solo escaneaba
+`src/repositories/*.repository.ts`, pero algunos services
+(`entrenador.service.ts`, `arancel.service.ts`) abren
+`db.$transaction(async (tx) => ...)` directo desde el service, sin pasar
+por un repositorio — quedaban fuera del barrido. Se generalizó el test
+para recorrer también `src/services/*.service.ts` (mismo mecanismo, un
+segundo directorio en vez de uno hardcodeado).
+
+Al extenderlo apareció un caso real, no antes visible:
+`evaluacion.service.ts:174` — `tx.logroJugador.updateMany({ where: { id:
+{ in: consumidos } } })` sin `escuelaId` explícito. Investigado: `consumidos`
+son ids que vienen de `bonusPendientes(jugador.id)`
+(`evaluacion.repository.ts`), que ya lleva la misma anotación
+`// tenant-global:` documentando que el `jugador` fue verificado
+tenant-scoped aguas arriba (`obtenerJugador(escuelaId, ...)`) antes de
+llegar a `evaluarJugadorCore` — confirmado en sus dos únicos llamadores
+(`crearEvaluacion` y la importación masiva). No era una fuga real: se
+anotó con `// tenant-global:` (mismo criterio que su vecino en el
+repositorio), no se tocó el filtro.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (293 tests).
 
 ---
 

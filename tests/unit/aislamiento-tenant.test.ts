@@ -5,11 +5,14 @@ import path from "node:path";
 /**
  * Test guardián de aislamiento multi-tenant (estructural, permanente).
  *
- * Lee el código fuente de los repositorios y falla si alguna consulta Prisma
- * sobre un modelo con columna `escuelaId` no está acotada por tenant. Es la red
- * que evita que una query nueva olvide el filtro de escuela y filtre datos de
+ * Lee el código fuente de `src/repositories/*.repository.ts` y
+ * `src/services/*.service.ts`, y falla si alguna consulta Prisma sobre un
+ * modelo con columna `escuelaId` no está acotada por tenant. Es la red que
+ * evita que una query nueva olvide el filtro de escuela y filtre datos de
  * otra escuela. Cubre tanto `db.modelo.metodo()` como `tx.modelo.metodo()`
- * dentro de `db.$transaction(async (tx) => ...)`.
+ * dentro de `db.$transaction(async (tx) => ...)` — en cualquiera de los dos
+ * directorios: algunos services (`entrenador.service.ts`, `arancel.service.ts`)
+ * abren su propia transacción sin pasar por un repositorio.
  *
  * Una consulta de LECTURA/ACTUALIZACIÓN (`find*`, `update*`, `delete*`, `count`,
  * `aggregate`, `groupBy`, `upsert`) sobre un modelo-tenant se considera SEGURA
@@ -64,7 +67,15 @@ const METODOS_DATA = new Set(["create", "createMany"]);
 // que no admitan anotación inline. Vacío por ahora.
 const ALLOWLIST = new Set<string>([]);
 
-const REPO_DIR = path.join(ROOT, "src", "repositories");
+// Repositorios: todas las queries Prisma viven ahí. Services: la mayoría no
+// toca Prisma directo, pero algunos (`entrenador.service.ts`, `arancel.service.ts`)
+// abren `db.$transaction(async (tx) => ...)` directo desde el service — un
+// patrón ya existente en el código, no cubierto hasta ahora porque el barrido
+// original solo miraba `src/repositories/`.
+const DIRS = [
+  { dir: path.join(ROOT, "src", "repositories"), suffix: ".repository.ts" },
+  { dir: path.join(ROOT, "src", "services"), suffix: ".service.ts" },
+];
 
 /** Devuelve el bloque `{ ... }` balanceado que empieza en el índice `from`. */
 function balancedBraces(src: string, from: number): string {
@@ -107,45 +118,45 @@ describe("aislamiento multi-tenant", () => {
   it("toda query sobre un modelo con escuelaId filtra por escuelaId o está justificada", () => {
     const fallos: string[] = [];
 
-    for (const file of readdirSync(REPO_DIR).filter((f) =>
-      f.endsWith(".repository.ts"),
-    )) {
-      const src = readFileSync(path.join(REPO_DIR, file), "utf8");
-      // `(?:db|tx)`: dentro de `db.$transaction(async (tx) => ...)` las llamadas
-      // van por `tx.modelo.metodo()`, no por `db.`, y quedaban invisibles.
-      const re = new RegExp(`(?:db|tx)\\.(\\w+)\\.(${METODOS})\\s*\\(`, "g");
-      let match: RegExpExecArray | null;
+    for (const { dir, suffix } of DIRS) {
+      for (const file of readdirSync(dir).filter((f) => f.endsWith(suffix))) {
+        const src = readFileSync(path.join(dir, file), "utf8");
+        // `(?:db|tx)`: dentro de `db.$transaction(async (tx) => ...)` las llamadas
+        // van por `tx.modelo.metodo()`, no por `db.`, y quedaban invisibles.
+        const re = new RegExp(`(?:db|tx)\\.(\\w+)\\.(${METODOS})\\s*\\(`, "g");
+        let match: RegExpExecArray | null;
 
-      while ((match = re.exec(src))) {
-        const accesor = match[1];
-        const metodo = match[2];
-        if (!modelosTenant.has(accesor) || EXCLUDE.has(accesor)) continue;
-        if (ALLOWLIST.has(`${file}: ${accesor}`)) continue;
+        while ((match = re.exec(src))) {
+          const accesor = match[1];
+          const metodo = match[2];
+          if (!modelosTenant.has(accesor) || EXCLUDE.has(accesor)) continue;
+          if (ALLOWLIST.has(`${file}: ${accesor}`)) continue;
 
-        // Extrae el bloque de argumentos balanceando paréntesis desde "(".
-        const open = re.lastIndex - 1;
-        let depth = 0;
-        let i = open;
-        for (; i < src.length; i++) {
-          if (src[i] === "(") depth++;
-          else if (src[i] === ")") {
-            depth--;
-            if (depth === 0) break;
+          // Extrae el bloque de argumentos balanceando paréntesis desde "(".
+          const open = re.lastIndex - 1;
+          let depth = 0;
+          let i = open;
+          for (; i < src.length; i++) {
+            if (src[i] === "(") depth++;
+            else if (src[i] === ")") {
+              depth--;
+              if (depth === 0) break;
+            }
           }
+          const args = src.slice(open, i + 1);
+          const seguro = METODOS_DATA.has(metodo)
+            ? tenantEnData(args)
+            : tenantFiltrado(args);
+          if (seguro) continue;
+
+          // ¿Anotación `// tenant-global:` en las líneas inmediatamente previas?
+          const before = src.slice(0, match.index);
+          const prevLines = before.split("\n").slice(-3).join("\n");
+          if (/\/\/\s*tenant-global:/.test(prevLines)) continue;
+
+          const line = before.split("\n").length;
+          fallos.push(`${file}:${line} db.${accesor}.${metodo}() sin escuelaId`);
         }
-        const args = src.slice(open, i + 1);
-        const seguro = METODOS_DATA.has(metodo)
-          ? tenantEnData(args)
-          : tenantFiltrado(args);
-        if (seguro) continue;
-
-        // ¿Anotación `// tenant-global:` en las líneas inmediatamente previas?
-        const before = src.slice(0, match.index);
-        const prevLines = before.split("\n").slice(-3).join("\n");
-        if (/\/\/\s*tenant-global:/.test(prevLines)) continue;
-
-        const line = before.split("\n").length;
-        fallos.push(`${file}:${line} db.${accesor}.${metodo}() sin escuelaId`);
       }
     }
 

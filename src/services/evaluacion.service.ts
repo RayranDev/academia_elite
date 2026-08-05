@@ -171,6 +171,7 @@ export async function evaluarJugadorCore(
       },
     });
     if (consumidos.length > 0) {
+      // tenant-global: ids de `bonusPendientes(jugador.id)`, jugador ya tenant-scoped aguas arriba.
       await tx.logroJugador.updateMany({
         where: { id: { in: consumidos } },
         data: { bonusConsumido: true },
