@@ -20,6 +20,7 @@ import {
   jugadoresActivosParaCobranza,
 } from "@/repositories/jugador.repository";
 import { listarArancelesActivos } from "@/repositories/arancel.repository";
+import { listarDescuentoReglasActivas } from "@/repositories/descuento.repository";
 import { resolverArancel, referenciaDePrecio } from "@/lib/aranceles";
 import {
   estadoEfectivo,
@@ -27,8 +28,10 @@ import {
   netoCuota,
   periodoDe,
   condicionEstadoEfectivo,
+  resolverDescuento,
   type CuotaParaDeuda,
   type EstadoCuota,
+  type DescuentoAplicable,
 } from "@/lib/cobranza";
 import { registrarAuditoria } from "@/services/audit.service";
 import { ESTADOS_MEMBRESIA } from "@/lib/validators/membresia";
@@ -174,9 +177,10 @@ export async function generarCuotasDelPeriodo(
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
 
-  const [jugadores, aranceles, yaTienen] = await Promise.all([
+  const [jugadores, aranceles, reglasDescuento, yaTienen] = await Promise.all([
     jugadoresActivosParaCobranza(escuelaId),
     listarArancelesActivos(escuelaId, concepto),
+    listarDescuentoReglasActivas(escuelaId),
     jugadoresConCuota(escuelaId, periodo, concepto),
   ]);
   if (jugadores.length === 0) {
@@ -193,6 +197,19 @@ export async function generarCuotasDelPeriodo(
     vigenteDesde: a.vigenteDesde,
   }));
 
+  // Mismo criterio: un solo query de reglas y la resolución en memoria contra
+  // las reglas asignadas de cada jugador (`resolverDescuento` es puro).
+  const reglasPorId = new Map<string, DescuentoAplicable>(
+    reglasDescuento.map((r) => [
+      r.id,
+      {
+        categoriaId: r.categoriaId,
+        tipo: r.tipo as "PORCENTAJE" | "MONTO_FIJO",
+        valor: Number(r.valor.toString()),
+      },
+    ]),
+  );
+
   // `sinPrecio` se cuenta SOLO sobre los que se van a crear. Contarlo sobre todos
   // los activos haría que una segunda corrida informara "N quedaron sin monto"
   // sobre cuotas que ni se tocaron.
@@ -206,11 +223,30 @@ export async function generarCuotasDelPeriodo(
     .map((j) => {
       const arancel = resolverArancel(vigentes, j.categoriaId, concepto, referencia);
       if (!arancel) sinPrecio++;
+
+      // El descuento solo tiene sentido si hay monto del que descontar (mismo
+      // criterio que `sinPrecio`). Se filtran defensivamente por categoría: una
+      // asignación puede quedar obsoleta si el jugador cambió de categoría
+      // después de asignársela.
+      let descuento: number | null = null;
+      if (arancel) {
+        const reglasDelJugador = j.descuentos
+          .map((d) => reglasPorId.get(d.reglaId))
+          .filter(
+            (r): r is DescuentoAplicable =>
+              r != null && r.categoriaId === j.categoriaId,
+          );
+        if (reglasDelJugador.length > 0) {
+          descuento = resolverDescuento(reglasDelJugador, j.categoriaId, arancel.monto);
+        }
+      }
+
       return {
         jugadorId: j.id,
         periodo,
         concepto,
         monto: arancel ? arancel.monto : null,
+        descuento,
       };
     });
 

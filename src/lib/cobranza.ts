@@ -119,6 +119,36 @@ export function netoCuota(cuota: CuotaParaDeuda): number | null {
   return cuota.monto - (cuota.descuento ?? 0);
 }
 
+/** Regla de descuento (DescuentoRegla) reducida a lo que necesita la resolución pura. */
+export interface DescuentoAplicable {
+  categoriaId: string;
+  tipo: "PORCENTAJE" | "MONTO_FIJO";
+  valor: number;
+}
+
+/**
+ * Descuento a aplicar sobre `monto` para la categoría `categoriaId`, dado el
+ * conjunto de reglas asignadas a un jugador.
+ *
+ * Si califica para más de una regla, gana la que da el MAYOR descuento en
+ * PESOS, no la de mayor `valor`: un 10% y un fijo de $5000 no se comparan
+ * directo, hay que convertir ambos a pesos sobre el mismo `monto` primero. Las
+ * reglas no se combinan (decisión de producto). Nunca supera `monto`: un
+ * descuento no puede dejar un neto negativo.
+ */
+export function resolverDescuento(
+  reglas: DescuentoAplicable[],
+  categoriaId: string,
+  monto: number,
+): number {
+  const aplicables = reglas.filter((r) => r.categoriaId === categoriaId);
+  if (aplicables.length === 0) return 0;
+  const montos = aplicables.map((r) =>
+    r.tipo === "PORCENTAJE" ? (monto * r.valor) / 100 : r.valor,
+  );
+  return Math.min(Math.max(...montos), monto);
+}
+
 /**
  * Estado de cuenta de un jugador, derivado de sus cuotas. Reemplaza la idea de
  * guardar una `vigenciaHasta` a mano: no hay columna nueva ni segunda fuente de

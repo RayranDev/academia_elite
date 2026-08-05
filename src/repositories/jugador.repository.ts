@@ -98,12 +98,17 @@ export function jugadoresParaDuplicados(escuelaId: string) {
 /**
  * Jugadores ACTIVO de la escuela con su categoría, para generar la cobranza del
  * mes. Solo ACTIVO: a un jugador PENDIENTE (todavía sin aprobar) o INACTIVO no
- * se le emite cuota.
+ * se le emite cuota. `descuentos` trae los ids de las reglas asignadas a mano
+ * (Hermano, Beca…) para resolver el descuento de la cuota en memoria.
  */
 export function jugadoresActivosParaCobranza(escuelaId: string) {
   return db.jugador.findMany({
     where: { escuelaId, estado: "ACTIVO" },
-    select: { id: true, categoriaId: true },
+    select: {
+      id: true,
+      categoriaId: true,
+      descuentos: { select: { reglaId: true } },
+    },
   });
 }
 

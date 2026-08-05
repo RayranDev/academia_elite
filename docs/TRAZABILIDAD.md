@@ -60,6 +60,7 @@
 | 34 | Motivo de soporte: se mantienen los dos patrones a propósito, no se unifican | 2026-08-05 | ✅ |
 | 35 | Guardián de tenant: extendido a `src/services/*.service.ts` (antes solo repositories) | 2026-08-05 | ✅ |
 | 36 | Filtro `?bloqueado=1` en Jugadores: link muerto del KPI "Familias bloqueadas" ahora funciona | 2026-08-05 | ✅ |
+| 37 | Descuentos con regla: reglas de descuento reusables (Hermano, Beca) aplicadas solas al generar la cobranza | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1229,6 +1230,52 @@ extra contra la base real: dentro de una transacción con ROLLBACK forzado,
 se bloqueó temporalmente el `User` padre de un jugador y se confirmó que
 `contarJugadoresGestion(..., {bloqueado:true})` lo cuenta y
 `listarJugadoresGestion` lo devuelve — nada persistido.
+
+## 37. Descuentos con regla (2026-08-05)
+
+Paquete "Medio" de `PENDIENTES.md`. Antes `Membresia.descuento` se tipeaba
+a mano cuota por cuota; ahora se pueden definir reglas de descuento
+reusables por categoría (`DescuentoRegla`) que se aplican solas al generar
+la cobranza masiva del mes. Decisiones de producto cerradas antes de
+diseñar (`DECISIONES.md` §80): reglas por categoría (no escuela completa),
+gana la de mayor descuento si un jugador califica para varias (no se
+combinan), "Hermano" se asigna manual (sin detección automática).
+
+**Diseño**: mirrorea el patrón ya existente de `Arancel` (precio por
+categoría) y su función pura `resolverArancel`. Dos modelos nuevos:
+`DescuentoRegla` (categoría, nombre, `tipo` PORCENTAJE/MONTO_FIJO, valor,
+baja lógica) y `JugadorDescuento` (m2m jugador↔regla, mismo shape que
+`EntrenadorCategoria`). Nueva función pura `resolverDescuento`
+(`src/lib/cobranza.ts`): compara el descuento resultante EN PESOS de cada
+regla aplicable, no el `valor` crudo — un 10% y un fijo de $5000 no se
+comparan directo. Enganchada en `generarCuotasDelPeriodo`
+(`membresia.service.ts`): un solo query extra de reglas activas, resolución
+en memoria por jugador (filtrada defensivamente por
+`categoriaId` del jugador, por si cambió de categoría después de la
+asignación), solo si el arancel resolvió un monto — mismo criterio que
+`sinPrecio`. Nuevos repo/service/validator/actions (`descuento.*`) y UI
+(`/escuela/descuentos`, `DescuentosPanel`, `EditarDescuentoReglaModal`,
+`AsignarJugadoresDescuentoModal` con checklist tipo convocados).
+
+**Hallazgo colateral, corregido de paso**: `prisma/seed.ts` tenía el MISMO
+tipo de bug de FK que el hito 32 (Arancel/Egreso) — `JugadorDescuento`/
+`DescuentoRegla` faltaban en el orden de `limpiar()`, y `jugador.deleteMany()`
+habría roto por la FK. Corregido antes de que bloqueara el e2e.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (299 tests, 6 nuevos
+para `resolverDescuento`, incluido el caso de comparación mixta
+porcentaje/fijo). `npm run test:e2e`: 10/10. Chequeo real contra la base de
+producción: se creó un arancel y una regla de descuento temporales, se
+asignó a un jugador real, se corrió `generarCuotasDelPeriodo` con un
+período sintético (`2099-01`, imposible que colisione con datos reales), se
+confirmó que la cuota nació con el descuento correcto (10% de 100.000 =
+10.000), y se borró todo (arancel, regla, asignación, cuota, audit logs) —
+nada quedó persistido. Migración (`20260805190415_descuento_regla`,
+puramente aditiva) aplicada a producción.
+
+Implementación delegada a un sub-agente con el plan (investigado y
+aprobado en modo plan) como instrucción exacta; revisión de diff propia
+línea por línea antes de verificar y aplicar la migración.
 
 ---
 

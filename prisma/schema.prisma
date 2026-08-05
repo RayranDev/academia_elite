@@ -93,6 +93,7 @@ model Escuela {
   parametros               ParametroEscuela[]
   aranceles                Arancel[]
   egresos                  Egreso[]
+  descuentoReglas          DescuentoRegla[]
   createdAt                DateTime           @default(now())
 }
 
@@ -127,6 +128,7 @@ model Categoria {
   eventos      Evento[]
   anuncios     Anuncio[]
   aranceles    Arancel[]
+  descuentoReglas DescuentoRegla[]
 
   @@index([escuelaId])
 }
@@ -204,6 +206,7 @@ model Jugador {
   fondosDesbloqueados          FondoDesbloqueado[]
   fondoEquipadoId              String?
   fondoEquipado                FondoCarta?          @relation("FondoEquipado", fields: [fondoEquipadoId], references: [id])
+  descuentos                   JugadorDescuento[]
   // Curva de desarrollo: bonus de MEN ganado por asistencia entre evaluaciones
   // (lo recalcula a diario el cron; acotado y recuperable, ver src/lib/curva.ts).
   menBonus                     Float                @default(0)
@@ -690,6 +693,43 @@ model Arancel {
   createdAt    DateTime   @default(now())
 
   @@index([escuelaId, concepto])
+}
+
+// Regla de descuento reusable, por categoría (como Arancel), que se aplica sola
+// al generar la cobranza masiva del mes (generarCuotasDelPeriodo). Decisiones de
+// producto: (1) es por categoría, no por escuela completa; (2) si un jugador
+// califica para más de una regla, gana la de MAYOR descuento en pesos, no se
+// combinan (ver `resolverDescuento` en src/lib/cobranza.ts); (3) "Hermano" se
+// asigna a mano por el ESCUELA_ADMIN, no hay detección automática.
+//
+// Sin baja lógica tipo "reemplazar" de Arancel: un duplicado (misma
+// categoría+nombre, ambas activas) se rechaza en el servicio con un error claro.
+model DescuentoRegla {
+  id          String             @id @default(cuid())
+  escuelaId   String
+  escuela     Escuela            @relation(fields: [escuelaId], references: [id])
+  categoriaId String
+  categoria   Categoria          @relation(fields: [categoriaId], references: [id])
+  nombre      String // "Hermano", "Beca deportiva" — texto libre corto
+  tipo        String // enum: PORCENTAJE | MONTO_FIJO
+  valor       Decimal            @db.Decimal(12, 2) // % (0-100) o monto fijo según `tipo`
+  activo      Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  jugadores   JugadorDescuento[]
+
+  @@index([escuelaId, categoriaId])
+}
+
+// Asignación manual de un jugador a una regla de descuento. Un jugador puede
+// tener varias asignaciones; `resolverDescuento` elige la de mayor descuento.
+model JugadorDescuento {
+  jugadorId  String
+  reglaId    String
+  jugador    Jugador        @relation(fields: [jugadorId], references: [id])
+  regla      DescuentoRegla @relation(fields: [reglaId], references: [id])
+  asignadaEn DateTime       @default(now())
+
+  @@id([jugadorId, reglaId])
 }
 
 // Egreso de caja de la escuela (gasto operativo: cancha, árbitro, sueldos, ...).

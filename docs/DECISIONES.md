@@ -575,3 +575,16 @@ cada adaptación, regla 0.8.)
     `editarJugador`, `actualizarFichaMedica` y el resto de las acciones de
     edición puntual del SA siguen reusando `ctx.soporte?.motivo`. Sin cambio
     de código — se cierra la pregunta abierta y se saca de `PENDIENTES.md`.
+80. **Descuentos con regla: por categoría, gana la mayor, hermano manual.**
+    Decisiones del usuario (2026-08-05) antes de diseñar el modelo: (1) las
+    reglas de descuento son **por categoría** (`DescuentoRegla.categoriaId`
+    obligatorio, sin alcance de escuela completa como `Arancel`); (2) si un
+    jugador califica para más de una regla, se aplica la de **mayor
+    descuento en pesos** — no se combinan (`resolverDescuento`,
+    `src/lib/cobranza.ts`, compara el descuento resultante, no el `valor`
+    crudo, porque un % y un monto fijo no son la misma unidad); (3) la regla
+    "Hermano" se identifica **manual** — el ESCUELA_ADMIN asigna jugadores a
+    una regla a mano (`JugadorDescuento`, m2m), no hay detección automática
+    por vínculo familiar. Sin baja lógica tipo "reemplazar" de Arancel: un
+    duplicado (misma categoría+nombre, ambas activas) se rechaza con un
+    error, sin flujo de reemplazo con historial.

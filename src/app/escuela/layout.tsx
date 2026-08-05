@@ -15,6 +15,7 @@ const NAV: NavItem[] = [
   { href: "/escuela/membresias", label: "Membresías", icon: "membresias", grupo: "Administración" },
   { href: "/escuela/egresos", label: "Egresos", icon: "egresos", grupo: "Administración" },
   { href: "/escuela/aranceles", label: "Precios", icon: "precios", grupo: "Administración" },
+  { href: "/escuela/descuentos", label: "Descuentos", icon: "descuentos", grupo: "Administración" },
   { href: "/escuela/dts", label: "DTs", icon: "usuarios", grupo: "Administración" },
   { href: "/escuela/codigos", label: "Códigos", icon: "codigos", grupo: "Administración" },
   { href: "/escuela/anuncios", label: "Anuncios", icon: "anuncios", grupo: "Club" },

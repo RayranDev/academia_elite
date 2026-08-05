@@ -18,7 +18,8 @@
 >
 > Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
-> `services` y el filtro `?bloqueado=1` — ver TRAZABILIDAD.md #33-36).
+> `services`, el filtro `?bloqueado=1` y Descuentos con regla — ver
+> TRAZABILIDAD.md #33-37).
 
 ---
 
@@ -26,7 +27,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
 | [Acceso parcial del jugador bloqueado](#paquete--acceso-parcial-del-jugador-bloqueado) | Medio | Hoy es bloqueo total; requiere diseño de auth antes de tocar código |
 | [Perfil del DT con estadísticas](#paquete--perfil-del-dt-con-estadísticas) | Medio | No existe ninguna pantalla de "mis resultados" para el DT |
@@ -34,19 +34,6 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Descuentos con regla
-
-Medio. Hoy `Membresia.descuento` se tipea a mano por cuota individual. Falta
-representarlo como una **regla** (ej. "hermano" = 10% en la segunda
-mensualidad de la familia, "beca" = descuento fijo) para que
-`generarCuotasDelPeriodo` (`membresia.service.ts`) la aplique sola al generar
-la cobranza masiva del mes, en vez de que alguien edite cuota por cuota.
-Preguntas a cerrar antes de diseñar el modelo: ¿las reglas son por escuela
-completa o por categoría (como `Arancel`)? ¿Se pueden combinar dos reglas
-sobre el mismo jugador, o gana la de mayor descuento? ¿Cómo se identifica
-"hermano" — por `parentescoAcudiente` compartido entre jugadores de la misma
-familia, o es manual?
 
 ## Paquete — Staff más allá del DT
 

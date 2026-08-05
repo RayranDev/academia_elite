@@ -69,6 +69,11 @@ async function limpiar() {
   await db.codigoInvitacion.deleteMany();
   await db.entrenadorCategoria.deleteMany();
   await db.fondoDesbloqueado.deleteMany();
+  // JugadorDescuento/DescuentoRegla (Descuentos con regla): mismo tipo de bug
+  // que Arancel/Egreso arriba — faltaban acá y `jugador.deleteMany()` rompía
+  // por su FK a JugadorDescuento.
+  await db.jugadorDescuento.deleteMany();
+  await db.descuentoRegla.deleteMany();
   await db.jugador.deleteMany();
   await db.entrenador.deleteMany();
   await db.cancha.deleteMany();

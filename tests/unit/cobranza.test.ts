@@ -6,8 +6,10 @@ import {
   netoCuota,
   estadoCuenta,
   condicionEstadoEfectivo,
+  resolverDescuento,
   type CuotaParaDeuda,
   type EstadoCuota,
+  type DescuentoAplicable,
 } from "@/lib/cobranza";
 
 // Cobranza derivada (Track A · A.3 y A.4). El estado de una cuota y la deuda de
@@ -252,5 +254,48 @@ describe("condicionEstadoEfectivo", () => {
     expect(
       matchea(filaVieja, condicionEstadoEfectivo("PENDIENTE", periodoActual)),
     ).toBe(false);
+  });
+});
+
+describe("resolverDescuento", () => {
+  const CATEGORIA = "cat-sub12";
+
+  function regla(p: Partial<DescuentoAplicable>): DescuentoAplicable {
+    return { categoriaId: CATEGORIA, tipo: "PORCENTAJE", valor: 10, ...p };
+  }
+
+  it("sin reglas no hay descuento", () => {
+    expect(resolverDescuento([], CATEGORIA, 45000)).toBe(0);
+  });
+
+  it("sin reglas de ESA categoría tampoco (aunque haya reglas de otras)", () => {
+    const reglas = [regla({ categoriaId: "otra-categoria", valor: 50 })];
+    expect(resolverDescuento(reglas, CATEGORIA, 45000)).toBe(0);
+  });
+
+  it("una regla porcentaje calcula sobre el monto", () => {
+    const reglas = [regla({ tipo: "PORCENTAJE", valor: 20 })];
+    expect(resolverDescuento(reglas, CATEGORIA, 45000)).toBe(9000);
+  });
+
+  it("una regla de monto fijo aplica el valor tal cual", () => {
+    const reglas = [regla({ tipo: "MONTO_FIJO", valor: 5000 })];
+    expect(resolverDescuento(reglas, CATEGORIA, 45000)).toBe(5000);
+  });
+
+  it("con dos reglas mixtas gana la de MAYOR descuento en pesos, no la de mayor `valor` numérico", () => {
+    // El fijo tiene el `valor` numérico más chico (8000 < 10) pero en pesos da
+    // más que el 10% de 45000 (4500): si se comparara el `valor` crudo en vez
+    // del descuento resultante, ganaría el porcentaje y estaría mal.
+    const reglas = [
+      regla({ tipo: "PORCENTAJE", valor: 10 }), // 10% de 45000 = 4500
+      regla({ tipo: "MONTO_FIJO", valor: 8000 }), // 8000 en pesos
+    ];
+    expect(resolverDescuento(reglas, CATEGORIA, 45000)).toBe(8000);
+  });
+
+  it("una regla que superaría el monto no lo excede (tope)", () => {
+    const reglas = [regla({ tipo: "MONTO_FIJO", valor: 999999 })];
+    expect(resolverDescuento(reglas, CATEGORIA, 45000)).toBe(45000);
   });
 });

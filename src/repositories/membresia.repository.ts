@@ -137,6 +137,7 @@ export async function crearMembresiasFaltantes(
     periodo: string;
     concepto: string;
     monto: number | null;
+    descuento: number | null;
   }[],
 ): Promise<number> {
   if (filas.length === 0) return 0;
