@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { generarCodigoInvitacion, generarCodigoRef } from "@/lib/codes";
 
 // Repositorio de jugadores (Capa 4). Firma con escuelaId (multi-tenant).
@@ -185,34 +186,56 @@ export function listarHijos(userId: string) {
   });
 }
 
+interface FiltrosJugadoresGestion {
+  id?: string;
+  categoriaId?: string;
+  estados?: string[];
+  search?: string;
+  bloqueado?: boolean;
+}
+
+/**
+ * Arma el `AND` de filtros. AND explícito, no un solo objeto `where`: la
+ * búsqueda por texto y el filtro por bloqueado usan cada uno su propio `OR`
+ * (nombre/apellido/código el primero; padre/cuentaUser el segundo), y dos
+ * claves `OR` en un mismo objeto literal se pisarían entre sí.
+ */
+function condicionesJugadorGestion(
+  escuelaId: string,
+  filtros: FiltrosJugadoresGestion,
+): Prisma.JugadorWhereInput[] {
+  const AND: Prisma.JugadorWhereInput[] = [{ escuelaId }];
+  if (filtros.id) AND.push({ id: filtros.id });
+  if (filtros.categoriaId) AND.push({ categoriaId: filtros.categoriaId });
+  if (filtros.estados && filtros.estados.length > 0) {
+    AND.push({ estado: { in: filtros.estados } });
+  }
+  if (filtros.search) {
+    AND.push({
+      OR: [
+        { nombre: { contains: filtros.search } },
+        { apellido: { contains: filtros.search } },
+        { codigoRef: { contains: filtros.search } },
+      ],
+    });
+  }
+  // Bloqueado vive en padre/cuentaUser, no en Jugador: la familia queda
+  // bloqueada, no el registro del jugador en sí.
+  if (filtros.bloqueado) {
+    AND.push({
+      OR: [{ padre: { bloqueado: true } }, { cuentaUser: { bloqueado: true } }],
+    });
+  }
+  return AND;
+}
+
 /** Jugadores para gestión (Escuela/Súper Admin), con vínculos de familia. */
 export function listarJugadoresGestion(
   escuelaId: string,
-  filtros: {
-    id?: string;
-    categoriaId?: string;
-    estados?: string[];
-    search?: string;
-    skip?: number;
-    take?: number;
-  },
+  filtros: FiltrosJugadoresGestion & { skip?: number; take?: number },
 ) {
-  const condEstados = filtros.estados && filtros.estados.length > 0 ? { in: filtros.estados } : undefined;
-  const condCategoria = filtros.categoriaId || undefined;
-  const condSearch = filtros.search ? [
-    { nombre: { contains: filtros.search } },
-    { apellido: { contains: filtros.search } },
-    { codigoRef: { contains: filtros.search } },
-  ] : undefined;
-
   return db.jugador.findMany({
-    where: {
-      escuelaId,
-      id: filtros.id || undefined,
-      estado: condEstados,
-      categoriaId: condCategoria,
-      OR: condSearch,
-    },
+    where: { AND: condicionesJugadorGestion(escuelaId, filtros) },
     skip: filtros.skip,
     take: filtros.take,
     include: {
@@ -228,29 +251,10 @@ export function listarJugadoresGestion(
 
 export function contarJugadoresGestion(
   escuelaId: string,
-  filtros: {
-    id?: string;
-    categoriaId?: string;
-    estados?: string[];
-    search?: string;
-  },
+  filtros: FiltrosJugadoresGestion,
 ) {
-  const condEstados = filtros.estados && filtros.estados.length > 0 ? { in: filtros.estados } : undefined;
-  const condCategoria = filtros.categoriaId || undefined;
-  const condSearch = filtros.search ? [
-    { nombre: { contains: filtros.search } },
-    { apellido: { contains: filtros.search } },
-    { codigoRef: { contains: filtros.search } },
-  ] : undefined;
-
   return db.jugador.count({
-    where: {
-      escuelaId,
-      id: filtros.id || undefined,
-      estado: condEstados,
-      categoriaId: condCategoria,
-      OR: condSearch,
-    },
+    where: { AND: condicionesJugadorGestion(escuelaId, filtros) },
   });
 }
 

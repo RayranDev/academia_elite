@@ -118,6 +118,7 @@ export async function listarJugadoresGestion(
     categoriaId?: string;
     estado?: string;
     search?: string;
+    bloqueado?: boolean;
     page?: number;
     limit?: number;
   } = {},
@@ -141,6 +142,7 @@ export async function listarJugadoresGestion(
       categoriaId: filtros.categoriaId,
       estados,
       search: filtros.search,
+      bloqueado: filtros.bloqueado,
       skip,
       take: limit,
     }),
@@ -149,6 +151,7 @@ export async function listarJugadoresGestion(
       categoriaId: filtros.categoriaId,
       estados,
       search: filtros.search,
+      bloqueado: filtros.bloqueado,
     }),
   ]);
 

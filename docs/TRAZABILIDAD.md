@@ -59,6 +59,7 @@
 | 33 | Fix de 2 specs e2e rotos (registro sin confirmar contraseña, aviso importante tapando "Confirmar") | 2026-08-05 | ✅ |
 | 34 | Motivo de soporte: se mantienen los dos patrones a propósito, no se unifican | 2026-08-05 | ✅ |
 | 35 | Guardián de tenant: extendido a `src/services/*.service.ts` (antes solo repositories) | 2026-08-05 | ✅ |
+| 36 | Filtro `?bloqueado=1` en Jugadores: link muerto del KPI "Familias bloqueadas" ahora funciona | 2026-08-05 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1207,6 +1208,27 @@ anotó con `// tenant-global:` (mismo criterio que su vecino en el
 repositorio), no se tocó el filtro.
 
 **Verificación**: `typecheck`/`lint`/`test` limpios (293 tests).
+
+## 36. Filtro `?bloqueado=1` en Jugadores (2026-08-05)
+
+Hallazgo colateral del hito 31 (Bloqueo por mora), anotado en `PENDIENTES.md`:
+el KPI "Familias bloqueadas" (`src/app/escuela/page.tsx`) enlaza a
+`/escuela/jugadores?bloqueado=1`, pero nada leía ese query param — link
+muerto. `jugador.repository.ts` ya tenía un `OR` para la búsqueda por texto
+(`condSearch`), y bloqueado vive en `padre.bloqueado`/`cuentaUser.bloqueado`
+(no en `Jugador`), así que sumarlo tal cual habría colisionado con ese `OR`
+existente. Se restructuraron `listarJugadoresGestion`/`contarJugadoresGestion`
+alrededor de un `condicionesJugadorGestion()` que arma un array `AND`
+explícito (mismo patrón que `condicionesMembresia` del hito 30) — cada
+filtro (búsqueda, bloqueado) agrega su propio elemento al `AND`, sin pisarse.
+Encadenado hasta la página: `gestion-jugadores.service.ts` gana `bloqueado?:
+boolean`, y `escuela/jugadores/page.tsx` lee `searchParams.bloqueado === "1"`.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (293 tests). Chequeo
+extra contra la base real: dentro de una transacción con ROLLBACK forzado,
+se bloqueó temporalmente el `User` padre de un jugador y se confirmó que
+`contarJugadoresGestion(..., {bloqueado:true})` lo cuenta y
+`listarJugadoresGestion` lo devuelve — nada persistido.
 
 ---
 

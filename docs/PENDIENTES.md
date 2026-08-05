@@ -17,8 +17,8 @@
 > deja una tarea marcada "lista" a medio hacer.
 >
 > Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
-> specs e2e rotos, el motivo de soporte y el guardián de tenant en
-> `services` — ver TRAZABILIDAD.md #33-35).
+> specs e2e rotos, el motivo de soporte, el guardián de tenant en
+> `services` y el filtro `?bloqueado=1` — ver TRAZABILIDAD.md #33-36).
 
 ---
 
@@ -26,7 +26,6 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Filtro `?bloqueado=1` no implementado en Jugadores](#paquete--filtro-bloqueado1-no-implementado-en-jugadores) | Chico | El KPI "Familias bloqueadas" del dashboard enlaza a un filtro que no existe |
 | [Descuentos con regla](#paquete--descuentos-con-regla) | Medio | El descuento deja de tipearse cuota por cuota |
 | [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
 | [Acceso parcial del jugador bloqueado](#paquete--acceso-parcial-del-jugador-bloqueado) | Medio | Hoy es bloqueo total; requiere diseño de auth antes de tocar código |
@@ -35,22 +34,6 @@
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Filtro `?bloqueado=1` no implementado en Jugadores
-
-Chico. Hallazgo colateral del hito 31 (Bloqueo por mora), no introducido por
-ese paquete. El KPI "Familias bloqueadas" en `src/app/escuela/page.tsx`
-enlaza a `/escuela/jugadores?bloqueado=1`, pero ni
-`JugadoresGestion.tsx` ni `listarJugadoresGestion` (servicio o repo) leen
-ese query param — es un link muerto preexistente. No es un cambio de una
-línea como el filtro `id`/`jugadorId` que sí se sumó en el hito 31: el
-`where` de `listarJugadoresGestion`/`contarJugadoresGestion`
-(`jugador.repository.ts`) ya usa `OR: condSearch` para la búsqueda por
-texto, y bloqueado vive en `padre.bloqueado`/`cuentaUser.bloqueado` (no en
-`Jugador`), así que sumarlo exige un segundo `OR` que colisiona con el que
-ya existe — hay que reestructurar ambas funciones envolviendo todo en
-`AND` (mismo patrón que ya se usó para `condicionEstadoEfectivo` en
-Membresías, hito 30) en vez de agregar una clave más al objeto `where`.
 
 ## Paquete — Descuentos con regla
 
