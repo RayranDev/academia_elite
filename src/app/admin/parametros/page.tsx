@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { MetricaCampoAdmin } from "@/components/admin/MetricaCampoAdmin";
 import { SelectorEscuelaParametros } from "@/components/admin/SelectorEscuelaParametros";
+import { EntrarSoporteDialog } from "@/components/admin/EntrarSoporteDialog";
 import { CURVA } from "@/lib/curva";
 import {
   PRUEBAS_FISICAS,
@@ -103,6 +104,10 @@ export default async function ParametrosPage({
   const escuelas = await listarEscuelas(ctx);
   // Solo entramos en modo escuela si el id es válido; si no, caemos a global.
   const escuelaSel = escuela ? escuelas.find((e) => e.id === escuela) ?? null : null;
+  // Ver/editar los parámetros de UNA escuela puntual es acceso a datos de ese
+  // tenant (M9, mismo criterio que la plantilla del simulador): exige sesión de
+  // soporte activa para esa escuela, si no `assertTenant` lanza ForbiddenError.
+  const enSoporte = escuelaSel ? ctx.soporte?.escuelaId === escuelaSel.id : false;
 
   return (
     <div className="space-y-4">
@@ -141,7 +146,24 @@ export default async function ParametrosPage({
       </p>
 
       {escuelaSel ? (
-        <ParametrosEscuela ctx={ctx} escuelaId={escuelaSel.id} />
+        enSoporte ? (
+          <ParametrosEscuela ctx={ctx} escuelaId={escuelaSel.id} />
+        ) : (
+          <Card>
+            <h2 className="text-xl font-bold">Sesión de soporte requerida</h2>
+            <p className="mt-2 text-sm text-muted">
+              Para ver y editar los parámetros propios de &quot;{escuelaSel.nombre}&quot;
+              abrí primero una <b>sesión de soporte</b> sobre esta escuela. El
+              acceso queda auditado.
+            </p>
+            <div className="mt-3">
+              <EntrarSoporteDialog
+                escuelaId={escuelaSel.id}
+                escuelaNombre={escuelaSel.nombre}
+              />
+            </div>
+          </Card>
+        )
       ) : (
         <ParametrosGlobales ctx={ctx} />
       )}
