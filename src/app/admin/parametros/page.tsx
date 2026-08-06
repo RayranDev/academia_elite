@@ -2,13 +2,17 @@ import Link from "next/link";
 import { FlaskConical } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarParametros, type ParametroDTO } from "@/services/parametro.service";
-import { listarMetricasEscuelaAdmin } from "@/services/parametro-escuela.service";
+import {
+  listarMetricasEscuelaAdmin,
+  listarMetricasCurvaEscuelaAdmin,
+} from "@/services/parametro-escuela.service";
 import { listarEscuelas } from "@/services/escuela.service";
 import { actualizarParametroAction } from "@/actions/admin.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { MetricaCampoAdmin } from "@/components/admin/MetricaCampoAdmin";
 import { SelectorEscuelaParametros } from "@/components/admin/SelectorEscuelaParametros";
+import { CURVA } from "@/lib/curva";
 import {
   PRUEBAS_FISICAS,
   CLAVE_PRUEBA,
@@ -25,6 +29,45 @@ const UMBRALES_UI: { clave: string; etiqueta: string; ayuda: string }[] = [
   { clave: CLAVE_UMBRAL.oro, etiqueta: "Oro", ayuda: `OVR mínimo para Oro (def. ${UMBRALES_DEFECTO.oro}).` },
   { clave: CLAVE_UMBRAL.heroe, etiqueta: "Héroe", ayuda: `OVR mínimo para Héroe (def. ${UMBRALES_DEFECTO.heroe}).` },
 ];
+
+/** Curva de desarrollo: solo estas 5 de las 10 constantes son overrideables por escuela. */
+const CURVA_UI: { clave: string; etiqueta: string; ayuda: string; defecto: number }[] = [
+  {
+    clave: "CURVA_GANANCIA_ENTRENO",
+    etiqueta: "Puntos por entrenamiento asistido",
+    ayuda: `Cuánto sube el MEN por cada entrenamiento asistido (def. ${CURVA.GANANCIA_ENTRENO}).`,
+    defecto: CURVA.GANANCIA_ENTRENO,
+  },
+  {
+    clave: "CURVA_GANANCIA_PARTIDO",
+    etiqueta: "Puntos por partido jugado",
+    ayuda: `Cuánto sube el MEN por cada partido asistido (def. ${CURVA.GANANCIA_PARTIDO}).`,
+    defecto: CURVA.GANANCIA_PARTIDO,
+  },
+  {
+    clave: "CURVA_TOPE_MEN_BONUS",
+    etiqueta: "Tope de bonus por asistencia",
+    ayuda: `Máximo de MEN que puede sumar la asistencia (def. ${CURVA.TOPE_MEN_BONUS}).`,
+    defecto: CURVA.TOPE_MEN_BONUS,
+  },
+  {
+    clave: "CURVA_TOPE_RENDIMIENTO_BONUS",
+    etiqueta: "Tope de bonus por rendimiento en cancha",
+    ayuda: `Máximo de MEN que puede sumar el rendimiento en cancha (def. ${CURVA.TOPE_RENDIMIENTO_BONUS}).`,
+    defecto: CURVA.TOPE_RENDIMIENTO_BONUS,
+  },
+  {
+    clave: "CURVA_UMBRAL_AUSENCIAS",
+    etiqueta: "Faltas antes de penalizar",
+    ayuda: `Ausencias permitidas antes de empezar a penalizar el MEN (def. ${CURVA.UMBRAL_AUSENCIAS}).`,
+    defecto: CURVA.UMBRAL_AUSENCIAS,
+  },
+];
+
+/** Etiqueta legible por clave, para la vista de override por escuela (solo trae `clave`). */
+const ETIQUETA_CURVA: Record<string, string> = Object.fromEntries(
+  CURVA_UI.map((c) => [c.clave, c.etiqueta]),
+);
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
@@ -117,7 +160,7 @@ async function ParametrosGlobales({ ctx }: { ctx: Awaited<ReturnType<typeof requ
   const porClave = new Map(parametros.map((p) => [p.clave, p]));
   const pesoMen = porClave.get("PESO_MEN_EN_OVR");
 
-  const umbralParametro = (clave: string, valor: number, descripcion: string): ParametroDTO =>
+  const parametroConDefecto = (clave: string, valor: number, descripcion: string): ParametroDTO =>
     porClave.get(clave) ?? { clave, valor, descripcion, updatedAt: "" };
 
   return (
@@ -156,7 +199,7 @@ async function ParametrosGlobales({ ctx }: { ctx: Awaited<ReturnType<typeof requ
                 <p className="text-xs text-muted">{u.ayuda}</p>
               </div>
               <CampoParametro
-                parametro={umbralParametro(
+                parametro={parametroConDefecto(
                   u.clave,
                   UMBRALES_DEFECTO[
                     u.etiqueta === "Plata" ? "plata" : u.etiqueta === "Oro" ? "oro" : "heroe"
@@ -164,6 +207,28 @@ async function ParametrosGlobales({ ctx }: { ctx: Awaited<ReturnType<typeof requ
                   u.ayuda,
                 )}
               />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 font-bold">Curva de desarrollo</h2>
+        <p className="mb-3 text-xs text-muted">
+          Cómo la asistencia a entrenos/partidos y el rendimiento en cancha
+          hacen crecer el MEN de un jugador entre evaluaciones.
+        </p>
+        <div className="space-y-3">
+          {CURVA_UI.map((c) => (
+            <div
+              key={c.clave}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle pt-3 first:border-t-0 first:pt-0"
+            >
+              <div className="min-w-48">
+                <p className="text-sm font-semibold">{c.etiqueta}</p>
+                <p className="text-xs text-muted">{c.ayuda}</p>
+              </div>
+              <CampoParametro parametro={parametroConDefecto(c.clave, c.defecto, c.ayuda)} />
             </div>
           ))}
         </div>
@@ -223,7 +288,10 @@ async function ParametrosEscuela({
   ctx: Awaited<ReturnType<typeof requireAuthContext>>;
   escuelaId: string;
 }) {
-  const { grupos, umbrales } = await listarMetricasEscuelaAdmin(ctx, escuelaId);
+  const [{ grupos, umbrales }, curva] = await Promise.all([
+    listarMetricasEscuelaAdmin(ctx, escuelaId),
+    listarMetricasCurvaEscuelaAdmin(ctx, escuelaId),
+  ]);
 
   return (
     <>
@@ -248,6 +316,25 @@ async function ParametrosEscuela({
             >
               <p className="text-sm font-semibold">{u.etiqueta}</p>
               <MetricaCampoAdmin escuelaId={escuelaId} clave={u.clave} fila={u.fila} />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 font-bold">Curva de desarrollo</h2>
+        <p className="mb-3 text-xs text-muted">
+          Cómo la asistencia y el rendimiento en cancha hacen crecer el MEN de
+          esta escuela. Lo que no ajustes usa el valor global.
+        </p>
+        <div className="space-y-3">
+          {curva.map((fila) => (
+            <div
+              key={fila.clave}
+              className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle pt-3 first:border-t-0 first:pt-0"
+            >
+              <p className="text-sm font-semibold">{ETIQUETA_CURVA[fila.clave] ?? fila.clave}</p>
+              <MetricaCampoAdmin escuelaId={escuelaId} clave={fila.clave} fila={fila} />
             </div>
           ))}
         </div>

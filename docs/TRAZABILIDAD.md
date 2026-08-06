@@ -67,6 +67,7 @@
 | 41 | Curva etapa 2 (parte 1/4): Rendimiento → progreso — goles/asistencias/rojas empiezan a mover el MEN | 2026-08-06 | ✅ |
 | 42 | Curva etapa 2 (parte 2/4): vista de seguimiento del DT — desglose de MEN por jugador dentro de `/dt/perfil` | 2026-08-06 | ✅ |
 | 43 | Curva etapa 2 (parte 3/4): línea de proyección punteada en el hub del jugador | 2026-08-06 | ✅ |
+| 44 | Curva etapa 2 (parte 4/4, última): pesos de la curva overrideables por escuela — cierra el paquete "Progresión etapa 2" | 2026-08-06 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1535,6 +1536,96 @@ imports que lo consumían (`jugador/page.tsx`, `jugador/perfil/page.tsx`,
 `LogrosVitrina.tsx`, `ObjetivosList.tsx`). Contenido sin tocar, cero
 cambio de comportamiento — confirmado con `typecheck`/`lint`/`test`
 limpios tras el rename.
+
+---
+
+## 44. Curva etapa 2 (parte 4/4, última): pesos por escuela (2026-08-06)
+
+Cierra el paquete completo "Progresión del jugador — etapa 2". `CURVA`
+(`src/lib/curva.ts`) eran 10 constantes globales; se exponen 5 como
+overrideables por escuela, reusando la infraestructura de
+`ParametroEscuela` que ya resolvía exactamente este problema para rangos
+físicos y umbrales de nivel. Decisiones cerradas antes de diseñar
+(`DECISIONES.md` §84): solo 5 de las 10 son overrideables
+(`GANANCIA_ENTRENO`, `GANANCIA_PARTIDO`, `TOPE_MEN_BONUS`,
+`TOPE_RENDIMIENTO_BONUS`, `UMBRAL_AUSENCIAS`); las edita el **SUPER_ADMIN**
+desde `/admin/parametros` — investigado que ese panel es hoy exclusivo del
+SUPER_ADMIN (no existe self-service de ESCUELA_ADMIN sobre
+`ParametroEscuela` en ningún lado del proyecto), así que "reusar la
+infraestructura" significa seguir ese mismo modelo de acceso.
+
+**Diseño**: el patrón global+override (`claveOverrideable`,
+`mezclarParametros`, `resolverParametros` en `src/lib/parametros.ts`; las
+Server Actions de escritura y el componente `MetricaCampoAdmin`) ya era
+100% genérico — solo hizo falta sumar el prefijo `CURVA_` al gate y
+escribir las funciones de lectura/resolución específicas
+(`listarMetricasCurvaEscuelaAdmin`, `resolverCurvaEscuela` en
+`parametro-escuela.service.ts`), sin tocar ninguna acción ni componente de
+escritura. `calcularMenBonus`/`calcularRendimientoBonus`
+(`src/lib/curva.ts`) ganan un segundo parámetro `curva` opcional con
+default `CURVA` — retrocompatible, ningún call-site existente cambia de
+comportamiento. El cron (`recalcularMenDiario`) agrupa los jugadores
+activos por escuela y resuelve la curva una sola vez por escuela, no por
+jugador. Por consistencia (obligatorio, no opcional): `obtenerPerfilDt`
+(hito 42, "Vista de seguimiento del DT") también resuelve la curva por
+escuela para sus cálculos y expone los topes resueltos en el DTO, así
+`PerfilDt.tsx` calcula las barras contra el tope REAL de la escuela, no
+contra la constante global hardcodeada — si no se hacía este ajuste, el
+"Progreso del mes" del DT habría mostrado números distintos a los
+realmente persistidos en `Jugador.menBonus` para cualquier escuela con
+override.
+
+**Fuera de alcance a propósito, documentado**: `proyeccionMen`
+(`hub-jugador.service.ts`, el mensaje motivacional "tu próximo entreno
+suma X" del hub) sigue usando el `CURVA` global sin resolver por escuela.
+No es el número que se persiste (`card.ovr`/`Jugador.menBonus` sí quedan
+correctos vía el cron) — es solo texto motivacional no crítico; resolverlo
+agregaría una consulta más a un hot path por un texto secundario.
+
+**Ajuste de tipos necesario (TypeScript, no de diseño)**: `typeof CURVA`
+(el objeto `as const`) tiene tipos literales (`0.6`, `12`, etc.), así que
+un objeto armado con valores `number` sueltos desde la DB
+(`resolverCurvaEscuela`) no es asignable ahí. Se agregó un tipo ancho
+`Curva = { [K in keyof typeof CURVA]: number }` y se usó en las firmas en
+vez de `typeof CURVA` — misma forma, sin literales, mismo diseño aprobado.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (317 tests, 6 nuevos
+confirmando que `calcularMenBonus`/`calcularRendimientoBonus` con una
+`curva` custom cambian el resultado, y que sin pasarla el comportamiento
+es idéntico al de antes). Chequeo real contra producción: se fijó un
+override `CURVA_GANANCIA_ENTRENO = 6.0` (10× el default 0.6) para una
+escuela, se corrió el cron, y el `menBonus` de un jugador de esa escuela
+saltó de 5 a 10.4 exacto — mientras que otra escuela sin override siguió
+resolviendo `GANANCIA_ENTRENO = 0.6`. Se borró el override y se re-corrió
+el cron: `menBonus` volvió exacto a 5, sin residuos.
+
+Implementación delegada a un sub-agente con el plan (investigado y
+aprobado en modo plan, incluida una pregunta de alcance cerrada con el
+usuario sobre quién edita los pesos) como instrucción exacta; revisión de
+diff propia línea por línea antes de verificar.
+
+**Hallazgo de seguridad de Guardian Angel, corregido antes de commitear
+(deuda preexistente desde Sprint M, no de este cambio, pero bloqueaba el
+commit por revisar el archivo completo):**
+`listarMetricasEscuelaAdmin`/`fijarMetricaEscuelaAdmin`/
+`quitarMetricaEscuelaAdmin` en `parametro-escuela.service.ts` (y mi
+función nueva `listarMetricasCurvaEscuelaAdmin`, que replicaba el mismo
+patrón) recibían `escuelaId` del request sin `assertTenant` — un
+SUPER_ADMIN podía leer/editar los parámetros de CUALQUIER escuela sin
+tener nunca una sesión de soporte abierta para ella, exactamente el
+acceso ambiental que AGENTS.md §5/M2 prohíbe. El archivo hermano
+`parametro.service.ts` (`obtenerConfigSimuladorEscuela`) ya resolvía el
+mismo escenario correctamente, con un comentario que describe este mismo
+bug ya ocurrido antes ("el guard va ACÁ, en el punto de paso... puesto
+arriba cerraba una puerta y dejaba la otra abierta"). Corregido: las 4
+funciones ganan `assertTenant(ctx, escuelaId)`; las 2 de escritura
+(`fijarMetricaEscuelaAdmin`/`quitarMetricaEscuelaAdmin`) ganan además
+`assertSoportePuedeEscribir(ctx)` + `assertMotivoSoporte(ctx, motivo)`,
+con `motivo` como parámetro nuevo que `admin.actions.ts` completa con
+`ctx.soporte?.motivo` (el motivo de la sesión de soporte, capturado una
+vez al abrirla — mismo patrón exacto que `editarJugador`/
+`actualizarFichaMedica` en `gestion-jugadores.service.ts`), y el
+`AuditLog` pasa a registrar ese motivo real en vez de solo `clave → valor`.
 
 ---
 

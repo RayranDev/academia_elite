@@ -1,12 +1,13 @@
 /**
  * Mezcla de parámetros globales (Súper Admin) con overrides por escuela (M9).
- * Puro y testeable. Solo `RANGO_*` y `UMBRAL_*` son overrideables por escuela:
- * `PESO_MEN_EN_OVR` queda global para que el OVR sea comparable entre escuelas.
+ * Puro y testeable. Solo `RANGO_*`, `UMBRAL_*` y `CURVA_*` son overrideables
+ * por escuela: `PESO_MEN_EN_OVR` queda global para que el OVR sea comparable
+ * entre escuelas.
  */
 
 /** ¿La clave puede sobreescribirse a nivel de escuela? */
 export function claveOverrideable(clave: string): boolean {
-  return clave.startsWith("RANGO_") || clave.startsWith("UMBRAL_");
+  return clave.startsWith("RANGO_") || clave.startsWith("UMBRAL_") || clave.startsWith("CURVA_");
 }
 
 /**

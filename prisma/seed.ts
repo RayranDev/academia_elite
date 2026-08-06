@@ -256,6 +256,12 @@ async function main() {
     { clave: "UMBRAL_PLATA", valor: 65, descripcion: "OVR mínimo para nivel Plata." },
     { clave: "UMBRAL_ORO", valor: 75, descripcion: "OVR mínimo para nivel Oro." },
     { clave: "UMBRAL_HEROE", valor: 85, descripcion: "OVR mínimo para nivel Héroe." },
+    // Curva de desarrollo: 5 de las 10 constantes son editables por escuela.
+    { clave: "CURVA_GANANCIA_ENTRENO", valor: 0.6, descripcion: "Puntos de MEN por entrenamiento asistido." },
+    { clave: "CURVA_GANANCIA_PARTIDO", valor: 1.2, descripcion: "Puntos de MEN por partido asistido." },
+    { clave: "CURVA_TOPE_MEN_BONUS", valor: 12, descripcion: "Tope del bonus de MEN por asistencia." },
+    { clave: "CURVA_TOPE_RENDIMIENTO_BONUS", valor: 6, descripcion: "Tope del bonus de MEN por rendimiento en cancha." },
+    { clave: "CURVA_UMBRAL_AUSENCIAS", valor: 2, descripcion: "Ausencias permitidas antes de penalizar." },
   ];
   for (const grupo of Object.keys(RANGOS_POR_GRUPO) as GrupoEdad[]) {
     for (const prueba of PRUEBAS_FISICAS) {

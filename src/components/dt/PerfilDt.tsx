@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { cn } from "@/lib/cn";
-import { CURVA } from "@/lib/curva";
 import type {
   PerfilDtDTO,
   PeriodoPerfilDt,
@@ -125,7 +124,12 @@ export function PerfilDt({
           ) : (
             <Card className="divide-y divide-subtle p-0">
               {conActividad.map((j) => (
-                <FilaProgresoMen key={j.jugadorId} jugador={j} />
+                <FilaProgresoMen
+                  key={j.jugadorId}
+                  jugador={j}
+                  topeAsistencia={perfil.topeAsistencia}
+                  topeRendimiento={perfil.topeRendimiento}
+                />
               ))}
             </Card>
           );
@@ -222,15 +226,17 @@ function progresoConActividad(progresoMen: ProgresoMenDTO[]): ProgresoMenDTO[] {
   );
 }
 
-function FilaProgresoMen({ jugador }: { jugador: ProgresoMenDTO }) {
-  const pctAsistencia = Math.min(
-    100,
-    (jugador.bonusAsistencia / CURVA.TOPE_MEN_BONUS) * 100,
-  );
-  const pctRendimiento = Math.min(
-    100,
-    (jugador.bonusRendimiento / CURVA.TOPE_RENDIMIENTO_BONUS) * 100,
-  );
+function FilaProgresoMen({
+  jugador,
+  topeAsistencia,
+  topeRendimiento,
+}: {
+  jugador: ProgresoMenDTO;
+  topeAsistencia: number;
+  topeRendimiento: number;
+}) {
+  const pctAsistencia = Math.min(100, (jugador.bonusAsistencia / topeAsistencia) * 100);
+  const pctRendimiento = Math.min(100, (jugador.bonusRendimiento / topeRendimiento) * 100);
 
   const detalle = [
     jugador.entrenos > 0 && `${jugador.entrenos} entrenos`,

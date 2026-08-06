@@ -19,8 +19,10 @@
 > Última actualización: 2026-08-06 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
 > `services`, el filtro `?bloqueado=1`, Descuentos con regla, el acceso
-> parcial del jugador bloqueado, el perfil del DT y Staff más allá del DT
-> — ver TRAZABILIDAD.md #33-40). Solo quedan los dos paquetes gateados.
+> parcial del jugador bloqueado, el perfil del DT, Staff más allá del DT y
+> Progresión del jugador — etapa 2 completa (sus 4 piezas) — ver
+> TRAZABILIDAD.md #33-44). Solo queda el paquete gateado de vigencia y
+> bloqueo automático.
 
 ---
 
@@ -29,7 +31,6 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
-| [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio | Pesos de la curva por escuela — sin preguntas de diseño abiertas |
 
 ---
 
@@ -46,20 +47,6 @@ del cron de bloqueo (no pisa un bloqueo manual ya puesto); `bloqueoTipo:
 "VIGENCIA_VENCIDA"` en el WHERE del desbloqueo automático (no levanta un
 bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 `"SISTEMA"` para el cron, que no tiene `AuthContext` de un usuario real.
-
-## Paquete — Progresión del jugador — etapa 2
-
-Medio. La etapa 1 ya está en producción: la asistencia mueve el MEN a
-diario y eso recalcula el OVR del hub. "Rendimiento → progreso",
-"Vista de seguimiento para el DT" y "Línea de proyección" ya se
-resolvieron — ver TRAZABILIDAD.md #41-43. Queda:
-
-- **Pesos de la curva por escuela.** `CURVA` son constantes globales hoy; la
-  infraestructura de `ParametroEscuela` (usada para otras configuraciones
-  por tenant) ya existe y se puede reusar sin diseño nuevo. Nota: ya no son
-  solo las 6 constantes originales de asistencia — sumar también
-  `GANANCIA_GOL`, `GANANCIA_ASISTENCIA_GOL`, `PENAL_ROJA`,
-  `TOPE_RENDIMIENTO_BONUS` (hito 41) al exponerlas por escuela.
 
 Fix previo obligatorio si se construye "puntos de sesión que mueven la
 carta" (ver más abajo, bloqueado): `statsLatest` en

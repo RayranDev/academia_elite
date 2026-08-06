@@ -7,6 +7,7 @@ import {
   inicioVentanaCurva,
 } from "@/lib/curva";
 import { categoriasDelDt } from "@/services/dt-scope";
+import { resolverCurvaEscuela } from "@/services/parametro-escuela.service";
 import { listarEvaluacionesPorEntrenador } from "@/repositories/evaluacion.repository";
 import {
   asistenciasRecientesDeJugadores,
@@ -70,6 +71,12 @@ export interface PerfilDtDTO {
    * del selector `periodo` de esta pantalla: es el mismo número que ya afecta
    * `Jugador.menBonus` (lo que ve la familia en la carta), no "temporada". */
   progresoMen: ProgresoMenDTO[];
+  /** Tope resuelto (global + override de esta escuela) del bonus por
+   * asistencia — mismo valor para toda la plantilla, usado por la UI para
+   * las barras de progreso sin importar `CURVA.TOPE_MEN_BONUS` global. */
+  topeAsistencia: number;
+  /** Tope resuelto del bonus por rendimiento en cancha, ídem `topeAsistencia`. */
+  topeRendimiento: number;
 }
 
 /**
@@ -91,7 +98,7 @@ export async function obtenerPerfilDt(
   const jugadorIds = plantilla.map((j) => j.id);
   const desdeVentanaCurva = inicioVentanaCurva(new Date());
 
-  const [evaluaciones, [partidos], asistencias, estadisticas] = await Promise.all([
+  const [evaluaciones, [partidos], asistencias, estadisticas, curvaEscuela] = await Promise.all([
     listarEvaluacionesPorEntrenador(escuelaId, entrenadorId, desde),
     listarEventosPaginado(escuelaId, categoriaIds, {
       tipo: "PARTIDO",
@@ -101,6 +108,7 @@ export async function obtenerPerfilDt(
     }),
     asistenciasRecientesDeJugadores(escuelaId, jugadorIds, desdeVentanaCurva),
     estadisticasRecientesDeJugadores(escuelaId, jugadorIds, desdeVentanaCurva),
+    resolverCurvaEscuela(escuelaId),
   ]);
 
   const evaluados = plantilla.filter((j) => j.card !== null);
@@ -111,8 +119,8 @@ export async function obtenerPerfilDt(
     const entrada = insumos.get(j.id);
     const asistencia = entrada?.asistencia ?? { entrenos: 0, partidos: 0, ausencias: 0 };
     const rendimiento = entrada?.rendimiento ?? { goles: 0, asistenciasGol: 0, rojas: 0 };
-    const bonusAsistencia = calcularMenBonus(asistencia);
-    const bonusRendimiento = calcularRendimientoBonus(rendimiento);
+    const bonusAsistencia = calcularMenBonus(asistencia, curvaEscuela);
+    const bonusRendimiento = calcularRendimientoBonus(rendimiento, curvaEscuela);
     return {
       jugadorId: j.id,
       nombre: j.nombre,
@@ -156,5 +164,7 @@ export async function obtenerPerfilDt(
       categoriaNombre: j.categoriaNombre,
     })),
     progresoMen,
+    topeAsistencia: curvaEscuela.TOPE_MEN_BONUS,
+    topeRendimiento: curvaEscuela.TOPE_RENDIMIENTO_BONUS,
   };
 }

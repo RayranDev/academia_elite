@@ -176,7 +176,8 @@ export async function fijarMetricaEscuelaAction(
     }
     if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
     if (!Number.isFinite(valor)) throw new ValidationError("Valor inválido.");
-    await fijarMetricaEscuelaAdmin(ctx, escuelaId, clave, valor);
+    // En modo soporte el motivo de la sesión justifica y audita la escritura.
+    await fijarMetricaEscuelaAdmin(ctx, escuelaId, clave, valor, ctx.soporte?.motivo);
     revalidatePath("/admin/parametros");
     revalidatePath("/admin/auditoria");
     return { ok: true };
@@ -198,7 +199,8 @@ export async function quitarMetricaEscuelaAction(
       throw new ValidationError("Falta la escuela.");
     }
     if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
-    await quitarMetricaEscuelaAdmin(ctx, escuelaId, clave);
+    // En modo soporte el motivo de la sesión justifica y audita la escritura.
+    await quitarMetricaEscuelaAdmin(ctx, escuelaId, clave, ctx.soporte?.motivo);
     revalidatePath("/admin/parametros");
     revalidatePath("/admin/auditoria");
     return { ok: true };

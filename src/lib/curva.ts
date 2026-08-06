@@ -33,6 +33,13 @@ export const CURVA = {
   TOPE_RENDIMIENTO_BONUS: 6,
 } as const;
 
+/**
+ * Forma ancha de `CURVA` (mismas keys, valores `number` en vez de literales)
+ * para que se le puedan pasar valores resueltos por escuela (overrides de
+ * BD), no solo las constantes literales de arriba.
+ */
+export type Curva = { [K in keyof typeof CURVA]: number };
+
 export interface InsumosCurva {
   /** Entrenamientos asistidos (presente) en la ventana. */
   entrenos: number;
@@ -46,14 +53,19 @@ export interface InsumosCurva {
  * Bonus de MEN (0 … TOPE_MEN_BONUS) recalculado desde la ventana. Gana por
  * asistencia; decae solo si las ausencias superan el umbral (>2), a un ritmo
  * recuperable (la ganancia por volver supera la penalización). Redondeado a 1
- * decimal; nunca negativo, nunca por encima del tope.
+ * decimal; nunca negativo, nunca por encima del tope. Acepta una `curva`
+ * opcional (default `CURVA`, el global) para permitir los 5 parámetros
+ * overrideables por escuela (M-pesos de la curva).
  */
-export function calcularMenBonus({ entrenos, partidos, ausencias }: InsumosCurva): number {
-  const ganado = entrenos * CURVA.GANANCIA_ENTRENO + partidos * CURVA.GANANCIA_PARTIDO;
-  const exceso = Math.max(0, ausencias - CURVA.UMBRAL_AUSENCIAS);
-  const penalizacion = exceso * CURVA.PENAL_POR_AUSENCIA;
+export function calcularMenBonus(
+  { entrenos, partidos, ausencias }: InsumosCurva,
+  curva: Curva = CURVA,
+): number {
+  const ganado = entrenos * curva.GANANCIA_ENTRENO + partidos * curva.GANANCIA_PARTIDO;
+  const exceso = Math.max(0, ausencias - curva.UMBRAL_AUSENCIAS);
+  const penalizacion = exceso * curva.PENAL_POR_AUSENCIA;
   const bonus = ganado - penalizacion;
-  return Math.max(0, Math.min(CURVA.TOPE_MEN_BONUS, Math.round(bonus * 10) / 10));
+  return Math.max(0, Math.min(curva.TOPE_MEN_BONUS, Math.round(bonus * 10) / 10));
 }
 
 export interface InsumosRendimiento {
@@ -74,17 +86,20 @@ export interface InsumosRendimiento {
  * tope, se sacan de una ventana al mismo momento y se SUMAN afuera de esta
  * función. Sin normalizar por categoría a propósito (decisión de
  * producto): el MEN mide constancia/compromiso propio, no compara
- * jugadores entre sí ni entre categorías.
+ * jugadores entre sí ni entre categorías. Acepta una `curva` opcional
+ * (default `CURVA`) por la misma razón que `calcularMenBonus`: aunque
+ * `GANANCIA_GOL`/`GANANCIA_ASISTENCIA_GOL`/`PENAL_ROJA` no son overrideables
+ * por escuela, se leen de `curva.*` (no de `CURVA.*` directo) para que el
+ * objeto pasado sea siempre autoconsistente.
  */
-export function calcularRendimientoBonus({
-  goles,
-  asistenciasGol,
-  rojas,
-}: InsumosRendimiento): number {
-  const ganado = goles * CURVA.GANANCIA_GOL + asistenciasGol * CURVA.GANANCIA_ASISTENCIA_GOL;
-  const penalizacion = rojas * CURVA.PENAL_ROJA;
+export function calcularRendimientoBonus(
+  { goles, asistenciasGol, rojas }: InsumosRendimiento,
+  curva: Curva = CURVA,
+): number {
+  const ganado = goles * curva.GANANCIA_GOL + asistenciasGol * curva.GANANCIA_ASISTENCIA_GOL;
+  const penalizacion = rojas * curva.PENAL_ROJA;
   const bonus = ganado - penalizacion;
-  return Math.max(0, Math.min(CURVA.TOPE_RENDIMIENTO_BONUS, Math.round(bonus * 10) / 10));
+  return Math.max(0, Math.min(curva.TOPE_RENDIMIENTO_BONUS, Math.round(bonus * 10) / 10));
 }
 
 export interface ProyeccionCurva {

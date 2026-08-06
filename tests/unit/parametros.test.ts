@@ -6,9 +6,10 @@ import {
 } from "@/lib/parametros";
 
 describe("claveOverrideable", () => {
-  it("permite RANGO_* y UMBRAL_*", () => {
+  it("permite RANGO_*, UMBRAL_* y CURVA_*", () => {
     expect(claveOverrideable("RANGO_SPRINT_SUB12_MIN")).toBe(true);
     expect(claveOverrideable("UMBRAL_ORO")).toBe(true);
+    expect(claveOverrideable("CURVA_TOPE_MEN_BONUS")).toBe(true);
   });
   it("NO permite PESO_MEN_EN_OVR (queda global)", () => {
     expect(claveOverrideable("PESO_MEN_EN_OVR")).toBe(false);

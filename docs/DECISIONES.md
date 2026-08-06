@@ -631,3 +631,16 @@ cada adaptación, regla 0.8.)
     categorías (mismo criterio que excluye rankings entre escuelas), se
     acota con incrementos chicos por acción en vez de un factor de
     dificultad.
+84. **Pesos de la curva por escuela: solo 5 de 10, las edita el
+    SUPER_ADMIN.** Decisiones del usuario (2026-08-06) antes de diseñar:
+    (1) de las 10 constantes de `CURVA`, solo 5 son overrideables por
+    escuela (`GANANCIA_ENTRENO`, `GANANCIA_PARTIDO`, `TOPE_MEN_BONUS`,
+    `TOPE_RENDIMIENTO_BONUS`, `UMBRAL_AUSENCIAS`) — las otras 5
+    (`VENTANA_DIAS`, `PENAL_POR_AUSENCIA`, `GANANCIA_GOL`,
+    `GANANCIA_ASISTENCIA_GOL`, `PENAL_ROJA`) quedan hardcodeadas, sin
+    exponer en ningún lado; (2) las edita el **SUPER_ADMIN** desde
+    `/admin/parametros`, mismo patrón que rangos físicos/umbrales de nivel
+    — no se construyó ningún panel de ESCUELA_ADMIN self-service (no
+    existe precedente de eso en el proyecto; "reusar la infraestructura de
+    `ParametroEscuela`" significa seguir su mismo modelo de acceso, no
+    inventar uno nuevo).
