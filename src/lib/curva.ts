@@ -109,3 +109,60 @@ export function proyeccionMen(insumos: InsumosCurva): ProyeccionCurva {
     gananciaProximoPartido: CURVA.GANANCIA_PARTIDO,
   };
 }
+
+/** Instante de inicio de la ventana móvil de la curva, desde `ahora`. */
+export function inicioVentanaCurva(ahora: Date): Date {
+  return new Date(ahora.getTime() - CURVA.VENTANA_DIAS * 24 * 60 * 60 * 1000);
+}
+
+/** Fila cruda de asistencia (evento + presente) para agregar por jugador. */
+export interface AsistenciaCruda {
+  jugadorId: string;
+  presente: boolean;
+  evento: { tipo: string };
+}
+
+/** Fila cruda de estadística de partido para agregar por jugador. */
+export interface EstadisticaCruda {
+  jugadorId: string;
+  goles: number;
+  asistencias: number;
+  roja: boolean;
+}
+
+/**
+ * Agrega asistencias + estadísticas de partido por jugador, en los insumos
+ * que ya consumen `calcularMenBonus`/`calcularRendimientoBonus`. Reusada por
+ * el cron diario (todos los jugadores) y por la vista de seguimiento del DT
+ * (jugadores de su plantilla) para no duplicar la lógica de agregación.
+ */
+export function agregarInsumosPorJugador(
+  asistencias: AsistenciaCruda[],
+  estadisticas: EstadisticaCruda[],
+): Map<string, { asistencia: InsumosCurva; rendimiento: InsumosRendimiento }> {
+  const mapa = new Map<string, { asistencia: InsumosCurva; rendimiento: InsumosRendimiento }>();
+  const obtener = (id: string) => {
+    let v = mapa.get(id);
+    if (!v) {
+      v = {
+        asistencia: { entrenos: 0, partidos: 0, ausencias: 0 },
+        rendimiento: { goles: 0, asistenciasGol: 0, rojas: 0 },
+      };
+      mapa.set(id, v);
+    }
+    return v;
+  };
+  for (const a of asistencias) {
+    const cur = obtener(a.jugadorId).asistencia;
+    if (!a.presente) cur.ausencias++;
+    else if (a.evento.tipo === "PARTIDO") cur.partidos++;
+    else if (a.evento.tipo === "ENTRENAMIENTO") cur.entrenos++;
+  }
+  for (const e of estadisticas) {
+    const cur = obtener(e.jugadorId).rendimiento;
+    cur.goles += e.goles;
+    cur.asistenciasGol += e.asistencias;
+    if (e.roja) cur.rojas++;
+  }
+  return mapa;
+}

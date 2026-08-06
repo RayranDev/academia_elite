@@ -29,7 +29,7 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
-| [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×3 | Vista de seguimiento del DT, línea de proyección, pesos por escuela — sin preguntas de diseño abiertas |
+| [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×2 | Línea de proyección, pesos por escuela — sin preguntas de diseño abiertas |
 
 ---
 
@@ -49,17 +49,13 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 ## Paquete — Progresión del jugador — etapa 2
 
-Medio ×3. La etapa 1 ya está en producción: la asistencia mueve el MEN a
-diario y eso recalcula el OVR del hub. La pieza "Rendimiento → progreso"
-(goles/asistencias/rojas moviendo el MEN) ya se resolvió — ver
-TRAZABILIDAD.md #41. Quedan estas tres, ninguna con preguntas de diseño
-abiertas:
+Medio ×2. La etapa 1 ya está en producción: la asistencia mueve el MEN a
+diario y eso recalcula el OVR del hub. "Rendimiento → progreso"
+(goles/asistencias/rojas moviendo el MEN) y la "Vista de seguimiento para
+el DT" (desglose por jugador dentro de `/dt/perfil`) ya se resolvieron —
+ver TRAZABILIDAD.md #41-42. Quedan estas dos, ninguna con preguntas de
+diseño abiertas:
 
-- **Vista de seguimiento para el DT.** El dato ya existe (asistencias,
-  rendimiento, bonus, histórico) pero no hay pantalla que lo muestre ("este
-  chico ganó X este mes y fue por esto" — ahora con el desglose
-  asistencia/rendimiento). Es lo que convierte la curva en herramienta de
-  trabajo del DT, no en un adorno del hub del jugador.
 - **Línea de proyección.** La punteada de `CURVA-DE-DESARROLLO.md` §6: hacia
   dónde va el OVR si se mantiene el esfuerzo acumulado. Pura visualización
   sobre datos que ya existen, sin dependencias de diseño pendientes.

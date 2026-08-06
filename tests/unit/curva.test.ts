@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { CURVA, calcularMenBonus, calcularRendimientoBonus, proyeccionMen } from "@/lib/curva";
+import {
+  CURVA,
+  agregarInsumosPorJugador,
+  calcularMenBonus,
+  calcularRendimientoBonus,
+  proyeccionMen,
+} from "@/lib/curva";
 import { ovrConMen } from "@/lib/stats-engine";
 
 describe("calcularMenBonus", () => {
@@ -75,6 +81,53 @@ describe("calcularRendimientoBonus", () => {
     expect(
       calcularRendimientoBonus({ goles: 0, asistenciasGol: 0, rojas: 50 }),
     ).toBe(0);
+  });
+});
+
+describe("agregarInsumosPorJugador", () => {
+  it("agrega bien por jugador: dos jugadores distintos no se mezclan", () => {
+    const mapa = agregarInsumosPorJugador(
+      [
+        { jugadorId: "a", presente: true, evento: { tipo: "ENTRENAMIENTO" } },
+        { jugadorId: "b", presente: true, evento: { tipo: "PARTIDO" } },
+      ],
+      [
+        { jugadorId: "a", goles: 1, asistencias: 0, roja: false },
+        { jugadorId: "b", goles: 0, asistencias: 2, roja: true },
+      ],
+    );
+    expect(mapa.get("a")).toEqual({
+      asistencia: { entrenos: 1, partidos: 0, ausencias: 0 },
+      rendimiento: { goles: 1, asistenciasGol: 0, rojas: 0 },
+    });
+    expect(mapa.get("b")).toEqual({
+      asistencia: { entrenos: 0, partidos: 1, ausencias: 0 },
+      rendimiento: { goles: 0, asistenciasGol: 2, rojas: 1 },
+    });
+  });
+
+  it("combina asistencia + rendimiento del mismo jugador en la misma entrada del mapa", () => {
+    const mapa = agregarInsumosPorJugador(
+      [
+        { jugadorId: "a", presente: true, evento: { tipo: "ENTRENAMIENTO" } },
+        { jugadorId: "a", presente: false, evento: { tipo: "PARTIDO" } },
+      ],
+      [{ jugadorId: "a", goles: 2, asistencias: 1, roja: false }],
+    );
+    expect(mapa.size).toBe(1);
+    expect(mapa.get("a")).toEqual({
+      asistencia: { entrenos: 1, partidos: 0, ausencias: 1 },
+      rendimiento: { goles: 2, asistenciasGol: 1, rojas: 0 },
+    });
+  });
+
+  it("un jugador sin ninguna fila no aparece en el mapa", () => {
+    const mapa = agregarInsumosPorJugador(
+      [{ jugadorId: "a", presente: true, evento: { tipo: "ENTRENAMIENTO" } }],
+      [],
+    );
+    expect(mapa.has("a")).toBe(true);
+    expect(mapa.has("sin-actividad")).toBe(false);
   });
 });
 

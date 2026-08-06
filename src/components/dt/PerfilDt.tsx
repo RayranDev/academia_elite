@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { ClipboardList, Trophy, Users } from "lucide-react";
+import { ClipboardList, TrendingUp, Trophy, Users } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { cn } from "@/lib/cn";
-import type { PerfilDtDTO, PeriodoPerfilDt } from "@/services/dt-perfil.service";
+import { CURVA } from "@/lib/curva";
+import type {
+  PerfilDtDTO,
+  PeriodoPerfilDt,
+  ProgresoMenDTO,
+} from "@/services/dt-perfil.service";
 
 /** Perfil del DT: resumen del período elegido + partidos + evaluaciones + plantilla pendiente. */
 export function PerfilDt({
@@ -101,6 +106,33 @@ export function PerfilDt({
       </section>
 
       <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold">Progreso del mes</h2>
+          <p className="text-xs text-muted">
+            Últimos 30 días · independiente del selector de período de arriba
+          </p>
+        </div>
+        {(() => {
+          const conActividad = progresoConActividad(perfil.progresoMen).sort(
+            (a, b) => b.bonusTotal - a.bonusTotal,
+          );
+          return conActividad.length === 0 ? (
+            <EmptyState
+              icon={TrendingUp}
+              titulo="Sin actividad reciente en la plantilla"
+              texto="La asistencia y el rendimiento en cancha de los últimos 30 días van a aparecer acá."
+            />
+          ) : (
+            <Card className="divide-y divide-subtle p-0">
+              {conActividad.map((j) => (
+                <FilaProgresoMen key={j.jugadorId} jugador={j} />
+              ))}
+            </Card>
+          );
+        })()}
+      </section>
+
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Plantilla pendiente</h2>
           {perfil.pendientes.length > 0 && (
@@ -173,6 +205,71 @@ function OpcionPeriodo({
     >
       {children}
     </Link>
+  );
+}
+
+/**
+ * Jugadores con algún registro en la ventana (asistencia, falta o
+ * rendimiento) — NO filtra por `bonusTotal > 0`: un jugador con solo
+ * faltas (sin entrenos ni partidos presentes) da bonus 0, pero es
+ * justamente el caso que más le importa ver al DT en una vista de
+ * seguimiento, no algo para esconder.
+ */
+function progresoConActividad(progresoMen: ProgresoMenDTO[]): ProgresoMenDTO[] {
+  return progresoMen.filter(
+    (j) =>
+      j.entrenos + j.partidos + j.ausencias + j.goles + j.asistenciasGol + j.rojas > 0,
+  );
+}
+
+function FilaProgresoMen({ jugador }: { jugador: ProgresoMenDTO }) {
+  const pctAsistencia = Math.min(
+    100,
+    (jugador.bonusAsistencia / CURVA.TOPE_MEN_BONUS) * 100,
+  );
+  const pctRendimiento = Math.min(
+    100,
+    (jugador.bonusRendimiento / CURVA.TOPE_RENDIMIENTO_BONUS) * 100,
+  );
+
+  const detalle = [
+    jugador.entrenos > 0 && `${jugador.entrenos} entrenos`,
+    jugador.partidos > 0 && `${jugador.partidos} partidos`,
+    jugador.ausencias > 0 && `${jugador.ausencias} faltas`,
+    jugador.goles > 0 && `${jugador.goles} goles`,
+    jugador.asistenciasGol > 0 && `${jugador.asistenciasGol} asistencias`,
+    jugador.rojas > 0 && `${jugador.rojas} rojas`,
+  ].filter(Boolean);
+
+  return (
+    <div className="space-y-2 px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">
+            {jugador.nombre} {jugador.apellido}
+          </p>
+          <p className="text-xs text-muted">{jugador.categoriaNombre}</p>
+        </div>
+        <p className="shrink-0 text-sm font-bold text-pitch">
+          +{jugador.bonusTotal.toFixed(1)} MEN
+        </p>
+      </div>
+      <div className="space-y-1">
+        <BarraProgreso pct={pctAsistencia} />
+        <BarraProgreso pct={pctRendimiento} />
+      </div>
+      {detalle.length > 0 && (
+        <p className="text-xs text-muted">{detalle.join(" · ")}</p>
+      )}
+    </div>
+  );
+}
+
+function BarraProgreso({ pct }: { pct: number }) {
+  return (
+    <div className="h-1.5 w-full rounded-full bg-surface-2">
+      <div className="h-1.5 rounded-full bg-pitch" style={{ width: `${pct}%` }} />
+    </div>
   );
 }
 

@@ -65,6 +65,7 @@
 | 39 | Perfil del DT con estadísticas: evaluaciones, resultados de partidos y plantilla pendiente | 2026-08-05 | ✅ |
 | 40 | Staff más allá del DT: registro administrativo del cuerpo técnico (coordinador, preparador físico, utilero), sin rol nuevo | 2026-08-06 | ✅ |
 | 41 | Curva etapa 2 (parte 1/4): Rendimiento → progreso — goles/asistencias/rojas empiezan a mover el MEN | 2026-08-06 | ✅ |
+| 42 | Curva etapa 2 (parte 2/4): vista de seguimiento del DT — desglose de MEN por jugador dentro de `/dt/perfil` | 2026-08-06 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1433,6 +1434,53 @@ coincidiendo exacto con lo esperado.
 Implementado directamente (sin delegar a un sub-agente): cambio chico y
 acotado a 3 archivos + tests, con contexto ya investigado a fondo en el
 plan aprobado.
+
+## 42. Curva etapa 2 (parte 2/4): vista de seguimiento del DT (2026-08-06)
+
+Segunda pieza de "Progresión etapa 2". El progreso de cada jugador
+(asistencia + rendimiento, hito 41) no tenía ninguna pantalla que lo
+mostrara desglosado — se agregó como sección nueva **dentro** de
+`/dt/perfil` (hito 39), no una pantalla separada: mismo scope (categorías
+del DT), mismo tono visual. La sección usa SIEMPRE la ventana móvil fija
+de 30 días de la curva, no el selector `?periodo=` de la página — el
+número que importa es el mismo que ya está en `Jugador.menBonus` (lo que
+ve la familia en la carta), no otro derivado de "temporada completa".
+
+**Diseño**: se extrajo el loop de agregación que vivía inline en
+`recalcularMenDiario` a una función pura reusable,
+`agregarInsumosPorJugador` (`src/lib/curva.ts`, junto con
+`inicioVentanaCurva`), para que el cron global y esta vista (acotada a la
+plantilla de un DT) compartan la misma lógica sin duplicarla. Nuevas
+queries `asistenciasRecientesDeJugadores`/`estadisticasRecientesDeJugadores`
+(`evento.repository.ts`, mirror de las versiones `*Global` del hito 41
+pero acotadas por `jugadorId: {in: jugadorIds}`). `obtenerPerfilDt`
+(`dt-perfil.service.ts`) gana `progresoMen: ProgresoMenDTO[]`. UI: sección
+"Progreso del mes" en `PerfilDt.tsx` con dos barras por jugador (asistencia
+y rendimiento, cada una con su propio tope) y el detalle crudo debajo.
+
+**Bug real encontrado y corregido en la revisión propia** (no del plan,
+criterio del sub-agente que implementó): la lista filtraba jugadores por
+`bonusTotal > 0` para decidir si mostrarlos — pero un jugador con SOLO
+faltas (sin entrenos/partidos presentes) da `bonusTotal = 0` (el piso es
+0, nunca negativo) y quedaba oculto, justo el caso que más le importa ver
+a un DT en una vista de seguimiento. Corregido: el filtro ahora es "algún
+registro en la ventana" (entrenos+partidos+ausencias+goles+asistencias+
+rojas > 0), no "bonus positivo". De paso se encontró que el filtro de
+vacío y la lista renderizada usaban criterios distintos (uno filtraba,
+el otro no) — unificados en un solo cálculo.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (311 tests, 3 nuevos
+para `agregarInsumosPorJugador`). Confirmado que la refactorización de
+`recalcularMenDiario` es equivalente línea por línea a la versión
+anterior (diff revisado). Chequeo real contra producción: se corrió
+`recalcularMenDiario()` (idempotente) y `obtenerPerfilDt` para un DT
+real — el `bonusTotal` calculado por la vista nueva coincidió EXACTO con
+`Jugador.menBonus` persistido (1.2 = 1.2), y se confirmó que un jugador
+con solo 1 falta (bonus 0) aparece correctamente en la lista tras el fix.
+
+Implementación delegada a un sub-agente con el plan (investigado y
+aprobado en modo plan) como instrucción exacta; el bug del filtro se
+encontró y corrigió en la revisión propia antes de commitear.
 
 ---
 

@@ -614,6 +614,32 @@ export function estadisticasRecientesGlobal(desde: Date) {
   });
 }
 
+/** Asistencias de una LISTA de jugadores de la escuela desde una fecha (vista de seguimiento del DT). */
+export function asistenciasRecientesDeJugadores(
+  escuelaId: string,
+  jugadorIds: string[],
+  desde: Date,
+) {
+  if (jugadorIds.length === 0) return Promise.resolve([]);
+  return db.asistencia.findMany({
+    where: { escuelaId, jugadorId: { in: jugadorIds }, evento: { inicio: { gte: desde } } },
+    select: { jugadorId: true, presente: true, evento: { select: { tipo: true } } },
+  });
+}
+
+/** Estadísticas de partido de una LISTA de jugadores de la escuela desde una fecha (vista de seguimiento del DT). */
+export function estadisticasRecientesDeJugadores(
+  escuelaId: string,
+  jugadorIds: string[],
+  desde: Date,
+) {
+  if (jugadorIds.length === 0) return Promise.resolve([]);
+  return db.estadisticaPartido.findMany({
+    where: { escuelaId, jugadorId: { in: jugadorIds }, evento: { inicio: { gte: desde } } },
+    select: { jugadorId: true, goles: true, asistencias: true, roja: true },
+  });
+}
+
 /** Padres (userId) de los jugadores convocados, para notificar. */
 export async function padresDeJugadores(jugadorIds: string[]) {
   // tenant-global: ids ya tenant-scoped por la convocatoria; solo lee contactos para notificar
