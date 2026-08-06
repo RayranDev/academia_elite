@@ -63,6 +63,7 @@
 | 37 | Descuentos con regla: reglas de descuento reusables (Hermano, Beca) aplicadas solas al generar la cobranza | 2026-08-05 | ✅ |
 | 38 | Acceso parcial del jugador bloqueado: solo mensajes con el DT, resto del panel sigue bloqueado | 2026-08-05 | ✅ |
 | 39 | Perfil del DT con estadísticas: evaluaciones, resultados de partidos y plantilla pendiente | 2026-08-05 | ✅ |
+| 40 | Staff más allá del DT: registro administrativo del cuerpo técnico (coordinador, preparador físico, utilero), sin rol nuevo | 2026-08-06 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1361,6 +1362,41 @@ Implementación delegada a un sub-agente con el plan (investigado y
 aprobado en modo plan) como instrucción exacta; el bug de zona horaria y
 la fragilidad del test se encontraron y corrigieron en la revisión propia
 antes de commitear.
+
+## 40. Staff más allá del DT (2026-08-06)
+
+Último paquete "Medio" pendiente de este bloque. Decisión de producto ya
+cerrada desde el hito 32/`DECISIONES.md` §73 (sin rol nuevo — los cuatro
+roles del sistema quedan fijos). Se modela `Staff` como registro
+puramente administrativo (coordinador, preparador físico, utilero, otro):
+sin `userId`, sin login, gestionado por `ESCUELA_ADMIN` — una libreta de
+contactos del cuerpo técnico, no una cuenta.
+
+**Diseño**: mirrorea `Categoria` (el CRUD más simple del panel de escuela)
+sumándole `update`/`delete`, que `Categoria` no tiene. Campo `cargo`, no
+`rol` (para no confundirlo con `User.rol`, que sí es de autenticación).
+**Borrado físico, sin baja lógica**: a diferencia de `Arancel`/
+`DescuentoRegla`, `Staff` no tiene ninguna relación entrante desde otra
+tabla, así que no hay nada que preservar ni que se rompa al borrar — ni
+siquiera necesita el chequeo de "en uso" que sí tiene `eliminarFondo`.
+Sin `registrarAuditoria`: dato administrativo sin impacto financiero ni de
+acceso, a diferencia de Arancel/Membresía/bloqueos.
+
+CRUD completo (`staff.repository.ts`/`staff.service.ts`/
+`validators/staff.ts`/`staff.actions.ts`) + panel nuevo en
+`/escuela/staff` con tabla y modal de edición, reusando `telefonoOpcional`
+(`validators/cuenta.ts`) para el campo teléfono en vez de reinventar la
+validación.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (303 tests, sin
+nuevos — CRUD directo sin lógica pura que testear). Migración
+(`20260806140838_staff`, puramente aditiva) aplicada a producción.
+Chequeo real contra la base: create → read → update → delete de un
+registro de prueba, confirmado y limpiado, sin dejar residuos.
+
+Implementación delegada a un sub-agente con el plan (investigado y
+aprobado en modo plan) como instrucción exacta; revisión de diff propia
+antes de verificar y aplicar la migración.
 
 ---
 

@@ -94,6 +94,7 @@ model Escuela {
   aranceles                Arancel[]
   egresos                  Egreso[]
   descuentoReglas          DescuentoRegla[]
+  staff                    Staff[]
   createdAt                DateTime           @default(now())
 }
 
@@ -730,6 +731,26 @@ model JugadorDescuento {
   asignadaEn DateTime       @default(now())
 
   @@id([jugadorId, reglaId])
+}
+
+// Cuerpo técnico administrativo de la escuela (coordinador, preparador físico,
+// utilero, etc.), distinto del `Entrenador` (el DT, que sí tiene login).
+// Decisión de producto (DECISIONES.md §73): SIN rol nuevo — es una libreta de
+// contactos que gestiona el ESCUELA_ADMIN, sin `userId` ni acceso al sistema.
+// Campo `cargo`, no `rol`, para no confundirlo con `User.rol` (autenticación).
+// Sin relaciones entrantes de otra tabla: borrado físico, no hace falta baja
+// lógica ni chequeo de "en uso" (a diferencia de Arancel/DescuentoRegla).
+model Staff {
+  id        String   @id @default(cuid())
+  escuelaId String
+  escuela   Escuela  @relation(fields: [escuelaId], references: [id])
+  cargo     String // enum: COORDINADOR | PREPARADOR_FISICO | UTILERO | OTRO
+  nombre    String
+  telefono  String?
+  email     String?
+  createdAt DateTime @default(now())
+
+  @@index([escuelaId])
 }
 
 // Egreso de caja de la escuela (gasto operativo: cancha, árbitro, sueldos, ...).

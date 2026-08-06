@@ -31,6 +31,7 @@ import {
   Receipt,
   Tag,
   Percent,
+  Briefcase,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -66,6 +67,7 @@ export const ICONOS: Record<string, LucideIcon> = {
   egresos: Receipt,
   precios: Tag,
   descuentos: Percent,
+  staff: Briefcase,
   cuenta: Settings,
 };
 

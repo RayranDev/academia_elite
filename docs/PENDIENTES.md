@@ -16,11 +16,11 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-05 (se resolvieron los paquetes de los 2
+> Última actualización: 2026-08-06 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
 > `services`, el filtro `?bloqueado=1`, Descuentos con regla, el acceso
-> parcial del jugador bloqueado y el perfil del DT — ver TRAZABILIDAD.md
-> #33-39).
+> parcial del jugador bloqueado, el perfil del DT y Staff más allá del DT
+> — ver TRAZABILIDAD.md #33-40). Solo quedan los dos paquetes gateados.
 
 ---
 
@@ -28,23 +28,10 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
-| [Staff más allá del DT](#paquete--staff-más-allá-del-dt) | Medio | Coordinador, preparador físico, utilero — sin rol nuevo |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×4 | **Gateado** — cerrar decisiones de diseño antes de construir |
 
 ---
-
-## Paquete — Staff más allá del DT
-
-Medio. Solo existe `Entrenador` (el modelo detrás del rol `DT`): no hay
-coordinador, preparador físico ni utilero. **Sin rol nuevo** — decisión de
-producto ya cerrada y registrada en `DECISIONES.md` §73: los roles quedan
-fijos en `SUPER_ADMIN`/`ESCUELA_ADMIN`/`DT`/`JUGADOR`. Si se construye, el
-diseño tiene que modelarlo como datos gestionados por `ESCUELA_ADMIN` — por
-ejemplo un modelo `Staff` (`escuelaId`, `nombre`, `rol` cerrado
-`COORDINADOR|PREPARADOR_FISICO|UTILERO|OTRO`, contacto), **sin** `userId` ni
-relación a `User` — no inicia sesión, es un registro administrativo, no una
-cuenta.
 
 ## Paquete — Vigencia y bloqueo automático
 
