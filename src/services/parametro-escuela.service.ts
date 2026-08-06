@@ -223,6 +223,9 @@ export async function quitarMetricaEscuelaAdmin(
 ): Promise<void> {
   requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   assertTenant(ctx, escuelaId);
+  if (!(await obtenerEscuela(escuelaId))) {
+    throw new NotFoundError("Escuela no encontrada.");
+  }
   if (!claveOverrideable(clave)) {
     throw new ValidationError("Esa métrica no se puede configurar por escuela.");
   }
