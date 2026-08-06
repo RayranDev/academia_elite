@@ -66,6 +66,7 @@
 | 40 | Staff más allá del DT: registro administrativo del cuerpo técnico (coordinador, preparador físico, utilero), sin rol nuevo | 2026-08-06 | ✅ |
 | 41 | Curva etapa 2 (parte 1/4): Rendimiento → progreso — goles/asistencias/rojas empiezan a mover el MEN | 2026-08-06 | ✅ |
 | 42 | Curva etapa 2 (parte 2/4): vista de seguimiento del DT — desglose de MEN por jugador dentro de `/dt/perfil` | 2026-08-06 | ✅ |
+| 43 | Curva etapa 2 (parte 3/4): línea de proyección punteada en el hub del jugador | 2026-08-06 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1481,6 +1482,59 @@ con solo 1 falta (bonus 0) aparece correctamente en la lista tras el fix.
 Implementación delegada a un sub-agente con el plan (investigado y
 aprobado en modo plan) como instrucción exacta; el bug del filtro se
 encontró y corrigió en la revisión propia antes de commitear.
+
+## 43. Curva etapa 2 (parte 3/4): línea de proyección (2026-08-06)
+
+Tercera pieza de "Progresión etapa 2" (`CURVA-DE-DESARROLLO.md` §6). El
+hub del jugador ya mostraba una línea sólida (`EvolutionChart`) con el OVR
+real de cada evaluación pasada; faltaba la punteada — "hacia dónde va el
+OVR si mantiene el esfuerzo".
+
+**Sin cálculo nuevo**: `obtenerHub` (`player.service.ts`) ya calculaba
+exactamente ese número — `card.ovr`, los stats duros de la última
+evaluación + el `Jugador.menBonus` actual (asistencia+rendimiento, hitos
+41-42) vía `ovrConMen`. Solo hizo falta exponerlo como
+`HubDTO.proyeccionOvr: {fecha, ovr} | null`. Dos puntos nada más (última
+evaluación real + "hoy"), sin inventar una curva/pendiente que el
+documento de diseño no pide.
+
+`EvolutionChart.tsx` gana una prop `proyeccion` opcional: una segunda
+`<Line>` de Recharts (`strokeDasharray="5 5"`, `connectNulls` para saltar
+los `undefined` de los puntos intermedios y conectar directo el último
+real con el sintético de hoy), visible **solo en la métrica OVR** — nunca
+en RIT/TIR/etc., por el principio de integridad no negociable del
+documento (§2/§7): los stats físicos/técnicos nunca se proyectan, solo se
+mueven con una evaluación real. Debajo del gráfico, un texto fijo aclara
+que la punteada es una proyección que se confirma en la próxima
+evaluación (mismo principio, etiquetado explícito).
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (311 tests, sin
+nuevos — se reusa `ovrConMen`, ya testeado, cero cálculo duplicado).
+Chequeo real contra producción: `obtenerHub` para un jugador con
+evaluaciones confirmó `proyeccionOvr.ovr === card.ovr` exacto (76 = 76),
+mayor al último punto real (75), reflejando el bonus de MEN vigente.
+**Limitación declarada**: sin herramienta de automatización de navegador
+disponible en esta sesión, no se pudo confirmar visualmente el render del
+gráfico (línea punteada, tooltip, desaparición al cambiar de métrica) —
+verificado por lectura cuidadosa del código y por los datos reales que
+recibe el componente, no por interacción en pantalla.
+
+Implementado directamente (sin delegar a un sub-agente): cambio acotado a
+3 archivos, con el diseño de Recharts ya resuelto en el plan aprobado.
+
+**Hallazgo de Guardian Angel, corregido antes de commitear (deuda
+preexistente desde el Sprint 5, no de este cambio, pero bloqueaba el
+commit por revisar el archivo completo):** `src/services/player.service.ts`
+era el único service de los 49 del proyecto nombrado en inglés (viola
+AGENTS.md §6). No era un rename directo: ya existe `jugador.service.ts`
+con otro dominio (gestión de plantilla/solicitudes del DT, sin ninguna
+colisión de nombres exportados con el hub). Renombrado con `git mv` a
+`hub-jugador.service.ts` (preserva historial), actualizados los 7
+imports que lo consumían (`jugador/page.tsx`, `jugador/perfil/page.tsx`,
+`jugador/logros/page.tsx`, `EvolutionChart.tsx`, `NoticiasList.tsx`,
+`LogrosVitrina.tsx`, `ObjetivosList.tsx`). Contenido sin tocar, cero
+cambio de comportamiento — confirmado con `typecheck`/`lint`/`test`
+limpios tras el rename.
 
 ---
 

@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import type { ObjetivoDTO } from "@/services/player.service";
+import type { ObjetivoDTO } from "@/services/hub-jugador.service";
 
 const TONO: Record<string, "pitch" | "oro" | "neutral"> = {
   ACTIVO: "oro",

@@ -29,7 +29,7 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
-| [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio ×2 | Línea de proyección, pesos por escuela — sin preguntas de diseño abiertas |
+| [Progresión del jugador — etapa 2](#paquete--progresión-del-jugador--etapa-2) | Medio | Pesos de la curva por escuela — sin preguntas de diseño abiertas |
 
 ---
 
@@ -49,19 +49,17 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 ## Paquete — Progresión del jugador — etapa 2
 
-Medio ×2. La etapa 1 ya está en producción: la asistencia mueve el MEN a
-diario y eso recalcula el OVR del hub. "Rendimiento → progreso"
-(goles/asistencias/rojas moviendo el MEN) y la "Vista de seguimiento para
-el DT" (desglose por jugador dentro de `/dt/perfil`) ya se resolvieron —
-ver TRAZABILIDAD.md #41-42. Quedan estas dos, ninguna con preguntas de
-diseño abiertas:
+Medio. La etapa 1 ya está en producción: la asistencia mueve el MEN a
+diario y eso recalcula el OVR del hub. "Rendimiento → progreso",
+"Vista de seguimiento para el DT" y "Línea de proyección" ya se
+resolvieron — ver TRAZABILIDAD.md #41-43. Queda:
 
-- **Línea de proyección.** La punteada de `CURVA-DE-DESARROLLO.md` §6: hacia
-  dónde va el OVR si se mantiene el esfuerzo acumulado. Pura visualización
-  sobre datos que ya existen, sin dependencias de diseño pendientes.
 - **Pesos de la curva por escuela.** `CURVA` son constantes globales hoy; la
   infraestructura de `ParametroEscuela` (usada para otras configuraciones
-  por tenant) ya existe y se puede reusar sin diseño nuevo.
+  por tenant) ya existe y se puede reusar sin diseño nuevo. Nota: ya no son
+  solo las 6 constantes originales de asistencia — sumar también
+  `GANANCIA_GOL`, `GANANCIA_ASISTENCIA_GOL`, `PENAL_ROJA`,
+  `TOPE_RENDIMIENTO_BONUS` (hito 41) al exponerlas por escuela.
 
 Fix previo obligatorio si se construye "puntos de sesión que mueven la
 carta" (ver más abajo, bloqueado): `statsLatest` en

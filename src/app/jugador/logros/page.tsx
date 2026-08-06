@@ -1,5 +1,5 @@
 import { requireAuthContext } from "@/lib/auth/session";
-import { obtenerHub, type HubDTO } from "@/services/player.service";
+import { obtenerHub, type HubDTO } from "@/services/hub-jugador.service";
 import { DomainError } from "@/lib/errors";
 import { LogrosVitrina } from "@/components/jugador/LogrosVitrina";
 import { Card } from "@/components/ui/Card";

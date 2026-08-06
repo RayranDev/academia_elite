@@ -1,7 +1,7 @@
 import { Medal, Lock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import type { InsigniaDTO, BonusDTO } from "@/services/player.service";
+import type { InsigniaDTO, BonusDTO } from "@/services/hub-jugador.service";
 
 export function LogrosVitrina({
   insignias,

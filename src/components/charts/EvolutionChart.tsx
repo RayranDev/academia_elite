@@ -10,12 +10,21 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { EvolucionPunto } from "@/services/player.service";
+import type { EvolucionPunto } from "@/services/hub-jugador.service";
 
 const METRICAS = ["ovr", "rit", "tir", "pas", "reg", "def", "fis", "men"] as const;
 type Metrica = (typeof METRICAS)[number];
 
-export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
+export function EvolutionChart({
+  datos,
+  proyeccion,
+}: {
+  datos: EvolucionPunto[];
+  /** Punto "hoy" de la línea punteada (solo se dibuja en la métrica OVR —
+   * ver CURVA-DE-DESARROLLO.md §2/§7: los stats duros nunca se proyectan,
+   * solo se mueven con una evaluación real). */
+  proyeccion?: { fecha: string; ovr: number } | null;
+}) {
   const [metrica, setMetrica] = useState<Metrica>("ovr");
   // El formateo de fecha usa la zona horaria del que mira: si se calculara
   // igual en SSR (servidor en UTC) y en el cliente, un mismatch de texto entre
@@ -40,13 +49,31 @@ export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
     return <div className="h-60" aria-hidden />;
   }
 
-  const data = datos.map((d) => ({
-    fecha: new Date(d.fecha).toLocaleDateString("es", {
-      day: "2-digit",
-      month: "short",
-    }),
+  // La punteada es solo de OVR: el resto de los stats nunca se proyecta.
+  const mostrarProyeccion = metrica === "ovr" && !!proyeccion;
+  const formatearFecha = (iso: string) =>
+    new Date(iso).toLocaleDateString("es", { day: "2-digit", month: "short" });
+
+  interface PuntoChart {
+    fecha: string;
+    valor: number | undefined;
+    valorProyectado: number | undefined;
+  }
+
+  const data: PuntoChart[] = datos.map((d, i) => ({
+    fecha: formatearFecha(d.fecha),
     valor: d[metrica],
+    // El último punto real arranca la punteada exactamente donde termina
+    // la sólida (mismo valor, misma fecha) — sin esto quedaría un salto.
+    valorProyectado: mostrarProyeccion && i === datos.length - 1 ? d.ovr : undefined,
   }));
+  if (mostrarProyeccion) {
+    data.push({
+      fecha: formatearFecha(proyeccion!.fecha),
+      valor: undefined,
+      valorProyectado: proyeccion!.ovr,
+    });
+  }
 
   return (
     <div>
@@ -87,8 +114,27 @@ export function EvolutionChart({ datos }: { datos: EvolucionPunto[] }) {
             dot={{ r: 4 }}
             isAnimationActive
           />
+          {mostrarProyeccion && (
+            <Line
+              type="monotone"
+              dataKey="valorProyectado"
+              name="Proyección"
+              stroke="var(--brand)"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ r: 3 }}
+              connectNulls
+              isAnimationActive={false}
+            />
+          )}
         </LineChart>
       </ResponsiveContainer>
+      {mostrarProyeccion && (
+        <p className="mt-2 text-xs text-muted">
+          La punteada es una proyección — se confirma recién en la próxima
+          evaluación.
+        </p>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { CalendarClock, Newspaper, LineChart, History, Trophy, TrendingUp } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
-import { obtenerHub, type HubDTO } from "@/services/player.service";
+import { obtenerHub, type HubDTO } from "@/services/hub-jugador.service";
 import { DomainError } from "@/lib/errors";
 import { HubHero } from "@/components/jugador/HubHero";
 import { ObjetivosList } from "@/components/jugador/ObjetivosList";
@@ -137,7 +137,7 @@ export default async function JugadorHubPage() {
 
       <Card>
         <Encabezado icon={LineChart} titulo="Evolución" />
-        <EvolutionChart datos={hub.evolucion} />
+        <EvolutionChart datos={hub.evolucion} proyeccion={hub.proyeccionOvr} />
       </Card>
     </div>
   );

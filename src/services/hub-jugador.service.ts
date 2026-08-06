@@ -92,6 +92,11 @@ export interface HubDTO {
   bonusUltima: number;
   hijos: HijoRef[];
   evolucion: EvolucionPunto[];
+  /** Proyección del OVR "si mantiene el esfuerzo": stats de la última
+   * evaluación + el MEN bonus actual (asistencia+rendimiento). null si
+   * todavía no hay ninguna evaluación real. NUNCA toca stats físicos/
+   * técnicos — ver CURVA-DE-DESARROLLO.md §2/§7. */
+  proyeccionOvr: { fecha: string; ovr: number } | null;
   insignias: InsigniaDTO[];
   bonus: BonusDTO[];
   objetivos: ObjetivoDTO[];
@@ -169,11 +174,17 @@ export async function obtenerHub(
   // + bonus por asistencia) y recalcula el OVR. Las vistas oficiales/admin
   // siguen usando el OVR medido de StatsCalculados (comparabilidad intacta).
   const proyeccionCurva = proyeccionMen(asistenciasCurva);
+  // Línea punteada del hub (CURVA-DE-DESARROLLO.md §6): "hasta dónde llega
+  // el OVR si mantiene el esfuerzo" es exactamente `card.ovr` de abajo — los
+  // stats duros de la última evaluación, sin tocar, + el MEN bonus actual.
+  // null si todavía no hay evaluación real (nada que proyectar).
+  let proyeccionOvr: HubDTO["proyeccionOvr"] = null;
   if (card && stats) {
     const pesoMen = paramMen?.valor ?? 0.1;
     const menEfectivo = Math.min(99, stats.men + Math.round(full.menBonus));
     card.men = menEfectivo;
     card.ovr = ovrConMen(stats, full.posicion as Posicion, pesoMen, menEfectivo);
+    proyeccionOvr = { fecha: new Date().toISOString(), ovr: card.ovr };
   }
 
   const evolucion: EvolucionPunto[] = evals
@@ -263,6 +274,7 @@ export async function obtenerHub(
       apellido: h.apellido,
     })),
     evolucion,
+    proyeccionOvr,
     insignias,
     bonus,
     objetivos,

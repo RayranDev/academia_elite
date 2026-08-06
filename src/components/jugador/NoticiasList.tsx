@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import type { NoticiaDTO } from "@/services/player.service";
+import type { NoticiaDTO } from "@/services/hub-jugador.service";
 
 export function NoticiasList({ noticias }: { noticias: NoticiaDTO[] }) {
   const [pagina, setPagina] = useState(1);
