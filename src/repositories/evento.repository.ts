@@ -605,6 +605,15 @@ export function asistenciasRecientesGlobal(desde: Date) {
   });
 }
 
+/** Estadísticas de partido de TODA la plataforma desde una fecha (cron diario). */
+export function estadisticasRecientesGlobal(desde: Date) {
+  // tenant-global: cron diario de curva; agrega estadísticas de todas las escuelas
+  return db.estadisticaPartido.findMany({
+    where: { evento: { inicio: { gte: desde } } },
+    select: { jugadorId: true, goles: true, asistencias: true, roja: true },
+  });
+}
+
 /** Padres (userId) de los jugadores convocados, para notificar. */
 export async function padresDeJugadores(jugadorIds: string[]) {
   // tenant-global: ids ya tenant-scoped por la convocatoria; solo lee contactos para notificar

@@ -64,6 +64,7 @@
 | 38 | Acceso parcial del jugador bloqueado: solo mensajes con el DT, resto del panel sigue bloqueado | 2026-08-05 | ✅ |
 | 39 | Perfil del DT con estadísticas: evaluaciones, resultados de partidos y plantilla pendiente | 2026-08-05 | ✅ |
 | 40 | Staff más allá del DT: registro administrativo del cuerpo técnico (coordinador, preparador físico, utilero), sin rol nuevo | 2026-08-06 | ✅ |
+| 41 | Curva etapa 2 (parte 1/4): Rendimiento → progreso — goles/asistencias/rojas empiezan a mover el MEN | 2026-08-06 | ✅ |
 
 Principios transversales respetados en **todos** los hitos: capas estrictas
 (`app|components → actions → services → repositories → prisma`), seguridad de
@@ -1397,6 +1398,41 @@ registro de prueba, confirmado y limpiado, sin dejar residuos.
 Implementación delegada a un sub-agente con el plan (investigado y
 aprobado en modo plan) como instrucción exacta; revisión de diff propia
 antes de verificar y aplicar la migración.
+
+## 41. Curva etapa 2 (parte 1/4): Rendimiento → progreso (2026-08-06)
+
+Primera de las cuatro piezas de "Progresión del jugador — etapa 2"
+(gateado en `PENDIENTES.md`). La curva de desarrollo (etapa 1, en
+producción desde antes) premiaba solo la presencia — un goleador sumaba
+exactamente igual que un suplente que no jugó. Decisiones cerradas antes
+de diseñar (`DECISIONES.md` §83, cierran las 4 preguntas abiertas de
+`CURVA-DE-DESARROLLO.md` §9): sin minutos jugados (coherente con §75),
+solo la roja resta (chico y recuperable), tope propio separado del de
+asistencia, sin normalizar por categoría.
+
+**Diseño**: `src/lib/curva.ts` gana `calcularRendimientoBonus` (función
+pura, mismo estilo que `calcularMenBonus`) + 4 constantes nuevas en
+`CURVA` (`GANANCIA_GOL`, `GANANCIA_ASISTENCIA_GOL`, `PENAL_ROJA`,
+`TOPE_RENDIMIENTO_BONUS`). Nueva query `estadisticasRecientesGlobal`
+(`evento.repository.ts`, mirror de `asistenciasRecientesGlobal`).
+`recalcularMenDiario` (`curva.service.ts`, el cron diario) agrega
+`estadisticasRecientesGlobal` a su `Promise.all` existente, agrega una
+segunda agregación en memoria por jugador, y persiste
+`bonusAsistencia + bonusRendimiento` (cada uno ya topado por separado)
+como el nuevo `Jugador.menBonus` total — sin cambio de schema ni de
+firma de `actualizarMenBonus`.
+
+**Verificación**: `typecheck`/`lint`/`test` limpios (308 tests, 5 nuevos
+para `calcularRendimientoBonus`). Chequeo real contra producción:
+`recalcularMenDiario()` es idempotente por diseño (recalcula desde cero,
+mismo cálculo que corre el cron a diario), así que se corrió de verdad —
+confirmado que un jugador con 4 goles en la ventana subió su `menBonus`
+en exactamente +2.0 (4 × `GANANCIA_GOL` 0.5) y otro con 1 gol en +0.5,
+coincidiendo exacto con lo esperado.
+
+Implementado directamente (sin delegar a un sub-agente): cambio chico y
+acotado a 3 archivos + tests, con contexto ya investigado a fondo en el
+plan aprobado.
 
 ---
 

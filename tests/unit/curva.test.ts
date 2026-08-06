@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CURVA, calcularMenBonus, proyeccionMen } from "@/lib/curva";
+import { CURVA, calcularMenBonus, calcularRendimientoBonus, proyeccionMen } from "@/lib/curva";
 import { ovrConMen } from "@/lib/stats-engine";
 
 describe("calcularMenBonus", () => {
@@ -42,6 +42,39 @@ describe("calcularMenBonus", () => {
     const frenado = calcularMenBonus({ entrenos: 1, partidos: 0, ausencias: 4 });
     const recuperado = calcularMenBonus({ entrenos: 8, partidos: 2, ausencias: 4 });
     expect(recuperado).toBeGreaterThan(frenado);
+  });
+});
+
+describe("calcularRendimientoBonus", () => {
+  it("sin actividad da 0", () => {
+    expect(calcularRendimientoBonus({ goles: 0, asistenciasGol: 0, rojas: 0 })).toBe(0);
+  });
+
+  it("gana por goles y asistencias de gol", () => {
+    // 2 goles (2×0.5=1.0) + 3 asistencias (3×0.3=0.9) = 1.9
+    expect(
+      calcularRendimientoBonus({ goles: 2, asistenciasGol: 3, rojas: 0 }),
+    ).toBeCloseTo(1.9);
+  });
+
+  it("no supera su propio tope, distinto del de asistencia", () => {
+    expect(
+      calcularRendimientoBonus({ goles: 100, asistenciasGol: 100, rojas: 0 }),
+    ).toBe(CURVA.TOPE_RENDIMIENTO_BONUS);
+    expect(CURVA.TOPE_RENDIMIENTO_BONUS).not.toBe(CURVA.TOPE_MEN_BONUS);
+  });
+
+  it("la roja penaliza, chico y recuperable", () => {
+    const sinRoja = calcularRendimientoBonus({ goles: 2, asistenciasGol: 0, rojas: 0 });
+    const conRoja = calcularRendimientoBonus({ goles: 2, asistenciasGol: 0, rojas: 1 });
+    expect(conRoja).toBeLessThan(sinRoja);
+    expect(sinRoja - conRoja).toBeCloseTo(CURVA.PENAL_ROJA);
+  });
+
+  it("nunca es negativo", () => {
+    expect(
+      calcularRendimientoBonus({ goles: 0, asistenciasGol: 0, rojas: 50 }),
+    ).toBe(0);
   });
 });
 

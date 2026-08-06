@@ -23,6 +23,14 @@ export const CURVA = {
   UMBRAL_AUSENCIAS: 2,
   /** Penalización por cada ausencia por encima del umbral. */
   PENAL_POR_AUSENCIA: 1.5,
+  /** Puntos de MEN por cada gol marcado (etapa 2: rendimiento → progreso). */
+  GANANCIA_GOL: 0.5,
+  /** Puntos de MEN por cada asistencia de gol dada. */
+  GANANCIA_ASISTENCIA_GOL: 0.3,
+  /** Penalización por cada tarjeta roja — chica y recuperable, son menores. */
+  PENAL_ROJA: 1.0,
+  /** Tope propio del bonus de rendimiento, separado del de asistencia. */
+  TOPE_RENDIMIENTO_BONUS: 6,
 } as const;
 
 export interface InsumosCurva {
@@ -46,6 +54,37 @@ export function calcularMenBonus({ entrenos, partidos, ausencias }: InsumosCurva
   const penalizacion = exceso * CURVA.PENAL_POR_AUSENCIA;
   const bonus = ganado - penalizacion;
   return Math.max(0, Math.min(CURVA.TOPE_MEN_BONUS, Math.round(bonus * 10) / 10));
+}
+
+export interface InsumosRendimiento {
+  /** Goles marcados en la ventana. */
+  goles: number;
+  /** Asistencias de gol (pase-gol) dadas en la ventana. Nombrado
+   * `asistenciasGol` (no `asistencias` a secas) para no confundirlo con
+   * `InsumosCurva.partidos`/`entrenos` — acá "asistencia" es una acción de
+   * juego, no presencia en un evento. */
+  asistenciasGol: number;
+  /** Tarjetas rojas recibidas en la ventana. */
+  rojas: number;
+}
+
+/**
+ * Bonus de MEN por rendimiento en cancha (0 … TOPE_RENDIMIENTO_BONUS),
+ * separado del bonus por asistencia (`calcularMenBonus`) — no comparten
+ * tope, se sacan de una ventana al mismo momento y se SUMAN afuera de esta
+ * función. Sin normalizar por categoría a propósito (decisión de
+ * producto): el MEN mide constancia/compromiso propio, no compara
+ * jugadores entre sí ni entre categorías.
+ */
+export function calcularRendimientoBonus({
+  goles,
+  asistenciasGol,
+  rojas,
+}: InsumosRendimiento): number {
+  const ganado = goles * CURVA.GANANCIA_GOL + asistenciasGol * CURVA.GANANCIA_ASISTENCIA_GOL;
+  const penalizacion = rojas * CURVA.PENAL_ROJA;
+  const bonus = ganado - penalizacion;
+  return Math.max(0, Math.min(CURVA.TOPE_RENDIMIENTO_BONUS, Math.round(bonus * 10) / 10));
 }
 
 export interface ProyeccionCurva {

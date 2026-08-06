@@ -615,3 +615,19 @@ cada adaptación, regla 0.8.)
     campo `temporada` en ningún lado — se define como sin filtro de fecha
     (todo el histórico del entrenador), la opción más simple, sin inventar
     una noción que el producto no tiene hoy.
+83. **Curva etapa 2 — Rendimiento → progreso: sin minutos, roja resta,
+    tope propio, sin normalizar por categoría.** Decisiones del usuario
+    (2026-08-06) cerrando las 4 preguntas abiertas de
+    `CURVA-DE-DESARROLLO.md` §9: (1) solo goles/asistencias de gol cuentan
+    — **no** minutos jugados, coherente con §75 (minutos ya se sacó de
+    todo el producto) y con el aviso del propio documento de que premiar
+    minutos castiga al suplente por una decisión del DT, no propia; (2)
+    solo la tarjeta **roja** resta, penalización chica y recuperable
+    (amarilla no resta, es parte normal del juego); (3) el bonus de
+    rendimiento tiene **tope propio** (`TOPE_RENDIMIENTO_BONUS`), separado
+    del de asistencia (`TOPE_MEN_BONUS`) — no comparten límite, se suman
+    ambos ya topados; (4) **sin normalizar por categoría** — el MEN mide
+    constancia/compromiso propio, no compara jugadores entre sí ni entre
+    categorías (mismo criterio que excluye rankings entre escuelas), se
+    acota con incrementos chicos por acción en vez de un factor de
+    dificultad.
