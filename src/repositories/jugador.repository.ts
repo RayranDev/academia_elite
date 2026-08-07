@@ -19,15 +19,26 @@ import { generarCodigoInvitacion, generarCodigoRef } from "@/lib/codes";
  * en `StatsCalculados`. Sin este filtro, el historial escondía la evaluación
  * anulada mientras la carta seguía mostrándola — el mismo criterio de "no
  * anuladas" que ya aplican el historial, el perfil del DT y las métricas.
+ *
+ * Trae también `evaluacion.fecha`: quien muestre "última evaluación" o calcule
+ * si está vencida tiene que usar ESA fecha y no `createdAt`, que es cuándo se
+ * insertó la fila. Se exporta para que exista UNA sola definición de "carta
+ * vigente" — estaba duplicada en `dashboard-escuela.repository.ts` con el
+ * criterio viejo, y el dashboard promediaba OVR de evaluaciones anuladas.
  */
-const statsLatest = {
+export const statsVigentes = {
   where: { evaluacion: { anulada: false } },
   orderBy: [
     { evaluacion: { fecha: "desc" as const } },
     { createdAt: "desc" as const },
   ],
   take: 1,
-};
+  include: { evaluacion: { select: { fecha: true } } },
+  // `satisfies` y no una anotación: verifica la forma contra el schema —un typo
+  // en `anulada` o un campo que desaparezca se cazan ACÁ y no en los 5 call
+  // sites— sin perder el tipo literal que Prisma necesita para inferir el
+  // resultado de cada consulta.
+} satisfies Prisma.Jugador$statsArgs;
 
 /** Plantilla: jugadores ACTIVO de las categorías indicadas, con su última carta. */
 export function listarPlantilla(escuelaId: string, categoriaIds: string[]) {
@@ -35,7 +46,7 @@ export function listarPlantilla(escuelaId: string, categoriaIds: string[]) {
     where: { escuelaId, categoriaId: { in: categoriaIds }, estado: "ACTIVO" },
     include: {
       categoria: { select: { id: true, nombre: true } },
-      stats: statsLatest,
+      stats: statsVigentes,
     },
     orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
   });
@@ -58,7 +69,7 @@ export function obtenerJugador(escuelaId: string, id: string) {
     where: { id, escuelaId },
     include: {
       categoria: { select: { id: true, nombre: true } },
-      stats: statsLatest,
+      stats: statsVigentes,
     },
   });
 }
@@ -103,11 +114,6 @@ export function obtenerJugadorPorCodigo(escuelaId: string, codigoJugador: string
   });
 }
 
-export function vincularPadre(jugadorId: string, padreUserId: string) {
-  // tenant-global: vinculación por id de jugador (flujo de registro); sin call sites actuales
-  return db.jugador.update({ where: { id: jugadorId }, data: { padreUserId } });
-}
-
 /** Datos mínimos de los jugadores de una escuela para detectar duplicados. */
 export function jugadoresParaDuplicados(escuelaId: string) {
   return db.jugador.findMany({
@@ -145,7 +151,6 @@ export async function jugadorIdsDeCategorias(
   return rows.map((r) => r.id);
 }
 
-/** Datos mínimos de varios jugadores (para etiquetar conversaciones). */
 // --- Curva de desarrollo (cron diario de MEN) ---
 
 /** IDs y escuela de todos los jugadores ACTIVO (para el cron de MEN). */
@@ -170,9 +175,14 @@ export function actualizarMenBonus(jugadorId: string, menBonus: number, ahora: D
  * Última StatsCalculados de cada jugador indicado (para reportes de toda la
  * escuela, incluidos INACTIVO/PENDIENTE que no aparecen en listarPlantilla).
  *
- * Mismo criterio de "última" que `statsLatest` —por fecha de evaluación y sin
+ * Mismo criterio de "última" que `statsVigentes` —por fecha de evaluación y sin
  * anuladas—: es la misma pregunta, y con criterios distintos el Excel de la
  * escuela informaba un OVR que ya no era el de la carta.
+ *
+ * Devuelve UNA fila por jugador, como promete el nombre. La deduplicación se
+ * hace acá y no en el llamador: antes vivía en el servicio del export, así que
+ * un segundo consumidor que no conociera esa regla se llevaba en silencio la
+ * evaluación MÁS VIEJA de cada jugador.
  */
 export function ultimasStatsPorJugadores(escuelaId: string, jugadorIds: string[]) {
   if (jugadorIds.length === 0) {
@@ -194,16 +204,24 @@ export function ultimasStatsPorJugadores(escuelaId: string, jugadorIds: string[]
     // La fecha que le importa al reporte es CUÁNDO SE EVALUÓ, no cuándo se
     // insertó la fila: de ahí sale la columna "Última evaluación" y el corte
     // de "Vencida" contra `frecuenciaEvaluacionDias`.
-    .then((filas) =>
-      filas.map(({ jugadorId, ovr, nivel, evaluacion }) => ({
-        jugadorId,
-        ovr,
-        nivel,
-        fecha: evaluacion.fecha,
-      })),
-    );
+    //
+    // La consulta viene ordenada, así que la PRIMERA fila de cada jugador es su
+    // carta vigente y las siguientes son su historial: nos quedamos con esa.
+    .then((filas) => {
+      const porJugador = new Map<
+        string,
+        { jugadorId: string; ovr: number; nivel: string; fecha: Date }
+      >();
+      for (const { jugadorId, ovr, nivel, evaluacion } of filas) {
+        if (!porJugador.has(jugadorId)) {
+          porJugador.set(jugadorId, { jugadorId, ovr, nivel, fecha: evaluacion.fecha });
+        }
+      }
+      return [...porJugador.values()];
+    });
 }
 
+/** Datos mínimos de varios jugadores (para etiquetar conversaciones). */
 export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
   return db.jugador.findMany({
     where: { escuelaId, id: { in: ids } },
@@ -227,7 +245,7 @@ export function listarHijos(userId: string) {
     },
     include: {
       categoria: { select: { nombre: true } },
-      stats: statsLatest,
+      stats: statsVigentes,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -407,7 +425,7 @@ export function obtenerJugadorHub(escuelaId: string | null, id: string) {
     where: { id, ...scope },
     include: {
       categoria: { select: { nombre: true } },
-      stats: statsLatest,
+      stats: statsVigentes,
       logros: { include: { logro: true }, orderBy: { otorgadoEn: "desc" } },
       objetivos: { orderBy: { fechaLimite: "asc" } },
     },

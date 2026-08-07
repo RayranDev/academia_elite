@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { porcentaje } from "@/lib/evaluacion";
+import { statsVigentes } from "@/repositories/jugador.repository";
 
 // Repositorio de lectura para el dashboard del ESCUELA_ADMIN (Capa 4).
 // Solo operaciones de lectura; sin lógica de negocio.
@@ -26,22 +26,27 @@ export function listarPlantillaEscuela(escuelaId: string) {
     where: { escuelaId, estado: "ACTIVO" },
     include: {
       categoria: { select: { id: true, nombre: true } },
-      stats: {
-        orderBy: { createdAt: "desc" as const },
-        take: 1,
-      },
+      // Misma definición de "carta vigente" que usa la plantilla del DT: por
+      // fecha de evaluación y sin anuladas. Antes tenía su propia copia con el
+      // criterio viejo, así que el promedio de OVR, la distribución de niveles
+      // y el conteo de vencidas del dashboard incluían evaluaciones anuladas.
+      stats: statsVigentes,
     },
     orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
   });
 }
 
 /**
- * Porcentaje de asistencia del último mes en la escuela.
+ * Asistencias del último mes en la escuela: presentes sobre el total.
  * Filtra por evento.inicio en los últimos 30 días para no depender
  * de createdAt (el modelo Asistencia no tiene createdAt).
- * Devuelve 0 si no hay registros en el período.
+ *
+ * Devuelve los CONTEOS crudos, no el porcentaje: derivarlo es lógica y esta
+ * capa solo lee (ver encabezado del archivo). Lo calcula el servicio.
  */
-export async function calcularAsistenciaMes(escuelaId: string): Promise<number> {
+export async function contarAsistenciaMes(
+  escuelaId: string,
+): Promise<{ presentes: number; total: number }> {
   const hace30Dias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [total, presentes] = await Promise.all([
@@ -60,5 +65,5 @@ export async function calcularAsistenciaMes(escuelaId: string): Promise<number> 
     }),
   ]);
 
-  return porcentaje(presentes, total);
+  return { presentes, total };
 }

@@ -10,15 +10,13 @@ import {
 } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
+import { evaluacionVencida } from "@/lib/evaluacion";
 
 /**
  * Exporta el OVR y estado de evaluación de todos los jugadores de la escuela
  * a Excel. Solo ESCUELA_ADMIN y SUPER_ADMIN. Las celdas con datos de usuario
  * se protegen contra inyección de fórmulas (CSV/Excel injection).
  */
-
-const DIA_MS = 24 * 60 * 60 * 1000;
-
 const CABECERAS = [
   "Apellido",
   "Nombre",
@@ -78,20 +76,13 @@ export async function exportarEvaluaciones(
   });
 
   // Última carta de CADA jugador (incluye INACTIVO/PENDIENTE que sí fueron
-  // evaluados y no aparecen en listarPlantilla). Viene ordenado por fecha de
-  // evaluación desc y sin anuladas, así que el primero por jugadorId es el
-  // vigente — el mismo que muestra la carta.
+  // evaluados y no aparecen en listarPlantilla). El repositorio ya devuelve una
+  // sola fila por jugador, la vigente — la misma que muestra la carta.
   const statsRows = await ultimasStatsPorJugadores(
     id,
     jugadoresGestion.map((j) => j.id),
   );
-  const statsMap = new Map<
-    string,
-    { ovr: number; nivel: string; fecha: Date }
-  >();
-  for (const s of statsRows) {
-    if (!statsMap.has(s.jugadorId)) statsMap.set(s.jugadorId, s);
-  }
+  const statsMap = new Map(statsRows.map((s) => [s.jugadorId, s]));
 
   const frecuencia = escuela.frecuenciaEvaluacionDias ?? 30;
   const ahora = Date.now();
@@ -110,7 +101,9 @@ export async function exportarEvaluaciones(
       ovr = "—";
       nivel = "—";
     } else {
-      const vencida = ahora - stats.fecha.getTime() > frecuencia * DIA_MS;
+      // Punto único de la regla de vencimiento, compartido con el dashboard y la
+      // plantilla del DT: si se duplica acá, el Excel vuelve a divergir.
+      const vencida = evaluacionVencida(stats.fecha, frecuencia, ahora);
       estadoEvaluacion = vencida ? "Vencida" : "Al día";
       ultimaEvaluacion = format(stats.fecha, "dd/MM/yyyy");
       ovr = stats.ovr;

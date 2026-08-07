@@ -4,9 +4,9 @@ import { obtenerEscuela } from "@/repositories/escuela.repository";
 import {
   contarJugadoresPorEstado,
   listarPlantillaEscuela,
-  calcularAsistenciaMes,
+  contarAsistenciaMes,
 } from "@/repositories/dashboard-escuela.repository";
-import { evaluacionVencida } from "@/lib/evaluacion";
+import { evaluacionVencida, porcentaje } from "@/lib/evaluacion";
 
 // Servicio del dashboard deportivo del ESCUELA_ADMIN (Capa 3).
 
@@ -52,12 +52,12 @@ export async function resumenEscuela(
   const escuelaId = requireEscuela(ctx);
 
   // Consultas paralelas: conteos, plantilla activa, escuela y asistencia.
-  const [conteos, jugadores, escuela, asistenciaMesPorcentaje] =
+  const [conteos, jugadores, escuela, asistencia] =
     await Promise.all([
       contarJugadoresPorEstado(escuelaId),
       listarPlantillaEscuela(escuelaId),
       obtenerEscuela(escuelaId),
-      calcularAsistenciaMes(escuelaId),
+      contarAsistenciaMes(escuelaId),
     ]);
 
   const frecuencia = escuela?.frecuenciaEvaluacionDias ?? 30;
@@ -100,7 +100,7 @@ export async function resumenEscuela(
       }
 
       // Verificar vencimiento (helper compartido con listarPlantillaDt).
-      const vencida = evaluacionVencida(stats.createdAt, frecuencia, ahora);
+      const vencida = evaluacionVencida(stats.evaluacion.fecha, frecuencia, ahora);
       if (vencida) {
         evaluacionesVencidas++;
         pendientes.push({
@@ -108,7 +108,7 @@ export async function resumenEscuela(
           nombre: j.nombre,
           apellido: j.apellido,
           categoriaNombre: j.categoria.nombre,
-          ultimaEvaluacion: stats.createdAt.toISOString(),
+          ultimaEvaluacion: stats.evaluacion.fecha.toISOString(),
           vencida: true,
         });
       }
@@ -129,7 +129,7 @@ export async function resumenEscuela(
     sinEvaluacion,
     ovrPromedio,
     distribucionNivel,
-    asistenciaMesPorcentaje,
+    asistenciaMesPorcentaje: porcentaje(asistencia.presentes, asistencia.total),
     pendientes,
   };
 }

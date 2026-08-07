@@ -1954,6 +1954,57 @@ la finalidad declarada no sea papel mojado. Hoy es editable en gestión y en la
 cuenta familiar, pero **todavía no se muestra en la ficha del DT ni sale en
 ningún export** — anotado en `PENDIENTES.md`.
 
+### Cola del #48: quedaban DOS pantallas más con el criterio viejo
+
+Guardian Angel señaló que `listarPlantillaDt` seguía calculando "vencida" y
+"última evaluación" con `stats.createdAt`. Buscando el resto apareció una
+cuarta copia que la revisión no había visto: `listarPlantillaEscuela`
+(`dashboard-escuela.repository.ts`) tenía **su propia definición** de "carta
+vigente" con el criterio viejo Y sin filtrar anuladas — o sea, el promedio de
+OVR, la distribución de niveles y el conteo de evaluaciones vencidas del
+dashboard del ESCUELA_ADMIN computaban evaluaciones ya anuladas.
+
+La raíz era que el concepto estaba **duplicado en dos repositorios**. Arreglo
+de fondo en vez de parche: pasa a haber UNA sola definición exportada
+(`statsVigentes`), `dashboard-escuela.repository.ts` la importa, y ahora
+incluye `evaluacion.fecha` para que quien muestre "última evaluación" o
+calcule el vencimiento use la fecha REAL de la evaluación y no la de inserción
+de la fila. Con esto, las cuatro superficies (plantilla del DT, ficha, Excel y
+dashboard de la escuela) responden lo mismo.
+
+Otros hallazgos de esa misma revisión, todos corregidos:
+
+- **El export re-implementaba a mano la regla de vencimiento** (con su propio
+  `DIA_MS`) en vez de usar `evaluacionVencida`, cuyo docstring dice ser el
+  "punto único para que dashboard y reportes coincidan". Era el último archivo
+  que no lo usaba — exactamente por donde el Excel vuelve a divergir.
+- **`ultimasStatsPorJugadores` prometía "una fila por jugador"** pero devolvía
+  el historial completo: la deduplicación vivía en el servicio del export, así
+  que un segundo consumidor que no conociera la regla se habría llevado en
+  silencio la evaluación MÁS VIEJA. Se movió adentro del repositorio.
+- **`statsLatest` → `statsVigentes`**: al exportarse pasaba a ser API pública
+  de un concepto de dominio en inglés (AGENTS.md §6), conviviendo con
+  `ultimasStatsPorJugadores` en español para la misma idea.
+- **`vincularPadre` eliminada**: escritura cross-tenant cuya justificación
+  `// tenant-global:` decía "sin call sites actuales". Verificado que era
+  código muerto (el flujo real usa `vincularPadreAJugador`). "Nadie la llama"
+  no es una razón de negocio para saltear el filtro de tenant; es justo la
+  función que alguien conecta un día y termina vinculando un padre de una
+  escuela con un hijo de otra.
+- **`contarAsistenciaMes`** devuelve conteos crudos y el porcentaje lo deriva
+  el servicio: el repositorio declaraba "sin lógica de negocio" y la tenía.
+- `statsVigentes` tipado con `satisfies Prisma.Jugador$statsArgs` (verificado
+  que no es un no-op: un typo en `anulada` rompe el typecheck), y un JSDoc
+  huérfano devuelto a la función que documenta.
+
+**Un punto de la revisión que se rechazó con evidencia**: se pedía pasar al
+español las claves de `AvatarConfigV2` (`hair`, `rearHair`, `skinColor`…). No
+corresponde: son el contrato de DiceBear —se traducen 1:1 a sus opciones en
+`avatarDataUri` y las listas salen de su JSON de estilo— y además el objeto se
+persiste tal cual en `Jugador.avatarConfig`, así que renombrarlas no sería un
+rename sino una migración que dejaría sin avatar a todo el que ya editó el
+suyo. Quedó documentado como excepción consciente en el propio tipo.
+
 ---
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)

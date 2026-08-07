@@ -86,7 +86,18 @@ function hex(lista: string[], i: number): string {
   return (lista[clampIdx(i, lista.length)] ?? "#000000").replace("#", "");
 }
 
-/** Config v2 del avatar (índices a las listas de este módulo; -1 = ninguno). */
+/**
+ * Config v2 del avatar (índices a las listas de este módulo; -1 = ninguno).
+ *
+ * Excepción consciente a la regla de idioma del dominio (AGENTS.md §6): las
+ * claves van en inglés porque son el contrato de DiceBear —se traducen 1:1 a
+ * sus opciones (`hairVariant`, `rearHairVariant`, `skinColor`…) en
+ * `avatarDataUri`, y las listas salen de su propio JSON de estilo—. Además el
+ * objeto se PERSISTE tal cual en `Jugador.avatarConfig`, así que renombrarlas
+ * no sería un rename sino una migración de datos que dejaría sin avatar a todo
+ * el que ya editó el suyo. `AvatarConfigV1` (en `config.ts`) sí está en español
+ * porque era un formato propio, no el de la librería.
+ */
 export interface AvatarConfigV2 {
   v: 2;
   hair: number;

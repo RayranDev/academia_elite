@@ -111,7 +111,11 @@ export async function listarPlantillaDt(
 
   return jugadores.map((j) => {
     const stats = j.stats[0] ?? null;
-    const vencida = !stats || evaluacionVencida(stats.createdAt, frecuencia, ahora);
+    // La fecha que importa es CUÁNDO SE EVALUÓ, no cuándo se insertó la fila:
+    // si no, una evaluación cargada tarde se muestra "al día" acá y "vencida"
+    // en el Excel de la escuela, describiendo al mismo jugador.
+    const vencida =
+      !stats || evaluacionVencida(stats.evaluacion.fecha, frecuencia, ahora);
     return {
       id: j.id,
       nombre: j.nombre,
@@ -121,7 +125,7 @@ export async function listarPlantillaDt(
       categoriaNombre: j.categoria.nombre,
       // Foto real si hay consentimiento; si no, avatar (fotoCartaUrl → null).
       card: stats ? aPlayerCardData(j, stats, fotoCartaUrl(j)) : null,
-      ultimaEvaluacion: stats ? stats.createdAt.toISOString() : null,
+      ultimaEvaluacion: stats ? stats.evaluacion.fecha.toISOString() : null,
       vencida,
       tieneFoto: !!j.fotoUrl,
       consentimiento: j.consentimientoFoto,

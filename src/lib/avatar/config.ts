@@ -57,7 +57,7 @@ function enRango(i: unknown, n: number, min = 0): number {
  * 19, 23, 29): así el pelo largo no queda correlacionado con el peinado ni con
  * el color de piel del mismo seed.
  */
-function rearHairDeSeed(h: number, genero?: Genero | null): number {
+function peloLargoDeSeed(h: number, genero?: Genero | null): number {
   if (REAR_HAIR.length === 0 || genero === "M") return -1;
   const minimo = genero === "F" ? 0 : -1; // -1 = "sin pelo largo", una opción más
   const opciones = REAR_HAIR.length - minimo;
@@ -75,7 +75,7 @@ export function avatarDesdeSeed(seed: string, genero?: Genero | null): AvatarCon
   return {
     v: 2,
     hair: pick(HAIR.length, 3),
-    rearHair: rearHairDeSeed(h, genero),
+    rearHair: peloLargoDeSeed(h, genero),
     // Siempre sin barba: son menores.
     beard: -1,
     eyes: pick(EYES.length, 7),
@@ -103,7 +103,13 @@ export function mapV1aV2(v1: AvatarConfigV1): AvatarConfigV2 {
     v: 2,
     hair: enRango(v1.peinado, HAIR.length),
     // El pelo largo se asume solo en avatares "F" (aproximación razonable).
-    rearHair: v1.genero === "F" ? enRango(v1.peinado, REAR_HAIR.length) : -1,
+    // El guard de catálogo vacío va acá también: `enRango(x, 0)` devuelve `0`,
+    // no `-1`, así que sin él se entregaría el índice 0 de un array vacío.
+    // Mismo invariante que `peloLargoDeSeed` y que el `opt()` de `normalizarV2`.
+    rearHair:
+      v1.genero === "F" && REAR_HAIR.length > 0
+        ? enRango(v1.peinado, REAR_HAIR.length)
+        : -1,
     beard: -1,
     eyes: idxDe(EYES, "happy"),
     eyebrows: idxDe(EYEBROWS, "raised"),
