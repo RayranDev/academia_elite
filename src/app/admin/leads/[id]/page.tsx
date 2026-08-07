@@ -8,7 +8,7 @@ import { FechaLocal } from "@/components/ui/FechaLocal";
 import { EstadoLeadBadge } from "@/components/admin/EstadoLeadBadge";
 import { LeadEditarForm } from "@/components/admin/LeadEditarForm";
 import { AgregarNotaForm } from "@/components/admin/AgregarNotaForm";
-import { ConvertLeadDialog } from "@/components/admin/ConvertLeadDialog";
+import { ConvertirLeadDialog } from "@/components/admin/ConvertirLeadDialog";
 
 export default async function LeadDetallePage({
   params,
@@ -39,14 +39,17 @@ export default async function LeadDetallePage({
           </h1>
           <EstadoLeadBadge estado={lead.estado} />
         </div>
-        {lead.estado !== "CONVERTIDO" && (
-          <ConvertLeadDialog
-            leadId={lead.id}
-            nombreEscuela={lead.nombreEscuela}
-            contactoNombre={lead.contactoNombre}
-            contactoEmail={lead.contactoEmail}
-          />
-        )}
+        {/* El diálogo queda SIEMPRE montado y se oculta a sí mismo cuando
+            corresponde (ver comentario en ConvertirLeadDialog). Si el padre lo
+            desmontara al ver `estado === "CONVERTIDO"`, se llevaría puesta la
+            contraseña temporal que el diálogo acaba de mostrar. */}
+        <ConvertirLeadDialog
+          leadId={lead.id}
+          nombreEscuela={lead.nombreEscuela}
+          contactoNombre={lead.contactoNombre}
+          contactoEmail={lead.contactoEmail}
+          yaConvertido={lead.estado === "CONVERTIDO"}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

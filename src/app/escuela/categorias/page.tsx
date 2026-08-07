@@ -22,7 +22,10 @@ export default async function CategoriasPage() {
       <div>
         <Card>
           <h2 className="mb-3 text-lg font-bold">Nueva categoría</h2>
-          <CrearCategoriaForm />
+          {/* El año lo resuelve el server y viaja como prop: calcularlo dentro
+              del client component correría también en el SSR (server en UTC) y
+              podría no coincidir con el del navegador (AGENTS.md §6). */}
+          <CrearCategoriaForm anioActual={new Date().getFullYear()} />
         </Card>
       </div>
     </div>

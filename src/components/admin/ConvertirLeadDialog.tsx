@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { ActionResult } from "@/lib/action-result";
 
-type ConvertData = { adminEmail: string; passwordTemporal: string };
+type ConvertirLeadData = { adminEmail: string; passwordTemporal: string };
 
 const campo =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm text-foreground outline-none focus:border-pitch";
@@ -22,25 +22,39 @@ function slugSugerido(nombre: string): string {
     .slice(0, 40);
 }
 
-export function ConvertLeadDialog({
+export function ConvertirLeadDialog({
   leadId,
   nombreEscuela,
   contactoNombre,
   contactoEmail,
+  yaConvertido,
 }: {
   leadId: string;
   nombreEscuela: string;
   contactoNombre: string;
   contactoEmail: string;
+  /**
+   * `lead.estado === "CONVERTIDO"` calculado por el padre. La conversión
+   * misma dispara `revalidatePath("/admin/leads")`, que refresca esta página
+   * con ese valor ya en `true` — si el padre usara esto para dejar de
+   * renderizar el diálogo entero (como hacía antes), React lo desmontaría
+   * junto con la contraseña temporal recién generada, antes de que el
+   * SUPER_ADMIN llegue a leerla. Acá el componente sigue montado siempre;
+   * solo oculta el botón "Convertir" si YA estaba convertido de antes Y esta
+   * sesión no fue la que lo convirtió (`exito` manda sobre `yaConvertido`).
+   */
+  yaConvertido: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState<
-    ActionResult<ConvertData> | undefined,
+    ActionResult<ConvertirLeadData> | undefined,
     FormData
   >(convertirLeadAction, undefined);
 
   const exito = state?.ok ? state.data : undefined;
+
+  if (yaConvertido && !exito) return null;
 
   return (
     <>

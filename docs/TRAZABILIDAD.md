@@ -1745,6 +1745,98 @@ solo queda gateado "Vigencia y bloqueo automático" en `PENDIENTES.md`.
 
 ---
 
+## 47. Exploración visual del onboarding completo: 4 bugs de UI (2026-08-07)
+
+Pedido del usuario: recorrer un flujo real de punta a punta buscando fallas
+visuales. Se armó un spec de Playwright TEMPORAL (no quedó en el repo) que
+simula una escuela nueva completa — lead → conversión → categorías →
+calibración física → alta de DT → 8 jugadores → evento → asistencia →
+evaluaciones → un mes de historial (16 entrenos, 64 asistencias, 16
+evaluaciones, curva recalculada) — sacando una captura por pantalla para
+revisarlas a ojo.
+
+**Cómo se destrabó la corrida.** Los primeros intentos morían con
+`ERR_CONNECTION_REFUSED` y lo atribuí (mal) a un límite de recursos. La
+causa real: `AUTH_URL=http://localhost:3000` y el e2e sirve en el 3100;
+`src/auth.ts` solo borra ese `AUTH_URL` localhost cuando
+`NODE_ENV === "development"`, y el e2e corre un build de **producción**, así
+que `signOut()` mandaba el navegador al 3000, donde no hay nada. Por eso el
+suite real nunca cierra sesión: usa contexto de navegador limpio por test.
+Adoptado el mismo patrón (un contexto por rol), el flujo pasó entero en
+~1,7 min. Queda anotado como gotcha: **un build de producción servido en un
+puerto distinto al de `AUTH_URL` rompe el logout**.
+
+**Bugs encontrados y corregidos:**
+
+1. **La contraseña temporal del ESCUELA_ADMIN se perdía al convertir un
+   lead.** `admin/leads/[id]/page.tsx` renderizaba `ConvertLeadDialog` solo
+   con `lead.estado !== "CONVERTIDO"`; el éxito de la conversión dispara
+   `revalidatePath`, la página vuelve con el estado ya en `CONVERTIDO` y
+   React desmontaba el diálogo —con la contraseña adentro— antes de que
+   nadie la leyera. Y no hay respaldo: el correo manda un **código para
+   fijar contraseña**, no la contraseña, y `recuperacion.service.ts` dice
+   explícitamente que la pantalla es el respaldo "mientras no haya dominio
+   verificado en Resend". O sea, cortaba el único camino operativo para dar
+   de alta una escuela. Corregido: el diálogo queda siempre montado y se
+   oculta a sí mismo (`yaConvertido`), con `exito` mandando por encima.
+2. **Formulario de categorías en estado imposible.** Tras crear una
+   categoría "sin edad", el checkbox quedaba destildado pero los selects de
+   año seguían deshabilitados; solo se salía recargando. React 19 limpia los
+   campos NO controlados del form al terminar la action, pero no el
+   `useState` del checkbox. Corregido remontando `SelectorAnioCategoria` con
+   una `key` que avanza en cada alta exitosa.
+3. **`<select>` de estado del lead desincronizado**: `defaultValue` solo
+   aplica al montar, así que un revalidate ajeno al form lo dejaba mostrando
+   el valor viejo mientras el badge del título ya mostraba el nuevo.
+   Corregido con estado controlado + resync ajustado en el render.
+4. **Default de años sin sentido**: los dos selects arrancaban en el año
+   actual (= recién nacidos). Ahora una franja Sub-12/13.
+
+**Hallazgos de Guardian Angel al commitear, corregidos en el mismo cambio**
+(deuda preexistente en 1 y 3, pero bloqueaban el commit por revisar el
+archivo completo):
+
+- **Hydration mismatch en `LeadEditarForm`**: `min={hoyLocal()}` corría
+  `new Date()` en el cuerpo del render de un client component, que también
+  se renderiza en el server (UTC). Un 07/08 20:00 en Colombia el server ya
+  emite `2026-08-08` y el cliente calcula `2026-08-07` → React #418.
+  Corregido con el patrón que el proyecto ya tenía resuelto en
+  `AjustarFechaEventoModal`/`ModoSesion`: calcular tras montar.
+- **Mismo riesgo en `SelectorAnioCategoria`**: `new Date().getFullYear()` a
+  nivel de módulo igual se evalúa en el SSR; un 31/12 a la noche las
+  `<option>` y los `defaultValue` no coincidirían. Resuelto pasando
+  `anioActual` como prop desde el Server Component — una sola fuente de
+  verdad para ambos renders, sin el flash de un select vacío que dejaría el
+  cálculo diferido.
+- **`ConvertLeadDialog` → `ConvertirLeadDialog`** (`git mv`, historial
+  conservado): era el único componente con verbo en inglés de los 15 de
+  `components/admin/`, contra la regla de idioma del dominio (AGENTS.md §6).
+  El copy del botón ya decía "Convertir → escuela"; se había filtrado solo
+  el identificador.
+- `htmlFor`/`id` en los labels de los campos nuevos de categoría, para
+  igualar lo que ya hacía `LeadEditarForm`.
+
+**Dos hallazgos NO corregidos, elevados como decisión de producto:**
+
+- **La carta puede mostrar una evaluación que no es la última.** Visible en
+  la ficha del jugador: carta en OVR 54 Bronce y, al lado, el historial
+  diciendo que lo más reciente es OVR 66 Plata. `statsLatest`
+  (`jugador.repository.ts`) ordena por `StatsCalculados.createdAt` —orden de
+  inserción— mientras el historial ordena por `Evaluacion.fecha`: dos
+  criterios distintos de "última" en la misma pantalla. Plantilla y ranking
+  sí coinciden entre sí. Hoy no se dispara en producción (la app nunca
+  backdatea: `fecha` es siempre `now()`); se destapó con datos retroactivos
+  sembrados. Refuerza lo que `PENDIENTES.md` ya marca sobre `statsLatest`
+  (que además no filtra `evaluacion.anulada`, eso sí alcanzable hoy).
+- **Todas las jugadoras reciben avatar masculino.** `avatarDesdeSeed`
+  (`src/lib/avatar/config.ts`) fija `rearHair: -1` siempre, así que el pelo
+  largo nunca se genera y las jugadoras de una categoría femenina aparecen
+  con avatar de varón. La migración vieja (`mapV1aV2`) sí contemplaba
+  género; el default por seed lo perdió. No hay campo `genero` en `Jugador`,
+  así que la salida es una decisión de producto, no un arreglo mecánico.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

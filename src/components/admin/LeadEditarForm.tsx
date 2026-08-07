@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { actualizarLeadAction } from "@/actions/admin.actions";
 import { Button } from "@/components/ui/Button";
@@ -20,6 +20,22 @@ function hoyLocal(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/**
+ * "Hoy" solo se conoce en el cliente y recién tras montar: calcularlo en el
+ * cuerpo del render lo correría también en el SSR de este client component,
+ * con la hora UTC del server en vez de la del usuario (AGENTS.md §6, mismo
+ * criterio que `AjustarFechaEventoModal`/`ModoSesion`). Un `min` distinto
+ * entre server y cliente es un hydration mismatch que remonta el árbol.
+ */
+function useHoyLocal(): string | undefined {
+  const [hoy, setHoy] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHoy(hoyLocal());
+  }, []);
+  return hoy;
+}
+
 /** Edita estado y seguimiento del lead (mini-CRM). */
 export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
   const router = useRouter();
@@ -27,6 +43,18 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
     ActionResult | undefined,
     FormData
   >(actualizarLeadAction, undefined);
+  // `defaultValue` solo aplica al montar: si `lead.estado` cambia por un
+  // revalidate ajeno a este form (ej. al convertir el lead en escuela), el
+  // <select> quedaba mostrando el valor viejo sin resincronizar. Estado
+  // controlado + resync ajustado EN el render (no en un efecto — evita un
+  // pass de render extra), patrón "adjust state during render" de React.
+  const hoy = useHoyLocal();
+  const [estado, setEstado] = useState(lead.estado);
+  const [estadoSincronizado, setEstadoSincronizado] = useState(lead.estado);
+  if (lead.estado !== estadoSincronizado) {
+    setEstadoSincronizado(lead.estado);
+    setEstado(lead.estado);
+  }
 
   useEffect(() => {
     if (state?.ok) router.refresh();
@@ -42,7 +70,8 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
         <select
           id="le-estado"
           name="estado"
-          defaultValue={lead.estado}
+          value={estado}
+          onChange={(e) => setEstado(e.target.value as typeof lead.estado)}
           className={campo}
         >
           {ESTADOS_LEAD.map((e) => (
@@ -86,7 +115,7 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
           type="date"
           // No tiene sentido agendar el próximo contacto en el pasado: el `min`
           // es HOY (en la zona local del navegador).
-          min={hoyLocal()}
+          min={hoy}
           defaultValue={lead.fechaProximoContacto?.slice(0, 10) ?? ""}
           className={campo}
         />
