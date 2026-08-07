@@ -11,7 +11,7 @@ export function listarCategorias(escuelaId: string) {
 
 export function crearCategoria(
   escuelaId: string,
-  data: { nombre: string; anioDesde: number; anioHasta: number },
+  data: { nombre: string; anioDesde: number | null; anioHasta: number | null },
 ) {
   return db.categoria.create({ data: { escuelaId, ...data } });
 }

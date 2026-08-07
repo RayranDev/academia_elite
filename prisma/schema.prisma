@@ -122,8 +122,8 @@ model Categoria {
   escuelaId    String
   escuela      Escuela               @relation(fields: [escuelaId], references: [id])
   nombre       String // "Sub-12"
-  anioDesde    Int
-  anioHasta    Int
+  anioDesde    Int?
+  anioHasta    Int?
   jugadores    Jugador[]
   entrenadores EntrenadorCategoria[]
   eventos      Evento[]

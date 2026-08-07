@@ -10,8 +10,8 @@ import type { categoriaSchema } from "@/lib/validators/escuela";
 export interface CategoriaDTO {
   id: string;
   nombre: string;
-  anioDesde: number;
-  anioHasta: number;
+  anioDesde: number | null;
+  anioHasta: number | null;
   jugadores: number;
 }
 

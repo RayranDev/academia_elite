@@ -73,6 +73,7 @@ export async function crearCategoriaAction(
   const ctx = await requireAuthContext();
   const parsed = categoriaSchema.safeParse({
     nombre: formData.get("nombre"),
+    sinEdad: formData.get("sinEdad") === "on",
     anioDesde: formData.get("anioDesde"),
     anioHasta: formData.get("anioHasta"),
   });

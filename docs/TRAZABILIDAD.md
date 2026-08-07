@@ -1629,6 +1629,48 @@ vez al abrirla — mismo patrón exacto que `editarJugador`/
 
 ---
 
+## 45. Categorías: selector de años acotado + categorías sin edad (2026-08-07)
+
+El usuario reportó dos cosas sobre categorías: la creación de años era un
+`<input type="number">` libre (sin límite real más allá de un rango de 110
+años en Zod), y no había forma de crear una categoría "libre" sin filtro de
+edad (ej. "Masculina"/"Femenina"). Investigado y corregido: la creación de
+categorías vive en `/escuela/categorias` (ESCUELA_ADMIN), no en el perfil
+del DT como se pensaba en un principio — corregido en la documentación
+antes de diseñar.
+
+`SelectorAnioCategoria.tsx` (nuevo) reemplaza los inputs libres por dos
+`<select>` acotados (año actual − 20 a año actual + 1) más un checkbox
+"Categoría sin edad" que deshabilita los selects — un `<select disabled>`
+no viaja en el `FormData` al enviar, mismo mecanismo que ya usaba
+`FichaMedicaModal` para su checkbox de autorización de datos de salud.
+`Categoria.anioDesde`/`anioHasta` pasan a `Int?` (migración
+`20260807000000_categoria_anios_opcionales`), `categoriaSchema` acepta
+`sinEdad` y hace los años opcionales con `z.preprocess` (un valor ausente
+del form es `null`, se trata como "no llegó"), y transforma a
+`{anioDesde, anioHasta}` como `number | null`. Confirmado sin impacto en el
+motor de evaluación: `GrupoEdad` (calibración física) se deriva de
+`Jugador.fechaNacimiento`, nunca de `Categoria.anioDesde/anioHasta`.
+
+Backup completo de las 40 tablas de producción (517 filas, `findMany` por
+modelo a JSON) tomado ANTES de aplicar la migración — no había `pg_dump`
+disponible en el entorno, así que se armó `scripts/backup-db.ts` (mismo
+patrón de conexión que `seed-prod.ts`: `PrismaPg` + `DIRECT_URL`, sin pasar
+por `@/lib/db`) escribiendo a una carpeta fuera del repo (datos de menores,
+nunca se commitea). Con la migración ya aplicada y estable, no hizo falta
+usarlo.
+
+Implementación delegada a un sub-agente con el plan (investigado y
+diseñado en modo plan) como instrucción exacta; revisión de diff propia
+línea por línea, typecheck/lint/test verificados dos veces (por el
+sub-agente y por mí) antes de aplicar la migración con
+`prisma migrate deploy`. 321/321 tests verdes, 4 casos nuevos para
+`categoriaSchema`. Primera de dos piezas del mismo plan — la calibración
+física por categoría real (paquete grande, ya diseñado y con decisiones
+cerradas en DECISIONES.md §85) sigue en construcción.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

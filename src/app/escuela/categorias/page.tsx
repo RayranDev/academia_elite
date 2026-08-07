@@ -4,6 +4,7 @@ import { crearCategoriaAction } from "@/actions/escuela.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { SelectorAnioCategoria } from "@/components/escuela/SelectorAnioCategoria";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
@@ -28,7 +29,7 @@ export default async function CategoriasPage() {
               <div>
                 <p className="text-lg font-bold">{c.nombre}</p>
                 <p className="text-xs text-muted">
-                  Años {c.anioDesde}–{c.anioHasta}
+                  {c.anioDesde == null ? "Sin edad" : `Años ${c.anioDesde}–${c.anioHasta}`}
                 </p>
               </div>
               <Badge>{c.jugadores} jugadores</Badge>
@@ -45,16 +46,7 @@ export default async function CategoriasPage() {
               <label className="mb-1 block text-xs text-muted">Nombre</label>
               <input name="nombre" placeholder="Sub-14" required className={input} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs text-muted">Año desde</label>
-                <input name="anioDesde" type="number" defaultValue={2014} className={input} />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs text-muted">Año hasta</label>
-                <input name="anioHasta" type="number" defaultValue={2015} className={input} />
-              </div>
-            </div>
+            <SelectorAnioCategoria />
             <Button type="submit" className="w-full">
               Crear categoría
             </Button>

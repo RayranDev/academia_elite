@@ -21,16 +21,31 @@ export const brandingSchema = z.object({
     .max(365, { error: "Máximo 365 días." }),
 });
 
+const anioCategoria = z.preprocess(
+  (v) => (v === null || v === "" ? undefined : v),
+  z.coerce.number().int().min(1990).max(2100).optional(),
+);
+
 export const categoriaSchema = z
   .object({
     nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }),
-    anioDesde: z.coerce.number().int().min(1990).max(2100),
-    anioHasta: z.coerce.number().int().min(1990).max(2100),
+    sinEdad: z.boolean(),
+    anioDesde: anioCategoria,
+    anioHasta: anioCategoria,
   })
-  .refine((d) => d.anioHasta >= d.anioDesde, {
-    error: "El año final debe ser ≥ al inicial.",
-    path: ["anioHasta"],
-  });
+  .refine((d) => d.sinEdad || (d.anioDesde != null && d.anioHasta != null), {
+    error: 'Elige año desde y año hasta, o marca "Categoría sin edad".',
+    path: ["anioDesde"],
+  })
+  .refine(
+    (d) => d.sinEdad || d.anioDesde == null || d.anioHasta == null || d.anioHasta >= d.anioDesde,
+    { error: "El año final debe ser ≥ al inicial.", path: ["anioHasta"] },
+  )
+  .transform((d) => ({
+    nombre: d.nombre,
+    anioDesde: d.sinEdad ? null : (d.anioDesde ?? null),
+    anioHasta: d.sinEdad ? null : (d.anioHasta ?? null),
+  }));
 
 export const sedeSchema = z.object({
   nombre: textoSeguro({ min: 2, max: 80, error: "Nombre requerido." }),

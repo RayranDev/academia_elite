@@ -16,16 +16,15 @@
 > Si un paquete queda parcialmente hecho, se recorta a lo que falta — no se
 > deja una tarea marcada "lista" a medio hacer.
 >
-> Última actualización: 2026-08-06 (se resolvieron los paquetes de los 2
+> Última actualización: 2026-08-07 (se resolvieron los paquetes de los 2
 > specs e2e rotos, el motivo de soporte, el guardián de tenant en
 > `services`, el filtro `?bloqueado=1`, Descuentos con regla, el acceso
-> parcial del jugador bloqueado, el perfil del DT, Staff más allá del DT y
-> Progresión del jugador — etapa 2 completa (sus 4 piezas) — ver
-> TRAZABILIDAD.md #33-44). Se suman 2 paquetes nuevos sobre categorías:
-> selector de años acotado + categorías sin edad, y calibración física por
-> categoría real (este último gateado a una decisión de arquitectura en
-> DECISIONES.md). Junto con vigencia y bloqueo automático, quedan 3
-> paquetes gateados/pendientes.
+> parcial del jugador bloqueado, el perfil del DT, Staff más allá del DT,
+> Progresión del jugador — etapa 2 completa (sus 4 piezas) y Categorías:
+> selector de años acotado + categorías sin edad — ver TRAZABILIDAD.md
+> #33-45). Queda en construcción Calibración física por categoría real
+> (decisiones ya cerradas en DECISIONES.md §85), y gateado vigencia y
+> bloqueo automático.
 
 ---
 
@@ -34,8 +33,7 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
-| [Categorías: selector de años acotado + sin edad](#paquete--categorías-selector-de-años-acotado--categorías-sin-edad) | Medio | Acota el año a un selector y permite categorías sin edad |
-| [Calibración física por categoría real](#paquete--calibración-física-por-categoría-real-no-por-franja-etaria-fija) | Grande | Listo para construir — decisiones cerradas en DECISIONES.md §85 |
+| [Calibración física por categoría real](#paquete--calibración-física-por-categoría-real-no-por-franja-etaria-fija) | Grande | En construcción — decisiones cerradas en DECISIONES.md §85 |
 
 ---
 
@@ -59,72 +57,12 @@ carta" (ver más abajo, bloqueado): `statsLatest` en
 
 ---
 
-## Paquete — Categorías: selector de años acotado + categorías sin edad
-
-Medio. Hoy la creación de categorías vive en `/escuela/categorias`
-(ESCUELA_ADMIN, no en el perfil del DT) — `crearCategoriaAction`
-(`src/actions/escuela.actions.ts:70-82`). Los campos `anioDesde`/`anioHasta`
-son inputs numéricos libres (`<input type="number">`, sin `min`/`max` en el
-HTML) y obligatorios; `categoriaSchema`
-(`src/lib/validators/escuela.ts:24-33`) solo acota a `1990–2100` (110 años
-de margen, en la práctica libre):
-
-```ts
-export const categoriaSchema = z
-  .object({
-    nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }),
-    anioDesde: z.coerce.number().int().min(1990).max(2100),
-    anioHasta: z.coerce.number().int().min(1990).max(2100),
-  })
-  .refine((d) => d.anioHasta >= d.anioDesde, {
-    error: "El año final debe ser ≥ al inicial.",
-    path: ["anioHasta"],
-  });
-```
-
-**Qué construir:**
-1. Reemplazar los dos `<input type="number">` de
-   `src/app/escuela/categorias/page.tsx` por un `<select>` con un rango
-   acotado y realista de años (ej. año actual − 20 a año actual + 1 — cubre
-   desde categorías Sub-6 hasta adultas sin dejar tipear cualquier número).
-2. Agregar soporte para categoría **sin edad** ("categorías únicas" donde no
-   se filtra por edad, ej. una categoría "Masculina"/"Femenina"): un
-   checkbox "Sin límite de edad" que oculta/limpia los selects de año.
-   Requiere:
-   - `prisma/schema.prisma`: `Categoria.anioDesde`/`anioHasta` pasan de
-     `Int` a `Int?` (migración).
-   - `categoriaSchema`: ambos opcionales; el `.refine` de coherencia
-     (`anioHasta >= anioDesde`) solo corre si los dos vienen presentes.
-   - `crearCategoria` (`src/repositories/categoria.repository.ts`): firma
-     acepta `anioDesde`/`anioHasta` opcionales.
-   - `CategoriaDTO` (`src/services/categoria.service.ts`): campos
-     `anioDesde`/`anioHasta` pasan a `number | null`.
-   - `src/app/escuela/categorias/page.tsx`: hoy renderiza siempre
-     `Años {c.anioDesde}–{c.anioHasta}` sin chequeo de null — mostrar "Sin
-     límite de edad" cuando son `null`.
-3. `Categoria.nombre` ya es texto libre (no hay campo `género` en ningún
-   modelo del schema) — nombrar una categoría "Masculina"/"Femenina" ya es
-   posible hoy; lo único que lo bloqueaba era el año obligatorio.
-
-**Confirmado sin impacto en el motor de evaluación:** `GrupoEdad`
-(Sub8/10/12/14/16, usado para calibrar rangos físicos) se deriva de
-`Jugador.fechaNacimiento` vía `grupoEdadPorEdad(edadEnAnios(...))`
-(`src/lib/stats-engine/ranges.ts:100-115`) — **nunca** lee
-`Categoria.anioDesde/anioHasta`. Opcionalizar estos dos campos no rompe
-ninguna evaluación existente.
-
-**Fuera de alcance:** no existe UI de edición de categoría (`update`) hoy en
-ningún lado del proyecto — solo alta. Si hace falta editar una categoría ya
-creada, es un paquete aparte.
-
----
-
 ## Paquete — Calibración física por categoría real (no por franja etaria fija)
 
 Grande. Decisiones de arquitectura cerradas — ver `DECISIONES.md` §85.
-Se construye DESPUÉS del paquete anterior (categorías sin edad): necesita
-saber cómo sembrar una categoría sin año antes de poder sembrarse a sí
-mismo.
+El paquete del que dependía (categorías sin edad) ya está resuelto — ver
+TRAZABILIDAD.md #45 — así que ya se puede sembrar una categoría "sin edad"
+con `grupoEdadSemilla(null, null) → SUB16`.
 
 **El problema:** `/admin/parametros` (rangos físicos por prueba: sprint,
 salto, agilidad, resistencia) se organiza hoy por `GrupoEdad` — una franja
