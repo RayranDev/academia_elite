@@ -78,15 +78,16 @@ export async function exportarEvaluaciones(
   });
 
   // Última carta de CADA jugador (incluye INACTIVO/PENDIENTE que sí fueron
-  // evaluados y no aparecen en listarPlantilla). Como viene ordenado por
-  // createdAt desc, el primero por jugadorId es el más reciente.
+  // evaluados y no aparecen en listarPlantilla). Viene ordenado por fecha de
+  // evaluación desc y sin anuladas, así que el primero por jugadorId es el
+  // vigente — el mismo que muestra la carta.
   const statsRows = await ultimasStatsPorJugadores(
     id,
     jugadoresGestion.map((j) => j.id),
   );
   const statsMap = new Map<
     string,
-    { ovr: number; nivel: string; createdAt: Date }
+    { ovr: number; nivel: string; fecha: Date }
   >();
   for (const s of statsRows) {
     if (!statsMap.has(s.jugadorId)) statsMap.set(s.jugadorId, s);
@@ -109,10 +110,9 @@ export async function exportarEvaluaciones(
       ovr = "—";
       nivel = "—";
     } else {
-      const vencida =
-        ahora - stats.createdAt.getTime() > frecuencia * DIA_MS;
+      const vencida = ahora - stats.fecha.getTime() > frecuencia * DIA_MS;
       estadoEvaluacion = vencida ? "Vencida" : "Al día";
-      ultimaEvaluacion = format(stats.createdAt, "dd/MM/yyyy");
+      ultimaEvaluacion = format(stats.fecha, "dd/MM/yyyy");
       ovr = stats.ovr;
       nivel = stats.nivel;
     }

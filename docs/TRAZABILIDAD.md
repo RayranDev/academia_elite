@@ -1878,6 +1878,18 @@ Esto era además el **"fix previo obligatorio"** que `PENDIENTES.md` le exigía
 al paquete bloqueado "Puntos de sesión que mueven la carta" — queda saldado,
 y las dos menciones se actualizaron.
 
+**El arreglo quedaba a medias y lo marcó Guardian Angel:**
+`ultimasStatsPorJugadores`, en el mismo archivo, responde la MISMA pregunta
+("la última carta de cada jugador") para el Excel de toda la escuela
+(`export-evaluaciones.service.ts`) y seguía con el criterio viejo. Es decir:
+anulabas una evaluación, la carta caía a la anterior y el Excel seguía
+reportando el OVR anulado — la misma contradicción, movida un renglón más
+abajo. Peor todavía, el reporte derivaba la columna "Última evaluación" y el
+corte de "Vencida" de `StatsCalculados.createdAt`, o sea de cuándo se
+insertó la fila y no de cuándo se evaluó. Alineadas ambas funciones al mismo
+criterio, y la función ahora devuelve `fecha` (de la evaluación) en vez de
+`createdAt`. Verificado con datos reales: carta y export coinciden 8/8.
+
 ---
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)

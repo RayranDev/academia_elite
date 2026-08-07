@@ -168,18 +168,39 @@ export function actualizarMenBonus(jugadorId: string, menBonus: number, ahora: D
 /**
  * Última StatsCalculados de cada jugador indicado (para reportes de toda la
  * escuela, incluidos INACTIVO/PENDIENTE que no aparecen en listarPlantilla).
+ *
+ * Mismo criterio de "última" que `statsLatest` —por fecha de evaluación y sin
+ * anuladas—: es la misma pregunta, y con criterios distintos el Excel de la
+ * escuela informaba un OVR que ya no era el de la carta.
  */
 export function ultimasStatsPorJugadores(escuelaId: string, jugadorIds: string[]) {
   if (jugadorIds.length === 0) {
     return Promise.resolve(
-      [] as { jugadorId: string; ovr: number; nivel: string; createdAt: Date }[],
+      [] as { jugadorId: string; ovr: number; nivel: string; fecha: Date }[],
     );
   }
-  return db.statsCalculados.findMany({
-    where: { escuelaId, jugadorId: { in: jugadorIds } },
-    orderBy: { createdAt: "desc" },
-    select: { jugadorId: true, ovr: true, nivel: true, createdAt: true },
-  });
+  return db.statsCalculados
+    .findMany({
+      where: { escuelaId, jugadorId: { in: jugadorIds }, evaluacion: { anulada: false } },
+      orderBy: [{ evaluacion: { fecha: "desc" } }, { createdAt: "desc" }],
+      select: {
+        jugadorId: true,
+        ovr: true,
+        nivel: true,
+        evaluacion: { select: { fecha: true } },
+      },
+    })
+    // La fecha que le importa al reporte es CUÁNDO SE EVALUÓ, no cuándo se
+    // insertó la fila: de ahí sale la columna "Última evaluación" y el corte
+    // de "Vencida" contra `frecuenciaEvaluacionDias`.
+    .then((filas) =>
+      filas.map(({ jugadorId, ovr, nivel, evaluacion }) => ({
+        jugadorId,
+        ovr,
+        nivel,
+        fecha: evaluacion.fecha,
+      })),
+    );
 }
 
 export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
