@@ -4,8 +4,28 @@ import { generarCodigoInvitacion, generarCodigoRef } from "@/lib/codes";
 
 // Repositorio de jugadores (Capa 4). Firma con escuelaId (multi-tenant).
 
+/**
+ * La carta vigente del jugador: su último snapshot de stats.
+ *
+ * "Último" se resuelve por la FECHA DE LA EVALUACIÓN, no por el orden en que
+ * se insertó la fila: son dos cosas distintas en cuanto una evaluación se
+ * carga fuera de orden, y el historial de la ficha (`listarEvaluacionesDeJugador`)
+ * ya ordenaba por `fecha` — con `createdAt` acá, la carta y el historial de la
+ * MISMA pantalla podían señalar evaluaciones distintas. `createdAt` queda de
+ * desempate para dos evaluaciones con la misma fecha.
+ *
+ * Y se excluyen las ANULADAS: anular es la única forma de deshacer una
+ * evaluación (son inmutables, AGENTS.md), pero el snapshot de stats sobrevive
+ * en `StatsCalculados`. Sin este filtro, el historial escondía la evaluación
+ * anulada mientras la carta seguía mostrándola — el mismo criterio de "no
+ * anuladas" que ya aplican el historial, el perfil del DT y las métricas.
+ */
 const statsLatest = {
-  orderBy: { createdAt: "desc" as const },
+  where: { evaluacion: { anulada: false } },
+  orderBy: [
+    { evaluacion: { fecha: "desc" as const } },
+    { createdAt: "desc" as const },
+  ],
   take: 1,
 };
 

@@ -1844,6 +1844,42 @@ archivo completo):
 
 ---
 
+## 48. La carta mostraba la evaluación equivocada (2026-08-07)
+
+Seguimiento del hallazgo A de #47. `statsLatest` (`jugador.repository.ts`) es
+la consulta que resuelve "la carta vigente" y alimenta las CUATRO superficies
+donde se ve una carta: la plantilla del DT, la ficha del jugador, la vista de
+la familia y el hub del propio chico. Tenía dos defectos:
+
+1. **Ordenaba por `StatsCalculados.createdAt`** —orden de inserción— mientras
+   el historial de la misma ficha (`listarEvaluacionesDeJugador`) ordena por
+   `Evaluacion.fecha`. Dos criterios distintos de "última" en la misma
+   pantalla. Verificado con datos reales: un jugador con la evaluación del
+   07/08 insertada a las 19:24:32 y la del 28/07 insertada a las 19:24:58
+   mostraba en la carta la del 28/07 (OVR 54 Bronce) mientras el historial,
+   al lado, encabezaba con la del 07/08 (OVR 66 Plata).
+2. **No filtraba `evaluacion.anulada`**, a diferencia del historial, del
+   perfil del DT y de las métricas de plataforma, que sí lo hacen. Anular es
+   la única forma de deshacer una evaluación (son inmutables), pero el
+   snapshot en `StatsCalculados` sobrevive: el historial escondía la anulada
+   y la carta la seguía mostrando. **Este sí era alcanzable en producción
+   hoy**; el (1) requería una evaluación cargada fuera de orden.
+
+Corregido en una sola definición: `where: { evaluacion: { anulada: false } }`
+y `orderBy` por `evaluacion.fecha` con `createdAt` de desempate para dos
+evaluaciones de la misma fecha.
+
+Verificado contra datos reales en el schema `e2e` con un script de un solo
+uso: la carta pasa a mostrar la del 07/08 (OVR 66 Plata); al anularla cae a
+la del 28/07 (OVR 54 Bronce); al deshacer la anulación vuelve a la del 07/08
+sin residuos. `typecheck`/`lint`/`test` limpios (344).
+
+Esto era además el **"fix previo obligatorio"** que `PENDIENTES.md` le exigía
+al paquete bloqueado "Puntos de sesión que mueven la carta" — queda saldado,
+y las dos menciones se actualizaron.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

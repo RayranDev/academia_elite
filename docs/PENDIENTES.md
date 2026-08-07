@@ -49,9 +49,8 @@ del cron de bloqueo (no pisa un bloqueo manual ya puesto); `bloqueoTipo:
 bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 `"SISTEMA"` para el cron, que no tiene `AuthContext` de un usuario real.
 
-Fix previo obligatorio si se construye "puntos de sesión que mueven la
-carta" (ver más abajo, bloqueado): `statsLatest` en
-`src/repositories/jugador.repository.ts:6-9` no filtra `evaluacion.anulada`.
+(El fix previo que este paquete listaba —`statsLatest` sin filtrar
+`evaluacion.anulada`— ya está resuelto: ver TRAZABILIDAD.md #48.)
 
 ---
 
@@ -112,9 +111,9 @@ No se tocan hasta poder reproducirlos; el código no muestra el defecto.
 
 - **Puntos de sesión que mueven la carta.** Contradice la tesis documentada en
   `ESTADO-DEL-PROYECTO.md` §0. Requiere entrada explícita en `DECISIONES.md`
-  antes de escribir código (§57). Si se aprueba, el fix previo obligatorio es
-  `statsLatest` en `src/repositories/jugador.repository.ts`, que no filtra
-  `evaluacion.anulada`.
+  antes de escribir código (§57). El fix previo que este ítem exigía
+  (`statsLatest` sin filtrar `evaluacion.anulada`) ya está hecho — ver
+  TRAZABILIDAD.md #48.
 - **Herramientas de formación/táctica.** Diferidas a una ronda de planeamiento
   propia; hoy sin ninguna definición.
 - **Countdown al iniciar sesión.** Cortado (§56). Si se retoma, que sea de 1
