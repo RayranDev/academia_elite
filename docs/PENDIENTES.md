@@ -21,8 +21,11 @@
 > `services`, el filtro `?bloqueado=1`, Descuentos con regla, el acceso
 > parcial del jugador bloqueado, el perfil del DT, Staff más allá del DT y
 > Progresión del jugador — etapa 2 completa (sus 4 piezas) — ver
-> TRAZABILIDAD.md #33-44). Solo queda el paquete gateado de vigencia y
-> bloqueo automático.
+> TRAZABILIDAD.md #33-44). Se suman 2 paquetes nuevos sobre categorías:
+> selector de años acotado + categorías sin edad, y calibración física por
+> categoría real (este último gateado a una decisión de arquitectura en
+> DECISIONES.md). Junto con vigencia y bloqueo automático, quedan 3
+> paquetes gateados/pendientes.
 
 ---
 
@@ -31,6 +34,8 @@
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
+| [Categorías: selector de años acotado + sin edad](#paquete--categorías-selector-de-años-acotado--categorías-sin-edad) | Medio | Acota el año a un selector y permite categorías sin edad |
+| [Calibración física por categoría real](#paquete--calibración-física-por-categoría-real-no-por-franja-etaria-fija) | Grande | Listo para construir — decisiones cerradas en DECISIONES.md §85 |
 
 ---
 
@@ -51,6 +56,128 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 Fix previo obligatorio si se construye "puntos de sesión que mueven la
 carta" (ver más abajo, bloqueado): `statsLatest` en
 `src/repositories/jugador.repository.ts:6-9` no filtra `evaluacion.anulada`.
+
+---
+
+## Paquete — Categorías: selector de años acotado + categorías sin edad
+
+Medio. Hoy la creación de categorías vive en `/escuela/categorias`
+(ESCUELA_ADMIN, no en el perfil del DT) — `crearCategoriaAction`
+(`src/actions/escuela.actions.ts:70-82`). Los campos `anioDesde`/`anioHasta`
+son inputs numéricos libres (`<input type="number">`, sin `min`/`max` en el
+HTML) y obligatorios; `categoriaSchema`
+(`src/lib/validators/escuela.ts:24-33`) solo acota a `1990–2100` (110 años
+de margen, en la práctica libre):
+
+```ts
+export const categoriaSchema = z
+  .object({
+    nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }),
+    anioDesde: z.coerce.number().int().min(1990).max(2100),
+    anioHasta: z.coerce.number().int().min(1990).max(2100),
+  })
+  .refine((d) => d.anioHasta >= d.anioDesde, {
+    error: "El año final debe ser ≥ al inicial.",
+    path: ["anioHasta"],
+  });
+```
+
+**Qué construir:**
+1. Reemplazar los dos `<input type="number">` de
+   `src/app/escuela/categorias/page.tsx` por un `<select>` con un rango
+   acotado y realista de años (ej. año actual − 20 a año actual + 1 — cubre
+   desde categorías Sub-6 hasta adultas sin dejar tipear cualquier número).
+2. Agregar soporte para categoría **sin edad** ("categorías únicas" donde no
+   se filtra por edad, ej. una categoría "Masculina"/"Femenina"): un
+   checkbox "Sin límite de edad" que oculta/limpia los selects de año.
+   Requiere:
+   - `prisma/schema.prisma`: `Categoria.anioDesde`/`anioHasta` pasan de
+     `Int` a `Int?` (migración).
+   - `categoriaSchema`: ambos opcionales; el `.refine` de coherencia
+     (`anioHasta >= anioDesde`) solo corre si los dos vienen presentes.
+   - `crearCategoria` (`src/repositories/categoria.repository.ts`): firma
+     acepta `anioDesde`/`anioHasta` opcionales.
+   - `CategoriaDTO` (`src/services/categoria.service.ts`): campos
+     `anioDesde`/`anioHasta` pasan a `number | null`.
+   - `src/app/escuela/categorias/page.tsx`: hoy renderiza siempre
+     `Años {c.anioDesde}–{c.anioHasta}` sin chequeo de null — mostrar "Sin
+     límite de edad" cuando son `null`.
+3. `Categoria.nombre` ya es texto libre (no hay campo `género` en ningún
+   modelo del schema) — nombrar una categoría "Masculina"/"Femenina" ya es
+   posible hoy; lo único que lo bloqueaba era el año obligatorio.
+
+**Confirmado sin impacto en el motor de evaluación:** `GrupoEdad`
+(Sub8/10/12/14/16, usado para calibrar rangos físicos) se deriva de
+`Jugador.fechaNacimiento` vía `grupoEdadPorEdad(edadEnAnios(...))`
+(`src/lib/stats-engine/ranges.ts:100-115`) — **nunca** lee
+`Categoria.anioDesde/anioHasta`. Opcionalizar estos dos campos no rompe
+ninguna evaluación existente.
+
+**Fuera de alcance:** no existe UI de edición de categoría (`update`) hoy en
+ningún lado del proyecto — solo alta. Si hace falta editar una categoría ya
+creada, es un paquete aparte.
+
+---
+
+## Paquete — Calibración física por categoría real (no por franja etaria fija)
+
+Grande. Decisiones de arquitectura cerradas — ver `DECISIONES.md` §85.
+Se construye DESPUÉS del paquete anterior (categorías sin edad): necesita
+saber cómo sembrar una categoría sin año antes de poder sembrarse a sí
+mismo.
+
+**El problema:** `/admin/parametros` (rangos físicos por prueba: sprint,
+salto, agilidad, resistencia) se organiza hoy por `GrupoEdad` — una franja
+etaria FIJA y global al sistema (Sub8/10/12/14/16,
+`src/lib/stats-engine/types.ts:6`), sin ninguna relación con el modelo real
+`Categoria` de cada escuela (nombre libre + rango de años, creado en
+`/escuela/categorias`). El panel de parámetros por escuela siempre muestra
+las mismas 5 franjas fijas (`const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10",
+"SUB12", "SUB14", "SUB16"]`, hardcodeado en
+`src/app/admin/parametros/page.tsx`), tenga o no la escuela jugadores ahí, y
+sin mostrar los nombres reales de sus categorías ("Sub-12 A", etc.) — de ahí
+la confusión de "me trae categorías que no existen".
+
+**Decisiones cerradas (DECISIONES.md §85):**
+1. `GrupoEdad` pasa a usarse SOLO como semilla al crear una categoría — se
+   mapea su rango de años al `GrupoEdad` más cercano (o Sub-16 si es una
+   categoría sin edad) y de ahí en más vive con sus propios rangos,
+   independiente.
+2. Por (1), toda categoría nace CON rangos propios — sin fallback en
+   runtime, solo un backfill único para las categorías que ya existen.
+   Estructuralmente es una **tabla nueva por categoría** (no reusar
+   `ParametroEscuela`, pensado para global-con-override; una categoría no
+   tiene "global").
+3. El simulador del Súper Admin y la plantilla Excel de importación de
+   evaluaciones se migran también a categoría real, en el mismo paquete.
+4. Se construye después del paquete de categorías sin edad.
+5. **Cambia el modelo de acceso**: editar los rangos físicos de una
+   categoría pasa a ser **self-service del ESCUELA_ADMIN** (ya crea/nombra
+   sus propias categorías sin gate del SUPER_ADMIN hoy). El SUPER_ADMIN
+   mantiene acceso vía sesión de soporte, mismo criterio que el resto de M2.
+
+**Qué construir (detalle técnico a precisar al diseñar):**
+- `prisma/schema.prisma`: tabla nueva `RangoCategoria` (categoriaId +
+  prueba + min + max, o equivalente), reemplaza el uso de
+  `RANGO_<PRUEBA>_<GRUPO>_MIN/MAX` para evaluaciones (ese esquema de claves
+  queda solo como fuente de la semilla inicial).
+- `evaluacion.service.ts:105`: hoy resuelve rangos con
+  `grupoEdadPorEdad(edadEnAnios(jugador.fechaNacimiento))` →
+  `rangosDesdeParametros(valores, grupoEdad)`. Pasa a resolver directo por
+  `jugador.categoriaId` (ya existe, ya es obligatorio en `Jugador`).
+- Migración/backfill de las categorías existentes (calculando su
+  `GrupoEdad` más cercano a partir de su rango de años actual).
+- Nueva pantalla self-service en `/escuela/...` (ESCUELA_ADMIN) para editar
+  los rangos de sus propias categorías — reemplaza, para este dominio, el
+  uso de `/admin/parametros` en modo escuela.
+- `/admin/simulador` (`obtenerConfigSimulador`/`obtenerConfigSimuladorEscuela`,
+  `src/services/parametro.service.ts`) y la plantilla Excel
+  (`src/services/plantilla-simulador.service.ts`,
+  `src/lib/plantilla-simulador-layout.ts`) migran de columna/selector
+  `GrupoEdad` a categoría real.
+- `tests/unit/aislamiento-tenant.test.ts`: cobertura nueva — la clave pasa
+  de global-con-override a inherentemente-por-escuela (una `Categoria`
+  siempre pertenece a una escuela).
 
 ---
 

@@ -644,3 +644,30 @@ cada adaptación, regla 0.8.)
     existe precedente de eso en el proyecto; "reusar la infraestructura de
     `ParametroEscuela`" significa seguir su mismo modelo de acceso, no
     inventar uno nuevo).
+85. **Calibración física por categoría real (no por franja etaria fija):
+    self-service del ESCUELA_ADMIN, sembrada desde `GrupoEdad`.**
+    Decisiones del usuario (2026-08-06) cerrando las 5 preguntas abiertas
+    del paquete "Calibración física por categoría real" en `PENDIENTES.md`:
+    (1) `GrupoEdad` (Sub8/10/12/14/16) deja de ser el organizador de
+    `/admin/parametros` y pasa a usarse SOLO como semilla al crear una
+    categoría — se mapea su rango de años al `GrupoEdad` más cercano (o,
+    si es una categoría sin edad del paquete de categorías, cae a Sub-16
+    como default razonable) y de ahí en más la categoría vive con sus
+    propios rangos, independiente; (2) por (1), toda categoría nace CON
+    rangos propios — no hace falta fallback en runtime, solo un backfill
+    una vez para las categorías que ya existen (calculado igual, por su
+    rango de años actual); estructuralmente esto es una tabla nueva por
+    categoría (no reusar `ParametroEscuela`, pensado para
+    global-con-override, y una categoría no tiene "global"); (3) el
+    simulador del Súper Admin y la plantilla Excel de importación de
+    evaluaciones se migran también a categoría real en el mismo paquete —
+    dejarlos en `GrupoEdad` mientras el motor usa categoría crea dos
+    fuentes de verdad divergentes; (4) se construye después del paquete de
+    "categorías sin edad" (necesita saber cómo sembrar una categoría sin
+    año antes de poder sembrarse a sí mismo); (5) **cambia el modelo de
+    acceso**: editar los rangos físicos de una categoría pasa a ser
+    self-service del **ESCUELA_ADMIN** (ya crea y nombra sus propias
+    categorías sin gate del SUPER_ADMIN hoy — la calibración deja de ser
+    un concepto de plataforma compartido entre escuelas para vivir dentro
+    del propio dato de la escuela). El SUPER_ADMIN mantiene acceso vía
+    sesión de soporte, mismo criterio que el resto de M2.
