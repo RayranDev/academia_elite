@@ -4,8 +4,7 @@ import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import {
   obtenerConfigSimulador,
-  obtenerConfigSimuladorEscuela,
-  type ConfigSimulador,
+  obtenerConfigSimuladorCategoria,
 } from "@/services/parametro.service";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
@@ -16,18 +15,21 @@ import {
   type Coeficientes,
   type StatDerivado,
   type MedidasNormalizadas,
+  type RangosFisicos,
+  type UmbralesNivel,
 } from "@/lib/stats-engine";
 import { POSICIONES } from "@/types";
 import {
   GRUPOS,
-  FILA_GRUPOS_DESDE,
-  FILA_GRUPOS_HASTA,
-  FILA_POS_TITULO,
-  FILA_POS_CABECERA,
-  FILA_POSICIONES_DESDE,
-  FILA_POSICIONES_HASTA,
-  FILA_ESCALARES_DESDE,
+  construirLayoutParametros,
+  type LayoutParametros,
 } from "@/lib/plantilla-simulador-layout";
+
+/** Una "fila de grupo" de la hoja Parametros: grupo de edad (global) o categoría real (escuela). */
+interface FilaGrupoPlantilla {
+  etiqueta: string;
+  rangos: RangosFisicos;
+}
 
 /**
  * Columna auxiliar (oculta) donde vive cada medida normalizada en la hoja
@@ -95,11 +97,32 @@ export async function generarPlantillaSimulador(
   // peso de MEN), no `EDITAR_CATALOGOS`: hoy da igual porque el SA los tiene
   // todos, pero `guards.ts` anticipa partir el rol y ahí importa.
   requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
-  // El guard de tenant vive en `obtenerConfigSimuladorEscuela` (el punto de paso
-  // de TODOS los llamadores), no acá.
-  const config: ConfigSimulador = escuelaId
-    ? await obtenerConfigSimuladorEscuela(ctx, escuelaId)
-    : await obtenerConfigSimulador(ctx);
+  // El guard de tenant vive en `obtenerConfigSimuladorCategoria` (el punto de
+  // paso de TODOS los llamadores), no acá.
+  //
+  // Sin escuela: modo global, columna "GrupoEdad" (franja etaria fija). Con
+  // escuela: modo categoría (Fase B), columna "Categoria" con los nombres
+  // reales de la escuela — mismo criterio que el simulador interactivo
+  // (`SimuladorCarta`, `FuenteRangos`).
+  let filasGrupo: FilaGrupoPlantilla[];
+  let pesoMen: number;
+  let umbrales: UmbralesNivel;
+  let columnaCabecera: string;
+  if (escuelaId) {
+    const config = await obtenerConfigSimuladorCategoria(ctx, escuelaId);
+    filasGrupo = config.categorias.map((c) => ({ etiqueta: c.nombre, rangos: c.rangos }));
+    pesoMen = config.pesoMen;
+    umbrales = config.umbrales;
+    columnaCabecera = "Categoria";
+  } else {
+    const config = await obtenerConfigSimulador(ctx);
+    filasGrupo = GRUPOS.map((g) => ({ etiqueta: g, rangos: config.rangosPorGrupo[g] }));
+    pesoMen = config.pesoMen;
+    umbrales = config.umbrales;
+    columnaCabecera = "GrupoEdad";
+  }
+  const layout: LayoutParametros = construirLayoutParametros(filasGrupo);
+
   const escuela = escuelaId ? await obtenerEscuela(escuelaId) : null;
   // Extraer la configuración de un tenant ajeno queda en el AuditLog, igual que
   // su hermana `generarPlantillaEvaluaciones`: cerrar el guard de tenant sin
@@ -118,47 +141,49 @@ export async function generarPlantillaSimulador(
   wb.created = new Date();
 
   // --- Hoja Parametros (fuente de los lookups de las fórmulas) ---
-  // Filas derivadas de FILA_* arriba, no escritas a mano.
+  // Filas derivadas del `layout` calculado arriba, no escritas a mano.
   const wp = wb.addWorksheet("Parametros");
   wp.getRow(1).values = ["Grupo", "sprintMin", "sprintMax", "saltoMin", "saltoMax", "agiMin", "agiMax", "yoyoMin", "yoyoMax"];
-  GRUPOS.forEach((g, i) => {
-    const r = config.rangosPorGrupo[g];
-    wp.getRow(FILA_GRUPOS_DESDE + i).values = [
-      g,
+  filasGrupo.forEach((f, i) => {
+    const r = f.rangos;
+    wp.getRow(layout.filaGruposDesde + i).values = [
+      f.etiqueta,
       r.sprint30mSeg.min, r.sprint30mSeg.max,
       r.saltoVerticalCm.min, r.saltoVerticalCm.max,
       r.agilidadIllinoisSeg.min, r.agilidadIllinoisSeg.max,
       r.resistenciaYoyoNivel.min, r.resistenciaYoyoNivel.max,
     ];
   });
-  wp.getRow(FILA_POS_TITULO).values = ["Pesos por posición"];
-  wp.getRow(FILA_POS_CABECERA).values = ["Pos", "wRit", "wTir", "wPas", "wReg", "wDef", "wFis"];
+  wp.getRow(layout.filaPosTitulo).values = ["Pesos por posición"];
+  wp.getRow(layout.filaPosCabecera).values = ["Pos", "wRit", "wTir", "wPas", "wReg", "wDef", "wFis"];
   POSICIONES.forEach((p, i) => {
     const w = PESOS_POSICION[p];
-    wp.getRow(FILA_POSICIONES_DESDE + i).values = [p, w.rit, w.tir, w.pas, w.reg, w.def, w.fis];
+    wp.getRow(layout.filaPosicionesDesde + i).values = [p, w.rit, w.tir, w.pas, w.reg, w.def, w.fis];
   });
-  wp.getRow(FILA_ESCALARES_DESDE).values = ["pesoMen", config.pesoMen];
-  wp.getRow(FILA_ESCALARES_DESDE + 1).values = ["umbralPlata", config.umbrales.plata];
-  wp.getRow(FILA_ESCALARES_DESDE + 2).values = ["umbralOro", config.umbrales.oro];
-  wp.getRow(FILA_ESCALARES_DESDE + 3).values = ["umbralHeroe", config.umbrales.heroe];
+  wp.getRow(layout.filaEscalaresDesde).values = ["pesoMen", pesoMen];
+  wp.getRow(layout.filaEscalaresDesde + 1).values = ["umbralPlata", umbrales.plata];
+  wp.getRow(layout.filaEscalaresDesde + 2).values = ["umbralOro", umbrales.oro];
+  wp.getRow(layout.filaEscalaresDesde + 3).values = ["umbralHeroe", umbrales.heroe];
   wp.getColumn(1).width = 18;
 
   // --- Hoja Jugadores ---
   const ws = wb.addWorksheet("Jugadores");
-  ws.addRow(CABECERAS);
+  const cabeceras = [...CABECERAS];
+  cabeceras[2] = columnaCabecera;
+  ws.addRow(cabeceras);
   ws.getRow(1).font = { bold: true };
 
   // Fila de ejemplo (2): inputs realistas + fórmulas. Copiar hacia abajo.
   ws.getCell("A2").value = "Ejemplo (copia esta fila)";
   ws.getCell("B2").value = "DEL";
-  ws.getCell("C2").value = "SUB12";
+  ws.getCell("C2").value = filasGrupo[0]?.etiqueta ?? "";
   // Medidas de ejemplo (mismas que la carga masiva).
   const ejemplo: Record<string, number> = {
     D2: 5.2, E2: 34, F2: 17.5, G2: 12, H2: 7, I2: 6, J2: 6, K2: 7, L2: 7, M2: 6, N2: 7, O2: 6,
   };
   for (const [c, v] of Object.entries(ejemplo)) ws.getCell(c).value = v;
 
-  escribirFormulasFila(ws, 2);
+  escribirFormulasFila(ws, 2, layout);
 
   // Anchos.
   ws.columns.forEach((c) => { c.width = 13; });
@@ -170,14 +195,15 @@ export async function generarPlantillaSimulador(
   const wi = wb.addWorksheet("Instrucciones");
   wi.getColumn(1).width = 90;
   const objetivo = escuela ? `escuela "${escuela.nombre}"` : "parámetros predeterminados (global)";
+  const listaGrupos = filasGrupo.map((f) => f.etiqueta).join("/") || "(sin categorías configuradas)";
   [
     `Planilla de simulación — ${objetivo}.`,
     "",
     "1. Completa una fila por jugador en la hoja 'Jugadores'.",
     "2. Copiá la fila de ejemplo (fila 2) hacia abajo para que las fórmulas se repliquen.",
-    "3. Carga: Posición (POR/DEF/MED/DEL), GrupoEdad (SUB8/SUB10/SUB12/SUB14/SUB16) y las 12 medidas.",
+    `3. Carga: Posición (POR/DEF/MED/DEL), ${columnaCabecera} (${listaGrupos}) y las 12 medidas.`,
     "4. Las columnas RIT, TIR, PAS, REG, DEF, FIS, MEN, OVR y Nivel se calculan SOLAS.",
-    "5. Los parámetros (rangos por grupo, pesos por posición, peso de MEN y umbrales) viven en la hoja 'Parametros'.",
+    "5. Los parámetros (rangos por grupo o categoría, pesos por posición, peso de MEN y umbrales) viven en la hoja 'Parametros'.",
     "",
     "PORTEROS — las cuatro notas técnicas miden otro oficio. Si la Posición es POR, carga:",
     "   Control → BLOCAJE / ATAJADA",
@@ -199,17 +225,17 @@ export async function generarPlantillaSimulador(
 }
 
 /** Escribe en la fila `r` las fórmulas (helpers AA..AR + stats P..X). */
-function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
+function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number, layout: LayoutParametros): void {
   const f = (addr: string, formula: string) => {
     ws.getCell(addr).value = { formula, result: 0 };
   };
-  // Lookups en Parametros. Rangos derivados de FILA_* (arriba), no literales.
-  const m = `MATCH($C${r},Parametros!$A$${FILA_GRUPOS_DESDE}:$A$${FILA_GRUPOS_HASTA},0)`; // fila del grupo
+  // Lookups en Parametros. Rangos derivados de `layout` (parámetro), no literales.
+  const m = `MATCH($C${r},Parametros!$A$${layout.filaGruposDesde}:$A$${layout.filaGruposHasta},0)`; // fila del grupo/categoría
   const idx = (col: string) =>
-    `INDEX(Parametros!$${col}$${FILA_GRUPOS_DESDE}:$${col}$${FILA_GRUPOS_HASTA},${m})`;
-  const mp = `MATCH($B${r},Parametros!$A$${FILA_POSICIONES_DESDE}:$A$${FILA_POSICIONES_HASTA},0)`; // fila de la posición
+    `INDEX(Parametros!$${col}$${layout.filaGruposDesde}:$${col}$${layout.filaGruposHasta},${m})`;
+  const mp = `MATCH($B${r},Parametros!$A$${layout.filaPosicionesDesde}:$A$${layout.filaPosicionesHasta},0)`; // fila de la posición
   const wcol = (col: string) =>
-    `INDEX(Parametros!$${col}$${FILA_POSICIONES_DESDE}:$${col}$${FILA_POSICIONES_HASTA},${mp})`;
+    `INDEX(Parametros!$${col}$${layout.filaPosicionesDesde}:$${col}$${layout.filaPosicionesHasta},${mp})`;
 
   // Normalización física: normal (val-min)/(max-min); inversa (max-val)/(max-min).
   // `max - min || 1` replica la guarda de `normalizaFisica`: si una escuela deja
@@ -283,11 +309,11 @@ function escribirFormulasFila(ws: ExcelJS.Worksheet, r: number): void {
   // MEN = promedio de las 4 notas de mentalidad normalizadas.
   f(`V${r}`, clampStat(`(AI${r}+AJ${r}+AK${r}+AL${r})/4`));
   // OVR = (1-pesoMen)*Σ(stat×wPos) + pesoMen*MEN.
-  const pm = `Parametros!$B$${FILA_ESCALARES_DESDE}`;
+  const pm = `Parametros!$B$${layout.filaEscalaresDesde}`;
   const sumaPos = `P${r}*AM${r}+Q${r}*AN${r}+R${r}*AO${r}+S${r}*AP${r}+T${r}*AQ${r}+U${r}*AR${r}`;
   f(`W${r}`, clampStat(`(1-${pm})*(${sumaPos})+${pm}*V${r}`));
   // Nivel por umbrales.
-  const umbral = (offset: number) => `Parametros!$B$${FILA_ESCALARES_DESDE + offset}`;
+  const umbral = (offset: number) => `Parametros!$B$${layout.filaEscalaresDesde + offset}`;
   f(
     `X${r}`,
     `IF(W${r}>=${umbral(3)},"HEROE",IF(W${r}>=${umbral(2)},"ORO",IF(W${r}>=${umbral(1)},"PLATA","BRONCE")))`,

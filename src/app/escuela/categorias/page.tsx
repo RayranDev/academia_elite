@@ -1,9 +1,10 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
+import { listarRangosCategoriasEscuela } from "@/services/categoria-rango.service";
 import { crearCategoriaAction } from "@/actions/escuela.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { CategoriasPanel } from "@/components/escuela/CategoriasPanel";
 import { SelectorAnioCategoria } from "@/components/escuela/SelectorAnioCategoria";
 
 const input =
@@ -11,31 +12,16 @@ const input =
 
 export default async function CategoriasPage() {
   const ctx = await requireAuthContext();
-  const categorias = await listarCategoriasEscuela(ctx);
+  const [categorias, rangos] = await Promise.all([
+    listarCategoriasEscuela(ctx),
+    listarRangosCategoriasEscuela(ctx),
+  ]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-3">
         <h1 className="text-3xl font-black italic uppercase">Categorías</h1>
-        {categorias.length === 0 ? (
-          <Card>
-            <p className="text-muted">
-              Aún no hay categorías. Crea la primera con el formulario.
-            </p>
-          </Card>
-        ) : (
-          categorias.map((c) => (
-            <Card key={c.id} className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-bold">{c.nombre}</p>
-                <p className="text-xs text-muted">
-                  {c.anioDesde == null ? "Sin edad" : `Años ${c.anioDesde}–${c.anioHasta}`}
-                </p>
-              </div>
-              <Badge>{c.jugadores} jugadores</Badge>
-            </Card>
-          ))
-        )}
+        <CategoriasPanel categorias={categorias} rangos={rangos} />
       </div>
 
       <div>

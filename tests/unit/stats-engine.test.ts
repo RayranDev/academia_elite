@@ -7,6 +7,9 @@ import {
   PESOS_POSICION,
   grupoEdadPorEdad,
   edadEnAnios,
+  grupoEdadSemilla,
+  rangosDesdeFila,
+  filaDesdeRangos,
   RANGOS_POR_GRUPO,
   PISO_FISICO,
   TECHO,
@@ -216,5 +219,78 @@ describe("grupos de edad", () => {
     const nac = new Date("2014-06-15");
     expect(edadEnAnios(nac, new Date("2026-06-14"))).toBe(11);
     expect(edadEnAnios(nac, new Date("2026-06-15"))).toBe(12);
+  });
+});
+
+describe("grupoEdadSemilla (Fase B: siembra de CategoriaRangoFisico al crear una categoría)", () => {
+  it("un rango de años típico da el grupo esperado", () => {
+    // Categoría de 10-11 años en 2026 → promedio 10.5 → SUB12 (>10, <=12).
+    expect(grupoEdadSemilla(2015, 2016, 2026)).toBe("SUB12");
+  });
+
+  it('categoría "sin edad" (anioDesde/anioHasta null) siembra SUB16', () => {
+    expect(grupoEdadSemilla(null, null)).toBe("SUB16");
+    expect(grupoEdadSemilla(null, 2016)).toBe("SUB16");
+    expect(grupoEdadSemilla(2015, null)).toBe("SUB16");
+  });
+
+  it("caso límite entre dos grupos: el corte cae exactamente en el límite de grupoEdadPorEdad", () => {
+    // Edad promedio 8 exacto → grupoEdadPorEdad(8) = SUB8 (corte "<= 8").
+    expect(grupoEdadSemilla(2018, 2018, 2026)).toBe("SUB8");
+    // Edad promedio 8.5 → ya no entra en el corte de SUB8 (<=8) → SUB10.
+    expect(grupoEdadSemilla(2017, 2018, 2026)).toBe("SUB10");
+  });
+});
+
+describe("rangosDesdeFila / filaDesdeRangos (round-trip fila BD ↔ RangosFisicos)", () => {
+  it("convertir y volver da lo mismo (round-trip) para cada grupo embebido", () => {
+    for (const grupo of Object.keys(RANGOS_POR_GRUPO) as (keyof typeof RANGOS_POR_GRUPO)[]) {
+      const rangos = RANGOS_POR_GRUPO[grupo];
+      const fila = filaDesdeRangos(rangos);
+      expect(rangosDesdeFila(fila)).toEqual(rangos);
+    }
+  });
+
+  it("filaDesdeRangos aplana los 4 pares min/max con los nombres de columna de CategoriaRangoFisico", () => {
+    const fila = filaDesdeRangos(RANGOS_POR_GRUPO.SUB12);
+    expect(fila).toEqual({
+      sprintMin: RANGOS_POR_GRUPO.SUB12.sprint30mSeg.min,
+      sprintMax: RANGOS_POR_GRUPO.SUB12.sprint30mSeg.max,
+      saltoMin: RANGOS_POR_GRUPO.SUB12.saltoVerticalCm.min,
+      saltoMax: RANGOS_POR_GRUPO.SUB12.saltoVerticalCm.max,
+      agilidadMin: RANGOS_POR_GRUPO.SUB12.agilidadIllinoisSeg.min,
+      agilidadMax: RANGOS_POR_GRUPO.SUB12.agilidadIllinoisSeg.max,
+      yoyoMin: RANGOS_POR_GRUPO.SUB12.resistenciaYoyoNivel.min,
+      yoyoMax: RANGOS_POR_GRUPO.SUB12.resistenciaYoyoNivel.max,
+    });
+  });
+
+  it("rangosDesdeFila conserva el `inverso` propio de cada prueba", () => {
+    const rangos = rangosDesdeFila(filaDesdeRangos(RANGOS_POR_GRUPO.SUB8));
+    expect(rangos.sprint30mSeg.inverso).toBe(true); // menos es mejor
+    expect(rangos.saltoVerticalCm.inverso).toBe(false); // más es mejor
+  });
+});
+
+describe("computeStats: `grupoEdad` es opcional desde Fase B (gana `rangos` explícito)", () => {
+  it("con `rangos` presente y `grupoEdad` ausente, no tira", () => {
+    expect(() =>
+      computeStats(medidasMedias, { posicion: "MED", rangos: RANGOS_POR_GRUPO.SUB12 }),
+    ).not.toThrow();
+  });
+
+  it("da el mismo resultado que pasando el grupoEdad equivalente", () => {
+    const conRangos = computeStats(medidasMedias, {
+      posicion: "MED",
+      rangos: RANGOS_POR_GRUPO.SUB12,
+    });
+    const conGrupo = computeStats(medidasMedias, { posicion: "MED", grupoEdad: "SUB12" });
+    expect(conRangos).toEqual(conGrupo);
+  });
+
+  it("sin `rangos` NI `grupoEdad`, tira", () => {
+    expect(() => computeStats(medidasMedias, { posicion: "MED" })).toThrow(
+      /falta `rangos` o `grupoEdad`/,
+    );
   });
 });

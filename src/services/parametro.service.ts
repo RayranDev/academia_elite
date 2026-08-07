@@ -9,9 +9,11 @@ import {
 } from "@/repositories/parametro.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
+import { listarRangosDeEscuela } from "@/repositories/categoria-rango.repository";
 import { resolverParametrosEscuela } from "@/services/parametro-escuela.service";
 import {
   rangosDesdeParametros,
+  rangosDesdeFila,
   umbralesDesdeParametros,
   CLAVE_UMBRAL,
   type GrupoEdad,
@@ -21,6 +23,12 @@ import {
 
 export interface ConfigSimulador {
   rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
+  pesoMen: number;
+  umbrales: UmbralesNivel;
+}
+
+export interface ConfigSimuladorCategoria {
+  categorias: { id: string; nombre: string; rangos: RangosFisicos }[];
   pesoMen: number;
   umbrales: UmbralesNivel;
 }
@@ -86,14 +94,16 @@ export async function obtenerConfigSimulador(
 }
 
 /**
- * Igual que `obtenerConfigSimulador` pero con los parámetros EFECTIVOS de una
- * escuela (global + sus overrides). El peso de MEN se mantiene global (no es
+ * Igual que `obtenerConfigSimulador` pero con la calibración física real de
+ * cada CATEGORÍA de la escuela (Fase B, reemplaza el modo "por GrupoEdad" que
+ * tenía `obtenerConfigSimuladorEscuela`). Los umbrales siguen resolviéndose
+ * global + overrides de la escuela; el peso de MEN se mantiene global (no es
  * overrideable por escuela). Solo SUPER_ADMIN.
  */
-export async function obtenerConfigSimuladorEscuela(
+export async function obtenerConfigSimuladorCategoria(
   ctx: AuthContext,
   escuelaId: string,
-): Promise<ConfigSimulador> {
+): Promise<ConfigSimuladorCategoria> {
   requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   // `requirePermiso` responde QUÉ puede hacer en la plataforma, no A QUÉ TENANT
   // puede entrar: el `escuelaId` llega del request en los dos llamadores (la
@@ -105,16 +115,22 @@ export async function obtenerConfigSimuladorEscuela(
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }
-  const [valores, paramMen] = await Promise.all([
+  const [filas, valoresUmbral, paramMen] = await Promise.all([
+    listarRangosDeEscuela(escuelaId),
     resolverParametrosEscuela(escuelaId),
     obtenerParametroGlobal("PESO_MEN_EN_OVR"),
   ]);
   return {
-    rangosPorGrupo: Object.fromEntries(
-      GRUPOS.map((g) => [g, rangosDesdeParametros(valores, g)]),
-    ) as Record<GrupoEdad, RangosFisicos>,
+    // Solo aparecen las categorías que ya tienen `CategoriaRangoFisico`
+    // (todas las creadas desde la Fase B; las anteriores requieren el
+    // backfill — ver `scripts/backfill-categoria-rangos.ts`).
+    categorias: filas.map((f) => ({
+      id: f.categoriaId,
+      nombre: f.categoria.nombre,
+      rangos: rangosDesdeFila(f),
+    })),
     pesoMen: paramMen?.valor ?? 0.1,
-    umbrales: umbralesDesdeParametros(valores),
+    umbrales: umbralesDesdeParametros(valoresUmbral),
   };
 }
 

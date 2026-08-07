@@ -95,6 +95,7 @@ model Escuela {
   egresos                  Egreso[]
   descuentoReglas          DescuentoRegla[]
   staff                    Staff[]
+  categoriaRangosFisicos   CategoriaRangoFisico[]
   createdAt                DateTime           @default(now())
 }
 
@@ -130,6 +131,35 @@ model Categoria {
   anuncios     Anuncio[]
   aranceles    Arancel[]
   descuentoReglas DescuentoRegla[]
+  rangoFisico  CategoriaRangoFisico?
+
+  @@index([escuelaId])
+}
+
+/**
+ * Calibración física de UNA categoría real de la escuela (Fase B): la
+ * normalización de las 4 pruebas físicas deja de depender de `GrupoEdad`
+ * (franja etaria fija) y pasa a vivir por categoría — cada escuela puede
+ * tener categorías con edades distintas a las franjas SUB8/SUB10/SUB12/
+ * SUB14/SUB16, o categorías sin edad (ver `20260807000000_categoria_anios_
+ * opcionales`). Al crear una categoría se siembra con el `GrupoEdad` más
+ * cercano (`grupoEdadSemilla`); de ahí en más vive independiente.
+ */
+model CategoriaRangoFisico {
+  id          String    @id @default(cuid())
+  escuelaId   String
+  escuela     Escuela   @relation(fields: [escuelaId], references: [id])
+  categoriaId String    @unique
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  sprintMin   Float
+  sprintMax   Float
+  saltoMin    Float
+  saltoMax    Float
+  agilidadMin Float
+  agilidadMax Float
+  yoyoMin     Float
+  yoyoMax     Float
+  updatedAt   DateTime  @updatedAt
 
   @@index([escuelaId])
 }

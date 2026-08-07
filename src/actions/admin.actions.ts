@@ -20,6 +20,8 @@ import {
   fijarMetricaEscuelaAdmin,
   quitarMetricaEscuelaAdmin,
 } from "@/services/parametro-escuela.service";
+import { fijarRangosCategoriaAdmin } from "@/services/categoria-rango.service";
+import { editarRangosCategoriaSchema } from "@/lib/validators/categoria-rango";
 
 /** Link para fijar contraseña; el helper compartido no rompe el alta si falla. */
 async function avisarSetPassword(email: string): Promise<void> {
@@ -201,6 +203,41 @@ export async function quitarMetricaEscuelaAction(
     if (typeof clave !== "string" || !clave) throw new ValidationError("Métrica inválida.");
     // En modo soporte el motivo de la sesión justifica y audita la escritura.
     await quitarMetricaEscuelaAdmin(ctx, escuelaId, clave, ctx.soporte?.motivo);
+    revalidatePath("/admin/parametros");
+    revalidatePath("/admin/auditoria");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+/** Fija la calibración física (8 campos) de una categoría de una escuela puntual (SUPER_ADMIN, en soporte). */
+export async function fijarRangosCategoriaAction(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const escuelaId = formData.get("escuelaId");
+    if (typeof escuelaId !== "string" || !escuelaId) {
+      throw new ValidationError("Falta la escuela.");
+    }
+    const parsed = editarRangosCategoriaSchema.safeParse({
+      categoriaId: formData.get("categoriaId"),
+      sprintMin: formData.get("sprintMin"),
+      sprintMax: formData.get("sprintMax"),
+      saltoMin: formData.get("saltoMin"),
+      saltoMax: formData.get("saltoMax"),
+      agilidadMin: formData.get("agilidadMin"),
+      agilidadMax: formData.get("agilidadMax"),
+      yoyoMin: formData.get("yoyoMin"),
+      yoyoMax: formData.get("yoyoMax"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+    }
+    // En modo soporte el motivo de la sesión justifica y audita la escritura.
+    await fijarRangosCategoriaAdmin(ctx, escuelaId, parsed.data, ctx.soporte?.motivo);
     revalidatePath("/admin/parametros");
     revalidatePath("/admin/auditoria");
     return { ok: true };

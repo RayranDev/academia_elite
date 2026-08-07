@@ -1,11 +1,11 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import {
   obtenerConfigSimulador,
-  obtenerConfigSimuladorEscuela,
+  obtenerConfigSimuladorCategoria,
 } from "@/services/parametro.service";
 import { listarCatalogoFondos } from "@/services/fondo.service";
 import { listarEscuelas } from "@/services/escuela.service";
-import { SimuladorCarta } from "@/components/admin/SimuladorCarta";
+import { SimuladorCarta, type FuenteRangos } from "@/components/admin/SimuladorCarta";
 import { SelectorSimulador } from "@/components/admin/SelectorSimulador";
 import { EntrarSoporteDialog } from "@/components/admin/EntrarSoporteDialog";
 import { Card } from "@/components/ui/Card";
@@ -52,11 +52,15 @@ export default async function SimuladorPage({
 
   const [config, fondos] = await Promise.all([
     escuelaSel
-      ? obtenerConfigSimuladorEscuela(ctx, escuelaSel.id)
+      ? obtenerConfigSimuladorCategoria(ctx, escuelaSel.id)
       : obtenerConfigSimulador(ctx),
     listarCatalogoFondos(ctx),
   ]);
-  const { rangosPorGrupo, pesoMen, umbrales } = config;
+  const { pesoMen, umbrales } = config;
+  const fuenteRangos: FuenteRangos =
+    "categorias" in config
+      ? { modo: "CATEGORIA", categorias: config.categorias }
+      : { modo: "GLOBAL", rangosPorGrupo: config.rangosPorGrupo };
   const exportHref = escuelaSel
     ? `/api/plantilla-simulador?escuela=${escuelaSel.id}`
     : "/api/plantilla-simulador";
@@ -89,7 +93,7 @@ export default async function SimuladorPage({
         </p>
       )}
 
-      <SimuladorCarta rangosPorGrupo={rangosPorGrupo} pesoMen={pesoMen} umbrales={umbrales} fondos={fondos} />
+      <SimuladorCarta fuenteRangos={fuenteRangos} pesoMen={pesoMen} umbrales={umbrales} fondos={fondos} />
     </div>
   );
 }

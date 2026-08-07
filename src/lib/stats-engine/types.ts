@@ -62,7 +62,10 @@ export interface ResultadoStats {
 
 export interface OpcionesComputo {
   posicion: Posicion;
-  grupoEdad: GrupoEdad;
+  // Opcional desde Fase B: la evaluación real resuelve `rangos` por categoría
+  // (`obtenerRangosFisicosDeCategoria`), no por franja etaria. `grupoEdad` sigue
+  // sirviendo al simulador en modo global y a la semilla de categorías nuevas.
+  grupoEdad?: GrupoEdad;
   pesoMenEnOvr?: number; // ParametroFormula("PESO_MEN_EN_OVR"), default 0.10
   rangos?: RangosFisicos; // override; por defecto usa los embebidos por grupo
   bonus?: BonusLogro[]; // logros BONUS sin consumir

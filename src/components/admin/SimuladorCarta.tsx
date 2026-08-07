@@ -12,6 +12,7 @@ import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
 import type { FondoCatalogoDTO } from "@/services/fondo.service";
 import {
   computeStats,
+  RANGOS_POR_GRUPO,
   type GrupoEdad,
   type MedidasEvaluacion,
   type RangosFisicos,
@@ -21,6 +22,16 @@ import { CLAVES_TECNICAS, medidasTecnicas } from "@/lib/medidas-tecnicas";
 import { POSICIONES, type Posicion, type PlayerCardData } from "@/types";
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
+
+/**
+ * De dónde salen los rangos físicos que usa el simulador (Fase B): modo
+ * global sigue siendo por `GrupoEdad` (franja etaria fija, sin escuela
+ * elegida); modo escuela pasa a ser por CATEGORÍA real (reemplaza el antiguo
+ * "por GrupoEdad" de una escuela puntual).
+ */
+export type FuenteRangos =
+  | { modo: "GLOBAL"; rangosPorGrupo: Record<GrupoEdad, RangosFisicos> }
+  | { modo: "CATEGORIA"; categorias: { id: string; nombre: string; rangos: RangosFisicos }[] };
 
 interface CampoMedida {
   key: keyof MedidasEvaluacion;
@@ -83,19 +94,27 @@ const INICIAL: MedidasEvaluacion = {
  * para alcanzar cada rango de carta.
  */
 export function SimuladorCarta({
-  rangosPorGrupo,
+  fuenteRangos,
   pesoMen,
   umbrales,
   fondos,
 }: {
-  rangosPorGrupo: Record<GrupoEdad, RangosFisicos>;
+  fuenteRangos: FuenteRangos;
   pesoMen: number;
   umbrales: UmbralesNivel;
   fondos: FondoCatalogoDTO[];
 }) {
   const [medidas, setMedidas] = useState<MedidasEvaluacion>(INICIAL);
   const [posicion, setPosicion] = useState<Posicion>("DEL");
-  const [grupo, setGrupo] = useState<GrupoEdad>("SUB12");
+  // Selección unificada: `GrupoEdad` en modo global, `categoriaId` en modo
+  // escuela. Un solo <select> controlado por vez, según `fuenteRangos.modo`.
+  const [seleccion, setSeleccion] = useState<string>(() =>
+    fuenteRangos.modo === "GLOBAL" ? "SUB12" : (fuenteRangos.categorias[0]?.id ?? ""),
+  );
+  const rangosActivos: RangosFisicos | undefined =
+    fuenteRangos.modo === "GLOBAL"
+      ? fuenteRangos.rangosPorGrupo[seleccion as GrupoEdad]
+      : fuenteRangos.categorias.find((c) => c.id === seleccion)?.rangos;
   // Apariencia (solo previsualización, no se guarda nada).
   const [nombre, setNombre] = useState("Jugador");
   const [apellido, setApellido] = useState("Simulado");
@@ -121,16 +140,21 @@ export function SimuladorCarta({
     if (inputFoto.current) inputFoto.current.value = "";
   }
 
+  // Si la escuela no tiene (todavía) ninguna categoría con rango físico
+  // configurado, se cae al rango embebido SUB16 (mismo criterio de respaldo
+  // que `grupoEdadSemilla`) para que el simulador no rompa; el aviso de abajo
+  // lo deja explícito.
+  const rangos = rangosActivos ?? RANGOS_POR_GRUPO.SUB16;
+
   const resultado = useMemo(
     () =>
       computeStats(medidas, {
         posicion,
-        grupoEdad: grupo,
-        rangos: rangosPorGrupo[grupo],
+        rangos,
         pesoMenEnOvr: pesoMen,
         umbrales,
       }),
-    [medidas, posicion, grupo, rangosPorGrupo, pesoMen, umbrales],
+    [medidas, posicion, rangos, pesoMen, umbrales],
   );
 
   const card: PlayerCardData = {
@@ -202,18 +226,30 @@ export function SimuladorCarta({
               </select>
             </label>
             <label className="text-sm">
-              <span className="mb-1 block text-xs text-muted">Grupo de edad</span>
+              <span className="mb-1 block text-xs text-muted">
+                {fuenteRangos.modo === "GLOBAL" ? "Grupo de edad" : "Categoría"}
+              </span>
               <select
-                value={grupo}
-                onChange={(e) => setGrupo(e.target.value as GrupoEdad)}
+                value={seleccion}
+                onChange={(e) => setSeleccion(e.target.value)}
                 className="rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand"
               >
-                {GRUPOS.map((g) => (
-                  <option key={g} value={g}>{g}</option>
-                ))}
+                {fuenteRangos.modo === "GLOBAL"
+                  ? GRUPOS.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))
+                  : fuenteRangos.categorias.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
               </select>
             </label>
           </div>
+          {fuenteRangos.modo === "CATEGORIA" && !rangosActivos && (
+            <p className="mt-2 text-xs text-alerta">
+              Esta escuela no tiene categorías con rangos físicos configurados
+              (o ninguna elegida): se está usando el rango SUB16 por defecto.
+            </p>
+          )}
         </Card>
         <Card>
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted">Pruebas físicas (medidas reales)</h2>

@@ -16,13 +16,11 @@ import {
 import { registrarAuditoria } from "@/services/audit.service";
 import {
   PRUEBAS_FISICAS,
-  ETIQUETA_PRUEBA,
   RANGOS_POR_GRUPO,
   claveRango,
   CLAVE_UMBRAL,
   UMBRALES_DEFECTO,
   type GrupoEdad,
-  type PruebaFisica,
 } from "@/lib/stats-engine";
 import {
   mezclarParametros,
@@ -34,24 +32,12 @@ import { CURVA, type Curva } from "@/lib/curva";
 
 const GRUPOS: GrupoEdad[] = ["SUB8", "SUB10", "SUB12", "SUB14", "SUB16"];
 
-export interface MetricaPruebaDTO {
-  prueba: PruebaFisica;
-  etiqueta: string;
-  inverso: boolean;
-  min: FilaParametro;
-  max: FilaParametro;
-}
-export interface MetricaGrupoDTO {
-  grupo: GrupoEdad;
-  pruebas: MetricaPruebaDTO[];
-}
 export interface MetricaUmbralDTO {
   clave: string;
   etiqueta: string;
   fila: FilaParametro;
 }
 export interface MetricasEscuelaDTO {
-  grupos: MetricaGrupoDTO[];
   umbrales: MetricaUmbralDTO[];
 }
 
@@ -101,29 +87,13 @@ export async function listarMetricasEscuelaAdmin(
   requirePermiso(ctx, "EDITAR_PARAMETROS_GLOBALES");
   // `requirePermiso` responde QUÉ puede hacer en la plataforma, no A QUÉ TENANT
   // puede entrar: el `escuelaId` llega del request (mismo criterio que
-  // `obtenerConfigSimuladorEscuela` en parametro.service.ts — el guard va acá,
+  // `obtenerConfigSimuladorCategoria` en parametro.service.ts — el guard va acá,
   // en el punto de paso, AGENTS.md §5).
   assertTenant(ctx, escuelaId);
   if (!(await obtenerEscuela(escuelaId))) {
     throw new NotFoundError("Escuela no encontrada.");
   }
   const { global, override } = await cargarValores(escuelaId);
-
-  const grupos: MetricaGrupoDTO[] = GRUPOS.map((grupo) => {
-    const pruebas = PRUEBAS_FISICAS.map((prueba) => {
-      const cMin = claveRango(prueba, grupo, "MIN");
-      const cMax = claveRango(prueba, grupo, "MAX");
-      const [min, max] = resolverParametros([cMin, cMax], global, override);
-      return {
-        prueba,
-        etiqueta: ETIQUETA_PRUEBA[prueba],
-        inverso: RANGOS_POR_GRUPO[grupo][prueba].inverso,
-        min,
-        max,
-      };
-    });
-    return { grupo, pruebas };
-  });
 
   const umbrales: MetricaUmbralDTO[] = (
     [
@@ -137,7 +107,7 @@ export async function listarMetricasEscuelaAdmin(
     fila: resolverParametros([clave], global, override)[0],
   }));
 
-  return { grupos, umbrales };
+  return { umbrales };
 }
 
 /** Valida que el nuevo valor mantenga la coherencia (min<max, umbrales en orden). */

@@ -17,14 +17,12 @@ import { listarConfigLogrosEscuela } from "@/repositories/logro.repository";
 import { logroDisponibleParaEscuela } from "@/lib/logros";
 import {
   computeStats,
-  grupoEdadPorEdad,
-  edadEnAnios,
-  rangosDesdeParametros,
   umbralesDesdeParametros,
   type BonusLogro,
   type MedidasEvaluacion,
   type ResultadoStats,
 } from "@/lib/stats-engine";
+import { obtenerRangosFisicosDeCategoria } from "@/services/categoria-rango.service";
 import type { EvaluacionInput } from "@/lib/validators/evaluacion";
 import type { Posicion } from "@/types";
 
@@ -102,9 +100,9 @@ export async function evaluarJugadorCore(
     acumulado += aplicar;
   }
 
-  const grupoEdad = grupoEdadPorEdad(edadEnAnios(jugador.fechaNacimiento));
-  // Rangos físicos (G8) y umbrales de nivel (M8) con override por escuela (M9).
-  const rangos = rangosDesdeParametros(valoresEfectivos, grupoEdad);
+  // Rangos físicos por CATEGORÍA (Fase B, reemplaza el rango fijo por
+  // GrupoEdad) y umbrales de nivel (M8) con override por escuela (M9).
+  const rangos = await obtenerRangosFisicosDeCategoria(escuelaId, jugador.categoriaId);
   const umbrales = umbralesDesdeParametros(valoresEfectivos);
   const medidas: MedidasEvaluacion = {
     sprint30mSeg: input.sprint30mSeg,
@@ -123,7 +121,6 @@ export async function evaluarJugadorCore(
 
   const resultado = computeStats(medidas, {
     posicion: jugador.posicion as Posicion,
-    grupoEdad,
     rangos,
     pesoMenEnOvr: pesoMen,
     topeBonus: tope,

@@ -113,3 +113,85 @@ export function edadEnAnios(fechaNacimiento: Date, ref: Date = new Date()): numb
   if (m < 0 || (m === 0 && ref.getDate() < fechaNacimiento.getDate())) edad--;
   return edad;
 }
+
+// --- Rangos por CATEGORÍA (Fase B) -----------------------------------------
+// `GrupoEdad`/`RANGOS_POR_GRUPO` ya no son la fuente del rango real de una
+// evaluación (eso vive en `CategoriaRangoFisico`, por categoría): quedan como
+// semilla al crear una categoría y como modo "global" del simulador.
+
+/** Fila plana (8 campos min/max) — forma en que vive `CategoriaRangoFisico` en BD. */
+export interface FilaRangoFisico {
+  sprintMin: number;
+  sprintMax: number;
+  saltoMin: number;
+  saltoMax: number;
+  agilidadMin: number;
+  agilidadMax: number;
+  yoyoMin: number;
+  yoyoMax: number;
+}
+
+/** `inverso` es propio de cada prueba (no editable), igual en todo grupo. */
+const INVERSO_PRUEBA: Record<PruebaFisica, boolean> = {
+  sprint30mSeg: RANGOS_POR_GRUPO.SUB16.sprint30mSeg.inverso,
+  saltoVerticalCm: RANGOS_POR_GRUPO.SUB16.saltoVerticalCm.inverso,
+  agilidadIllinoisSeg: RANGOS_POR_GRUPO.SUB16.agilidadIllinoisSeg.inverso,
+  resistenciaYoyoNivel: RANGOS_POR_GRUPO.SUB16.resistenciaYoyoNivel.inverso,
+};
+
+/** Fila plana de BD → `RangosFisicos` (forma que consume el motor). Pura. */
+export function rangosDesdeFila(fila: FilaRangoFisico): RangosFisicos {
+  return {
+    sprint30mSeg: {
+      min: fila.sprintMin,
+      max: fila.sprintMax,
+      inverso: INVERSO_PRUEBA.sprint30mSeg,
+    },
+    saltoVerticalCm: {
+      min: fila.saltoMin,
+      max: fila.saltoMax,
+      inverso: INVERSO_PRUEBA.saltoVerticalCm,
+    },
+    agilidadIllinoisSeg: {
+      min: fila.agilidadMin,
+      max: fila.agilidadMax,
+      inverso: INVERSO_PRUEBA.agilidadIllinoisSeg,
+    },
+    resistenciaYoyoNivel: {
+      min: fila.yoyoMin,
+      max: fila.yoyoMax,
+      inverso: INVERSO_PRUEBA.resistenciaYoyoNivel,
+    },
+  };
+}
+
+/** `RangosFisicos` → fila plana de BD (descarta `inverso`, fijo por prueba). Pura. */
+export function filaDesdeRangos(rangos: RangosFisicos): FilaRangoFisico {
+  return {
+    sprintMin: rangos.sprint30mSeg.min,
+    sprintMax: rangos.sprint30mSeg.max,
+    saltoMin: rangos.saltoVerticalCm.min,
+    saltoMax: rangos.saltoVerticalCm.max,
+    agilidadMin: rangos.agilidadIllinoisSeg.min,
+    agilidadMax: rangos.agilidadIllinoisSeg.max,
+    yoyoMin: rangos.resistenciaYoyoNivel.min,
+    yoyoMax: rangos.resistenciaYoyoNivel.max,
+  };
+}
+
+/**
+ * Semilla del `GrupoEdad` más cercano para una categoría NUEVA, a partir de su
+ * rango de años. Solo se usa al crear/backfillear: de ahí en más la categoría
+ * vive con sus propios rangos (`CategoriaRangoFisico`), independiente de
+ * `GrupoEdad`. Una categoría "sin edad" (`anioDesde`/`anioHasta` null) siembra
+ * SUB16 (el rango más amplio, el menos riesgoso como punto de partida).
+ */
+export function grupoEdadSemilla(
+  anioDesde: number | null,
+  anioHasta: number | null,
+  anioReferencia: number = new Date().getFullYear(),
+): GrupoEdad {
+  if (anioDesde == null || anioHasta == null) return "SUB16";
+  const edad = anioReferencia - (anioDesde + anioHasta) / 2;
+  return grupoEdadPorEdad(edad);
+}

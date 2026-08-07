@@ -6,11 +6,13 @@ import {
   listarMetricasEscuelaAdmin,
   listarMetricasCurvaEscuelaAdmin,
 } from "@/services/parametro-escuela.service";
+import { listarRangosCategoriasAdmin } from "@/services/categoria-rango.service";
 import { listarEscuelas } from "@/services/escuela.service";
 import { actualizarParametroAction } from "@/actions/admin.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { MetricaCampoAdmin } from "@/components/admin/MetricaCampoAdmin";
+import { CategoriasRangosAdminPanel } from "@/components/admin/CategoriasRangosAdminPanel";
 import { SelectorEscuelaParametros } from "@/components/admin/SelectorEscuelaParametros";
 import { EntrarSoporteDialog } from "@/components/admin/EntrarSoporteDialog";
 import { CURVA } from "@/lib/curva";
@@ -310,9 +312,10 @@ async function ParametrosEscuela({
   ctx: Awaited<ReturnType<typeof requireAuthContext>>;
   escuelaId: string;
 }) {
-  const [{ grupos, umbrales }, curva] = await Promise.all([
+  const [{ umbrales }, curva, rangosCategorias] = await Promise.all([
     listarMetricasEscuelaAdmin(ctx, escuelaId),
     listarMetricasCurvaEscuelaAdmin(ctx, escuelaId),
+    listarRangosCategoriasAdmin(ctx, escuelaId),
   ]);
 
   return (
@@ -362,42 +365,15 @@ async function ParametrosEscuela({
         </div>
       </Card>
 
-      {grupos.map((g) => (
-        <Card key={g.grupo}>
-          <h2 className="mb-1 font-bold">{g.grupo.replace("SUB", "Sub-")}</h2>
-          <p className="mb-3 text-xs text-muted">
-            Peor y mejor marca esperada a esta edad: la peor normaliza a 40 y la
-            mejor a 99.
-          </p>
-          <div className="space-y-3">
-            {g.pruebas.map((p) => (
-              <div
-                key={p.prueba}
-                className="flex flex-wrap items-center justify-between gap-3 border-t border-subtle pt-3 first:border-t-0 first:pt-0"
-              >
-                <div className="min-w-48">
-                  <p className="text-sm font-semibold">{p.etiqueta}</p>
-                  <p className="text-xs text-muted">
-                    {p.inverso
-                      ? "Menos es mejor: el mínimo es la MEJOR marca."
-                      : "Más es mejor: el máximo es la MEJOR marca."}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-start gap-4">
-                  <div>
-                    <p className="mb-0.5 text-[11px] text-muted">Mínimo</p>
-                    <MetricaCampoAdmin escuelaId={escuelaId} clave={p.min.clave} fila={p.min} />
-                  </div>
-                  <div>
-                    <p className="mb-0.5 text-[11px] text-muted">Máximo</p>
-                    <MetricaCampoAdmin escuelaId={escuelaId} clave={p.max.clave} fila={p.max} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      ))}
+      <Card>
+        <h2 className="mb-1 font-bold">Rangos físicos por categoría</h2>
+        <p className="mb-3 text-xs text-muted">
+          Peor y mejor marca esperada por CATEGORÍA (ya no por franja etaria
+          fija): la peor normaliza a 40 y la mejor a 99. Cada categoría se
+          sembró con el grupo de edad más cercano al crearla.
+        </p>
+        <CategoriasRangosAdminPanel escuelaId={escuelaId} rangos={rangosCategorias} />
+      </Card>
     </>
   );
 }

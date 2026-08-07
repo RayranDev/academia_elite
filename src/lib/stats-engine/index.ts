@@ -35,7 +35,11 @@ export {
   ETIQUETA_PRUEBA,
   claveRango,
   rangosDesdeParametros,
+  rangosDesdeFila,
+  filaDesdeRangos,
+  grupoEdadSemilla,
   type PruebaFisica,
+  type FilaRangoFisico,
 } from "./ranges";
 export { VERSION_FORMULA } from "./types";
 export type {

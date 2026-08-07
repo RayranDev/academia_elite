@@ -50,7 +50,8 @@ export function computeStats(
   medidas: MedidasEvaluacion,
   opts: OpcionesComputo,
 ): ResultadoStats {
-  const rangos = opts.rangos ?? RANGOS_POR_GRUPO[opts.grupoEdad];
+  const rangos = opts.rangos ?? (opts.grupoEdad ? RANGOS_POR_GRUPO[opts.grupoEdad] : undefined);
+  if (!rangos) throw new Error("computeStats: falta `rangos` o `grupoEdad`.");
   const pesoMen = opts.pesoMenEnOvr ?? PESO_MEN_DEFECTO;
   const tope = opts.topeBonus ?? TOPE_BONUS_DEFECTO;
 

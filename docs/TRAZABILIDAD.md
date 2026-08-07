@@ -1671,6 +1671,80 @@ cerradas en DECISIONES.md §85) sigue en construcción.
 
 ---
 
+## 46. Calibración física por categoría real, no por franja etaria fija (2026-08-07)
+
+Segunda y última pieza del plan de categorías (ver #45). `/admin/parametros`
+organizaba los rangos físicos por `GrupoEdad` (Sub8/10/12/14/16, franja fija
+y global), sin relación con la `Categoria` real de cada escuela — de ahí la
+confusión reportada de "me trae categorías que no existen". Decisiones de
+arquitectura cerradas con el usuario antes de diseñar (`DECISIONES.md` §85):
+`GrupoEdad` pasa a ser solo la SEMILLA de una categoría nueva; de ahí en más
+cada categoría vive con sus propios rangos en una tabla dedicada (no
+reusar `ParametroEscuela`, pensado para global-con-override — una categoría
+no tiene "global"); el simulador del SA y la plantilla Excel migran también
+a categoría real (el modo global de ambos, sin escuela elegida, se queda en
+`GrupoEdad`); y editar los rangos de una categoría pasa a ser **self-service
+del ESCUELA_ADMIN** (ya crea/nombra sus propias categorías sin gate del
+SUPER_ADMIN hoy) — el SUPER_ADMIN mantiene acceso vía sesión de soporte,
+mismo criterio que el resto de M2.
+
+Tabla nueva `CategoriaRangoFisico` (1:1 con `Categoria`, `onDelete: Cascade`
+— no tiene sentido propio sin su categoría; `escuelaId` denormalizado para
+el tenant-scoping, aunque también se llegue vía `categoriaId`). `evaluacion.
+service.ts` deja de resolver rangos por `grupoEdadPorEdad(edadEnAnios(...))`
+y pasa a `obtenerRangosFisicosDeCategoria(escuelaId, jugador.categoriaId)`
+— `OpcionesComputo.grupoEdad` pasa a opcional en el motor puro (queda
+vestigial cuando se pasa `rangos` explícito, que es siempre el caso real
+desde ahora). `crearCategoriaEscuela` siembra la categoría y su fila de
+rangos en una sola transacción (`db.$transaction`, patrón ya usado en
+`arancel.service.ts`/`entrenador.service.ts`), calculando el `GrupoEdad`
+semilla desde el rango de años de la categoría (o SUB16 si es "sin edad",
+pieza anterior) más los valores efectivos (global + overrides) de la
+escuela. Backfill de las 6 categorías preexistentes con
+`scripts/backfill-categoria-rangos.ts` (molde `seed-prod.ts`, idempotente,
+con `--dry-run`).
+
+**Hallazgo real durante la verificación, no un bug:** después del backfill
+comparé, para los 24 jugadores reales, el rango físico que les tocaría por
+el camino VIEJO (edad propia exacta vía `fechaNacimiento`) contra el camino
+NUEVO (`CategoriaRangoFisico` de su categoría asignada) — 16/24 coinciden,
+8/24 dan un rango distinto. Investigado: en los 8 casos, el jugador está
+asignado a una categoría cuyo rango de años NO coincide con su fecha de
+nacimiento real (ej. Santino Romero, 10 años hoy — SUB10 por edad propia —
+está en `demo-cat-sub12`, sembrada SUB12). Es exactamente el cambio de
+diseño buscado: antes la calibración ignoraba a qué categoría pertenecía el
+jugador (comparaba SIEMPRE contra su edad exacta); ahora compara contra la
+categoría real en la que el DT lo evalúa. Confirmado en datos demo/e2e, sin
+impacto retroactivo (`Evaluacion`/`StatsCalculados` son inmutables, nunca
+leyeron esta tabla) — el cambio rige solo evaluaciones NUEVAS de acá en
+más. Vale la pena que cualquier escuela real revise sus asignaciones de
+categoría si le importa que calcen con la edad, ahora que sí determinan la
+calibración física.
+
+Verificación completa: typecheck/lint/test limpios (344/344, +23 tests
+nuevos), `tests/unit/aislamiento-tenant.test.ts` pasó SIN modificarlo sobre
+el modelo nuevo (detección automática por `escuelaId`). Backup completo de
+las 40 tablas antes de migrar (mismo `scripts/backup-db.ts` de #45).
+Migración + backfill corridos contra producción con verificación puntual:
+las 6 filas backfilleadas coinciden exacto con `RANGOS_POR_GRUPO` del grupo
+semilla correspondiente a cada categoría.
+
+Implementación delegada a un sub-agente con el plan detallado (investigado
+con 3 agentes de exploración en paralelo + 1 agente de diseño, en modo
+plan) como instrucción exacta; revisión de diff propia línea por línea de
+los 17 archivos modificados + 12 nuevos antes de aplicar nada contra la
+base. Decisiones que el sub-agente tuvo que resolver sin especificación
+100% cerrada (revisadas y aceptadas): validación `.positive()` vs.
+`.nonnegative()` según si 0 es una marca físicamente posible por prueba;
+`SimuladorCarta`/plantilla Excel caen a SUB16 con aviso visible si una
+escuela no tiene (todavía) ninguna categoría con rango configurado, en vez
+de romper.
+
+Con esto se cierran los 2 paquetes de categorías documentados en #45 —
+solo queda gateado "Vigencia y bloqueo automático" en `PENDIENTES.md`.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a
