@@ -1815,6 +1815,13 @@ archivo completo):
   el identificador.
 - `htmlFor`/`id` en los labels de los campos nuevos de categoría, para
   igualar lo que ya hacía `LeadEditarForm`.
+- **Un lead con seguimiento vencido no se podía editar** (preexistente,
+  detectado en la segunda pasada de Guardian Angel): el `min={hoy}` del campo
+  "Fecha del próximo contacto" invalidaba la fecha YA guardada cuando esa
+  fecha había pasado, y el navegador bloquea el submit de todo el formulario
+  por `rangeUnderflow` — así que el lead atrasado, que es justamente el que
+  hay que trabajar, quedaba sin poder guardar ni siquiera una observación.
+  Ahora el `min` se aplica solo cuando no deja afuera lo ya guardado.
 
 **Dos hallazgos NO corregidos, elevados como decisión de producto:**
 

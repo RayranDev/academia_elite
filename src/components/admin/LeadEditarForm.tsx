@@ -43,12 +43,16 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
     ActionResult | undefined,
     FormData
   >(actualizarLeadAction, undefined);
+  const hoy = useHoyLocal();
+  const fechaGuardada = lead.fechaProximoContacto?.slice(0, 10) ?? "";
+  // Comparación lexicográfica: `YYYY-MM-DD` ordena igual como texto que como fecha.
+  const minFecha = hoy && (!fechaGuardada || fechaGuardada >= hoy) ? hoy : undefined;
+
   // `defaultValue` solo aplica al montar: si `lead.estado` cambia por un
   // revalidate ajeno a este form (ej. al convertir el lead en escuela), el
   // <select> quedaba mostrando el valor viejo sin resincronizar. Estado
   // controlado + resync ajustado EN el render (no en un efecto — evita un
   // pass de render extra), patrón "adjust state during render" de React.
-  const hoy = useHoyLocal();
   const [estado, setEstado] = useState(lead.estado);
   const [estadoSincronizado, setEstadoSincronizado] = useState(lead.estado);
   if (lead.estado !== estadoSincronizado) {
@@ -113,10 +117,14 @@ export function LeadEditarForm({ lead }: { lead: LeadDetalleDTO }) {
           id="le-fecha"
           name="fechaProximoContacto"
           type="date"
-          // No tiene sentido agendar el próximo contacto en el pasado: el `min`
-          // es HOY (en la zona local del navegador).
-          min={hoy}
-          defaultValue={lead.fechaProximoContacto?.slice(0, 10) ?? ""}
+          // No tiene sentido AGENDAR hacia el pasado, pero el `min` no puede
+          // invalidar una fecha ya guardada que venció: el navegador bloquea
+          // el submit de todo el form por `rangeUnderflow`, y entonces el lead
+          // atrasado — justo el que hay que trabajar — queda ineditable
+          // (tampoco se le podría cargar una nota). Solo se acota cuando no
+          // deja afuera lo que ya estaba.
+          min={minFecha}
+          defaultValue={fechaGuardada}
           className={campo}
         />
       </div>
