@@ -68,18 +68,24 @@ export async function subirEscudoAction(
 }
 
 export async function crearCategoriaAction(
+  _prev: ActionResult | undefined,
   formData: FormData,
-): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = categoriaSchema.safeParse({
-    nombre: formData.get("nombre"),
-    sinEdad: formData.get("sinEdad") === "on",
-    anioDesde: formData.get("anioDesde"),
-    anioHasta: formData.get("anioHasta"),
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await crearCategoriaEscuela(ctx, parsed.data);
-  revalidatePath("/escuela/categorias");
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = categoriaSchema.safeParse({
+      nombre: formData.get("nombre"),
+      sinEdad: formData.get("sinEdad") === "on",
+      anioDesde: formData.get("anioDesde"),
+      anioHasta: formData.get("anioHasta"),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await crearCategoriaEscuela(ctx, parsed.data);
+    revalidatePath("/escuela/categorias");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function crearSedeAction(formData: FormData): Promise<void> {
