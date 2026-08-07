@@ -1,5 +1,6 @@
 import "dotenv/config";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "../src/generated/prisma/client";
@@ -24,9 +25,7 @@ if (!connectionString) throw new Error("DIRECT_URL o DATABASE_URL requerida.");
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
 // Fuera del repo a propósito: carpeta temp del sistema, no `prisma/` ni `scripts/`.
-const OUT_BASE =
-  process.env.BACKUP_DIR ??
-  "C:\\Users\\IVANRA~1\\AppData\\Local\\Temp\\claude\\c--Proyecto-ACADEMIA-ELITE-futbol-career-mode\\eac0c176-6b82-4b51-8a04-ebcb375920fc\\scratchpad\\backup-db";
+const OUT_BASE = process.env.BACKUP_DIR ?? path.join(os.tmpdir(), "academia-elite-backup-db");
 
 // Nombres de modelo (Prisma schema) -> nombre de delegate (primera letra minúscula).
 const MODELOS = [
