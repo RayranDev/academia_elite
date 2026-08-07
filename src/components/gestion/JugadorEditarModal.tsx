@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { editarJugadorAction } from "@/actions/gestion.actions";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { POSICIONES } from "@/types";
+import { POSICIONES, GENEROS, ETIQUETA_GENERO } from "@/types";
 import type { JugadorGestionDTO } from "@/services/gestion-jugadores.service";
 import type { ActionResult } from "@/lib/action-result";
 
@@ -77,6 +77,19 @@ export function JugadorEditarModal({
               className={input}
             />
           </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">Género (opcional)</label>
+          {/* "Sin especificar" también se puede volver a elegir: rectificar
+              incluye retirar el dato (HABEAS-DATA.md §8). */}
+          <select name="genero" defaultValue={jugador.genero ?? ""} className={input}>
+            <option value="">Sin especificar</option>
+            {GENEROS.map((g) => (
+              <option key={g} value={g}>
+                {ETIQUETA_GENERO[g]}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="mb-1 block text-xs text-muted">Categoría</label>

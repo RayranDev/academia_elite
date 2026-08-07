@@ -70,7 +70,7 @@ export default function LegalPage() {
             </li>
             <li>
               <b>Del menor (jugador):</b> nombre, apellido, fecha de nacimiento,
-              posición, categoría y dorsal.
+              género (opcional), posición, categoría y dorsal.
             </li>
             <li>
               <b>Dato sensible del menor:</b> su fotografía o imagen (protección

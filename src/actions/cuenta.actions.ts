@@ -38,6 +38,7 @@ export async function actualizarMiJugadorAction(
       nombre: formData.get("nombre"),
       apellido: formData.get("apellido"),
       parentesco: formData.get("parentesco"),
+      genero: formData.get("genero") ?? "",
     });
     if (!parsed.success) {
       throw new ValidationError(
@@ -50,6 +51,7 @@ export async function actualizarMiJugadorAction(
       parsed.data.nombre,
       parsed.data.apellido,
       parsed.data.parentesco ?? null,
+      parsed.data.genero,
     );
     revalidatePath("/jugador/cuenta");
     revalidatePath("/jugador");

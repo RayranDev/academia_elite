@@ -30,7 +30,9 @@ import type {
   AvatarConfig,
   EfectoCarta,
   EfectoParams,
+  Genero,
 } from "@/types";
+import { aGenero } from "@/lib/mappers/genero";
 
 export interface NoticiaDTO {
   id: string;
@@ -102,6 +104,8 @@ export interface HubDTO {
   objetivos: ObjetivoDTO[];
   foto: { tieneFoto: boolean; consentimiento: boolean };
   avatarConfig: AvatarConfig | null;
+  /** Alimenta el avatar por defecto del editor de perfil (no hay foto todavía). */
+  genero: Genero | null;
   proximos: ProximoEventoDTO[];
   ultimoPartido: UltimoPartidoDTO | null;
   resumenPartidos: ResumenPartidosDTO;
@@ -283,6 +287,7 @@ export async function obtenerHub(
       consentimiento: full.consentimientoFoto,
     },
     avatarConfig: parseAvatarConfig(full.avatarConfig),
+    genero: aGenero(full.genero),
     proximos,
     ultimoPartido,
     resumenPartidos,

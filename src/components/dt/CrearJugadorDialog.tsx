@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { crearJugadorAction } from "@/actions/dt.actions";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { POSICIONES } from "@/types";
+import { POSICIONES, GENEROS, ETIQUETA_GENERO } from "@/types";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
@@ -72,6 +72,19 @@ export function CrearJugadorDialog({
               </select>
             </div>
             <Field name="dorsal" label="Dorsal (opcional)" type="number" required={false} min={1} max={100} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-muted">Género (opcional)</label>
+            {/* La opción vacía va PRIMERA y es la que queda por defecto: el dato
+                se declara, no se asume. */}
+            <select name="genero" defaultValue="" className={input}>
+              <option value="">Sin especificar</option>
+              {GENEROS.map((g) => (
+                <option key={g} value={g}>
+                  {ETIQUETA_GENERO[g]}
+                </option>
+              ))}
+            </select>
           </div>
           {error && (
             <p className="text-sm text-alerta" role="alert">

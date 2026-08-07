@@ -14,6 +14,10 @@ import {
   SKIN,
 } from "@/lib/avatar/toon-head";
 
+// Semillas variadas para observar la DISTRIBUCIÓN del pelo largo, no un caso
+// suelto: el bug original era justamente que una sola rama valía para todos.
+const SEMILLAS = Array.from({ length: 40 }, (_, i) => `jugador-${i}`);
+
 describe("avatarDesdeSeed", () => {
   it("es determinista y produce índices en rango", () => {
     const a = avatarDesdeSeed("Lucas García");
@@ -24,6 +28,46 @@ describe("avatarDesdeSeed", () => {
     expect(a.hair).toBeLessThan(HAIR.length);
     expect(a.eyes).toBeLessThan(EYES.length);
     expect(a.skinColor).toBeLessThan(SKIN.length);
+  });
+
+  it("sigue siendo determinista con género", () => {
+    expect(avatarDesdeSeed("Ana Ruiz", "F")).toEqual(avatarDesdeSeed("Ana Ruiz", "F"));
+    expect(avatarDesdeSeed("Ana Ruiz")).toEqual(avatarDesdeSeed("Ana Ruiz", null));
+  });
+
+  it("F siempre lleva pelo largo", () => {
+    for (const seed of SEMILLAS) {
+      const cfg = avatarDesdeSeed(seed, "F");
+      expect(cfg.rearHair).toBeGreaterThanOrEqual(0);
+      expect(cfg.rearHair).toBeLessThan(REAR_HAIR.length);
+    }
+  });
+
+  it("M nunca lleva pelo largo", () => {
+    for (const seed of SEMILLAS) {
+      expect(avatarDesdeSeed(seed, "M").rearHair).toBe(-1);
+    }
+  });
+
+  it("sin género declarado el pelo largo VARÍA por seed (no siempre -1)", () => {
+    // El bug original: `rearHair: -1` fijo hacía que toda jugadora sin foto
+    // recibiera un avatar masculino. Sin dato, el pelo tiene que variar.
+    const valores = SEMILLAS.map((s) => avatarDesdeSeed(s).rearHair);
+    expect(valores.some((v) => v >= 0)).toBe(true);
+    expect(valores.some((v) => v === -1)).toBe(true);
+    expect(valores.every((v) => v >= -1 && v < REAR_HAIR.length)).toBe(true);
+  });
+
+  it("X se comporta como 'sin declarar': también varía", () => {
+    const valores = SEMILLAS.map((s) => avatarDesdeSeed(s, "X").rearHair);
+    expect(valores.some((v) => v >= 0)).toBe(true);
+    expect(valores.some((v) => v === -1)).toBe(true);
+  });
+
+  it("nunca pone barba: son menores", () => {
+    for (const genero of ["M", "F", "X", undefined] as const) {
+      expect(avatarDesdeSeed("Kevin", genero).beard).toBe(-1);
+    }
   });
 });
 

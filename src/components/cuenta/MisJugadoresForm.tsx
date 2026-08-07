@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { actualizarMiJugadorAction } from "@/actions/cuenta.actions";
 import { PARENTESCOS } from "@/lib/validators/cuenta";
+import { GENEROS, ETIQUETA_GENERO, type Genero } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -14,12 +15,14 @@ type MiJugador = {
   nombre: string;
   apellido: string;
   parentesco: string | null;
+  genero: Genero | null;
 };
 type Aviso = { ok: boolean; texto: string } | null;
 
 /**
- * Corrección de la identidad (nombre/apellido) de los jugadores vinculados al
- * tutor. Lo deportivo (posición, categoría, dorsal) lo gestiona el DT, no acá.
+ * Corrección de la identidad (nombre/apellido/parentesco/género) de los
+ * jugadores vinculados al tutor. Lo deportivo (posición, categoría, dorsal) lo
+ * gestiona el DT, no acá.
  */
 export function MisJugadoresForm({ jugadores }: { jugadores: MiJugador[] }) {
   if (jugadores.length === 0) return null;
@@ -28,8 +31,8 @@ export function MisJugadoresForm({ jugadores }: { jugadores: MiJugador[] }) {
       <div>
         <h2 className="text-lg font-bold">Datos del jugador</h2>
         <p className="text-xs text-muted">
-          Corregí el nombre o el apellido. La posición y la categoría las gestiona
-          el entrenador.
+          Corregí el nombre, el apellido o el género. La posición y la categoría
+          las gestiona el entrenador.
         </p>
       </div>
       {jugadores.map((j, i) => (
@@ -50,6 +53,7 @@ function EditarJugador({
   const [nombre, setNombre] = useState(jugador.nombre);
   const [apellido, setApellido] = useState(jugador.apellido);
   const [parentesco, setParentesco] = useState(jugador.parentesco ?? "");
+  const [genero, setGenero] = useState<string>(jugador.genero ?? "");
   const [msg, setMsg] = useState<Aviso>(null);
 
   function guardar(e: FormEvent) {
@@ -60,6 +64,7 @@ function EditarJugador({
     fd.set("nombre", nombre);
     fd.set("apellido", apellido);
     fd.set("parentesco", parentesco);
+    fd.set("genero", genero);
     startTransition(async () => {
       const res = await actualizarMiJugadorAction(undefined, fd);
       setMsg(
@@ -112,6 +117,21 @@ function EditarJugador({
           {PARENTESCOS.map((p) => (
             <option key={p} value={p}>
               {p}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-muted">Género (opcional)</label>
+        <select
+          value={genero}
+          onChange={(e) => setGenero(e.target.value)}
+          className={input}
+        >
+          <option value="">Sin especificar</option>
+          {GENEROS.map((g) => (
+            <option key={g} value={g}>
+              {ETIQUETA_GENERO[g]}
             </option>
           ))}
         </select>

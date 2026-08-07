@@ -7,7 +7,7 @@ import { AceptarTerminos } from "@/components/auth/AceptarTerminos";
 import { CamposPassword } from "@/components/auth/CamposPassword";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { POSICIONES } from "@/types";
+import { POSICIONES, GENEROS, ETIQUETA_GENERO } from "@/types";
 import type { ActionResult } from "@/lib/action-result";
 
 const input =
@@ -84,6 +84,19 @@ export function RegistroForm({ codigo }: { codigo: string }) {
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">Género (opcional)</label>
+          {/* La opción vacía va PRIMERA y queda por defecto: se declara, no se
+              asume. Sirve para organizar la categoría y para el avatar. */}
+          <select name="genero" defaultValue="" className={input}>
+            <option value="">Sin especificar</option>
+            {GENEROS.map((g) => (
+              <option key={g} value={g}>
+                {ETIQUETA_GENERO[g]}
+              </option>
+            ))}
+          </select>
         </div>
 
         <AceptarTerminos />

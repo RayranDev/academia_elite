@@ -28,6 +28,19 @@ export type Prioridad = (typeof PRIORIDADES)[number];
 export const POSICIONES = ["POR", "DEF", "MED", "DEL"] as const;
 export type Posicion = (typeof POSICIONES)[number];
 
+// Género declarado del jugador. El campo es OPCIONAL en el modelo: la finalidad
+// es la organización deportiva (hay categorías femeninas) y el avatar por
+// defecto, no clasificar a nadie. "X" existe para que la familia pueda no
+// responder sin que eso se confunda con "todavía no lo cargamos" (NULL).
+export const GENEROS = ["M", "F", "X"] as const;
+export type Genero = (typeof GENEROS)[number];
+
+export const ETIQUETA_GENERO: Record<Genero, string> = {
+  M: "Masculino",
+  F: "Femenino",
+  X: "Prefiero no decirlo",
+};
+
 export const ESTADOS_JUGADOR = [
   "PENDIENTE",
   "ACTIVO",
@@ -153,6 +166,8 @@ export interface PlayerCardData {
   fotoUrl: string | null;
   escudoEscuelaUrl?: string;
   dorsal?: number;
+  /** Solo alimenta el avatar por defecto (cuando no hay `avatarConfig` editada). */
+  genero?: Genero | null;
   avatarConfig?: AvatarConfigV2 | null;
   fondoEstilo?: string | null; // CSS del fondo equipado: ES el fondo/estilo de TODA la carta
   fondoTexto?: string | null; // color de texto para contraste sobre el fondo equipado

@@ -313,6 +313,7 @@ export function PlayerCard({
             <PlayerAvatar
               config={data.avatarConfig}
               seed={seedAvatar}
+              genero={data.genero}
               className={cn("h-auto", size === "hero" ? "w-3/5" : "w-3/4")}
             />
           )}

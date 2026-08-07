@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { POSICIONES, TIPOS_BLOQUEO } from "@/types";
+import { POSICIONES, TIPOS_BLOQUEO, GENEROS } from "@/types";
 import { formatearNombre } from "@/lib/texto/formatear-nombre";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 import { telefonoOpcional, PARENTESCOS } from "@/lib/validators/cuenta";
@@ -21,6 +21,12 @@ export const jugadorEditarSchema = z.object({
     .optional()
     .transform((v) => (v === "" || v == null ? null : v)),
   categoriaId: z.string().min(1, { error: "Elige una categoría." }),
+  // Se puede volver a "sin declarar": el titular tiene derecho a rectificar, y
+  // eso incluye retirar el dato (por eso `null`, no solo M/F/X).
+  genero: z
+    .union([z.literal(""), z.enum(GENEROS)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
 });
 
 export const estadoJugadorSchema = z.object({

@@ -72,6 +72,7 @@ export function crearJugador(
     fechaNacimiento: Date;
     posicion: string;
     dorsal?: number | null;
+    genero?: string | null;
     estado: string;
   },
 ) {
@@ -328,6 +329,7 @@ export async function actualizarJugadorDatos(
     posicion: string;
     dorsal: number | null;
     categoriaId: string;
+    genero: string | null;
   },
 ) {
   const scope = escuelaId === null ? {} : { escuelaId };
@@ -375,15 +377,21 @@ export function contarAptosMedicosVencidos(escuelaId: string, hoy: Date) {
 }
 
 /**
- * Actualiza SOLO la identidad (nombre/apellido) de un jugador VINCULADO al
- * usuario (padre/tutor). La propiedad va en el `where` como defensa en
- * profundidad: aunque el guard fallara, solo toca jugadores del propio usuario.
- * No permite tocar datos deportivos (posición, categoría, dorsal): eso es del DT.
+ * Actualiza SOLO la identidad (nombre/apellido/parentesco/género) de un jugador
+ * VINCULADO al usuario (padre/tutor). La propiedad va en el `where` como defensa
+ * en profundidad: aunque el guard fallara, solo toca jugadores del propio
+ * usuario. No permite tocar datos deportivos (posición, categoría, dorsal): eso
+ * es del DT.
  */
 export function actualizarIdentidadJugadorPropio(
   userId: string,
   id: string,
-  data: { nombre: string; apellido: string; parentescoAcudiente?: string | null },
+  data: {
+    nombre: string;
+    apellido: string;
+    parentescoAcudiente?: string | null;
+    genero?: string | null;
+  },
 ) {
   // tenant-global: propiedad por vínculo del usuario (padre/cuenta), no por escuela.
   return db.jugador.updateMany({

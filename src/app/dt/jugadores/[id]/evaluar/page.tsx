@@ -43,6 +43,7 @@ export default async function EvaluarPage({
           apellido: detalle.apellido,
           posicion: detalle.posicion,
           dorsal: detalle.dorsal ?? undefined,
+          genero: detalle.genero,
         }}
       />
     </div>

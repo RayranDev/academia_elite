@@ -25,7 +25,8 @@ import { registrarAuditoria } from "@/services/audit.service";
 import { hashPassword, generarPasswordTemporal } from "@/lib/auth/password";
 import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorEditarInput, FichaMedicaInput } from "@/lib/validators/gestion";
-import type { Posicion } from "@/types";
+import type { Posicion, Genero } from "@/types";
+import { aGenero } from "@/lib/mappers/genero";
 
 // Gestión de jugadores (G3/G5): Escuela y Súper Admin; el DT solo resetea
 // contraseñas de familias de SUS categorías. Toda acción sensible se audita.
@@ -36,6 +37,8 @@ export interface JugadorGestionDTO {
   apellido: string;
   posicion: Posicion;
   dorsal: number | null;
+  /** null = sin declarar (distinto de "X", que es una respuesta). */
+  genero: Genero | null;
   fechaNacimiento: string;
   estado: string;
   categoriaId: string;
@@ -72,6 +75,7 @@ function aDTO(j: JugadorGestionRow): JugadorGestionDTO {
     apellido: j.apellido,
     posicion: j.posicion as Posicion,
     dorsal: j.dorsal,
+    genero: aGenero(j.genero),
     fechaNacimiento: j.fechaNacimiento.toISOString(),
     estado: j.estado,
     categoriaId: j.categoria.id,
@@ -233,6 +237,7 @@ export async function editarJugador(
     posicion: data.posicion,
     dorsal: data.dorsal ?? null,
     categoriaId: data.categoriaId,
+    genero: data.genero,
   });
   if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
   await registrarAuditoria(ctx, {

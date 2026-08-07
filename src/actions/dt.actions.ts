@@ -39,6 +39,7 @@ export async function crearJugadorAction(
       posicion: formData.get("posicion"),
       categoriaId: formData.get("categoriaId"),
       dorsal: formData.get("dorsal") || undefined,
+      genero: formData.get("genero") ?? undefined,
     });
     if (!parsed.success) {
       throw new ValidationError(primerError(parsed.error.issues));

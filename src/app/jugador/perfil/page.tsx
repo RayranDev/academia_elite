@@ -37,11 +37,13 @@ export default async function PerfilPage() {
           consentimiento={hub.foto.consentimiento}
           avatarConfig={hub.avatarConfig}
           seed={`${hub.nombre} ${hub.apellido}`}
+          genero={hub.genero}
         />
         <AvatarEditor
           jugadorId={hub.jugadorId}
           inicial={hub.avatarConfig}
           seed={`${hub.nombre} ${hub.apellido}`}
+          genero={hub.genero}
         />
       </div>
     </div>

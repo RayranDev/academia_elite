@@ -13,6 +13,8 @@ import {
   actualizarIdentidadJugadorPropio,
 } from "@/repositories/jugador.repository";
 import { emailExisteGlobal } from "@/repositories/escuela.repository";
+import { aGenero } from "@/lib/mappers/genero";
+import type { Genero } from "@/types";
 import {
   crearTokenAuth,
   buscarTokenVigenteDe,
@@ -85,6 +87,8 @@ export interface MiJugadorDTO {
   nombre: string;
   apellido: string;
   parentesco: string | null;
+  /** null = sin declarar (distinto de "X", que sí es una respuesta). */
+  genero: Genero | null;
 }
 
 /** Jugadores (hijos/cuenta) vinculados al tutor, para editar su identidad. */
@@ -98,13 +102,16 @@ export async function obtenerMisJugadores(
     nombre: h.nombre,
     apellido: h.apellido,
     parentesco: h.parentescoAcudiente,
+    genero: aGenero(h.genero),
   }));
 }
 
 /**
- * Corrige la identidad (nombre/apellido) de un jugador propio del tutor. Solo
- * sobre sus jugadores (assertOwnPlayer). Los datos deportivos (posición,
- * categoría, dorsal) NO se tocan acá: los gestiona el DT. Auditado.
+ * Corrige la identidad (nombre/apellido/parentesco/género) de un jugador propio
+ * del tutor. Solo sobre sus jugadores (assertOwnPlayer). Los datos deportivos
+ * (posición, categoría, dorsal) NO se tocan acá: los gestiona el DT. El género
+ * sí entra: es identidad, y el titular tiene derecho a rectificarla
+ * (HABEAS-DATA.md §8). Auditado.
  */
 export async function actualizarDatosMiJugador(
   ctx: AuthContext,
@@ -112,6 +119,7 @@ export async function actualizarDatosMiJugador(
   nombre: string,
   apellido: string,
   parentesco: string | null,
+  genero: Genero | null,
 ): Promise<void> {
   requireRole(ctx, ["JUGADOR"]);
   const hijos = await listarHijos(ctx.userId);
@@ -121,6 +129,7 @@ export async function actualizarDatosMiJugador(
     nombre,
     apellido,
     parentescoAcudiente: parentesco,
+    genero,
   });
   if (res.count === 0) throw new NotFoundError("Jugador no encontrado.");
   await registrarAuditoria(ctx, {

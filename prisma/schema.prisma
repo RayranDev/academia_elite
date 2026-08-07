@@ -200,12 +200,17 @@ model Jugador {
   nombre                       String
   apellido                     String
   fechaNacimiento              DateTime
+  // Dato de identificación, OPCIONAL: la escuela organiza por género (existe la
+  // categoría femenina) y el avatar por defecto lo respeta. "X" ("prefiero no
+  // decirlo") existe para no forzar una respuesta sobre un menor. No es dato
+  // sensible (art. 5 Ley 1581 apunta a salud/orientación sexual), sí de NNA.
+  genero                       String? // enum: M | F | X
   parentescoAcudiente          String? // relación del acudiente (Madre, Padre, Tío…)
   posicion                     String // enum: POR | DEF | MED | DEL
   dorsal                       Int?
   estado                       String               @default("PENDIENTE") // enum: PENDIENTE | ACTIVO | INACTIVO
   fotoUrl                      String?
-  avatarConfig                 String? // JSON del avatar SVG (género, piel, peinado, cabello)
+  avatarConfig                 String? // JSON del avatar SVG editado por la familia (AvatarConfigV2)
   consentimientoFoto           Boolean              @default(false)
   consentimientoFotoFecha      DateTime?
   // Ficha administrativa y médica (HABEAS-DATA.md, datos sensibles de salud).

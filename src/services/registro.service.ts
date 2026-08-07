@@ -47,6 +47,7 @@ export async function registrarConCodigo(input: RegistroInput): Promise<void> {
     jugadorApellido: input.jugadorApellido,
     fechaNacimiento: input.fechaNacimiento,
     posicion: input.posicion,
+    genero: input.genero ?? null,
   });
   if (!resultado.ok) {
     throw new ValidationError("El código acaba de agotarse.");

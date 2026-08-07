@@ -125,6 +125,7 @@ export async function editarJugadorAction(
       posicion: formData.get("posicion"),
       dorsal: formData.get("dorsal") ?? "",
       categoriaId: formData.get("categoriaId"),
+      genero: formData.get("genero") ?? "",
     });
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");

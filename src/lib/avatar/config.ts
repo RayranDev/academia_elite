@@ -11,6 +11,7 @@ import {
   CLOTHES_COLOR,
   type AvatarConfigV2,
 } from "@/lib/avatar/toon-head";
+import type { Genero } from "@/types";
 
 /** Config v1 (estilo "adventurer", anterior). Solo para migración lazy. */
 export interface AvatarConfigV1 {
@@ -40,14 +41,42 @@ function enRango(i: unknown, n: number, min = 0): number {
     : 0;
 }
 
-/** Config determinista a partir de un seed (cuando aún no se editó el avatar). */
-export function avatarDesdeSeed(seed: string): AvatarConfigV2 {
+/**
+ * Pelo largo trasero del avatar por defecto.
+ *
+ * Antes era `-1` fijo: el pelo largo NUNCA se generaba y todas las jugadoras
+ * recibían un avatar masculino. Ahora depende del género declarado:
+ *
+ * - `F` → siempre pelo largo (una variante de `REAR_HAIR`, elegida por el seed).
+ * - `M` → sin pelo largo, como hasta hoy.
+ * - `X` o sin declarar → varía por seed INCLUYENDO `-1`. Es la clave para
+ *   romper el sesgo: si la ausencia de dato siguiera leyéndose como masculino,
+ *   el problema original sobreviviría hasta que cada escuela cargara el campo.
+ *
+ * El divisor 37 es primo y no lo usa ningún otro componente (3, 7, 11, 13, 17,
+ * 19, 23, 29): así el pelo largo no queda correlacionado con el peinado ni con
+ * el color de piel del mismo seed.
+ */
+function rearHairDeSeed(h: number, genero?: Genero | null): number {
+  if (REAR_HAIR.length === 0 || genero === "M") return -1;
+  const minimo = genero === "F" ? 0 : -1; // -1 = "sin pelo largo", una opción más
+  const opciones = REAR_HAIR.length - minimo;
+  return minimo + (Math.floor(h / 37) % opciones);
+}
+
+/**
+ * Config determinista a partir de un seed (cuando aún no se editó el avatar).
+ * `genero` es opcional: sin él, el avatar sigue siendo determinista, solo que
+ * el pelo largo entra en la variación en vez de estar apagado siempre.
+ */
+export function avatarDesdeSeed(seed: string, genero?: Genero | null): AvatarConfigV2 {
   const h = hash(seed);
   const pick = (n: number, div: number) => Math.floor(h / div) % n;
   return {
     v: 2,
     hair: pick(HAIR.length, 3),
-    rearHair: -1,
+    rearHair: rearHairDeSeed(h, genero),
+    // Siempre sin barba: son menores.
     beard: -1,
     eyes: pick(EYES.length, 7),
     eyebrows: pick(EYEBROWS.length, 11),

@@ -43,7 +43,7 @@ Transferencia y Transmisión, conforme a la ley.
 | Categoría | Datos | Titular |
 |---|---|---|
 | Identificación de la familia/tutor | nombre, correo, teléfono | adulto responsable |
-| Identificación del menor (jugador) | nombre, apellido, fecha de nacimiento, posición, categoría, dorsal | NNA (menor) |
+| Identificación del menor (jugador) | nombre, apellido, fecha de nacimiento, género (opcional), posición, categoría, dorsal | NNA (menor) |
 | **Datos sensibles del menor — imagen** | **fotografía/imagen** del menor | NNA (menor) |
 | **Datos sensibles del menor — salud** | EPS, RH, alergias, condiciones médicas, vencimiento del apto médico | NNA (menor) |
 | Identificación oficial del menor | tipo y número de documento (RC/TI/CC/CE) | NNA (menor) |

@@ -32,6 +32,7 @@ export function crearPadreYJugadorConCodigo(input: {
   jugadorApellido: string;
   fechaNacimiento: Date;
   posicion: string;
+  genero: string | null;
 }): Promise<ResultadoRegistro> {
   return db.$transaction(async (tx) => {
     // tenant-global: re-lectura del MISMO código (por id) ya validado por el
@@ -65,6 +66,7 @@ export function crearPadreYJugadorConCodigo(input: {
         apellido: input.jugadorApellido,
         fechaNacimiento: input.fechaNacimiento,
         posicion: input.posicion,
+        genero: input.genero,
         estado: "PENDIENTE",
       },
     });

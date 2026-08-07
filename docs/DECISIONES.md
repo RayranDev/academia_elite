@@ -671,3 +671,35 @@ cada adaptación, regla 0.8.)
     un concepto de plataforma compartido entre escuelas para vivir dentro
     del propio dato de la escuela). El SUPER_ADMIN mantiene acceso vía
     sesión de soporte, mismo criterio que el resto de M2.
+86. **Género del jugador: dato propio, opcional, con finalidad deportiva.**
+    Decisiones del usuario (2026-08-07) tras detectar que TODAS las jugadoras
+    recibían avatar masculino (`avatarDesdeSeed` fijaba `rearHair: -1`, el pelo
+    largo no se generaba nunca). Se descartó el atajo de solo variar el pelo
+    por seed: **se agrega un campo `genero` al `Jugador`**. Las 5 decisiones:
+    (1) **finalidad = organización deportiva + avatar**, no solo avatar — una
+    academia organiza por género (existe una categoría "Femenina libre"), y esa
+    es la única lectura que hace el dato proporcionado frente al principio de
+    **minimización** de la Ley 1581; recoger un dato personal de un menor
+    "para dibujarle el pelo" no se sostendría. Corolario asumido: el género
+    tiene que ser VISIBLE donde la escuela organiza (ficha, gestión, export),
+    no solo alimentar el avatar en silencio, o la finalidad declarada sería
+    papel mojado; (2) valores **M / F / X** (Masculino / Femenino / Prefiero no
+    decirlo), reusando el vocabulario que ya existió en `AvatarConfigV1`, con
+    una tercera opción para no forzar una respuesta sobre un menor; el campo es
+    **opcional**; (3) **no es dato sensible** (art. 5 apunta a salud y
+    orientación sexual; esto es identificación) pero **sí es dato de NNA**, así
+    que entra en `HABEAS-DATA.md` §4 y en la lista de la página pública
+    `/legal` — si el texto publicado no lo enumera, miente; (4) **`TERMINOS_VERSION`
+    sube 1.0 → 1.1**: cambia lo que la familia aceptó. No hay re-aceptación
+    forzada (nadie compara la versión guardada contra la vigente), así que las
+    familias ya registradas conservan `1.0` como prueba de que consintieron un
+    texto SIN género — que es exactamente para lo que sirve el campo; (5) **sin
+    género declarado el avatar varía el pelo por seed**, no queda en pelo corto:
+    si "prefiero no decirlo" siguiera leyendo masculino, el problema original
+    sobreviviría hasta que cada escuela completara el dato. Se asume que cambia
+    el avatar por defecto de los jugadores existentes que nunca lo editaron (es
+    cosmético y la familia puede editarlo). Nota de cumplimiento: la edición por
+    parte de la **familia** no es un extra sino una obligación — `HABEAS-DATA.md`
+    §8 le da al titular el derecho a actualizar y rectificar, así que el campo
+    entra también en `actualizarIdentidadJugadorPropio`, junto a
+    nombre/apellido/parentesco (identidad), no entre los datos deportivos.

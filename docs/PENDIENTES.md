@@ -22,7 +22,10 @@
 > parcial del jugador bloqueado, el perfil del DT, Staff más allá del DT,
 > Progresión del jugador — etapa 2 completa (sus 4 piezas), Categorías:
 > selector de años acotado + categorías sin edad, y Calibración física por
-> categoría real — ver TRAZABILIDAD.md #33-46). Solo queda gateado
+> categoría real — ver TRAZABILIDAD.md #33-46). Se sumaron después una tanda
+> de bugs de UI hallados recorriendo el onboarding completo y el género del
+> jugador con su avatar (#47-49). Queda un pendiente chico que arrastra ese
+> último cambio (mostrar el género donde la escuela organiza) y, gateado,
 > vigencia y bloqueo automático.
 
 ---
@@ -31,7 +34,30 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
+| [Mostrar el género donde la escuela organiza](#paquete--mostrar-el-género-donde-la-escuela-organiza) | Chico | Sostiene la finalidad declarada del dato |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
+
+---
+
+## Paquete — Mostrar el género donde la escuela organiza
+
+Chico, pero **no es cosmético: es lo que sostiene la finalidad declarada**.
+`DECISIONES.md` §86 declaró que el género del jugador se recoge para la
+*organización deportiva* y el avatar — esa finalidad es la que lo hace
+proporcionado frente al principio de minimización de la Ley 1581. Hoy el campo
+se captura (4 altas) y se puede rectificar (gestión + cuenta familiar), pero
+**el único que lo lee es el avatar**: no se muestra en la ficha del jugador que
+usa el DT ni sale en ningún export. Mientras siga así, "organización deportiva"
+es una finalidad declarada que nadie ejerce.
+
+Qué falta:
+- Mostrarlo en la ficha del jugador del DT (`src/app/dt/jugadores/[id]/page.tsx`),
+  junto a categoría/posición/estado. Usar `ETIQUETA_GENERO` (`src/types`), y no
+  mostrar nada cuando es `null` (sin declarar) para no sugerir un vacío a llenar.
+- Sumarlo al export de jugadores (`src/services/export-jugadores.service.ts` o
+  el que corresponda) y al de evaluaciones si aplica.
+- Evaluar si el listado de gestión (`JugadoresGestion`) merece una columna o
+  alcanza con la ficha.
 
 ---
 

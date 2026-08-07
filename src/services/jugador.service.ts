@@ -13,10 +13,11 @@ import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
 import { cuotasImpagasDeJugadores } from "@/repositories/membresia.repository";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
+import { aGenero } from "@/lib/mappers/genero";
 import { evaluacionVencida } from "@/lib/evaluacion";
 import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorInput } from "@/lib/validators/jugador";
-import type { PlayerCardData, Posicion } from "@/types";
+import type { PlayerCardData, Posicion, Genero } from "@/types";
 
 /**
  * Solo SI hay deuda, nunca la cifra: es la frontera de acceso que el DT tiene a
@@ -160,6 +161,7 @@ export async function crearJugadorDt(
     fechaNacimiento: data.fechaNacimiento,
     posicion: data.posicion,
     dorsal: data.dorsal ?? null,
+    genero: data.genero ?? null,
     estado: "ACTIVO",
   });
 }
@@ -191,6 +193,8 @@ export interface DetalleJugadorDTO {
   apellido: string;
   posicion: Posicion;
   dorsal: number | null;
+  /** Alimenta el avatar de la carta que se dibuja al terminar de evaluar. */
+  genero: Genero | null;
   categoriaNombre: string;
   estado: string;
   card: PlayerCardData | null;
@@ -235,6 +239,7 @@ export async function obtenerDetalleJugadorDt(
     apellido: jugador.apellido,
     posicion: jugador.posicion as Posicion,
     dorsal: jugador.dorsal,
+    genero: aGenero(jugador.genero),
     categoriaNombre: jugador.categoria.nombre,
     estado: jugador.estado,
     card: stats ? aPlayerCardData(jugador, stats, fotoCartaUrl(jugador)) : null,

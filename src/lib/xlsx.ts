@@ -55,6 +55,20 @@ export async function parseXlsx(buffer: Buffer): Promise<string[][]> {
   return filas.filter((f) => f.some((c) => c.trim() !== ""));
 }
 
+/**
+ * Descarta las celdas vacías del FINAL de una fila. `parseXlsx` rellena cada
+ * fila hasta `columnCount`, así que una hoja con columnas de más (formato
+ * heredado, una columna que alguien tocó y borró) devuelve celdas vacías de
+ * cola que no son datos. Importa al validar cabeceras por posición: sin esto,
+ * una columna fantasma se compara contra una cabecera real y el archivo se
+ * rechaza sin motivo.
+ */
+export function sinVaciosAlFinal(fila: string[]): string[] {
+  let fin = fila.length;
+  while (fin > 0 && fila[fin - 1] === "") fin -= 1;
+  return fila.slice(0, fin);
+}
+
 /** Genera la plantilla .xlsx de jugadores (cabeceras + ejemplo + instrucciones). */
 export async function plantillaJugadoresXlsx(opts: {
   cabeceras: string[];
@@ -81,7 +95,10 @@ export async function plantillaJugadoresXlsx(opts: {
   guia.addRow(["2) Posiciones válidas: POR, DEF, MED, DEL."]);
   guia.addRow(["3) Fecha de nacimiento en formato AAAA-MM-DD."]);
   guia.addRow(["4) Dorsal es opcional."]);
-  guia.addRow([`5) Categorías válidas de ${opts.escuelaNombre}:`]);
+  guia.addRow([
+    "5) Género es OPCIONAL: M = masculino, F = femenino, X = prefiere no decirlo. Déjalo vacío si no se declara.",
+  ]);
+  guia.addRow([`6) Categorías válidas de ${opts.escuelaNombre}:`]);
   for (const c of opts.categorias) guia.addRow([`    • ${c}`]);
 
   const buf = await wb.xlsx.writeBuffer();

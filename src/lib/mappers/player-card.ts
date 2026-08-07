@@ -1,5 +1,6 @@
 import type { PlayerCardData, Posicion, Nivel } from "@/types";
 import { parseAvatarConfig } from "@/lib/avatar/config";
+import { aGenero } from "@/lib/mappers/genero";
 
 interface StatsRow {
   rit: number;
@@ -19,6 +20,7 @@ interface JugadorRow {
   posicion: string;
   dorsal: number | null;
   fotoUrl: string | null;
+  genero?: string | null;
   avatarConfig?: string | null;
 }
 
@@ -54,6 +56,7 @@ export function cartaInicialBronce(
     fotoUrl,
     escudoEscuelaUrl,
     dorsal: jugador.dorsal ?? undefined,
+    genero: aGenero(jugador.genero),
     avatarConfig: parseAvatarConfig(jugador.avatarConfig),
   };
 }
@@ -83,6 +86,7 @@ export function aPlayerCardData(
     fotoUrl,
     escudoEscuelaUrl,
     dorsal: jugador.dorsal ?? undefined,
+    genero: aGenero(jugador.genero),
     avatarConfig: parseAvatarConfig(jugador.avatarConfig),
   };
 }

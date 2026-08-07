@@ -14,7 +14,7 @@ import {
 } from "@/lib/medidas-tecnicas";
 import type { ActionResult } from "@/lib/action-result";
 import type { ResultadoStats } from "@/lib/stats-engine";
-import type { PlayerCardData, Posicion } from "@/types";
+import type { PlayerCardData, Posicion, Genero } from "@/types";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm tabular outline-none focus:border-brand";
@@ -25,6 +25,7 @@ interface JugadorMin {
   apellido: string;
   posicion: Posicion;
   dorsal?: number;
+  genero: Genero | null;
 }
 
 // Cada prueba lleva CÓMO se mide: sin eso, dos DT miden distinto y las cartas
@@ -121,6 +122,10 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
       men: resultado.men,
       fotoUrl: null,
       dorsal: jugador.dorsal,
+      // La carta recién nacida se dibuja sin `avatarConfig`, así que el avatar
+      // sale del seed: sin el género acá, la jugadora vería un avatar masculino
+      // justo en el momento que más se mira la carta.
+      genero: jugador.genero,
     };
     return (
       <div className="flex flex-col items-center gap-6 text-center">

@@ -17,7 +17,7 @@ import {
   removerFondoDeImagen,
   ErrorRemocionFondo,
 } from "@/lib/foto/cliente";
-import type { AvatarConfig } from "@/types";
+import type { AvatarConfig, Genero } from "@/types";
 
 // La CSP con 'unsafe-eval' (necesaria para @imgly/background-removal) la fija
 // el proxy por DOCUMENTO, solo en /jugador/perfil. Si se llegó acá navegando
@@ -43,12 +43,14 @@ export function FotoConsentimiento({
   consentimiento,
   avatarConfig,
   seed,
+  genero,
 }: {
   jugadorId: string;
   tieneFoto: boolean;
   consentimiento: boolean;
   avatarConfig: AvatarConfig | null;
   seed: string;
+  genero: Genero | null;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +155,12 @@ export function FotoConsentimiento({
               className="h-full w-full object-cover object-top"
             />
           ) : (
-            <PlayerAvatar config={avatarConfig} seed={seed} className="h-full w-full" />
+            <PlayerAvatar
+              config={avatarConfig}
+              seed={seed}
+              genero={genero}
+              className="h-full w-full"
+            />
           )}
         </div>
         <div>

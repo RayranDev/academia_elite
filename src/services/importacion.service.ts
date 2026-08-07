@@ -7,7 +7,7 @@ import {
   assertMotivoSoporte,
 } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { parseXlsx, plantillaJugadoresXlsx } from "@/lib/xlsx";
+import { parseXlsx, plantillaJugadoresXlsx, sinVaciosAlFinal } from "@/lib/xlsx";
 import { jugadorSchema } from "@/lib/validators/jugador";
 import {
   crearJugador,
@@ -18,7 +18,14 @@ import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { format } from "date-fns";
 
-/** Cabeceras de la plantilla (orden y nombres EXACTOS de la fila 1). */
+/**
+ * Cabeceras de la plantilla (orden y nombres EXACTOS de la fila 1).
+ *
+ * Las columnas OPCIONALES nuevas se agregan AL FINAL, nunca en el medio: acá se
+ * valida por posición, se destructura la fila por índice y `OBLIGATORIAS` tiene
+ * los índices escritos a mano — insertar en el medio corre todo y rompe los
+ * archivos que las escuelas ya tienen llenos.
+ */
 const CABECERAS = [
   "nombre",
   "apellido",
@@ -26,7 +33,11 @@ const CABECERAS = [
   "posicion",
   "dorsal",
   "categoria",
+  "genero",
 ] as const;
+
+/** Cuántas cabeceras del final son opcionales (ver `validarCabeceras`). */
+const CABECERAS_OPCIONALES_AL_FINAL = 1; // genero
 
 /** Columnas obligatorias (todas menos dorsal). */
 const OBLIGATORIAS: { idx: number; etiqueta: string }[] = [
@@ -73,7 +84,7 @@ export async function generarPlantillaJugadores(
 
   const buffer = await plantillaJugadoresXlsx({
     cabeceras: [...CABECERAS],
-    ejemplo: ["Lucas", "García", "2014-03-15", "DEL", "9", categorias[0]?.nombre ?? ""],
+    ejemplo: ["Lucas", "García", "2014-03-15", "DEL", "9", categorias[0]?.nombre ?? "", "M"],
     escuelaNombre: escuela.nombre,
     categorias: categorias.map((c) => c.nombre),
   });
@@ -81,13 +92,23 @@ export async function generarPlantillaJugadores(
   return { filename: `plantilla-jugadores-${escuela.slug}.xlsx`, buffer };
 }
 
-/** Verifica que la fila 1 tenga EXACTAMENTE las cabeceras requeridas. */
+/**
+ * Verifica que la fila 1 traiga las cabeceras requeridas, en orden.
+ *
+ * Se aceptan filas MÁS CORTAS mientras lo único que falte sean las columnas
+ * opcionales del final: una plantilla descargada antes de que existiera
+ * `genero` sigue siendo válida, y una escuela con el archivo a medio llenar no
+ * tiene que rehacerlo cada vez que se agrega una columna opcional.
+ */
 function validarCabeceras(fila: string[] | undefined): void {
-  const actuales = (fila ?? []).map((c) => c.trim().toLowerCase());
+  const actuales = sinVaciosAlFinal(
+    (fila ?? []).map((c) => c.trim().toLowerCase()),
+  );
   const esperadas = CABECERAS.map((c) => c.toLowerCase());
+  const minimas = esperadas.length - CABECERAS_OPCIONALES_AL_FINAL;
   const ok =
-    actuales.length >= esperadas.length &&
-    esperadas.every((h, i) => actuales[i] === h);
+    actuales.length >= minimas &&
+    esperadas.every((h, i) => i >= actuales.length || actuales[i] === h);
   if (!ok) {
     throw new ValidationError(
       `La fila 1 debe tener exactamente estas cabeceras: ${CABECERAS.join(", ")}. Descarga la plantilla.`,
@@ -156,7 +177,9 @@ export async function importarJugadores(
       continue;
     }
 
-    const [nombre, apellido, fechaNacimiento, posicion, dorsal, categoria] = cols;
+    // `genero` puede no existir (archivo de una plantilla anterior): la columna
+    // es opcional y va al final, así que `undefined` es un caso normal.
+    const [nombre, apellido, fechaNacimiento, posicion, dorsal, categoria, genero] = cols;
     const parsed = jugadorSchema.safeParse({
       nombre,
       apellido,
@@ -164,6 +187,7 @@ export async function importarJugadores(
       posicion: posicion.toUpperCase(),
       categoriaId: "x", // la categoría se valida por nombre aparte
       dorsal: dorsal ? dorsal : undefined,
+      genero: genero ? genero.toUpperCase() : undefined,
     });
     if (!parsed.success) {
       errores.push({ fila: numeroFila, mensaje: parsed.error.issues[0]?.message ?? "Fila inválida." });
@@ -189,6 +213,7 @@ export async function importarJugadores(
       fechaNacimiento: parsed.data.fechaNacimiento,
       posicion: parsed.data.posicion,
       dorsal: parsed.data.dorsal ?? null,
+      genero: parsed.data.genero ?? null,
       estado: "ACTIVO",
     });
     yaExiste.add(k); // evita duplicados dentro del mismo archivo

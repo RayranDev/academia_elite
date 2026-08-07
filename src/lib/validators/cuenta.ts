@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GENEROS } from "@/types";
 import { formatearNombre } from "@/lib/texto/formatear-nombre";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 
@@ -56,7 +57,11 @@ export const confirmarCambioEmailSchema = z.object({
     .regex(/^\d{6}$/, { error: "El código son 6 dígitos." }),
 });
 
-/** Corrección de identidad (nombre/apellido/parentesco) de un jugador propio. */
+/**
+ * Corrección de identidad (nombre/apellido/parentesco/género) de un jugador
+ * propio. El género es dato de IDENTIDAD, no deportivo: por eso lo puede
+ * rectificar la familia y no queda solo en manos del DT (HABEAS-DATA.md §8).
+ */
 export const datosJugadorSchema = z.object({
   jugadorId: z.string().min(1),
   nombre: textoSeguro({ min: 2, max: 60, error: "Nombre requerido." }).transform(
@@ -66,4 +71,9 @@ export const datosJugadorSchema = z.object({
     formatearNombre,
   ),
   parentesco: parentescoOpcional,
+  // Se puede volver a "sin declarar": rectificar incluye retirar el dato.
+  genero: z
+    .union([z.literal(""), z.enum(GENEROS)])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
 });

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AvatarPicker } from "@/components/avatar/AvatarPicker";
 import type { AvatarConfigV2 } from "@/lib/avatar/toon-head";
 import { avatarDesdeSeed } from "@/lib/avatar/config";
+import type { Genero } from "@/types";
 import { actualizarAvatarAction } from "@/actions/jugador.actions";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -13,13 +14,17 @@ export function AvatarEditor({
   jugadorId,
   inicial,
   seed,
+  genero,
 }: {
   jugadorId: string;
   inicial: AvatarConfigV2 | null;
   seed: string;
+  genero: Genero | null;
 }) {
   const router = useRouter();
-  const [cfg, setCfg] = useState<AvatarConfigV2>(inicial ?? avatarDesdeSeed(seed));
+  // Punto de partida del editor = el mismo avatar que ya se ve en la carta, así
+  // que arranca del género declarado cuando todavía no hay config guardada.
+  const [cfg, setCfg] = useState<AvatarConfigV2>(inicial ?? avatarDesdeSeed(seed, genero));
   const [guardado, setGuardado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();

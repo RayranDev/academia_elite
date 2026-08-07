@@ -1892,6 +1892,70 @@ criterio, y la función ahora devuelve `fecha` (de la evaluación) en vez de
 
 ---
 
+## 49. Género del jugador: dato propio y avatar que lo respeta (2026-08-07)
+
+Cierra el hallazgo B de #47: **todas las jugadoras recibían avatar masculino**.
+`avatarDesdeSeed` fijaba `rearHair: -1`, así que el pelo largo no se generaba
+nunca; las 4 chicas de la categoría femenina salían con cara de varón. La
+migración vieja (`mapV1aV2`) sí contemplaba género — el default por seed lo
+había perdido.
+
+No era un arreglo mecánico: no existía campo `genero` en `Jugador`, así que
+había que decidir si recolectar un dato personal nuevo **de un menor**. Las 5
+decisiones quedaron en `DECISIONES.md` §86; la que ordena todo lo demás es la
+**finalidad**: el dato se declara para la *organización deportiva* (la escuela
+arma categorías femeninas) *y* el avatar. Recogerlo "para dibujarle el pelo" a
+un menor no habría pasado el principio de minimización de la Ley 1581.
+
+**Lo construido.** `Jugador.genero String?` (`M | F | X`, opcional; migración
+`20260807120000_jugador_genero`, sin bloque RLS porque no crea tabla).
+`avatarDesdeSeed(seed, genero?)`: `F` → siempre una variante de `REAR_HAIR`;
+`M` → `-1` como hasta hoy; `X` o sin declarar → varía por seed **incluyendo
+`-1`. Esa última rama es la que rompe el sesgo sin esperar a que nadie cargue
+el dato. El género viaja por la misma cadena que ya recorría `avatarConfig`
+(`JugadorRow` → `PlayerCardData` → `PlayerCard` → `PlayerAvatar`), y se captura
+en los **4 puntos donde nace un jugador** (alta del DT, los 2 imports por Excel
+y el auto-registro familiar) y en los **2 donde se edita su identidad**.
+
+**La edición por la familia no era un extra sino una obligación**:
+`HABEAS-DATA.md` §8 le da al titular el derecho a actualizar y rectificar, y
+rectificar incluye *retirar* el dato — por eso los schemas de edición
+normalizan el vacío a `null` (el update escribe el null) mientras los de alta
+colapsan a `undefined`.
+
+**Política**: `HABEAS-DATA.md` §4 suma género a "Identificación del menor" (no
+es dato sensible —art. 5 apunta a salud y orientación sexual— pero sí de NNA);
+la página pública `/legal` enumera los datos textualmente y también se
+actualizó, porque si no el texto publicado quedaba mintiendo; y
+`TERMINOS_VERSION` sube 1.0 → 1.1: las familias ya registradas conservan `1.0`
+como prueba de que consintieron un texto sin género.
+
+**Excel, la parte frágil**: las 2 plantillas validan cabeceras por POSICIÓN y
+destructuran la fila por índice, así que la columna va **al final**. Además se
+aflojó `validarCabeceras` para aceptar filas más cortas cuando lo único que
+falta son columnas opcionales de la cola — sin eso, cada archivo que las
+escuelas ya tenían descargado dejaba de servir. Apareció un flanco extra
+(`parseXlsx` rellena hasta `columnCount`, y una columna fantasma se comparaba
+contra una cabecera real): se resolvió con `sinVaciosAlFinal`, exportado y
+testeado.
+
+**Verificación**: typecheck/lint limpios y **358 tests** (eran 344). Los tests
+del avatar miden la *distribución* sobre 40 semillas, no un caso suelto —
+justamente porque el bug era que una sola rama valía para todos. Backup de las
+40 tablas antes de migrar. Chequeo contra los jugadores reales del schema
+`e2e`: sin género declarado pasaron de **0/8** a 6/8 con pelo trasero (de las 4
+variantes, 2 son largas y 2 medias, así que la distribución real queda ~20%
+corto / 40% medio / 40% largo), y con `F` declarado las 4 jugadoras reciben
+pelo largo.
+
+**Pendiente que deja abierto, a propósito**: la decisión §86 dice que el género
+tiene que ser VISIBLE donde la escuela organiza (ficha del DT, export) para que
+la finalidad declarada no sea papel mojado. Hoy es editable en gestión y en la
+cuenta familiar, pero **todavía no se muestra en la ficha del DT ni sale en
+ningún export** — anotado en `PENDIENTES.md`.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

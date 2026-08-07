@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { POSICIONES } from "@/types";
+import { POSICIONES, GENEROS } from "@/types";
 import { passwordSchema } from "@/lib/validators/auth";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 import { formatearNombre } from "@/lib/texto/formatear-nombre";
@@ -27,6 +27,11 @@ export const registroSchema = z
     jugadorApellido: textoSeguro({ min: 2, max: 60, error: "Apellido requerido." }).transform(formatearNombre),
     fechaNacimiento: z.coerce.date({ error: "Fecha de nacimiento inválida." }),
     posicion: z.enum(POSICIONES),
+    // Opcional: el select vacío llega como "" y se normaliza a undefined.
+    genero: z
+      .union([z.literal(""), z.enum(GENEROS)])
+      .optional()
+      .transform((v) => (v === "" ? undefined : v)),
     aceptaTerminos: aceptaTerminosSchema,
   })
   .refine((d) => d.password === d.confirmacion, {

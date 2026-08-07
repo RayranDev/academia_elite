@@ -7,7 +7,7 @@ import {
   assertSoportePuedeEscribir,
   assertMotivoSoporte,
 } from "@/lib/auth/guards";
-import { parseXlsx, plantillaXlsx } from "@/lib/xlsx";
+import { parseXlsx, plantillaXlsx, sinVaciosAlFinal } from "@/lib/xlsx";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { evaluarJugadorCore } from "@/services/evaluacion.service";
 import { registrarAuditoria } from "@/services/audit.service";
@@ -30,6 +30,11 @@ import { entrenadorDeCategoria } from "@/repositories/entrenador.repository";
  * Para el SA/Escuela cada evaluación se imputa al DT de la categoría del jugador.
  */
 
+/**
+ * Cabeceras de la jornada. Las columnas OPCIONALES nuevas van AL FINAL: acá se
+ * valida por posición y cada celda se lee por índice (`cols[6]`…), así que
+ * insertar en el medio corre todo y rompe los archivos ya llenos.
+ */
 const CABECERAS = [
   "codigoJugador",
   "nombre",
@@ -49,7 +54,14 @@ const CABECERAS = [
   "concentracion",
   "trabajoEquipo",
   "resiliencia",
+  "genero",
 ] as const;
+
+/** Cuántas cabeceras del final son opcionales (ver `validarCabeceras`). */
+const CABECERAS_OPCIONALES_AL_FINAL = 1; // genero
+
+/** Índice de la columna `genero` (solo se usa al dar de alta un jugador nuevo). */
+const COL_GENERO = CABECERAS.indexOf("genero");
 
 const MAX_FILAS = 300;
 
@@ -98,12 +110,20 @@ async function resolverAlcance(ctx: AuthContext, escuelaId?: string): Promise<Al
   return { escuelaId: id, categoriaIds: cats.map((c) => c.id), entrenadorFijo: null };
 }
 
+/**
+ * Se aceptan filas MÁS CORTAS mientras lo único que falte sean las columnas
+ * opcionales del final: una jornada descargada antes de que existiera `genero`
+ * tiene que seguir importándose sin que la escuela rehaga el archivo.
+ */
 function validarCabeceras(fila: string[] | undefined): void {
-  const actuales = (fila ?? []).map((c) => c.trim().toLowerCase());
+  const actuales = sinVaciosAlFinal(
+    (fila ?? []).map((c) => c.trim().toLowerCase()),
+  );
   const esperadas = CABECERAS.map((c) => c.toLowerCase());
+  const minimas = esperadas.length - CABECERAS_OPCIONALES_AL_FINAL;
   const ok =
-    actuales.length >= esperadas.length &&
-    esperadas.every((h, i) => actuales[i] === h);
+    actuales.length >= minimas &&
+    esperadas.every((h, i) => i >= actuales.length || actuales[i] === h);
   if (!ok) {
     throw new ValidationError(
       `La fila 1 debe tener exactamente estas cabeceras: ${CABECERAS.join(", ")}. Descarga la plantilla.`,
@@ -136,6 +156,7 @@ export async function generarPlantillaEvaluaciones(
     "Jornada de medición — una fila por jugador.",
     "EVALUAR EXISTENTE: rellena 'codigoJugador' (deja nombre/apellido/fecha/posicion/categoria vacíos).",
     "EVALUAR NUEVO: deja 'codigoJugador' vacío y rellena nombre, apellido, fechaNacimiento (AAAA-MM-DD), posicion (POR/DEF/MED/DEL) y categoria.",
+    "'genero' (última columna) es OPCIONAL y solo aplica al alta de un jugador nuevo: M = masculino, F = femenino, X = prefiere no decirlo. Vacío = sin declarar.",
     "Medidas físicas reales: sprint30m (s), saltoCm (cm), agilidadSeg (s), yoyoNivel.",
     "Técnica y mentalidad (1-10): control, pase, tiro, regate, actitud, concentracion, trabajoEquipo, resiliencia.",
     "",
@@ -159,6 +180,7 @@ export async function generarPlantillaEvaluaciones(
     ejemplo: [
       ejemploExistente, "", "", "", "", "",
       "5.2", "34", "17.5", "12", "7", "6", "6", "7", "8", "7", "8", "7",
+      "", // genero: solo aplica al alta de un jugador nuevo
     ],
     instrucciones,
   });
@@ -263,6 +285,8 @@ export async function importarEvaluaciones(
           posicion: cols[4]?.toUpperCase(),
           categoriaId: "x",
           dorsal: undefined,
+          // Columna opcional del final: puede no venir en un archivo viejo.
+          genero: cols[COL_GENERO] ? cols[COL_GENERO].toUpperCase() : undefined,
         });
         if (!datos.success) {
           errores.push({ fila: numeroFila, mensaje: datos.error.issues[0]?.message ?? "Datos del jugador nuevo inválidos." });
@@ -280,6 +304,7 @@ export async function importarEvaluaciones(
           fechaNacimiento: datos.data.fechaNacimiento,
           posicion: datos.data.posicion,
           dorsal: null,
+          genero: datos.data.genero ?? null,
           estado: "ACTIVO",
         });
         jugadorId = nuevo.id;

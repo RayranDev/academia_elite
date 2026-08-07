@@ -1,0 +1,18 @@
+-- Género del jugador: dato de identificación OPCIONAL (M | F | X).
+--
+-- Por qué: `avatarDesdeSeed` fijaba `rearHair: -1` para todos, así que el pelo
+-- largo no se generaba nunca y TODAS las jugadoras recibían un avatar
+-- masculino. Se descartó el atajo de solo variar el pelo por seed: la escuela
+-- también organiza por género (existe la categoría femenina), y esa finalidad
+-- deportiva es la que justifica recoger el dato frente al principio de
+-- minimización de la Ley 1581 — recogerlo "para dibujarle el pelo" a un menor
+-- no se sostendría.
+--
+-- NULL es un estado legítimo y permanente ("sin declarar"), no un pendiente de
+-- backfill: nadie está obligado a responderlo y "X" (prefiero no decirlo) es
+-- una respuesta distinta de la ausencia. Sin género declarado el avatar varía
+-- el pelo por seed en vez de caer en pelo corto, para que el sesgo original no
+-- sobreviva hasta que cada escuela complete el dato.
+--
+-- Sin bloque RLS: no crea tablas nuevas, y `Jugador` ya tiene RLS activa.
+ALTER TABLE "Jugador" ADD COLUMN "genero" TEXT;
