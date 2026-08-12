@@ -34,6 +34,7 @@ export default async function AdminOverviewPage() {
           titulo="Jugadores activos"
           valor={salud.jugadores.activos}
           sub={`${salud.jugadores.total} en total`}
+          href="/admin/escuelas"
         />
         <Tile
           titulo="Evaluaciones"
@@ -134,12 +135,32 @@ function Tile({
   sub?: string;
   href?: string;
 }) {
+  // La flecha marca los tiles navegables SIN depender del hover: en táctil no hay
+  // hover, y ocho tarjetas idénticas de las que solo algunas responden al toque
+  // se leen como una app rota. Los tiles sin `href` no tienen a dónde llevar: el
+  // SUPER_ADMIN no tiene listados cross-tenant, el detalle de una escuela se abre
+  // por sesión de soporte.
   const body = (
-    <Card className={href ? "transition-colors hover:border-pitch/50" : ""}>
-      <div className="text-3xl font-black tabular">{valor}</div>
+    <Card
+      className={`h-full ${href ? "transition-colors hover:border-pitch/50" : ""}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-3xl font-black tabular">{valor}</div>
+        {href && (
+          <span aria-hidden className="text-lg leading-none text-pitch">
+            →
+          </span>
+        )}
+      </div>
       <div className="mt-1 text-sm text-muted">{titulo}</div>
       {sub && <div className="mt-0.5 text-xs text-muted">{sub}</div>}
     </Card>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
+  return href ? (
+    <Link href={href} className="block">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
 }
