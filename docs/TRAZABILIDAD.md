@@ -2007,6 +2007,37 @@ suyo. Quedó documentado como excepción consciente en el propio tipo.
 
 ---
 
+## 50. El género se ve donde la escuela organiza (2026-08-12)
+
+Cierra el pendiente que dejó abierto el #49, y no era cosmético: `DECISIONES.md`
+§86 declaró que el género se recoge para la **organización deportiva** y el
+avatar, y esa finalidad es la que lo hace proporcionado frente al principio de
+minimización de la Ley 1581. Pero el único que leía el campo era el avatar. Una
+finalidad declarada que nadie ejerce no sostiene nada: o el dato se usa para lo
+que se dijo, o no correspondía pedirlo.
+
+Ahora se muestra en los tres lugares donde la escuela efectivamente organiza:
+la **ficha del jugador** que usa el DT, el **listado de gestión** del
+ESCUELA_ADMIN (que es donde se arman los planteles) y el **export de jugadores**
+en Excel, con una columna "Género" propia. Los DTOs ya traían el campo desde el
+#49, así que fue solo renderizarlo.
+
+Dos criterios que se sostuvieron en los tres lugares: **sin declarar no se
+muestra nada** (ni "—" ni "Sin especificar") para no sugerir un vacío que
+alguien "tenga que" completar —el campo es opcional a propósito—, y la etiqueta
+sale de `ETIQUETA_GENERO` pasando por `aGenero`, no de un cast: el valor es
+texto libre en la BD y uno desconocido tiene que salir vacío en vez de romper
+el Excel de la escuela.
+
+Decisión de alcance: **no** se tocó el export de evaluaciones. Ese reporte es
+sobre rendimiento (OVR, nivel, vencimiento); el género es identidad y su lugar
+es el padrón de jugadores. Sumarlo ahí habría sido ensanchar un reporte por
+inercia, no por una necesidad real.
+
+`typecheck`/`lint` limpios, 358 tests verdes.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

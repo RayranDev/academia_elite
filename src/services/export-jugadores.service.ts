@@ -6,6 +6,8 @@ import ExcelJS from "exceljs";
 import { protegerCelda } from "@/lib/xlsx";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { listarPlantilla, listarJugadoresGestion } from "@/repositories/jugador.repository";
+import { aGenero } from "@/lib/mappers/genero";
+import { ETIQUETA_GENERO } from "@/types";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 
@@ -18,6 +20,7 @@ import { registrarAuditoria } from "@/services/audit.service";
 const CABECERAS = [
   "Apellido",
   "Nombre",
+  "Género",
   "Categoría",
   "Posición",
   "Dorsal",
@@ -30,6 +33,8 @@ const CABECERAS = [
 interface FilaExport {
   apellido: string;
   nombre: string;
+  /** Vacío cuando no se declaró: el campo es opcional (DECISIONES.md §86). */
+  genero: string;
   categoria: string;
   posicion: string;
   dorsal: string;
@@ -37,6 +42,16 @@ interface FilaExport {
   codigo: string;
   familia: string;
   email: string;
+}
+
+/**
+ * Etiqueta legible del género para el reporte, o vacío si no se declaró.
+ * Pasa por `aGenero` en vez de castear: el campo es texto libre en la BD y un
+ * valor desconocido tiene que salir vacío, no romper el Excel de la escuela.
+ */
+function etiquetaGenero(valor: string | null): string {
+  const g = aGenero(valor);
+  return g ? ETIQUETA_GENERO[g] : "";
 }
 
 function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
@@ -62,6 +77,7 @@ async function filasParaActor(
       filas: jugadores.map((j) => ({
         apellido: j.apellido,
         nombre: j.nombre,
+        genero: etiquetaGenero(j.genero),
         categoria: j.categoria.nombre,
         posicion: j.posicion,
         dorsal: j.dorsal != null ? String(j.dorsal) : "",
@@ -86,6 +102,7 @@ async function filasParaActor(
       return {
         apellido: j.apellido,
         nombre: j.nombre,
+        genero: etiquetaGenero(j.genero),
         categoria: j.categoria.nombre,
         posicion: j.posicion,
         dorsal: j.dorsal != null ? String(j.dorsal) : "",
@@ -125,6 +142,7 @@ export async function exportarJugadores(
     ws.addRow([
       protegerCelda(f.apellido),
       protegerCelda(f.nombre),
+      f.genero,
       protegerCelda(f.categoria),
       f.posicion,
       f.dorsal,

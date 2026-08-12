@@ -7,6 +7,7 @@ import { listarObservacionesJugadorDt } from "@/services/sesion.service";
 import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
 import { DomainError } from "@/lib/errors";
+import { ETIQUETA_GENERO } from "@/types";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +52,14 @@ export default async function JugadorDetallePage({
           </h1>
           <p className="text-sm text-muted">
             {detalle.categoriaNombre} · {detalle.posicion} ·{" "}
+            {/* Solo si está declarado: en null no se muestra nada, para no
+                sugerir un vacío que alguien "tenga que" completar — el campo
+                es opcional a propósito (DECISIONES.md §86). */}
+            {detalle.genero && (
+              <>
+                {ETIQUETA_GENERO[detalle.genero]} ·{" "}
+              </>
+            )}
             <Badge tono={detalle.estado === "ACTIVO" ? "pitch" : "neutral"}>
               {detalle.estado}
             </Badge>

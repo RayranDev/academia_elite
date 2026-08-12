@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, Users } from "lucide-react";
+import { ETIQUETA_GENERO } from "@/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -164,6 +165,10 @@ export function JugadoresGestion({
                   </p>
                   <p className="text-xs text-muted">
                     {j.categoriaNombre} · {j.posicion}
+                    {/* Acá es donde la escuela arma sus planteles, así que es
+                        el lugar donde el género tiene que verse (DECISIONES.md
+                        §86). Sin declarar no se muestra nada. */}
+                    {j.genero && ` · ${ETIQUETA_GENERO[j.genero]}`}
                     {j.codigoRef && (
                       <>
                         {" · "}
