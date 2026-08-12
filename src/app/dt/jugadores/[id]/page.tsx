@@ -7,7 +7,6 @@ import { listarObservacionesJugadorDt } from "@/services/sesion.service";
 import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
 import { DomainError } from "@/lib/errors";
-import { ETIQUETA_GENERO } from "@/types";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -15,7 +14,7 @@ import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
 import { crearObjetivoAction } from "@/actions/dt.actions";
-import { STATS_OBJETIVO } from "@/types";
+import { STATS_OBJETIVO, ETIQUETA_GENERO } from "@/types";
 
 export default async function JugadorDetallePage({
   params,
