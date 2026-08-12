@@ -2038,6 +2038,74 @@ inercia, no por una necesidad real.
 
 ---
 
+## 51. Fechas de calendario vs. instantes: el apto médico mostraba un día menos (2026-08-12)
+
+Arranca de un apunte no bloqueante de Guardian Angel —el badge "Vencido" del
+apto médico se calculaba contra `new Date()` en el servidor (UTC)— y al tirar
+del hilo apareció que era la punta de algo más visible.
+
+**El problema de fondo: dos cosas distintas tratadas igual.** Un cumpleaños o
+el vencimiento de un apto médico son días del almanaque, no momentos en el
+tiempo. Pero entran por un `<input type="date">` ("2026-08-12"), `z.coerce.date()`
+los guarda como **medianoche UTC**, y a partir de ahí se los trataba como
+instante. En una zona negativa como la de Colombia (UTC-5) eso rompía dos veces:
+
+1. **Al mostrarlos.** `FechaLocal` formatea en la zona del navegador, así que
+   `2026-08-12T00:00:00Z` se leía **"11 ago"** — un día menos del que la escuela
+   había cargado. Peor: el modal de edición mostraba "12" (usa `slice(0,10)`
+   sobre el ISO), así que la ficha y el formulario se contradecían en pantalla.
+2. **Al compararlos.** El apto se marcaba vencido durante **todo su último día
+   válido**, y desde la tarde anterior.
+
+**El arreglo.** Se separan explícitamente las dos familias. `FechaLocal` queda
+para INSTANTES (creación de un lead, inicio de un evento, una observación),
+donde mostrar la hora del que mira es lo correcto. Nace `FechaCalendario` para
+días del almanaque: formatea a partir de los componentes año/mes/día, sin
+convertir zonas. Al ser determinista en servidor y cliente **no necesita
+`"use client"` ni `suppressHydrationWarning`**, a diferencia de su hermana.
+
+`src/lib/fecha-calendario.ts` (puro, testeado) concentra la regla: `aptoVencido`
+compara días calendario en texto `YYYY-MM-DD` —que ordena igual como texto que
+como fecha y no depende de zona— e `inicioDelDiaUTC` da el corte que necesita
+la consulta agregada. El KPI del dashboard (`contarAptosMedicosVencidos`) pasa a
+usar ese corte en vez de `new Date()`, así el contador y el badge de la ficha no
+pueden contradecirse.
+
+**Alcance medido, no asumido.** Se revisaron los 20+ usos de `FechaLocal`: la
+mayoría son instantes legítimos y no se tocaron. Los mal tratados eran tres:
+`aptoMedicoVence` (ficha del DT), `fechaNacimiento` (solicitudes) y
+`objetivo.fechaLimite` (hub del jugador). `expiraEn` de los códigos de
+invitación parecía candidato pero **no lo es**: se construye como
+`Date.now() + días`, o sea un instante real, y ahí `FechaLocal` está bien.
+
+**El primer intento se quedó a mitad de camino, y Guardian Angel lo marcó.**
+`hoyISO` resolvía el día con `getFullYear/getMonth/getDate`, o sea la zona del
+PROCESO — que en Vercel es UTC. Eso bajaba la ventana rota de ~29 horas a ~5
+(el apto seguía figurando vencido las últimas horas de su día válido en
+Colombia) y encima hacía que la ficha y el KPI pudieran contradecirse, que era
+justamente lo que el cambio decía resolver. Peor: el test titulado "usa el día
+local" inyectaba `ahora`, así que verificaba el parámetro y no el camino que
+corre en producción.
+
+Corregido haciendo la zona **explícita** (`ZONA_ESCUELA = "America/Bogota"`,
+vía `Intl.DateTimeFormat("en-CA")`, que ya devuelve `YYYY-MM-DD`) en vez de
+heredarla del proceso. Hoy es una constante porque la plataforma opera en un
+solo país; el día que haya escuelas en otro huso pasa a ser campo de `Escuela`
+y la firma ya recibe la zona por parámetro. `inicioDelDiaEscuela` se **deriva**
+de `hoyISO` a propósito: así el contador agregado y el badge no pueden
+responder distinto, y hay un test que lo fija recorriendo la franja horaria en
+que UTC y Bogotá difieren.
+
+También se actualizó **`AGENTS.md` §6**, que seguía diciendo solo "fechas en
+cliente con `FechaLocal`". Sin eso el próximo que lea el contrato agarra
+`FechaLocal` para un cumpleaños y reintroduce el bug — que es literalmente lo
+que había pasado dentro de este mismo cambio con `fechaLimite`.
+
+370 tests (eran 358), incluido uno que corre `hoyISO()` **sin inyectar** el
+reloj, para cubrir el único camino que se usa de verdad.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

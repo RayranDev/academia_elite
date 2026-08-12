@@ -163,13 +163,25 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 - **Estilos**: Tailwind v4 vía `@theme` en `src/app/globals.css`. **No hay
   `tailwind.config.js`** ni CSS Modules. Usá tokens del tema, no valores
   hardcodeados. White-label por escuela vía variable CSS `--brand`.
-- **Fechas en cliente con `FechaLocal`.** Nunca formatees una fecha/hora con la
-  zona del servidor (`toLocaleString`, `date-fns format()`) en un componente que
-  se hidrata: el SSR corre en UTC (Vercel) y el cliente en la zona del usuario →
-  hydration mismatch (React #418) que remonta el árbol. Usá
-  `<FechaLocal iso={…} />` (`src/components/ui/FechaLocal.tsx`), que formatea en
-  cliente con `suppressHydrationWarning`. Igual de peligroso: sembrar estado con
-  `new Date()` en el lazy initializer de un `useState` de un client component.
+- **Fechas: primero decidí si es un INSTANTE o un DÍA DE ALMANAQUE.** Son dos
+  tipos distintos y confundirlos ya causó bugs reales (TRAZABILIDAD.md #51).
+  - **Instante** (cuándo se creó un lead, cuándo empieza un evento, cuándo se
+    escribió una observación) → `<FechaLocal iso={…} />`
+    (`src/components/ui/FechaLocal.tsx`). Mostrar la hora del que mira es lo
+    correcto. Nunca formatees con la zona del servidor (`toLocaleString`,
+    `date-fns format()`) en un componente que se hidrata: el SSR corre en UTC
+    (Vercel) y el cliente en la zona del usuario → hydration mismatch
+    (React #418) que remonta el árbol.
+  - **Día de almanaque** (cumpleaños, vencimiento del apto médico, fecha límite
+    de un objetivo: todo lo que entra por un `<input type="date">`) →
+    `<FechaCalendario iso={…} />` (`src/components/ui/FechaCalendario.tsx`).
+    `z.coerce.date()` guarda esos valores como **medianoche UTC**, así que
+    pasarlos por la zona del navegador los corre un día para atrás en Colombia
+    y la pantalla termina mostrando un día menos del que se cargó.
+  - Para **comparar** días (¿está vencido?) usá `src/lib/fecha-calendario.ts`,
+    no `new Date()`: en el servidor eso da el día UTC, no el de la escuela.
+- **Ojo con `new Date()` en el lazy initializer de un `useState`** de un client
+  component: mismo modo de falla que formatear en el servidor.
 
 ---
 

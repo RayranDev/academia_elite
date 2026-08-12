@@ -12,6 +12,8 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
+import { FechaCalendario } from "@/components/ui/FechaCalendario";
+import { aptoVencido } from "@/lib/fecha-calendario";
 import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
 import { crearObjetivoAction } from "@/actions/dt.actions";
 import { STATS_OBJETIVO, ETIQUETA_GENERO } from "@/types";
@@ -246,8 +248,11 @@ function FichaEmergencia({
 }) {
   const hayContacto = ficha.contactoEmergenciaNombre || ficha.contactoEmergenciaTelefono;
   const hayAlgo = hayContacto || ficha.alergias || ficha.aptoMedicoVence;
-  const aptoVencido =
-    ficha.aptoMedicoVence != null && new Date(ficha.aptoMedicoVence) < new Date();
+  // Regla compartida con el KPI del dashboard: vencido solo si el día del
+  // apto es ANTERIOR a hoy — el día del vencimiento todavía vale. Comparar el
+  // instante contra `new Date()` lo marcaba vencido durante todo su último día
+  // válido (y desde la tarde anterior en Colombia).
+  const vencido = aptoVencido(ficha.aptoMedicoVence);
 
   return (
     <Card className="max-w-xl">
@@ -287,8 +292,8 @@ function FichaEmergencia({
           {ficha.aptoMedicoVence && (
             <p>
               <span className="text-muted">Apto médico: </span>
-              <FechaLocal iso={ficha.aptoMedicoVence} formato="d MMM yyyy" />{" "}
-              {aptoVencido && <Badge tono="alerta">Vencido</Badge>}
+              <FechaCalendario iso={ficha.aptoMedicoVence} formato="d MMM yyyy" />{" "}
+              {vencido && <Badge tono="alerta">Vencido</Badge>}
             </p>
           )}
         </div>

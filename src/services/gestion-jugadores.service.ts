@@ -27,6 +27,7 @@ import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorEditarInput, FichaMedicaInput } from "@/lib/validators/gestion";
 import type { Posicion, Genero } from "@/types";
 import { aGenero } from "@/lib/mappers/genero";
+import { inicioDelDiaEscuela } from "@/lib/fecha-calendario";
 
 // Gestión de jugadores (G3/G5): Escuela y Súper Admin; el DT solo resetea
 // contraseñas de familias de SUS categorías. Toda acción sensible se audita.
@@ -372,7 +373,12 @@ export async function contarAptosMedicosVencidosEscuela(
 ): Promise<number> {
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
-  return contarAptosMedicosVencidos(escuelaId, new Date());
+  // Medianoche UTC de hoy, no el instante: el apto se guarda como día de
+  // calendario (medianoche UTC), así que comparar contra `new Date()` contaba
+  // como vencido uno que vence HOY y todavía vale. Misma regla que el badge de
+  // la ficha del DT (`aptoVencido`), para que el contador y la ficha no se
+  // contradigan.
+  return contarAptosMedicosVencidos(escuelaId, inicioDelDiaEscuela());
 }
 
 /** Inactiva o reactiva un jugador, con motivo obligatorio (auditado). */

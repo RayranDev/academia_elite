@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { FechaLocal } from "@/components/ui/FechaLocal";
+import { FechaCalendario } from "@/components/ui/FechaCalendario";
 import type { ObjetivoDTO } from "@/services/hub-jugador.service";
 
 const TONO: Record<string, "pitch" | "oro" | "neutral"> = {
@@ -38,7 +38,7 @@ export function ObjetivosList({ objetivos }: { objetivos: ObjetivoDTO[] }) {
                   Actual: {o.valorActual} ({o.progreso}%)
                 </span>
                 <span>
-                  Límite: <FechaLocal iso={o.fechaLimite} />
+                  Límite: <FechaCalendario iso={o.fechaLimite} />
                 </span>
               </div>
             </li>
