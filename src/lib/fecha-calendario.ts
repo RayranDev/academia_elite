@@ -26,7 +26,14 @@
  */
 export const ZONA_ESCUELA = "America/Bogota";
 
-/** Parte `YYYY-MM-DD` de un ISO, que es el día tal como se cargó. */
+/**
+ * Parte `YYYY-MM-DD` de un ISO, que es el día tal como se cargó.
+ *
+ * ASUME un ISO normalizado a UTC (`Date.toISOString()`), que es lo que
+ * producen todos los DTOs del proyecto. Con un offset explícito
+ * (`2026-08-12T00:00:00-05:00`) el recorte daría el día equivocado en
+ * silencio — cuidado si algún día entra una fecha desde otra fuente.
+ */
 export function diaDeISO(iso: string): string {
   return iso.slice(0, 10);
 }
@@ -49,8 +56,11 @@ export function hoyISO(ahora: Date = new Date(), zona: string = ZONA_ESCUELA): s
  * agregado y el badge de la ficha no pueden responder distinto, que es
  * exactamente lo que pasaba cuando cada uno resolvía "hoy" por su cuenta.
  */
-export function inicioDelDiaEscuela(ahora: Date = new Date()): Date {
-  return new Date(`${hoyISO(ahora)}T00:00:00.000Z`);
+export function inicioDelDiaEscuela(
+  ahora: Date = new Date(),
+  zona: string = ZONA_ESCUELA,
+): Date {
+  return new Date(`${hoyISO(ahora, zona)}T00:00:00.000Z`);
 }
 
 /**
@@ -63,7 +73,8 @@ export function inicioDelDiaEscuela(ahora: Date = new Date()): Date {
 export function aptoVencido(
   aptoMedicoVenceISO: string | null | undefined,
   ahora: Date = new Date(),
+  zona: string = ZONA_ESCUELA,
 ): boolean {
   if (!aptoMedicoVenceISO) return false;
-  return diaDeISO(aptoMedicoVenceISO) < hoyISO(ahora);
+  return diaDeISO(aptoMedicoVenceISO) < hoyISO(ahora, zona);
 }
