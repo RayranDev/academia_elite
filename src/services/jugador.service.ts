@@ -29,7 +29,7 @@ async function estaEnMora(escuelaId: string, jugadorId: string): Promise<boolean
   const impagas = await cuotasImpagasDeJugadores(escuelaId, [jugadorId]);
   const cuotas: CuotaParaDeuda[] = impagas.map((c) => ({
     periodo: c.periodo,
-    concepto: c.concepto,
+    conceptoId: c.conceptoId,
     estado: c.estado,
     monto: null,
     descuento: null,

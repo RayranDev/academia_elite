@@ -235,6 +235,21 @@ export function obtenerJugadoresMinimos(escuelaId: string, ids: string[]) {
   });
 }
 
+/**
+ * Jugadores de la escuela con lo mínimo para llenar un combo de selección.
+ *
+ * Existe para no pasar por `listarJugadoresGestion`, que para el ESCUELA_ADMIN
+ * cruza además las cuotas impagas de todos y calcula la mora de cada uno: un
+ * trabajo caro que un `<datalist>` de dos campos descarta entero.
+ */
+export function listarJugadoresParaCombo(escuelaId: string) {
+  return db.jugador.findMany({
+    where: { escuelaId },
+    select: { id: true, nombre: true, apellido: true },
+    orderBy: [{ apellido: "asc" }, { nombre: "asc" }],
+  });
+}
+
 /** Hijos/cuenta vinculados a un usuario JUGADOR (padre/tutor). */
 export function listarHijos(userId: string) {
   // tenant-global: lookup por propiedad del usuario (padre/cuenta), no por escuela

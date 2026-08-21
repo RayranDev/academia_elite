@@ -7,12 +7,7 @@
  * mes a mes garantiza que la información esté mal justo cuando importa.
  */
 
-/**
- * Desfase horario de la escuela respecto de UTC. Colombia es UTC-5 y no tiene
- * horario de verano, así que una constante alcanza y evita cargar una librería
- * de husos en el servidor.
- */
-export const OFFSET_ESCUELA_HORAS = -5;
+import { diaEscuelaDe } from "@/lib/fecha-calendario";
 
 /**
  * Período AAAA-MM del mes en curso, en la hora de la ESCUELA.
@@ -21,13 +16,16 @@ export const OFFSET_ESCUELA_HORAS = -5;
  * el servidor corre en UTC. El 31 de enero a las 19:00 en Colombia ya es 1 de
  * febrero en UTC, así que la versión ingenua daba por vencidas todas las cuotas
  * de enero cinco horas antes de que el mes cerrara de verdad — marcando en mora a
- * familias que no lo estaban. Se corre el instante al huso de la escuela y se lee
- * en UTC, que sí es determinista.
+ * familias que no lo estaban.
+ *
+ * Se apoya en `diaEscuelaDe` y NO en un offset propio: acá vivía un
+ * `OFFSET_ESCUELA_HORAS = -5` que era una segunda definición de "la zona de la
+ * escuela" al lado de `ZONA_ESCUELA`. Las dos daban lo mismo solo porque
+ * Colombia no tiene horario de verano — o sea, la divergencia iba a sobrevivir
+ * sin que nadie la note hasta el día que dejara de dar lo mismo.
  */
-export function periodoDe(fecha: Date): string {
-  const enZonaEscuela = new Date(fecha.getTime() + OFFSET_ESCUELA_HORAS * 3_600_000);
-  const mes = String(enZonaEscuela.getUTCMonth() + 1).padStart(2, "0");
-  return `${enZonaEscuela.getUTCFullYear()}-${mes}`;
+export function periodoDe(fecha: Date, zona?: string): string {
+  return diaEscuelaDe(fecha, zona).slice(0, 7);
 }
 
 /**
@@ -85,7 +83,7 @@ export function condicionEstadoEfectivo(
 /** Cuota mínima que necesita el cálculo de deuda. */
 export interface CuotaParaDeuda {
   periodo: string;
-  concepto: string;
+  conceptoId: string;
   estado: string;
   monto: number | null;
   descuento: number | null;

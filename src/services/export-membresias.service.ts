@@ -1,7 +1,6 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
 import { protegerCelda } from "@/lib/xlsx";
 import { listarMembresias } from "@/repositories/membresia.repository";
@@ -9,6 +8,8 @@ import { listarJugadoresGestion } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { estadoEfectivo } from "@/lib/cobranza";
+import { diaEscuelaDe, hoyISO } from "@/lib/fecha-calendario";
+import { ESTADOS_MEMBRESIA } from "@/lib/validators/membresia";
 
 /**
  * Exporta la cobranza (cuotas / mora) a Excel: es el listado que el dueño usa
@@ -58,6 +59,18 @@ export async function exportarMembresias(
   const escuela = await obtenerEscuela(escuelaId);
   if (!escuela) throw new NotFoundError("Escuela no encontrada.");
 
+  // El estado se valida ACÁ y no solo en la página: este servicio lo alimenta un
+  // route handler, o sea un borde HTTP (§6). Un `?estado=PAGADO` mal tipeado
+  // devolvía una planilla vacía en vez de un error, y quien la abría concluía
+  // que no hay nada para cobrar.
+  //
+  // Va ANTES de la auditoría: el AuditLog es el registro de lo que pasó, y una
+  // entrada de "alguien exportó datos de menores" por un pedido que se rechazó
+  // ensucia justo la traza que alguien va a mirar durante un incidente.
+  if (opciones.estado && !(ESTADOS_MEMBRESIA as readonly string[]).includes(opciones.estado)) {
+    throw new ValidationError("Estado de cuota desconocido.");
+  }
+
   // Los exports descargan datos de menores: quedan en el AuditLog (§5.1).
   await registrarAuditoria(ctx, {
     accion: "EXPORT_MEMBRESIAS",
@@ -85,7 +98,9 @@ export async function exportarMembresias(
     : membresias;
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Academia Elite";
+  // El nombre del tenant, no el de la escuela demo: hasta acá se stampaba
+  // "Academia Elite" en la planilla de cobranza de todas las escuelas.
+  wb.creator = escuela.nombre;
   wb.created = new Date();
   const ws = wb.addWorksheet("Cobranza");
   ws.addRow([...CABECERAS]);
@@ -108,12 +123,16 @@ export async function exportarMembresias(
       protegerCelda(j?.padre?.nombre ?? ""),
       protegerCelda(familia?.email ?? ""),
       m.periodo,
-      m.concepto,
+      protegerCelda(m.conceptoCobro.nombre),
       estadoEfectivo(m.estado, m.periodo, hoy),
       monto ?? "",
       descuento ?? "",
       neto ?? "",
-      m.pagadaEn ? format(m.pagadaEn, "yyyy-MM-dd") : "",
+      // `pagadaEn` es un INSTANTE. Formatearlo con date-fns lo lee en la zona
+      // del PROCESO, que en Vercel es UTC: un pago tomado a las 19:00 en
+      // Colombia salía informado al día siguiente, y el que concilia contra el
+      // banco veía una fecha que la app no confirmaba.
+      m.pagadaEn ? diaEscuelaDe(m.pagadaEn) : "",
       m.medioPago ?? "",
       protegerCelda(m.referenciaPago ?? ""),
       bloqueado ? "Bloqueado" : "Activo",
@@ -131,7 +150,7 @@ export async function exportarMembresias(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replaceAll("-", "");
   return {
     filename: `cobranza-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

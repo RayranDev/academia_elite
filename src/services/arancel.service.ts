@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela } from "@/lib/auth/guards";
 import { NotFoundError, ValidationError } from "@/lib/errors";
@@ -6,10 +5,15 @@ import {
   listarAranceles,
   obtenerArancel,
   crearArancel,
+  reemplazarArancel,
   desactivarArancel,
   actualizarArancel,
 } from "@/repositories/arancel.repository";
 import { listarCategorias } from "@/repositories/categoria.repository";
+import {
+  resolverConceptoDelTenant,
+  resolverConceptoActivo,
+} from "@/services/concepto-cobro.service";
 import { registrarAuditoria } from "@/services/audit.service";
 import type { ArancelInput, EditarArancelInput } from "@/lib/validators/arancel";
 
@@ -17,7 +21,9 @@ export interface ArancelDTO {
   id: string;
   categoriaId: string | null;
   categoriaNombre: string;
-  concepto: string;
+  conceptoId: string;
+  /** Nombre actual del concepto. La UI muestra esto, nunca el `codigo`. */
+  conceptoNombre: string;
   monto: number;
   descripcion: string | null;
   vigenteDesde: string;
@@ -39,7 +45,8 @@ export async function listarArancelesEscuela(
     id: a.id,
     categoriaId: a.categoriaId,
     categoriaNombre: a.categoria?.nombre ?? "Todas las categorías",
-    concepto: a.concepto,
+    conceptoId: a.conceptoId,
+    conceptoNombre: a.conceptoCobro.nombre,
     monto: aNumero(a.monto),
     descripcion: a.descripcion,
     vigenteDesde: a.vigenteDesde.toISOString(),
@@ -72,27 +79,20 @@ export async function crearArancelEscuela(
       throw new NotFoundError("Categoría no encontrada.");
     }
   }
+  // Mismo criterio con el concepto: llega como id desde el formulario.
+  const concepto = await resolverConceptoActivo(ctx, input.conceptoId);
 
   if (reemplazarId) {
     const previo = await obtenerArancel(escuelaId, reemplazarId);
     if (!previo) throw new NotFoundError("Precio a reemplazar no encontrado.");
     if (!previo.activo) throw new ValidationError("Ese precio ya está inactivo.");
 
-    const creado = await db.$transaction(async (tx) => {
-      await tx.arancel.updateMany({
-        where: { id: reemplazarId, escuelaId },
-        data: { activo: false },
-      });
-      return tx.arancel.create({
-        data: {
-          escuelaId,
-          categoriaId: input.categoriaId,
-          concepto: input.concepto,
-          monto: input.monto,
-          descripcion: input.descripcion,
-          vigenteDesde: input.vigenteDesde,
-        },
-      });
+    const creado = await reemplazarArancel(escuelaId, reemplazarId, {
+      categoriaId: input.categoriaId,
+      conceptoId: input.conceptoId,
+      monto: input.monto,
+      descripcion: input.descripcion,
+      vigenteDesde: input.vigenteDesde,
     });
 
     await registrarAuditoria(ctx, {
@@ -107,14 +107,14 @@ export async function crearArancelEscuela(
       entidad: "Arancel",
       entidadId: creado.id,
       escuelaId,
-      motivo: `${input.concepto} ${input.monto}`,
+      motivo: `${concepto.nombre} ${input.monto}`,
     });
     return;
   }
 
   const creado = await crearArancel(escuelaId, {
     categoriaId: input.categoriaId,
-    concepto: input.concepto,
+    conceptoId: input.conceptoId,
     monto: input.monto,
     descripcion: input.descripcion,
     vigenteDesde: input.vigenteDesde,
@@ -124,7 +124,7 @@ export async function crearArancelEscuela(
     entidad: "Arancel",
     entidadId: creado.id,
     escuelaId,
-    motivo: `${input.concepto} ${input.monto}`,
+    motivo: `${concepto.nombre} ${input.monto}`,
   });
 }
 
@@ -139,13 +139,14 @@ export async function desactivarArancelEscuela(
   if (!a) throw new NotFoundError("Arancel no encontrado.");
   if (!a.activo) throw new ValidationError("Ese precio ya está inactivo.");
 
+  const concepto = await resolverConceptoDelTenant(ctx, a.conceptoId);
   await desactivarArancel(escuelaId, arancelId);
   await registrarAuditoria(ctx, {
     accion: "ARANCEL_DESACTIVAR",
     entidad: "Arancel",
     entidadId: arancelId,
     escuelaId,
-    motivo: a.concepto,
+    motivo: concepto.nombre,
   });
 }
 
@@ -164,9 +165,23 @@ export async function editarArancelEscuela(
     }
   }
 
+  const previo = await obtenerArancel(escuelaId, input.id);
+  if (!previo) throw new NotFoundError("Arancel no encontrado.");
+
+  // Exige concepto ACTIVO solo si lo está CAMBIANDO. Si el precio ya colgaba de
+  // un concepto que la escuela archivó después, corregirle el monto tiene que
+  // seguir siendo posible: `ConceptoSelect` justamente lo muestra deshabilitado
+  // para que se pueda guardar el resto sin reasignarlo. Bloquear acá dejaba ese
+  // precio imposible de editar — pero sí de dar de baja, que usa el resolver
+  // sin filtro.
+  const concepto =
+    input.conceptoId === previo.conceptoId
+      ? await resolverConceptoDelTenant(ctx, input.conceptoId)
+      : await resolverConceptoActivo(ctx, input.conceptoId);
+
   const { count } = await actualizarArancel(escuelaId, input.id, {
     categoriaId: input.categoriaId,
-    concepto: input.concepto,
+    conceptoId: input.conceptoId,
     monto: input.monto,
     descripcion: input.descripcion,
     vigenteDesde: input.vigenteDesde,
@@ -178,6 +193,6 @@ export async function editarArancelEscuela(
     entidad: "Arancel",
     entidadId: input.id,
     escuelaId,
-    motivo: `${input.concepto} ${input.monto}`,
+    motivo: `${concepto.nombre} ${input.monto}`,
   });
 }

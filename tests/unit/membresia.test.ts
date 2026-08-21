@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   membresiaSchema,
   cambiarEstadoMembresiaSchema,
-  CONCEPTOS_MEMBRESIA,
   MEDIOS_PAGO,
 } from "@/lib/validators/membresia";
 
@@ -12,15 +11,16 @@ import {
 const base = {
   jugadorId: "jug_1",
   periodo: "2026-06",
+  conceptoId: "cpt_mensualidad",
   estado: "PENDIENTE" as const,
 };
 
 describe("membresiaSchema", () => {
-  it("acepta un cobro mínimo y asume MENSUALIDAD", () => {
+  it("acepta un cobro mínimo", () => {
     const r = membresiaSchema.safeParse(base);
     expect(r.success).toBe(true);
     if (r.success) {
-      expect(r.data.concepto).toBe("MENSUALIDAD");
+      expect(r.data.conceptoId).toBe("cpt_mensualidad");
       expect(r.data.monto).toBeNull();
       expect(r.data.descuento).toBeNull();
     }
@@ -51,11 +51,16 @@ describe("membresiaSchema", () => {
     expect(membresiaSchema.safeParse({ ...base, monto: "-1" }).success).toBe(false);
   });
 
-  it("rechaza un concepto inventado", () => {
-    expect(membresiaSchema.safeParse({ ...base, concepto: "ASADO" }).success).toBe(false);
-    for (const c of CONCEPTOS_MEMBRESIA) {
-      expect(membresiaSchema.safeParse({ ...base, concepto: c }).success).toBe(true);
-    }
+  // El concepto dejó de ser un enum de la plataforma: es un id del catálogo de
+  // la escuela. Zod solo exige que venga; que sea DEL TENANT lo verifica
+  // `resolverConceptoDelTenant` en el servicio, que sí puede ir a la base.
+  it("exige el concepto pero no lo valida contra una lista fija", () => {
+    expect(membresiaSchema.safeParse({ ...base, conceptoId: "" }).success).toBe(false);
+    const { conceptoId: _omitido, ...sinConcepto } = base;
+    expect(membresiaSchema.safeParse(sinConcepto).success).toBe(false);
+    expect(
+      membresiaSchema.safeParse({ ...base, conceptoId: "cpt_torneo_bogota" }).success,
+    ).toBe(true);
   });
 });
 

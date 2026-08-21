@@ -5,8 +5,13 @@ import {
   contarMembresiasPorPestana,
 } from "@/services/membresia.service";
 import { listarArancelesEscuela } from "@/services/arancel.service";
-import { listarJugadoresGestion } from "@/services/gestion-jugadores.service";
-import { ESTADOS_MEMBRESIA, etiquetaEstado } from "@/lib/validators/membresia";
+import { listarConceptosEscuela } from "@/services/concepto-cobro.service";
+import { listarJugadoresParaSelector } from "@/services/gestion-jugadores.service";
+import {
+  ESTADOS_MEMBRESIA,
+  etiquetaEstado,
+  periodoValido,
+} from "@/lib/validators/membresia";
 import { MembresiasPanel } from "@/components/escuela/MembresiasPanel";
 import { GenerarCuotasCard } from "@/components/escuela/GenerarCuotasCard";
 import { FiltroJugadorMembresias } from "@/components/escuela/FiltroJugadorMembresias";
@@ -14,8 +19,6 @@ import { Paginacion } from "@/components/ui/Paginacion";
 
 const FILTRO_BASE =
   "rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors";
-
-const PERIODO_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Arma el querystring de las pestañas de estado: preserva período/jugador, resetea page. */
 function hrefPestana(
@@ -52,22 +55,41 @@ export default async function MembresiasPage({
   // Solo se acepta un estado conocido: el resto se ignora en vez de devolver
   // una lista vacía y hacer creer que no hay cuotas.
   const filtro = ESTADOS_MEMBRESIA.find((e) => e === estado);
-  // Mismo criterio defensivo que `periodoSchema`: si no matchea AAAA-MM, se
-  // ignora en vez de mandarlo crudo a la base.
-  const periodo = periodoParam && PERIODO_REGEX.test(periodoParam) ? periodoParam : undefined;
+  // Misma regla que `periodoSchema`, importada y no recopiada: si no matchea
+  // AAAA-MM se ignora, en vez de mandarlo crudo a la base.
+  const periodo = periodoValido(periodoParam) ? periodoParam : undefined;
   const page = pageStr ? Math.max(1, parseInt(pageStr, 10) || 1) : 1;
 
-  const [res, contadores, jugadoresRes, aranceles] = await Promise.all([
+  const [res, contadores, jugadoresRes, aranceles, conceptos] = await Promise.all([
     listarMembresiasEscuela(ctx, { periodo, jugadorId, estado: filtro, page, limit: 20 }),
     contarMembresiasPorPestana(ctx, { periodo, jugadorId }),
-    listarJugadoresGestion(ctx, { limit: 10000 }),
+    // Solo id/nombre/apellido para el combo: `listarJugadoresGestion` además
+    // cruza las cuotas impagas de TODOS los jugadores y calcula la mora de cada
+    // uno, y acá eso se descartaba entero en cada render de la página.
+    listarJugadoresParaSelector(ctx),
     listarArancelesEscuela(ctx),
+    listarConceptosEscuela(ctx, true),
   ]);
 
-  const jugadoresParaFiltro = jugadoresRes.items.map((j) => ({
+  const jugadoresParaFiltro = jugadoresRes.map((j) => ({
     id: j.id,
     nombre: `${j.apellido}, ${j.nombre}`,
   }));
+
+  // Precios activos aplanados para que la tarjeta decida, con `resolverArancel`,
+  // si el concepto Y el período que el usuario tiene elegidos tienen precio.
+  // Resolverlo acá obligaría a fijarlo al mes de hoy y a recopiar el filtro de
+  // vigencia, que es de `resolverArancel`: dos copias de la misma regla, y la
+  // que decide si aparece el aviso de "cuotas sin monto" sería la copia vieja.
+  const preciosActivos = aranceles
+    .filter((a) => a.activo)
+    .map((a) => ({
+      id: a.id,
+      categoriaId: a.categoriaId,
+      conceptoId: a.conceptoId,
+      monto: a.monto,
+      vigenteDesde: a.vigenteDesde,
+    }));
 
   // Filtros activos, para el link de descarga y el form de período.
   const exportParams = new URLSearchParams();
@@ -173,7 +195,10 @@ export default async function MembresiasPage({
         </form>
 
         <div>
-          <label className="mb-1 block text-xs text-muted">Jugador</label>
+          {/* `<span>` y no `<label>`: un label sin `htmlFor` que no envuelve al
+              control no etiqueta nada. El nombre accesible del combo lo da su
+              propio `aria-label`; esto es solo el rótulo visual. */}
+          <span className="mb-1 block text-xs text-muted">Jugador</span>
           <FiltroJugadorMembresias
             jugadores={jugadoresParaFiltro}
             jugadorIdActual={jugadorId}
@@ -181,8 +206,12 @@ export default async function MembresiasPage({
         </div>
       </div>
 
-      <GenerarCuotasCard hayAranceles={aranceles.some((a) => a.activo)} />
-      <MembresiasPanel membresias={res.items} jugadores={jugadoresParaFiltro} />
+      <GenerarCuotasCard preciosActivos={preciosActivos} conceptos={conceptos} />
+      <MembresiasPanel
+        membresias={res.items}
+        jugadores={jugadoresParaFiltro}
+        conceptos={conceptos}
+      />
       <Paginacion page={res.page} totalPages={res.totalPages} totalItems={res.total} />
     </div>
   );

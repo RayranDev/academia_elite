@@ -6,14 +6,13 @@ import {
   crearArancelAction,
   desactivarArancelAction,
 } from "@/actions/arancel.actions";
-import {
-  CONCEPTOS_MEMBRESIA,
-  etiquetaConcepto,
-} from "@/lib/validators/membresia";
+import { ConceptoSelect } from "@/components/escuela/ConceptoSelect";
+import type { ConceptoCobroDTO } from "@/services/concepto-cobro.service";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { FechaLocal } from "@/components/ui/FechaLocal";
+import { FechaCalendario } from "@/components/ui/FechaCalendario";
+import { diaDeISO, hoyISO } from "@/lib/fecha-calendario";
 import { formatearMonto } from "@/lib/cobranza";
 import { EditarArancelModal } from "@/components/escuela/EditarArancelModal";
 import type { ArancelDTO } from "@/services/arancel.service";
@@ -24,9 +23,11 @@ const input =
 export function ArancelesPanel({
   aranceles,
   categorias,
+  conceptos,
 }: {
   aranceles: ArancelDTO[];
   categorias: { id: string; nombre: string }[];
+  conceptos: ConceptoCobroDTO[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -43,16 +44,29 @@ export function ArancelesPanel({
     const fd = new FormData(form);
 
     const categoriaId = (fd.get("categoriaId") as string) || null;
-    const concepto = fd.get("concepto") as string;
-    const duplicado = aranceles.find(
-      (a) => a.activo && a.categoriaId === categoriaId && a.concepto === concepto,
-    );
+    const conceptoId = fd.get("conceptoId") as string;
+
+    // Un precio con fecha FUTURA es un aumento programado, no un reemplazo:
+    // `resolverArancel` lo ignora hasta que llega su fecha. Ofrecer reemplazar
+    // ahí desactivaba el precio HOY vigente, y `listarArancelesActivos` filtra
+    // por `activo`, así que la escuela quedaba sin ningún precio aplicable y el
+    // mes entero se emitía sin monto — justo lo contrario de lo que quiso hacer.
+    const vigenteDesde = (fd.get("vigenteDesde") as string) || "";
+    const esProgramado = vigenteDesde !== "" && vigenteDesde > hoyISO();
+
+    const duplicado = esProgramado
+      ? undefined
+      : aranceles.find(
+          (a) => a.activo && a.categoriaId === categoriaId && a.conceptoId === conceptoId,
+        );
     if (duplicado) {
-      const fecha = new Date(duplicado.vigenteDesde).toLocaleDateString("es-CO");
+      // Mismo motivo que en la tabla: `vigenteDesde` es un día de almanaque, y
+      // pasarlo por la zona del navegador lo corre un día para atrás.
+      const fecha = diaDeISO(duplicado.vigenteDesde);
       const confirmar = window.confirm(
-        `Ya hay un precio activo de ${etiquetaConcepto(concepto)} para ` +
+        `Ya hay un precio activo de ${duplicado.conceptoNombre} para ` +
           `${duplicado.categoriaNombre}: ${formatearMonto(duplicado.monto)} ` +
-          `(rige desde ${fecha}). ¿Reemplazarlo por el nuevo?`,
+          `(rige desde ${fecha}). ¿Darlo de baja y reemplazarlo por el nuevo?`,
       );
       if (!confirmar) return;
       fd.set("reemplazarId", duplicado.id);
@@ -90,11 +104,7 @@ export function ArancelesPanel({
             <label className="mb-1 block text-xs text-muted" htmlFor="concepto">
               Concepto
             </label>
-            <select id="concepto" name="concepto" defaultValue="MENSUALIDAD" className={input}>
-              {CONCEPTOS_MEMBRESIA.map((c) => (
-                <option key={c} value={c}>{etiquetaConcepto(c)}</option>
-              ))}
-            </select>
+            <ConceptoSelect id="concepto" conceptos={conceptos} className={input} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-muted" htmlFor="monto">
@@ -170,13 +180,16 @@ export function ArancelesPanel({
               {aranceles.map((a) => (
                 <tr key={a.id} className="border-b border-subtle/50">
                   <td className="px-4 py-2">{a.categoriaNombre}</td>
-                  <td className="px-4 py-2 text-muted">
-                    {etiquetaConcepto(a.concepto)}
-                  </td>
+                  <td className="px-4 py-2 text-muted">{a.conceptoNombre}</td>
                   <td className="px-4 py-2 tabular">{formatearMonto(a.monto)}</td>
                   <td className="px-4 py-2 text-muted">{a.descripcion ?? "—"}</td>
                   <td className="px-4 py-2 text-muted">
-                    <FechaLocal iso={a.vigenteDesde} formato="d MMM yyyy" />
+                    {/* Día de almanaque, no instante (AGENTS.md §6): entra por
+                        un <input type="date"> y se guarda a medianoche UTC.
+                        Con <FechaLocal/> en Colombia se leía un día menos que
+                        el cargado — y distinto de lo que muestra el modal de
+                        edición, que ya cortaba el ISO. */}
+                    <FechaCalendario iso={a.vigenteDesde} formato="d MMM yyyy" />
                   </td>
                   <td className="px-4 py-2">
                     <Badge tono={a.activo ? "pitch" : "alerta"}>
@@ -206,6 +219,7 @@ export function ArancelesPanel({
         <EditarArancelModal
           arancel={editando}
           categorias={categorias}
+          conceptos={conceptos}
           onClose={(cambio) => {
             setEditando(null);
             if (cambio) router.refresh();

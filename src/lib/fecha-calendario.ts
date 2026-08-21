@@ -39,13 +39,46 @@ export function diaDeISO(iso: string): string {
 }
 
 /**
- * Hoy en `YYYY-MM-DD` según la zona de la escuela.
+ * Qué día del almanaque de la ESCUELA es un instante dado, en `YYYY-MM-DD`.
+ *
+ * Es el puente en la dirección contraria a `diaDeISO`: toma algo que sí es un
+ * momento en el tiempo (cuándo se registró un pago, cuándo se creó un lead) y
+ * dice en qué día cae para la escuela. Sin esto, formatear un instante con
+ * `date-fns` en el servidor da el día UTC: un pago tomado a las 19:00 en
+ * Colombia sale informado al día siguiente.
  *
  * `en-CA` porque su formato corto ES `YYYY-MM-DD`: evita armar el string a
  * mano desde getters, que es justo donde se colaba la zona del proceso.
  */
+export function diaEscuelaDe(
+  instante: Date,
+  zona: string = ZONA_ESCUELA,
+): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(instante);
+}
+
+/** Hoy en `YYYY-MM-DD` según la zona de la escuela. */
 export function hoyISO(ahora: Date = new Date(), zona: string = ZONA_ESCUELA): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(ahora);
+  return diaEscuelaDe(ahora, zona);
+}
+
+/**
+ * Desfase de la zona de la escuela respecto de UTC, en milisegundos, PARA UN
+ * INSTANTE DADO.
+ *
+ * Existe para el puñado de cálculos que necesitan un instante y no un día
+ * (`inicioDeMes` del perfil del DT). Se deriva de `ZONA_ESCUELA` en vez de
+ * hardcodear −5: la constante suelta era una segunda definición de la zona, y
+ * coincidía solo porque Colombia no tiene horario de verano. Con el offset
+ * calculado sobre el instante, una zona con DST también daría bien.
+ */
+export function offsetEscuelaMs(
+  instante: Date,
+  zona: string = ZONA_ESCUELA,
+): number {
+  const enZona = new Date(instante.toLocaleString("en-US", { timeZone: zona }));
+  const enUtc = new Date(instante.toLocaleString("en-US", { timeZone: "UTC" }));
+  return enZona.getTime() - enUtc.getTime();
 }
 
 /**

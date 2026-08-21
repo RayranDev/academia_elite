@@ -72,15 +72,15 @@ model TokenAuth {
 }
 
 model Escuela {
-  id                       String             @id @default(cuid())
+  id                       String                 @id @default(cuid())
   nombre                   String
-  slug                     String             @unique
-  codigoRef                String?            @unique // código humano de referencia (soporte): "ESC-7F4A2"
+  slug                     String                 @unique
+  codigoRef                String?                @unique // código humano de referencia (soporte): "ESC-7F4A2"
   logoUrl                  String?
-  colorPrimario            String             @default("#4ADE80")
-  frecuenciaEvaluacionDias Int                @default(30)
-  topeBonusEntreEvals      Int                @default(3)
-  activa                   Boolean            @default(true)
+  colorPrimario            String                 @default("#4ADE80")
+  frecuenciaEvaluacionDias Int                    @default(30)
+  topeBonusEntreEvals      Int                    @default(3)
+  activa                   Boolean                @default(true)
   users                    User[]
   sedes                    Sede[]
   categorias               Categoria[]
@@ -96,7 +96,9 @@ model Escuela {
   descuentoReglas          DescuentoRegla[]
   staff                    Staff[]
   categoriaRangosFisicos   CategoriaRangoFisico[]
-  createdAt                DateTime           @default(now())
+  conceptosCobro           ConceptoCobro[]
+  pagos                    Pago[]
+  createdAt                DateTime               @default(now())
 }
 
 model Sede {
@@ -119,19 +121,19 @@ model Cancha {
 }
 
 model Categoria {
-  id           String                @id @default(cuid())
-  escuelaId    String
-  escuela      Escuela               @relation(fields: [escuelaId], references: [id])
-  nombre       String // "Sub-12"
-  anioDesde    Int?
-  anioHasta    Int?
-  jugadores    Jugador[]
-  entrenadores EntrenadorCategoria[]
-  eventos      Evento[]
-  anuncios     Anuncio[]
-  aranceles    Arancel[]
+  id              String                @id @default(cuid())
+  escuelaId       String
+  escuela         Escuela               @relation(fields: [escuelaId], references: [id])
+  nombre          String // "Sub-12"
+  anioDesde       Int?
+  anioHasta       Int?
+  jugadores       Jugador[]
+  entrenadores    EntrenadorCategoria[]
+  eventos         Evento[]
+  anuncios        Anuncio[]
+  aranceles       Arancel[]
   descuentoReglas DescuentoRegla[]
-  rangoFisico  CategoriaRangoFisico?
+  rangoFisico     CategoriaRangoFisico?
 
   @@index([escuelaId])
 }
@@ -680,29 +682,74 @@ model AuditLog {
   @@index([escuelaId, createdAt])
 }
 
+// Catálogo de conceptos de cobro DE CADA ESCUELA. Mezcla dos poblaciones:
+//
+//   * `esSistema = true`: los seis que trae la plataforma (mensualidad,
+//     matrícula, indumentaria, torneo, transporte, otro). Se siembran al crear
+//     la escuela y NO se borran — hay cuotas históricas colgando de ellos.
+//   * `esSistema = false`: los que crea la escuela ("Torneo Bogotá 2026",
+//     "Uniforme de salida").
+//
+// `codigo` es lo estable (lo que compara el código y lo que viaja en reportes);
+// `nombre` es lo que ve la gente y se puede editar SIEMPRE, incluso en los de
+// sistema: media Colombia le dice "pensión" a la mensualidad, y obligar a una
+// escuela a nuestro vocabulario es fricción gratis.
+//
+// Baja lógica (`activo`), nunca borrado físico: un concepto con cuotas emitidas
+// no puede desaparecer sin dejar huérfano el historial de cobranza.
+model ConceptoCobro {
+  id         String      @id @default(cuid())
+  escuelaId  String
+  escuela    Escuela     @relation(fields: [escuelaId], references: [id])
+  codigo     String // MENSUALIDAD, MATRICULA, … o el que cree la escuela
+  nombre     String
+  esSistema  Boolean     @default(false)
+  activo     Boolean     @default(true)
+  orden      Int         @default(0) // los de sistema primero, en orden fijo
+  createdAt  DateTime    @default(now())
+  membresias Membresia[]
+  aranceles  Arancel[]
+
+  @@unique([escuelaId, codigo])
+  @@index([escuelaId, activo])
+}
+
 model Membresia {
-  id             String    @id @default(cuid())
+  id             String           @id @default(cuid())
   escuelaId      String
   jugadorId      String
   periodo        String // "2026-06"
   // Qué se está cobrando. Una escuela no cobra solo la mensualidad: también
   // matrícula, indumentaria, torneos. Por eso el unique incluye el concepto.
-  concepto       String    @default("MENSUALIDAD") // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
-  estado         String    @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
+  //
+  // Es una FK a `ConceptoCobro`, no el texto del concepto: con el texto, dos
+  // torneos distintos en el mismo mes entraban ambos como "OTRO" y el unique
+  // rechazaba el segundo — la escuela no podía cobrar dos cosas iguales de
+  // nombre en un período. Con id propio por concepto, cada uno es una fila.
+  conceptoId     String
+  conceptoCobro  ConceptoCobro    @relation(fields: [conceptoId], references: [id])
+  estado         String           @default("PENDIENTE") // PENDIENTE | PAGADA | VENCIDA
   // Dinero en Decimal, nunca Float: en punto flotante 0.1 + 0.2 !== 0.3, y una
   // cobranza que arrastra ese error termina en diferencias de centavos que nadie
   // puede explicar. Los DTOs lo convierten a `number` (nunca sale un Decimal de
   // Prisma hacia la UI).
-  monto          Decimal?  @db.Decimal(12, 2)
-  descuento      Decimal?  @db.Decimal(12, 2) // becas, descuento por hermano, etc.
+  monto          Decimal?         @db.Decimal(12, 2)
+  descuento      Decimal?         @db.Decimal(12, 2) // becas, descuento por hermano, etc.
   // Registro del pago: un estado "PAGADA" sin cuándo, cómo ni comprobante no es
   // auditable ni sirve para conciliar contra el banco.
   pagadaEn       DateTime?
+  // LEGACY. Cómo entró la plata ya no vive acá: un pago puede componerse de
+  // varios medios (parte efectivo, parte Nequi) y elegir "el medio" de la cuota
+  // obligaría a descartar el otro. El detalle vive en `PagoMedio`, colgado del
+  // `Pago` que llega por `PagoAplicacion`. Se conservan por los pagos
+  // registrados antes de ese modelo; no se escriben más.
   medioPago      String? // EFECTIVO | TRANSFERENCIA | NEQUI | DAVIPLATA | OTRO
   referenciaPago String? // número de comprobante / referencia bancaria
+  aplicaciones   PagoAplicacion[]
 
-  @@unique([escuelaId, jugadorId, periodo, concepto])
+  @@unique([escuelaId, jugadorId, periodo, conceptoId])
   @@index([escuelaId])
+  @@index([conceptoId])
 }
 
 // Lista de precios de la escuela. Sin esto no hay forma de generar la cobranza
@@ -714,21 +761,24 @@ model Membresia {
 // ya vigente y cae al general de la escuela (`categoriaId = null`) si esa
 // categoría no tiene precio propio.
 model Arancel {
-  id           String     @id @default(cuid())
-  escuelaId    String
-  escuela      Escuela    @relation(fields: [escuelaId], references: [id])
-  categoriaId  String? // null = precio general de la escuela
-  categoria    Categoria? @relation(fields: [categoriaId], references: [id])
-  concepto     String // MENSUALIDAD | MATRICULA | INDUMENTARIA | TORNEO | TRANSPORTE | OTRO
-  monto        Decimal    @db.Decimal(12, 2)
+  id            String        @id @default(cuid())
+  escuelaId     String
+  escuela       Escuela       @relation(fields: [escuelaId], references: [id])
+  categoriaId   String? // null = precio general de la escuela
+  categoria     Categoria?    @relation(fields: [categoriaId], references: [id])
+  // FK a `ConceptoCobro`, por el mismo motivo que en `Membresia`: una escuela
+  // que crea su propio concepto necesita poder ponerle precio.
+  conceptoId    String
+  conceptoCobro ConceptoCobro @relation(fields: [conceptoId], references: [id])
+  monto         Decimal       @db.Decimal(12, 2)
   // Texto libre, sobre todo para el concepto OTRO: sin esto, un precio "OTRO"
   // queda sin contexto para cuando alguien lo audite después.
-  descripcion  String?
-  vigenteDesde DateTime   @default(now())
-  activo       Boolean    @default(true)
-  createdAt    DateTime   @default(now())
+  descripcion   String?
+  vigenteDesde  DateTime      @default(now())
+  activo        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
 
-  @@index([escuelaId, concepto])
+  @@index([escuelaId, conceptoId])
 }
 
 // Regla de descuento reusable, por categoría (como Arancel), que se aplica sola
@@ -808,6 +858,100 @@ model Egreso {
   createdAt      DateTime @default(now())
 
   @@index([escuelaId, fecha])
+}
+
+// UN PAGO: el hecho de que entró plata. Es el libro de la escuela, así que una
+// vez APROBADO es INMUTABLE — no se edita, se ANULA con motivo y se registra de
+// nuevo. Si un pago aprobado pudiera editarse, el balance de un mes ya cerrado
+// cambiaría meses después y la auditoría sería ficción.
+//
+// Dos ejes independientes cuelgan de acá y no hay que confundirlos:
+//   * `medios`       — CÓMO entró (parte efectivo + parte Nequi).
+//   * `aplicaciones` — A QUÉ se aplica (agosto + septiembre + indumentaria).
+// Un pago puede ser compuesto en cualquiera de los dos, o en ambos.
+//
+// `monto` se persiste en vez de derivarse de `medios` para que la bandeja de
+// validación liste sin join; el servicio garantiza `monto == suma(medios)` en la
+// misma transacción, y un test guardián lo recalcula.
+//
+// NO lleva `jugadorId` a propósito: el titular es el tutor, y un tutor con dos
+// hijos paga una sola transferencia. El jugador sale de las cuotas aplicadas.
+model Pago {
+  id              String           @id @default(cuid())
+  escuelaId       String
+  escuela         Escuela          @relation(fields: [escuelaId], references: [id])
+  // Quién lo cargó: la familia (autogestión) o el admin (cobró en la cancha).
+  reportadoPor    String // userId
+  origen          String // FAMILIA | ESCUELA
+  // Los de origen ESCUELA nacen APROBADO: el admin ES el validador, mandarlo a
+  // su propia bandeja sería pedirle que se apruebe a sí mismo.
+  estado          String           @default("REPORTADO") // REPORTADO | APROBADO | RECHAZADO | ANULADO
+  monto           Decimal          @db.Decimal(12, 2)
+  // Cuándo pagó la familia, NO cuándo se cargó el registro (`createdAt`): la
+  // transferencia fue el viernes y el admin la aprueba el lunes; el reporte de
+  // caja tiene que ubicarla el viernes. Mismo criterio que `Egreso.fecha`.
+  // Es un DÍA DE ALMANAQUE (AGENTS.md §6): se muestra con <FechaCalendario/>.
+  fechaPago       DateTime
+  nota            String?
+  revisadoPor     String? // userId del admin que aprobó o rechazó
+  revisadoEn      DateTime?
+  motivoRechazo   String?
+  anuladoPor      String?
+  anuladoEn       DateTime?
+  motivoAnulacion String?
+  createdAt       DateTime         @default(now())
+  medios          PagoMedio[]
+  aplicaciones    PagoAplicacion[]
+
+  @@index([escuelaId, estado])
+  @@index([escuelaId, fechaPago])
+  @@index([reportadoPor])
+}
+
+// CÓMO entró la plata. Una fila por medio: "50.000 efectivo + 100.000 Nequi" son
+// dos filas del mismo `Pago`.
+//
+// `referencia` y `comprobanteUrl` viven ACÁ y no en `Pago` porque son por medio:
+// el número de la transferencia de Nequi no es el de Bancolombia, y el efectivo
+// no tiene ninguno de los dos. Un solo campo en el pago obligaría a elegir cuál
+// de los dos guardar, o sea a perder uno.
+//
+// `comprobanteUrl` es el nombre UUID del objeto en el bucket PRIVADO (mismo
+// esquema que `Jugador.fotoUrl`), nunca una URL pública: el pantallazo de la app
+// del banco lleva datos de cuenta de la familia y se sirve por
+// `/api/archivos/comprobante/[pagoMedioId]` con sesión y tenant.
+model PagoMedio {
+  id             String  @id @default(cuid())
+  pagoId         String
+  pago           Pago    @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+  medio          String // EFECTIVO | TRANSFERENCIA | NEQUI | DAVIPLATA | OTRO
+  monto          Decimal @db.Decimal(12, 2)
+  referencia     String?
+  comprobanteUrl String?
+
+  @@index([pagoId])
+}
+
+// A QUÉ cuota se aplica el pago. `monto` por fila (y no "la cuota entera") deja
+// la puerta abierta a abonos parciales sin migración futura; el servicio del
+// primer corte exige que sea el neto completo de la cuota.
+//
+// `activa` es la denormalización que sostiene el índice único parcial creado en
+// la migración: una cuota no puede tener DOS pagos vigentes encima. Sin eso, el
+// doble clic de un tutor en el celular genera dos reportes sobre la misma cuota
+// y el admin termina aprobando los dos. Se apaga (junto con el resto de las
+// aplicaciones del pago) cuando el pago pasa a RECHAZADO o ANULADO, que es
+// justamente lo que libera la cuota para volver a reportarla.
+model PagoAplicacion {
+  pagoId      String
+  membresiaId String
+  pago        Pago      @relation(fields: [pagoId], references: [id], onDelete: Cascade)
+  membresia   Membresia @relation(fields: [membresiaId], references: [id])
+  monto       Decimal   @db.Decimal(12, 2)
+  activa      Boolean   @default(true)
+
+  @@id([pagoId, membresiaId])
+  @@index([membresiaId])
 }
 
 // Sesión de soporte: puerta explícita, temporal y auditada por la que el

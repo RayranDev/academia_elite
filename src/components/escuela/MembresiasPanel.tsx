@@ -10,12 +10,12 @@ import {
 import {
   ESTADOS_MEMBRESIA,
   ESTADOS_EDITABLES,
-  CONCEPTOS_MEMBRESIA,
   MEDIOS_PAGO,
-  etiquetaConcepto,
   etiquetaEstado,
   etiquetaMedioPago,
 } from "@/lib/validators/membresia";
+import { ConceptoSelect } from "@/components/escuela/ConceptoSelect";
+import type { ConceptoCobroDTO } from "@/services/concepto-cobro.service";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -42,9 +42,11 @@ const tonoEstado = (v: string) =>
 export function MembresiasPanel({
   membresias,
   jugadores,
+  conceptos,
 }: {
   membresias: MembresiaDTO[];
   jugadores: { id: string; nombre: string }[];
+  conceptos: ConceptoCobroDTO[];
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState<ActionResult | undefined, FormData>(
@@ -83,16 +85,7 @@ export function MembresiasPanel({
             <label className="mb-1 block text-xs text-muted" htmlFor="concepto-cobro">
               Concepto
             </label>
-            <select
-              id="concepto-cobro"
-              name="concepto"
-              defaultValue="MENSUALIDAD"
-              className={input}
-            >
-              {CONCEPTOS_MEMBRESIA.map((c) => (
-                <option key={c} value={c}>{etiquetaConcepto(c)}</option>
-              ))}
-            </select>
+            <ConceptoSelect id="concepto-cobro" conceptos={conceptos} className={input} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-muted" htmlFor="monto-cobro">
@@ -178,7 +171,7 @@ export function MembresiasPanel({
                   <td className="px-4 py-2 text-muted">{m.categoriaNombre}</td>
                   <td className="px-4 py-2 tabular">{m.periodo}</td>
                   <td className="px-4 py-2 text-muted">
-                    {etiquetaConcepto(m.concepto)}
+                    {m.conceptoNombre}
                   </td>
                   {/* El neto viene calculado del servicio (`netoCuota`): la tabla
                       no reimplementa la resta, para que no pueda divergir del
@@ -278,7 +271,7 @@ function ComboboxJugador({
         onFocus={() => setAbierto(true)}
         // Cierre diferido: deja que el click en una opción se registre primero.
         onBlur={() => setTimeout(() => setAbierto(false), 120)}
-        placeholder="Buscá por nombre o apellido…"
+        placeholder="Busca por nombre o apellido…"
         autoComplete="off"
         className={input}
       />

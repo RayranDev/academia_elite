@@ -1,32 +1,61 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { generarCuotasAction } from "@/actions/membresia.actions";
-import {
-  CONCEPTOS_MEMBRESIA,
-  etiquetaConcepto,
-} from "@/lib/validators/membresia";
+import { ConceptoSelect } from "@/components/escuela/ConceptoSelect";
+import { CODIGO_MENSUALIDAD } from "@/lib/validators/concepto-cobro";
+import { periodoDe } from "@/lib/cobranza";
+import { referenciaDePrecio } from "@/lib/aranceles";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import type { ActionResult } from "@/lib/action-result";
 import type { GeneracionCuotasDTO } from "@/services/membresia.service";
+import type { ConceptoCobroDTO } from "@/services/concepto-cobro.service";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
 
-/** Mes en curso como AAAA-MM, en la zona del navegador (es el mes que el que cobra tiene en la cabeza). */
+/**
+ * Mes en curso como AAAA-MM, en la zona de la ESCUELA.
+ *
+ * Usa `periodoDe` — la misma función con la que el servidor decide qué período
+ * está abierto — y no `getFullYear()/getMonth()` del navegador. Con la zona del
+ * cliente, alrededor del cambio de mes la tarjeta proponía un mes y el servidor
+ * consideraba abierto otro: el botón decía "generar 2026-08" y las cuotas
+ * salían con el estado derivado del otro período, sobre cientos de filas.
+ */
 function periodoActual(): string {
-  const hoy = new Date();
-  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+  return periodoDe(new Date());
 }
 
 /**
  * Emite la cobranza de todo el mes de un click, en vez de cargarla jugador por
  * jugador. Repetir la operación es seguro: las cuotas que ya existen no se tocan.
  */
-export function GenerarCuotasCard({ hayAranceles }: { hayAranceles: boolean }) {
+export function GenerarCuotasCard({
+  preciosActivos,
+  conceptos,
+}: {
+  /**
+   * Precios activos de la escuela, aplanados, para decidir si el concepto y el
+   * período elegidos tienen algún precio ya vigente.
+   *
+   * Un booleano suelto no alcanzaba por dos motivos: era true si CUALQUIER
+   * concepto tenía precio (elegir "Torneo" con precios solo de mensualidad
+   * ocultaba el aviso), y no miraba `vigenteDesde` (un aumento programado para
+   * el mes que viene contaba como precio de este mes).
+   */
+  preciosActivos: {
+    id: string;
+    categoriaId: string | null;
+    conceptoId: string;
+    monto: number;
+    vigenteDesde: string;
+  }[];
+  conceptos: ConceptoCobroDTO[];
+}) {
   const router = useRouter();
   // Arranca vacío y se completa al montar. `new Date()` da un mes distinto en el
   // servidor (SSR, UTC) y en el cliente (UTC-5): el 31 a las 20:00 local el
@@ -35,6 +64,34 @@ export function GenerarCuotasCard({ hayAranceles }: { hayAranceles: boolean }) {
   // filas de cobranza (AGENTS.md §6; mismo riesgo documentado en `MonthGrid`).
   const [periodo, setPeriodo] = useState("");
   const [confirmando, setConfirmando] = useState(false);
+
+  // El mismo default que resuelve `ConceptoSelect`, para que el aviso hable del
+  // concepto que el usuario está viendo antes de tocar nada.
+  const conceptoInicial =
+    conceptos.find((c) => c.codigo === CODIGO_MENSUALIDAD)?.id ??
+    conceptos[0]?.id ??
+    "";
+  const [conceptoId, setConceptoId] = useState(conceptoInicial);
+  const nombreConcepto =
+    conceptos.find((c) => c.id === conceptoId)?.nombre ?? "ese concepto";
+
+  // Contra el período ELEGIDO, no contra hoy: `generarCuotasDelPeriodo` resuelve
+  // el precio con `referenciaDePrecio(periodo)`, así que preguntar por otro mes
+  // daría una respuesta que no corresponde a lo que está por emitirse.
+  //
+  // Y NO con `resolverArancel`: esa función contesta "qué precio le toca a ESTA
+  // categoría", y para eso hay que darle una categoría real. Pasarle una vacía
+  // dejaba fuera todos los precios por categoría, así que una escuela que puso
+  // precio a Sub-10 y Sub-12 sin cargar uno general recibía el aviso de "no
+  // cargaste precios" justo antes de una generación que iba a salir perfecta.
+  // La pregunta acá es otra: ¿hay ALGÚN precio de este concepto ya vigente?
+  const hayPrecio = useMemo(() => {
+    if (!periodo || !conceptoId) return true; // todavía sin datos: no alarmar
+    const referencia = referenciaDePrecio(periodo);
+    return preciosActivos.some(
+      (a) => a.conceptoId === conceptoId && new Date(a.vigenteDesde) <= referencia,
+    );
+  }, [preciosActivos, conceptoId, periodo]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -62,10 +119,10 @@ export function GenerarCuotasCard({ hayAranceles }: { hayAranceles: boolean }) {
         se pisa ningún pago registrado.
       </p>
 
-      {!hayAranceles && (
+      {!hayPrecio && (
         <p className="mb-3 rounded-lg border border-alerta/50 bg-alerta/10 px-3 py-2 text-sm">
-          Todavía no cargaste precios. Las cuotas se van a crear sin monto y
-          tendrás que completarlas a mano.{" "}
+          Todavía no cargaste precios de <strong>{nombreConcepto}</strong>. Las
+          cuotas se van a crear sin monto y tendrás que completarlas a mano.{" "}
           <Link href="/escuela/aranceles" className="font-semibold underline">
             Cargar precios
           </Link>
@@ -94,16 +151,15 @@ export function GenerarCuotasCard({ hayAranceles }: { hayAranceles: boolean }) {
           <label className="mb-1 block text-xs text-muted" htmlFor="concepto-gen">
             Concepto
           </label>
-          <select
+          <ConceptoSelect
             id="concepto-gen"
-            name="concepto"
-            defaultValue="MENSUALIDAD"
+            conceptos={conceptos}
+            onChange={(id) => {
+              setConceptoId(id);
+              setConfirmando(false);
+            }}
             className={input}
-          >
-            {CONCEPTOS_MEMBRESIA.map((c) => (
-              <option key={c} value={c}>{etiquetaConcepto(c)}</option>
-            ))}
-          </select>
+          />
         </div>
         <div className="flex items-end sm:col-span-2">
           {confirmando ? (

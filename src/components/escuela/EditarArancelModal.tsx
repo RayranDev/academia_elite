@@ -2,14 +2,13 @@
 
 import { useActionState } from "react";
 import { editarArancelAction } from "@/actions/arancel.actions";
-import {
-  CONCEPTOS_MEMBRESIA,
-  etiquetaConcepto,
-} from "@/lib/validators/membresia";
+import { ConceptoSelect } from "@/components/escuela/ConceptoSelect";
+import { diaDeISO } from "@/lib/fecha-calendario";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import type { ActionResult } from "@/lib/action-result";
 import type { ArancelDTO } from "@/services/arancel.service";
+import type { ConceptoCobroDTO } from "@/services/concepto-cobro.service";
 
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-sm outline-none focus:border-brand";
@@ -22,10 +21,12 @@ const input =
 export function EditarArancelModal({
   arancel,
   categorias,
+  conceptos,
   onClose,
 }: {
   arancel: ArancelDTO;
   categorias: { id: string; nombre: string }[];
+  conceptos: ConceptoCobroDTO[];
   onClose: (cambio: boolean) => void;
 }) {
   const [state, action, pending] = useActionState<
@@ -61,16 +62,13 @@ export function EditarArancelModal({
           <label className="mb-1 block text-xs text-muted" htmlFor="concepto-editar">
             Concepto
           </label>
-          <select
+          <ConceptoSelect
             id="concepto-editar"
-            name="concepto"
-            defaultValue={arancel.concepto}
+            conceptos={conceptos}
+            defaultValue={arancel.conceptoId}
+            nombreArchivado={`${arancel.conceptoNombre} (archivado)`}
             className={input}
-          >
-            {CONCEPTOS_MEMBRESIA.map((c) => (
-              <option key={c} value={c}>{etiquetaConcepto(c)}</option>
-            ))}
-          </select>
+          />
         </div>
         <div>
           <label className="mb-1 block text-xs text-muted" htmlFor="monto-editar">
@@ -95,7 +93,7 @@ export function EditarArancelModal({
             id="vigenteDesde-editar"
             name="vigenteDesde"
             type="date"
-            defaultValue={arancel.vigenteDesde.slice(0, 10)}
+            defaultValue={diaDeISO(arancel.vigenteDesde)}
             className={input}
           />
         </div>

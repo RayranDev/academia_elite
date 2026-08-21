@@ -9,7 +9,8 @@ export interface ArancelVigente {
   id: string;
   /** null = precio general de la escuela. */
   categoriaId: string | null;
-  concepto: string;
+  /** FK al catálogo de la escuela; acá se compara como clave opaca. */
+  conceptoId: string;
   monto: number;
   vigenteDesde: Date;
 }
@@ -53,12 +54,12 @@ export function referenciaDePrecio(periodo: string, ahora: Date = new Date()): D
 export function resolverArancel(
   aranceles: ArancelVigente[],
   categoriaId: string,
-  concepto: string,
+  conceptoId: string,
   hasta: Date = new Date(),
 ): ArancelVigente | null {
   const aplicables = aranceles.filter(
     (a) =>
-      a.concepto === concepto &&
+      a.conceptoId === conceptoId &&
       a.vigenteDesde.getTime() <= hasta.getTime() &&
       (a.categoriaId === categoriaId || a.categoriaId === null),
   );

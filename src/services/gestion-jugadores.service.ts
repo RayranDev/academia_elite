@@ -16,6 +16,7 @@ import {
   actualizarFichaMedica as repoActualizarFichaMedica,
   contarAptosMedicosVencidos,
   actualizarEstadoJugador,
+  listarJugadoresParaCombo,
 } from "@/repositories/jugador.repository";
 import { contarCategoriasDeEscuela } from "@/repositories/categoria.repository";
 import { actualizarPasswordUser } from "@/repositories/user.repository";
@@ -107,6 +108,28 @@ function escuelaObjetivo(ctx: AuthContext, escuelaId?: string): string {
   return requireEscuela(ctx);
 }
 
+export interface JugadorComboDTO {
+  id: string;
+  nombre: string;
+  apellido: string;
+}
+
+/**
+ * Jugadores de la escuela para un combo de selección (el filtro por jugador de
+ * la cobranza). Devuelve solo identidad: nada de deuda, categoría ni ficha.
+ *
+ * Es deliberadamente distinto de `listarJugadoresGestion`, que para el
+ * ESCUELA_ADMIN además cruza las cuotas impagas de TODOS los jugadores y calcula
+ * la mora de cada uno — trabajo que un `<datalist>` de dos campos tira entero.
+ */
+export async function listarJugadoresParaSelector(
+  ctx: AuthContext,
+  escuelaIdSA?: string,
+): Promise<JugadorComboDTO[]> {
+  const escuelaId = escuelaObjetivo(ctx, escuelaIdSA);
+  return listarJugadoresParaCombo(escuelaId);
+}
+
 export interface PaginatedJugadoresDTO {
   items: JugadorGestionDTO[];
   total: number;
@@ -172,7 +195,7 @@ export async function listarJugadoresGestion(
       const lista = porJugador.get(c.jugadorId) ?? [];
       lista.push({
         periodo: c.periodo,
-        concepto: c.concepto,
+        conceptoId: c.conceptoId,
         estado: c.estado,
         monto: aNumero(c.monto),
         descuento: aNumero(c.descuento),

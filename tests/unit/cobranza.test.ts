@@ -24,7 +24,7 @@ const HOY = new Date("2026-07-15T12:00:00Z");
 function cuota(p: Partial<CuotaParaDeuda>): CuotaParaDeuda {
   return {
     periodo: "2026-07",
-    concepto: "MENSUALIDAD",
+    conceptoId: "cpt_mensualidad",
     estado: "PENDIENTE",
     monto: 45000,
     descuento: null,
@@ -179,8 +179,8 @@ describe("estadoCuenta", () => {
   it("cuenta conceptos distintos del mismo mes por separado", () => {
     const r = estadoCuenta(
       [
-        cuota({ periodo: "2026-06", concepto: "MENSUALIDAD", monto: 45000 }),
-        cuota({ periodo: "2026-06", concepto: "INDUMENTARIA", monto: 80000 }),
+        cuota({ periodo: "2026-06", conceptoId: "cpt_mensualidad", monto: 45000 }),
+        cuota({ periodo: "2026-06", conceptoId: "cpt_indumentaria", monto: 80000 }),
       ],
       HOY,
     );

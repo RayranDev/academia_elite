@@ -4,12 +4,29 @@ import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
-import { arancelSchema, editarArancelSchema } from "@/lib/validators/arancel";
+import {
+  arancelSchema,
+  editarArancelSchema,
+  arancelDesdeFormData,
+  editarArancelDesdeFormData,
+} from "@/lib/validators/arancel";
 import {
   crearArancelEscuela,
   desactivarArancelEscuela,
   editarArancelEscuela,
 } from "@/services/arancel.service";
+
+/**
+ * Las tres pantallas que leen la lista de precios. Van juntas: el aviso de
+ * "todavía no cargaste precios" vive en Membresías y el conteo de uso por
+ * concepto en Conceptos, así que refrescar solo Precios deja a las otras dos
+ * mostrando algo que ya es falso.
+ */
+function revalidarPrecios(): void {
+  revalidatePath("/escuela/aranceles");
+  revalidatePath("/escuela/membresias");
+  revalidatePath("/escuela/conceptos");
+}
 
 export async function crearArancelAction(
   _prev: ActionResult | undefined,
@@ -17,13 +34,7 @@ export async function crearArancelAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = arancelSchema.safeParse({
-      categoriaId: formData.get("categoriaId") ?? "",
-      concepto: formData.get("concepto"),
-      monto: formData.get("monto"),
-      descripcion: formData.get("descripcion") ?? "",
-      vigenteDesde: formData.get("vigenteDesde") ?? "",
-    });
+    const parsed = arancelSchema.safeParse(arancelDesdeFormData(formData));
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
@@ -35,10 +46,7 @@ export async function crearArancelAction(
         ? reemplazarIdRaw
         : undefined;
     await crearArancelEscuela(ctx, parsed.data, reemplazarId);
-    revalidatePath("/escuela/aranceles");
-    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
-    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
-    revalidatePath("/escuela/membresias");
+    revalidarPrecios();
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -51,22 +59,12 @@ export async function editarArancelAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = editarArancelSchema.safeParse({
-      id: formData.get("id"),
-      categoriaId: formData.get("categoriaId") ?? "",
-      concepto: formData.get("concepto"),
-      monto: formData.get("monto"),
-      descripcion: formData.get("descripcion") ?? "",
-      vigenteDesde: formData.get("vigenteDesde") ?? "",
-    });
+    const parsed = editarArancelSchema.safeParse(editarArancelDesdeFormData(formData));
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     await editarArancelEscuela(ctx, parsed.data);
-    revalidatePath("/escuela/aranceles");
-    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
-    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
-    revalidatePath("/escuela/membresias");
+    revalidarPrecios();
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -84,10 +82,7 @@ export async function desactivarArancelAction(
       throw new ValidationError("Falta el precio a desactivar.");
     }
     await desactivarArancelEscuela(ctx, id);
-    revalidatePath("/escuela/aranceles");
-    // Membresías también lee la lista de precios (el aviso "todavía no cargaste
-    // precios" de GenerarCuotasCard), si no queda mostrando algo que ya es falso.
-    revalidatePath("/escuela/membresias");
+    revalidarPrecios();
     return { ok: true };
   } catch (e) {
     return mapError(e);

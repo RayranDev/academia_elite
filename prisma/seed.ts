@@ -15,6 +15,7 @@ import {
 import { CATALOGO_LOGROS } from "./seed-logros";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
+import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
 import { crearAcademiaElite } from "./seed-academia-elite";
 import type { Posicion } from "@/types";
 
@@ -51,12 +52,20 @@ async function limpiar() {
   await db.observacionJugador.deleteMany();
   await db.estadisticaPartido.deleteMany();
   await db.jugadorConvocado.deleteMany();
+  // Pagos: las aplicaciones primero (FK a Pago y a Membresia), después los
+  // medios y el pago. Si esto va después de `membresia.deleteMany()`, el borrado
+  // de cuotas rompe por la FK de PagoAplicacion.
+  await db.pagoAplicacion.deleteMany();
+  await db.pagoMedio.deleteMany();
+  await db.pago.deleteMany();
   await db.membresia.deleteMany();
   // Arancel/Egreso (Track A, hitos 26/29): faltaban acá, así que
   // `escuela.deleteMany()` rompía por su FK a Escuela apenas se creó la
   // primera fila real de cada uno — detectado al correr e2e (schema `e2e`
   // aislado, no producción).
   await db.arancel.deleteMany();
+  // Después de Membresia y Arancel: ambos tienen FK a ConceptoCobro.
+  await db.conceptoCobro.deleteMany();
   await db.egreso.deleteMany();
   await db.evento.deleteMany();
   await db.statsCalculados.deleteMany();
@@ -118,6 +127,19 @@ async function main() {
       colorPrimario: "#4ADE80",
       frecuenciaEvaluacionDias: 30,
     },
+  });
+
+  // Catálogo de conceptos de cobro de la escuela demo. Toda escuela nace con
+  // los de sistema; sin ellos no se puede emitir una sola cuota.
+  await db.conceptoCobro.createMany({
+    data: CONCEPTOS_SISTEMA.map((c) => ({
+      id: `demo-cpt-${c.codigo.toLowerCase()}`,
+      escuelaId: escuela.id,
+      codigo: c.codigo,
+      nombre: c.nombre,
+      orden: c.orden,
+      esSistema: true,
+    })),
   });
 
   await db.user.create({
@@ -223,7 +245,7 @@ async function main() {
     const estado = i === 9 ? "PENDIENTE" : "ACTIVO";
     // El primer jugador (Lucas García) es la cuenta del padre demo, con foto+consentimiento.
     const esCuentaDemo = i === 0;
-    const fechaNacimiento = new Date(2015 - (i % 2), (i % 12) + 1, 10);
+    const fechaNacimiento = new Date(Date.UTC(2015 - (i % 2), (i % 12) + 1, 10));
     const posicion = POSICIONES[i % POSICIONES.length];
 
     const j = await db.jugador.create({

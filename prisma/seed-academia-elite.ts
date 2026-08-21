@@ -7,6 +7,9 @@ import {
 } from "@/lib/stats-engine";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { MEDIOS_PAGO } from "@/lib/validators/membresia";
+import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
+import { periodoDe } from "@/lib/cobranza";
+import { diaEscuelaDe, offsetEscuelaMs } from "@/lib/fecha-calendario";
 import type { Posicion } from "@/types";
 
 /**
@@ -27,6 +30,25 @@ import type { Posicion } from "@/types";
  */
 
 const DIA = 24 * 60 * 60 * 1000;
+
+/**
+ * Instante correspondiente a `hh:mm` del día de almanaque de la ESCUELA en que
+ * cae `referencia`.
+ *
+ * `d.setHours(18, 0)` leería la zona del PROCESO: sembrando desde un runner en
+ * UTC, "el entrenamiento de las 18:00" quedaba a las 13:00 hora de Colombia, y
+ * cerca de medianoche podía caer directamente en otro día — justo el evento
+ * "HOY" que existe para demostrar el Hoy del DT.
+ */
+function aHoraEscuela(referencia: Date, hora: number, minuto = 0): Date {
+  const dia = diaEscuelaDe(referencia);
+  const hh = String(hora).padStart(2, "0");
+  const mm = String(minuto).padStart(2, "0");
+  // Se lee la pared del reloj de la escuela como si fuera UTC y después se
+  // descuenta el offset: en Colombia (−5) las 18:00 locales son las 23:00Z.
+  const comoSiFueraUtc = new Date(`${dia}T${hh}:${mm}:00.000Z`).getTime();
+  return new Date(comoSiFueraUtc - offsetEscuelaMs(referencia));
+}
 
 /** Mismas medidas que el seed principal: `nivel` 0..1 escala la carta. */
 function medidasNivel(nivel: number): MedidasEvaluacion {
@@ -96,6 +118,20 @@ export async function crearAcademiaElite(
       frecuenciaEvaluacionDias: 30,
     },
   });
+
+  // Catálogo de conceptos de cobro. Ids deterministas (`elite-cpt-…`) para que
+  // el resto del seed pueda referenciarlos sin volver a consultarlos.
+  await db.conceptoCobro.createMany({
+    data: CONCEPTOS_SISTEMA.map((c) => ({
+      id: `elite-cpt-${c.codigo.toLowerCase()}`,
+      escuelaId: escuela.id,
+      codigo: c.codigo,
+      nombre: c.nombre,
+      orden: c.orden,
+      esSistema: true,
+    })),
+  });
+  const conceptoMensualidad = "elite-cpt-mensualidad";
 
   await db.user.create({
     data: {
@@ -178,7 +214,7 @@ export async function crearAcademiaElite(
         codigoRef: esFamilia ? "JUG-BAUTI" : generarCodigoRef("JUG"),
         nombre: def.nombre,
         apellido: def.apellido,
-        fechaNacimiento: new Date(def.anioNac, 4, 15),
+        fechaNacimiento: new Date(Date.UTC(def.anioNac, 4, 15)),
         posicion: def.posicion,
         dorsal: dorsal++,
         estado: def.estado ?? "ACTIVO",
@@ -195,7 +231,7 @@ export async function crearAcademiaElite(
   // 6) Evaluaciones (2 por jugador activo, progresión) → cartas y ranking
   for (const { id, def } of creados) {
     if (def.estado === "PENDIENTE") continue; // sin evaluar todavía
-    const grupo = grupoEdadPorEdad(edadEnAnios(new Date(def.anioNac, 4, 15)));
+    const grupo = grupoEdadPorEdad(edadEnAnios(new Date(Date.UTC(def.anioNac, 4, 15))));
     // Primera evaluación más floja, la última en el nivel objetivo.
     const niveles = [Math.max(0.2, def.nivel - 0.18), def.nivel];
     for (let k = 0; k < niveles.length; k++) {
@@ -221,12 +257,27 @@ export async function crearAcademiaElite(
 
   // 7) Membresías: cada estado representado (cobranza + export)
   const now = new Date();
-  const periodo = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  const periodoActual = periodo(now);
-  const periodoAnterior = periodo(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-  const ESTADOS = ["PAGADA", "PENDIENTE", "VENCIDA"] as const;
+  // `periodoDe` y NO un helper propio con `getFullYear()/getMonth()`: esos leen
+  // la zona del PROCESO. Sembrando desde un runner en UTC cerca de fin de mes,
+  // el período sembrado era el siguiente al que la app considera abierto, y
+  // `estadoEfectivo` daba por vencidas todas las cuotas del demo al instante.
+  const periodoActual = periodoDe(now);
+  const periodoAnterior = periodoDe(
+    new Date(Date.UTC(Number(periodoActual.slice(0, 4)), Number(periodoActual.slice(5, 7)) - 2, 15)),
+  );
+  // Solo PAGADA/PENDIENTE: una cuota del mes EN CURSO no puede estar vencida —
+  // `estadoEfectivo` la deriva recién cuando el período cierra. Sembrar VENCIDA
+  // acá fabricaba justo el dato heredado que la UI tiene que tratar aparte, y
+  // encima inflaba `montoVencido` del dashboard con plata que nadie debe todavía.
+  // La mora del demo sale de las cuotas de `periodoAnterior`, más abajo.
+  const ESTADOS = ["PAGADA", "PENDIENTE"] as const;
   const activos = creados.filter((c) => c.def.estado !== "PENDIENTE");
-  const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Derivado de `periodoActual` y no de `now.getFullYear()/getMonth()`, que
+  // leerían la zona del proceso: el período se resuelve en la zona de la escuela
+  // y el inicio del mes tiene que ser el del MISMO mes, no el del que ve el
+  // runner. Cerca del cambio de mes en un runner UTC no coincidían, y `pagadaEn`
+  // salía anclado al mes equivocado.
+  const inicioMes = new Date(`${periodoActual}-01T00:00:00.000Z`);
 
   const membresias = activos.map((c, i) => {
     const estado = ESTADOS[i % ESTADOS.length] as string;
@@ -235,6 +286,7 @@ export async function crearAcademiaElite(
       escuelaId: escuela.id,
       jugadorId: c.id,
       periodo: periodoActual,
+      conceptoId: conceptoMensualidad,
       estado,
       monto: 45000,
       // Sin esto, "PAGADA" no es un pago real todavía (Track A.3): la caja neta
@@ -252,6 +304,7 @@ export async function crearAcademiaElite(
       escuelaId: escuela.id,
       jugadorId: c.id,
       periodo: periodoAnterior,
+      conceptoId: conceptoMensualidad,
       estado: "VENCIDA",
       monto: 45000,
       pagadaEn: null,
@@ -273,8 +326,10 @@ export async function crearAcademiaElite(
   for (const clave of ["sub8", "sub10", "sub12", "sub14"] as const) {
     const idsCat = creados.filter((c) => c.def.cat === clave).map((c) => c.id);
     for (let semana = 8; semana >= 1; semana--) {
-      const inicio = new Date(Date.now() - semana * 7 * DIA);
-      inicio.setHours(18, 0, 0, 0);
+      // `setHours` leería la zona del PROCESO: en un runner UTC, "las 18:00"
+      // caían 13:00 en Colombia. Se arma el instante a partir del día de
+      // almanaque de la escuela, igual que el bloque de membresías.
+      const inicio = aHoraEscuela(new Date(Date.now() - semana * 7 * DIA), 18);
       const fin = new Date(inicio.getTime() + 90 * 60 * 1000);
       const ent = await db.evento.create({
         data: {
@@ -309,11 +364,7 @@ export async function crearAcademiaElite(
 
   // 9) Eventos con narrativa (categoría de la familia: Sub-14)
   const sub14Ids = creados.filter((c) => c.def.cat === "sub14").map((c) => c.id);
-  const hoyA = (h: number, m = 0) => {
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d;
-  };
+  const hoyA = (h: number, m = 0) => aHoraEscuela(new Date(), h, m);
 
   // Entrenamiento HOY (para demostrar "Iniciar entrenamiento" desde el Hoy del DT).
   await db.evento.create({

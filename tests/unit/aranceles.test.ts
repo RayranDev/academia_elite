@@ -14,7 +14,7 @@ const HOY = new Date("2026-07-15T00:00:00Z");
 function arancel(p: Partial<ArancelVigente> & { id: string }): ArancelVigente {
   return {
     categoriaId: null,
-    concepto: "MENSUALIDAD",
+    conceptoId: "cpt_mensualidad",
     monto: 100,
     vigenteDesde: new Date("2026-01-01T00:00:00Z"),
     ...p,
@@ -23,11 +23,11 @@ function arancel(p: Partial<ArancelVigente> & { id: string }): ArancelVigente {
 
 describe("resolverArancel", () => {
   it("devuelve null cuando no hay ningún precio", () => {
-    expect(resolverArancel([], "cat_1", "MENSUALIDAD", HOY)).toBeNull();
+    expect(resolverArancel([], "cat_1", "cpt_mensualidad", HOY)).toBeNull();
   });
 
   it("usa el precio general cuando la categoría no tiene uno propio", () => {
-    const r = resolverArancel([arancel({ id: "general", monto: 45000 })], "cat_1", "MENSUALIDAD", HOY);
+    const r = resolverArancel([arancel({ id: "general", monto: 45000 })], "cat_1", "cpt_mensualidad", HOY);
     expect(r?.id).toBe("general");
     expect(r?.monto).toBe(45000);
   });
@@ -39,7 +39,7 @@ describe("resolverArancel", () => {
         arancel({ id: "propio", categoriaId: "cat_1", monto: 60000 }),
       ],
       "cat_1",
-      "MENSUALIDAD",
+      "cpt_mensualidad",
       HOY,
     );
     expect(r?.id).toBe("propio");
@@ -52,7 +52,7 @@ describe("resolverArancel", () => {
         arancel({ id: "otra", categoriaId: "cat_2", monto: 99000 }),
       ],
       "cat_1",
-      "MENSUALIDAD",
+      "cpt_mensualidad",
       HOY,
     );
     expect(r?.id).toBe("general");
@@ -65,7 +65,7 @@ describe("resolverArancel", () => {
         arancel({ id: "nuevo", monto: 50000, vigenteDesde: new Date("2026-06-01T00:00:00Z") }),
       ],
       "cat_1",
-      "MENSUALIDAD",
+      "cpt_mensualidad",
       HOY,
     );
     expect(r?.id).toBe("nuevo");
@@ -76,10 +76,10 @@ describe("resolverArancel", () => {
       arancel({ id: "actual", monto: 45000, vigenteDesde: new Date("2026-01-01T00:00:00Z") }),
       arancel({ id: "futuro", monto: 55000, vigenteDesde: new Date("2026-09-01T00:00:00Z") }),
     ];
-    expect(resolverArancel(lista, "cat_1", "MENSUALIDAD", HOY)?.id).toBe("actual");
+    expect(resolverArancel(lista, "cat_1", "cpt_mensualidad", HOY)?.id).toBe("actual");
     // Ya en septiembre, el aumento entra solo.
     const septiembre = new Date("2026-09-02T00:00:00Z");
-    expect(resolverArancel(lista, "cat_1", "MENSUALIDAD", septiembre)?.id).toBe("futuro");
+    expect(resolverArancel(lista, "cat_1", "cpt_mensualidad", septiembre)?.id).toBe("futuro");
   });
 
   it("un precio propio vigente gana aunque el general sea posterior", () => {
@@ -91,7 +91,7 @@ describe("resolverArancel", () => {
         arancel({ id: "propio-viejo", categoriaId: "cat_1", monto: 60000, vigenteDesde: new Date("2026-02-01T00:00:00Z") }),
       ],
       "cat_1",
-      "MENSUALIDAD",
+      "cpt_mensualidad",
       HOY,
     );
     expect(r?.id).toBe("propio-viejo");
@@ -100,11 +100,11 @@ describe("resolverArancel", () => {
   it("no mezcla conceptos", () => {
     const r = resolverArancel(
       [
-        arancel({ id: "matricula", concepto: "MATRICULA", monto: 200000 }),
-        arancel({ id: "mensual", concepto: "MENSUALIDAD", monto: 45000 }),
+        arancel({ id: "matricula", conceptoId: "cpt_matricula", monto: 200000 }),
+        arancel({ id: "mensual", conceptoId: "cpt_mensualidad", monto: 45000 }),
       ],
       "cat_1",
-      "MATRICULA",
+      "cpt_matricula",
       HOY,
     );
     expect(r?.id).toBe("matricula");
@@ -114,7 +114,7 @@ describe("resolverArancel", () => {
     const r = resolverArancel(
       [arancel({ id: "hoy", vigenteDesde: HOY })],
       "cat_1",
-      "MENSUALIDAD",
+      "cpt_mensualidad",
       HOY,
     );
     expect(r?.id).toBe("hoy");
@@ -143,11 +143,11 @@ describe("referenciaDePrecio", () => {
       arancel({ id: "agosto", monto: 55000, vigenteDesde: new Date("2026-08-01T00:00:00Z") }),
     ];
     const refJulio = referenciaDePrecio("2026-07", HOY);
-    expect(resolverArancel(lista, "cat_1", "MENSUALIDAD", refJulio)?.id).toBe("julio");
+    expect(resolverArancel(lista, "cat_1", "cpt_mensualidad", refJulio)?.id).toBe("julio");
 
     // Pero la cuota de agosto, generada el mismo día de julio, ya toma el nuevo.
     const refAgosto = referenciaDePrecio("2026-08", HOY);
-    expect(resolverArancel(lista, "cat_1", "MENSUALIDAD", refAgosto)?.id).toBe("agosto");
+    expect(resolverArancel(lista, "cat_1", "cpt_mensualidad", refAgosto)?.id).toBe("agosto");
   });
 
   it("un período mal formado cae a hoy en vez de romper", () => {
@@ -156,7 +156,7 @@ describe("referenciaDePrecio", () => {
 });
 
 describe("arancelSchema — el monto es obligatorio", () => {
-  const base = { categoriaId: "", concepto: "MENSUALIDAD" as const, vigenteDesde: "" };
+  const base = { categoriaId: "", conceptoId: "cpt_mensualidad", vigenteDesde: "" };
 
   // `z.coerce.number()` a secas convierte null y "" en 0 (Number(null) === 0).
   // Una Server Action es un endpoint HTTP: sin esta guarda, un POST sin el campo
@@ -222,7 +222,7 @@ describe("arancelSchema — el monto es obligatorio", () => {
 describe("editarArancelSchema — mismas reglas de arancelSchema + id", () => {
   const base = {
     categoriaId: "",
-    concepto: "MENSUALIDAD" as const,
+    conceptoId: "cpt_mensualidad",
     monto: "45000",
     vigenteDesde: "",
   };

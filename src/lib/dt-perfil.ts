@@ -1,4 +1,4 @@
-import { OFFSET_ESCUELA_HORAS } from "@/lib/cobranza";
+import { offsetEscuelaMs } from "@/lib/fecha-calendario";
 
 /**
  * Helpers puros del perfil del DT (sin Prisma ni React): mismas entradas →
@@ -8,19 +8,23 @@ import { OFFSET_ESCUELA_HORAS } from "@/lib/cobranza";
  */
 
 /**
- * Primer día del mes de `fecha`, a medianoche EN LA HORA DE LA ESCUELA
- * (Colombia, `OFFSET_ESCUELA_HORAS`), no la del proceso. Mismo motivo que
- * `periodoDe` en `src/lib/cobranza.ts`: en Vercel el server corre en UTC, y
- * `getFullYear()/getMonth()` a secas leerían el mes adelantado hasta 5 horas
- * antes de que cierre de verdad en Colombia — "Este mes" del perfil del DT
- * mostraría el mes que viene un rato antes de que empiece localmente.
+ * Primer día del mes de `fecha`, a medianoche EN LA HORA DE LA ESCUELA, no la
+ * del proceso. Mismo motivo que `periodoDe` en `src/lib/cobranza.ts`: en Vercel
+ * el server corre en UTC, y `getFullYear()/getMonth()` a secas leerían el mes
+ * adelantado hasta 5 horas antes de que cierre de verdad en Colombia — "Este
+ * mes" del perfil del DT mostraría el mes que viene un rato antes de que
+ * empiece localmente.
+ *
+ * Devuelve un INSTANTE (se compara contra `createdAt` en las queries), por eso
+ * necesita el offset y no le alcanza con el día de almanaque.
  */
 export function inicioDeMes(fecha: Date): Date {
-  const enZonaEscuela = new Date(fecha.getTime() + OFFSET_ESCUELA_HORAS * 3_600_000);
+  const offset = offsetEscuelaMs(fecha);
+  const enZonaEscuela = new Date(fecha.getTime() + offset);
   const inicioEnZonaEscuela = Date.UTC(
     enZonaEscuela.getUTCFullYear(),
     enZonaEscuela.getUTCMonth(),
     1,
   );
-  return new Date(inicioEnZonaEscuela - OFFSET_ESCUELA_HORAS * 3_600_000);
+  return new Date(inicioEnZonaEscuela - offset);
 }

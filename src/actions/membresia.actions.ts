@@ -8,6 +8,9 @@ import {
   membresiaSchema,
   cambiarEstadoMembresiaSchema,
   generarCuotasSchema,
+  membresiaDesdeFormData,
+  generarCuotasDesdeFormData,
+  cambiarEstadoDesdeFormData,
 } from "@/lib/validators/membresia";
 import {
   registrarMembresiaEscuela,
@@ -16,27 +19,29 @@ import {
   type GeneracionCuotasDTO,
 } from "@/services/membresia.service";
 
+/**
+ * Todo lo que cambia al tocar una cuota: el listado, el dashboard (monto vencido
+ * y jugadores en mora salen de estas filas) y el catálogo de conceptos, que
+ * cuenta cuántas cuotas usa cada uno para decidir si se puede borrar.
+ */
+function revalidarCobranza(): void {
+  revalidatePath("/escuela/membresias");
+  revalidatePath("/escuela");
+  revalidatePath("/escuela/conceptos");
+}
+
 export async function registrarMembresiaAction(
   _prev: ActionResult | undefined,
   formData: FormData,
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = membresiaSchema.safeParse({
-      jugadorId: formData.get("jugadorId"),
-      periodo: formData.get("periodo"),
-      concepto: formData.get("concepto") ?? "MENSUALIDAD",
-      monto: formData.get("monto") ?? "",
-      descuento: formData.get("descuento") ?? "",
-      estado: formData.get("estado"),
-    });
+    const parsed = membresiaSchema.safeParse(membresiaDesdeFormData(formData));
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     await registrarMembresiaEscuela(ctx, parsed.data);
-    revalidatePath("/escuela/membresias");
-    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
-    revalidatePath("/escuela");
+    revalidarCobranza();
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -54,21 +59,16 @@ export async function generarCuotasAction(
 ): Promise<ActionResult<GeneracionCuotasDTO>> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = generarCuotasSchema.safeParse({
-      periodo: formData.get("periodo"),
-      concepto: formData.get("concepto") ?? "MENSUALIDAD",
-    });
+    const parsed = generarCuotasSchema.safeParse(generarCuotasDesdeFormData(formData));
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     const data = await generarCuotasDelPeriodo(
       ctx,
       parsed.data.periodo,
-      parsed.data.concepto,
+      parsed.data.conceptoId,
     );
-    revalidatePath("/escuela/membresias");
-    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
-    revalidatePath("/escuela");
+    revalidarCobranza();
     return { ok: true, data };
   } catch (e) {
     return mapError(e);
@@ -81,19 +81,14 @@ export async function cambiarEstadoMembresiaAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = cambiarEstadoMembresiaSchema.safeParse({
-      membresiaId: formData.get("membresiaId"),
-      estado: formData.get("estado"),
-      medioPago: formData.get("medioPago") ?? "",
-      referenciaPago: formData.get("referenciaPago") ?? "",
-    });
+    const parsed = cambiarEstadoMembresiaSchema.safeParse(
+      cambiarEstadoDesdeFormData(formData),
+    );
     if (!parsed.success) {
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     await cambiarEstadoMembresiaEscuela(ctx, parsed.data);
-    revalidatePath("/escuela/membresias");
-    // El dashboard muestra monto vencido y jugadores en mora desde estas filas.
-    revalidatePath("/escuela");
+    revalidarCobranza();
     return { ok: true };
   } catch (e) {
     return mapError(e);

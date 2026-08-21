@@ -33,6 +33,11 @@ import {
   type EstadoCuota,
   type DescuentoAplicable,
 } from "@/lib/cobranza";
+import {
+  resolverConceptoDelTenant,
+  resolverConceptoActivo,
+  conceptoMensualidad,
+} from "@/services/concepto-cobro.service";
 import { registrarAuditoria } from "@/services/audit.service";
 import { ESTADOS_MEMBRESIA } from "@/lib/validators/membresia";
 import type {
@@ -46,7 +51,9 @@ export interface MembresiaDTO {
   jugadorNombre: string;
   categoriaNombre: string;
   periodo: string;
-  concepto: string;
+  conceptoId: string;
+  /** Nombre actual del concepto en el catálogo de la escuela. */
+  conceptoNombre: string;
   monto: number | null;
   descuento: number | null;
   /**
@@ -122,7 +129,7 @@ export async function resumenMembresias(
     const lista = porJugador.get(c.jugadorId) ?? [];
     lista.push({
       periodo: c.periodo,
-      concepto: c.concepto,
+      conceptoId: c.conceptoId,
       estado: c.estado,
       monto: aNumero(c.monto),
       descuento: aNumero(c.descuento),
@@ -172,16 +179,22 @@ export interface GeneracionCuotasDTO {
 export async function generarCuotasDelPeriodo(
   ctx: AuthContext,
   periodo: string,
-  concepto = "MENSUALIDAD",
+  conceptoIdPedido: string | null = null,
 ): Promise<GeneracionCuotasDTO> {
   requireRole(ctx, ["ESCUELA_ADMIN"]);
   const escuelaId = requireEscuela(ctx);
 
+  // Sin concepto explícito se emite la mensualidad. Con uno, se verifica que sea
+  // del tenant antes de tocar nada: el id llega del formulario.
+  const conceptoId = conceptoIdPedido
+    ? (await resolverConceptoActivo(ctx, conceptoIdPedido)).id
+    : await conceptoMensualidad(ctx);
+
   const [jugadores, aranceles, reglasDescuento, yaTienen] = await Promise.all([
     jugadoresActivosParaCobranza(escuelaId),
-    listarArancelesActivos(escuelaId, concepto),
+    listarArancelesActivos(escuelaId, conceptoId),
     listarDescuentoReglasActivas(escuelaId),
-    jugadoresConCuota(escuelaId, periodo, concepto),
+    jugadoresConCuota(escuelaId, periodo, conceptoId),
   ]);
   if (jugadores.length === 0) {
     return { creadas: 0, yaExistian: 0, sinPrecio: 0 };
@@ -192,7 +205,7 @@ export async function generarCuotasDelPeriodo(
   const vigentes = aranceles.map((a) => ({
     id: a.id,
     categoriaId: a.categoriaId,
-    concepto: a.concepto,
+    conceptoId: a.conceptoId,
     monto: Number(a.monto.toString()),
     vigenteDesde: a.vigenteDesde,
   }));
@@ -221,7 +234,7 @@ export async function generarCuotasDelPeriodo(
   const filas = jugadores
     .filter((j) => !yaTienen.has(j.id))
     .map((j) => {
-      const arancel = resolverArancel(vigentes, j.categoriaId, concepto, referencia);
+      const arancel = resolverArancel(vigentes, j.categoriaId, conceptoId, referencia);
       if (!arancel) sinPrecio++;
 
       // El descuento solo tiene sentido si hay monto del que descontar (mismo
@@ -244,19 +257,20 @@ export async function generarCuotasDelPeriodo(
       return {
         jugadorId: j.id,
         periodo,
-        concepto,
+        conceptoId,
         monto: arancel ? arancel.monto : null,
         descuento,
       };
     });
 
   const creadas = await crearMembresiasFaltantes(escuelaId, filas);
+  const concepto = await resolverConceptoDelTenant(ctx, conceptoId);
   await registrarAuditoria(ctx, {
     accion: "MEMBRESIA_GENERAR_PERIODO",
     entidad: "Membresia",
     entidadId: escuelaId,
     escuelaId,
-    motivo: `${periodo} ${concepto}: ${creadas} creadas de ${jugadores.length} activos`,
+    motivo: `${periodo} ${concepto.nombre}: ${creadas} creadas de ${jugadores.length} activos`,
   });
 
   // `yaExistian` sale de lo REALMENTE insertado, no del pre-filtro: si otra
@@ -337,12 +351,13 @@ export async function listarMembresiasEscuela(
       jugadorNombre: j ? `${j.apellido}, ${j.nombre}` : "—",
       categoriaNombre: j?.categoria.nombre ?? "—",
       periodo: m.periodo,
-      concepto: m.concepto,
+      conceptoId: m.conceptoId,
+      conceptoNombre: m.conceptoCobro.nombre,
       monto: aNumero(m.monto),
       descuento: aNumero(m.descuento),
       neto: netoCuota({
         periodo: m.periodo,
-        concepto: m.concepto,
+        conceptoId: m.conceptoId,
         estado: m.estado,
         monto: aNumero(m.monto),
         descuento: aNumero(m.descuento),
@@ -409,8 +424,9 @@ export async function registrarMembresiaEscuela(
   const jugador = await obtenerJugador(escuelaId, input.jugadorId);
   if (!jugador) throw new NotFoundError("Jugador no encontrado.");
   assertTenant(ctx, jugador.escuelaId);
+  const concepto = await resolverConceptoActivo(ctx, input.conceptoId);
 
-  await upsertMembresia(escuelaId, input.jugadorId, input.periodo, input.concepto, {
+  await upsertMembresia(escuelaId, input.jugadorId, input.periodo, input.conceptoId, {
     monto: input.monto,
     descuento: input.descuento,
     estado: input.estado,
@@ -420,7 +436,7 @@ export async function registrarMembresiaEscuela(
     entidad: "Membresia",
     entidadId: input.jugadorId,
     escuelaId,
-    motivo: `${input.periodo} ${input.concepto} → ${input.estado}`,
+    motivo: `${input.periodo} ${concepto.nombre} → ${input.estado}`,
   });
 }
 
@@ -437,6 +453,7 @@ export async function cambiarEstadoMembresiaEscuela(
   const escuelaId = requireEscuela(ctx);
   const m = await obtenerMembresia(escuelaId, input.membresiaId);
   if (!m) throw new NotFoundError("Cuota no encontrada.");
+  const concepto = await resolverConceptoDelTenant(ctx, m.conceptoId);
 
   await registrarPagoMembresia(escuelaId, input.membresiaId, input.estado, {
     medioPago: input.medioPago,
@@ -449,7 +466,7 @@ export async function cambiarEstadoMembresiaEscuela(
     escuelaId,
     // El medio de pago va al motivo: es la traza de cómo entró la plata.
     motivo:
-      `${m.periodo} ${m.concepto} → ${input.estado}` +
+      `${m.periodo} ${concepto.nombre} → ${input.estado}` +
       (input.estado === "PAGADA" && input.medioPago ? ` (${input.medioPago})` : ""),
   });
 }

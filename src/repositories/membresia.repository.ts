@@ -38,6 +38,9 @@ export function listarMembresias(
   return db.membresia.findMany({
     where: { AND: condicionesMembresia(escuelaId, filtros) },
     orderBy: [{ periodo: "desc" }],
+    // El nombre del concepto viaja con la fila: es lo que muestra la tabla, y
+    // resolverlo aparte obligaría a un segundo query por página.
+    include: { conceptoCobro: { select: { id: true, nombre: true } } },
     skip: filtros.skip,
     take: filtros.take,
   });
@@ -55,28 +58,90 @@ export function obtenerMembresia(escuelaId: string, id: string) {
 
 /**
  * Crea o actualiza la cuota de un jugador para un período y concepto. Upsert
- * atómico sobre el unique (escuelaId, jugadorId, periodo, concepto) — sin
+ * atómico sobre el unique (escuelaId, jugadorId, periodo, conceptoId) — sin
  * condición de carrera.
  */
 export function upsertMembresia(
   escuelaId: string,
   jugadorId: string,
   periodo: string,
-  concepto: string,
+  conceptoId: string,
   data: { monto: number | null; descuento: number | null; estado: string },
 ) {
-  return db.membresia.upsert({
-    where: {
-      escuelaId_jugadorId_periodo_concepto: {
-        escuelaId,
-        jugadorId,
-        periodo,
-        concepto,
+  // Las columnas del pago se derivan del estado, igual que en
+  // `registrarPagoMembresia`. Antes esta ruta escribía solo monto/descuento/
+  // estado y las dejaba como estaban, con dos consecuencias que la UI mostraba
+  // tal cual:
+  //   * PAGADA -> PENDIENTE dejaba el comprobante colgado: la fila decía
+  //     "Pendiente" y al lado "pagada el 3/8 · Nequi", y el export lo bajaba así
+  //     a la planilla que alguien concilia contra el banco.
+  //   * PENDIENTE -> PAGADA marcaba el estado sin sellar `pagadaEn`, y la caja
+  //     neta suma por `pagadaEn`: ese pago no existía para el reporte.
+  //
+  // Pero al quedarse PAGADA hay que CONSERVAR lo que ya estaba: este formulario
+  // no pide medio ni referencia (los pide el de cambiar estado), así que
+  // recalcularlos desde cero al corregir un monto borraba el comprobante y movía
+  // el pago al mes de hoy. Por eso lee la fila antes de escribirla, en la misma
+  // transacción.
+  // El `where` va escrito entero en cada llamada y no extraído a una variable:
+  // el test guardián de aislamiento (`tests/unit/aislamiento-tenant.test.ts`)
+  // lee el código, y con la clave en una variable no puede ver el `escuelaId`.
+  return db.$transaction(async (tx) => {
+    const actual = await tx.membresia.findUnique({
+      where: {
+        escuelaId_jugadorId_periodo_conceptoId: {
+          escuelaId,
+          jugadorId,
+          periodo,
+          conceptoId,
+        },
       },
-    },
-    update: data,
-    create: { escuelaId, jugadorId, periodo, concepto, ...data },
+    });
+    const fila = { ...data, ...pagoConservando(data.estado, actual) };
+    return tx.membresia.upsert({
+      where: {
+        escuelaId_jugadorId_periodo_conceptoId: {
+          escuelaId,
+          jugadorId,
+          periodo,
+          conceptoId,
+        },
+      },
+      update: fila,
+      create: { escuelaId, jugadorId, periodo, conceptoId, ...fila },
+    });
   });
+}
+
+/** Registro del pago que ya tenía una cuota (null si es alta). */
+interface PagoGuardado {
+  pagadaEn: Date | null;
+  medioPago: string | null;
+  referenciaPago: string | null;
+}
+
+/**
+ * Columnas del pago para un estado, conservando lo ya registrado.
+ *
+ * Si sigue PAGADA no se toca nada de lo que había: `pagadaEn` mantiene la fecha
+ * REAL del pago (no la de la corrección) y el comprobante sobrevive. Solo se
+ * sella `pagadaEn` cuando la cuota pasa a PAGADA sin tenerla.
+ *
+ * Al salir de PAGADA se limpian las tres: un comprobante colgado de una cuota
+ * que ya no está paga no es un dato viejo, es un dato falso.
+ */
+function pagoConservando(
+  estado: string,
+  actual: PagoGuardado | null,
+): PagoGuardado {
+  if (estado !== "PAGADA") {
+    return { pagadaEn: null, medioPago: null, referenciaPago: null };
+  }
+  return {
+    pagadaEn: actual?.pagadaEn ?? new Date(),
+    medioPago: actual?.medioPago ?? null,
+    referenciaPago: actual?.referenciaPago ?? null,
+  };
 }
 
 /**
@@ -95,6 +160,8 @@ export function registrarPagoMembresia(
     where: { id, escuelaId },
     data: {
       estado,
+      // Acá el medio y la referencia SÍ vienen del formulario, así que se
+      // escriben tal cual (a diferencia de `upsertMembresia`, que no los pide).
       pagadaEn: pagada ? new Date() : null,
       medioPago: pagada ? pago.medioPago : null,
       referenciaPago: pagada ? pago.referenciaPago : null,
@@ -110,10 +177,10 @@ export function registrarPagoMembresia(
 export async function jugadoresConCuota(
   escuelaId: string,
   periodo: string,
-  concepto: string,
+  conceptoId: string,
 ): Promise<Set<string>> {
   const rows = await db.membresia.findMany({
-    where: { escuelaId, periodo, concepto },
+    where: { escuelaId, periodo, conceptoId },
     select: { jugadorId: true },
   });
   return new Set(rows.map((r) => r.jugadorId));
@@ -124,7 +191,7 @@ export async function jugadoresConCuota(
  *
  * Usa `createMany({ skipDuplicates })` y NO un upsert: un upsert pisaría el monto
  * y el estado de una cuota YA PAGADA. El unique
- * (escuelaId, jugadorId, periodo, concepto) hace el filtrado en la base, así que
+ * (escuelaId, jugadorId, periodo, conceptoId) hace el filtrado en la base, así que
  * volver a generar el mismo mes es idempotente por construcción — no hay ventana
  * de carrera entre "consultar qué falta" y "crear".
  *
@@ -135,7 +202,7 @@ export async function crearMembresiasFaltantes(
   filas: {
     jugadorId: string;
     periodo: string;
-    concepto: string;
+    conceptoId: string;
     monto: number | null;
     descuento: number | null;
   }[],
@@ -175,7 +242,7 @@ export function cuotasImpagas(escuelaId: string) {
     select: {
       jugadorId: true,
       periodo: true,
-      concepto: true,
+      conceptoId: true,
       estado: true,
       monto: true,
       descuento: true,
@@ -195,7 +262,7 @@ export function cuotasImpagasDeJugadores(escuelaId: string, jugadorIds: string[]
     select: {
       jugadorId: true,
       periodo: true,
-      concepto: true,
+      conceptoId: true,
       estado: true,
       monto: true,
       descuento: true,
