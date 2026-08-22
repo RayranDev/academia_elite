@@ -2,8 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   reportarPagoSchema,
   motivoPagoSchema,
+  aprobarPagosLoteSchema,
   reportarPagoDesdeFormData,
   motivoPagoDesdeFormData,
+  aprobarPagosLoteDesdeFormData,
   ESTADOS_PAGO,
   ETIQUETA_ESTADO_PAGO,
 } from "@/lib/validators/pago";
@@ -239,6 +241,23 @@ describe("reportarPagoDesdeFormData + reportarPagoSchema", () => {
     if (!r.success) {
       expect(r.error.issues[0]?.message).toBe("Demasiados medios en un solo reporte.");
     }
+  });
+});
+
+describe("aprobarPagosLoteDesdeFormData + aprobarPagosLoteSchema", () => {
+  it("junta los checkboxes tildados en un arreglo", () => {
+    const raw = fd({});
+    raw.append("pagoId", "pago_1");
+    raw.append("pagoId", "pago_2");
+    const r = aprobarPagosLoteSchema.safeParse(aprobarPagosLoteDesdeFormData(raw));
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.pagoIds).toEqual(["pago_1", "pago_2"]);
+  });
+
+  it("rechaza sin ningún pago seleccionado", () => {
+    const r = aprobarPagosLoteSchema.safeParse(aprobarPagosLoteDesdeFormData(fd({})));
+    expect(r.success).toBe(false);
+    if (!r.success) expect(r.error.issues[0]?.message).toBe("Elige al menos un pago.");
   });
 });
 

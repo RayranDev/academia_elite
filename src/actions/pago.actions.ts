@@ -10,18 +10,22 @@ import {
   reportarPagoSchema,
   motivoPagoSchema,
   aprobarPagoSchema,
+  aprobarPagosLoteSchema,
   reportarPagoDesdeFormData,
   motivoPagoDesdeFormData,
   aprobarPagoDesdeFormData,
+  aprobarPagosLoteDesdeFormData,
 } from "@/lib/validators/pago";
 import {
   reportarPago,
   registrarPagoEscuela,
   aprobarPagoEscuela,
+  aprobarPagosEscuela,
   rechazarPagoEscuela,
   anularPagoEscuela,
   cuotasReportablesJugador,
   type CuotaReportableDTO,
+  type AprobacionLoteDTO,
 } from "@/services/pago.service";
 
 /**
@@ -132,6 +136,24 @@ export async function aprobarPagoAction(
     await aprobarPagoEscuela(ctx, parsed.data.pagoId);
     revalidarPagos();
     return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function aprobarPagosLoteAction(
+  _prev: ActionResult<AprobacionLoteDTO> | undefined,
+  formData: FormData,
+): Promise<ActionResult<AprobacionLoteDTO>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = aprobarPagosLoteSchema.safeParse(aprobarPagosLoteDesdeFormData(formData));
+    if (!parsed.success) {
+      throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
+    }
+    const data = await aprobarPagosEscuela(ctx, parsed.data.pagoIds);
+    revalidarPagos();
+    return { ok: true, data };
   } catch (e) {
     return mapError(e);
   }

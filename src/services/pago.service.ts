@@ -491,6 +491,50 @@ export async function aprobarPagoEscuela(ctx: AuthContext, pagoId: string): Prom
   });
 }
 
+export interface AprobacionLoteDTO {
+  aprobados: number;
+  yaRevisados: number;
+}
+
+/**
+ * Aprueba varios pagos REPORTADOS de una sola acción — la bandeja los deja
+ * tildar y aprobar juntos en vez de uno por uno.
+ *
+ * Cada pago se aprueba en SU PROPIA transacción (`aprobarPagoRepo` ya abre una):
+ * no se envuelve el lote entero en una transacción más grande a propósito. Si
+ * un pago de los diez falla (alguien lo rechazó desde otra pestaña justo antes),
+ * los otros nueve quedan aprobados igual — una transacción única los habría
+ * revertido a todos por el error de uno solo.
+ *
+ * Auditoría en UNA fila que resume el lote (mismo criterio que
+ * `generarCuotasDelPeriodo`: "creadas N de M"), no una por pago — diez
+ * aprobaciones del mismo click son un solo evento para quien revise el
+ * historial después.
+ */
+export async function aprobarPagosEscuela(
+  ctx: AuthContext,
+  pagoIds: string[],
+): Promise<AprobacionLoteDTO> {
+  requireRole(ctx, ["ESCUELA_ADMIN"]);
+  const escuelaId = requireEscuela(ctx);
+
+  let aprobados = 0;
+  for (const id of pagoIds) {
+    const pago = await aprobarPagoRepo(escuelaId, id, ctx.userId);
+    if (pago) aprobados++;
+  }
+
+  await registrarAuditoria(ctx, {
+    accion: "PAGO_APROBAR_LOTE",
+    entidad: "Pago",
+    entidadId: escuelaId,
+    escuelaId,
+    motivo: `${aprobados} aprobados de ${pagoIds.length} elegidos`,
+  });
+
+  return { aprobados, yaRevisados: pagoIds.length - aprobados };
+}
+
 /** Rechaza un pago REPORTADO: libera las cuotas para que se puedan reportar de nuevo. Auditado. */
 export async function rechazarPagoEscuela(
   ctx: AuthContext,

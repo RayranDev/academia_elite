@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   aprobarPagoAction,
+  aprobarPagosLoteAction,
   rechazarPagoAction,
   anularPagoAction,
 } from "@/actions/pago.actions";
@@ -50,6 +51,7 @@ export function BandejaPagos({
   const [accionMotivo, setAccionMotivo] = useState<"RECHAZAR" | "ANULAR" | null>(null);
   const [motivo, setMotivo] = useState("");
   const [detalleAbiertoId, setDetalleAbiertoId] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
 
   function ejecutar(fd: FormData, accion: (fd: FormData) => Promise<ActionResult>) {
     startTransition(async () => {
@@ -58,6 +60,7 @@ export function BandejaPagos({
         setError(null);
         setMotivoAbiertoId(null);
         setMotivo("");
+        setSeleccionados(new Set());
         router.refresh();
       } else {
         setError(res.error);
@@ -69,6 +72,30 @@ export function BandejaPagos({
     const fd = new FormData();
     fd.set("pagoId", pagoId);
     ejecutar(fd, (f) => aprobarPagoAction(undefined, f));
+  }
+
+  function alternarSeleccion(pagoId: string) {
+    setSeleccionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(pagoId)) next.delete(pagoId);
+      else next.add(pagoId);
+      return next;
+    });
+  }
+
+  function aprobarSeleccionados() {
+    startTransition(async () => {
+      const fd = new FormData();
+      for (const id of seleccionados) fd.append("pagoId", id);
+      const res = await aprobarPagosLoteAction(undefined, fd);
+      if (res.ok) {
+        setError(null);
+        setSeleccionados(new Set());
+        router.refresh();
+      } else {
+        setError(res.error);
+      }
+    });
   }
 
   function confirmarMotivo(pagoId: string) {
@@ -119,6 +146,23 @@ export function BandejaPagos({
         </p>
       )}
 
+      {/* Solo en la pestaña REPORTADO: es la cola de revisión real, y aprobar
+          en lote fuera de ahí (por ejemplo desde "Todos") arriesgaría tildar
+          pagos que ya están resueltos. */}
+      {estadoActual === "REPORTADO" && seleccionados.size > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-brand/50 bg-brand/10 px-3 py-2 text-sm">
+          <span>{seleccionados.size} seleccionado(s)</span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={aprobarSeleccionados}
+            className="font-semibold text-pitch hover:underline"
+          >
+            Aprobar seleccionados
+          </button>
+        </div>
+      )}
+
       {pagos.items.length === 0 ? (
         <Card>
           <p className="text-sm text-muted">No hay pagos acá.</p>
@@ -130,31 +174,42 @@ export function BandejaPagos({
             const pidiendoMotivo = motivoAbiertoId === p.id;
             return (
               <Card key={p.id} className="p-0">
-                <button
-                  type="button"
-                  onClick={() => setDetalleAbiertoId(detalleAbierto ? null : p.id)}
-                  className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-left text-sm"
-                >
-                  <span className="flex flex-wrap items-center gap-2">
-                    <Badge tono={TONO[p.estado] ?? "neutral"}>
-                      {ETIQUETA_ESTADO_PAGO[p.estado as keyof typeof ETIQUETA_ESTADO_PAGO] ??
-                        p.estado}
-                    </Badge>
-                    <span className="tabular font-semibold">{formatearMonto(p.monto)}</span>
-                    <span className="text-muted">
-                      · <FechaCalendario iso={p.fechaPago} formato="d MMM yyyy" />
-                    </span>
-                    <span className="text-muted">
-                      · {p.aplicaciones.length} cuota{p.aplicaciones.length === 1 ? "" : "s"}
+                <div className="flex w-full flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+                  {p.estado === "REPORTADO" && (
+                    <input
+                      type="checkbox"
+                      checked={seleccionados.has(p.id)}
+                      onChange={() => alternarSeleccion(p.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Seleccionar para aprobar en lote"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDetalleAbiertoId(detalleAbierto ? null : p.id)}
+                    className="flex flex-1 flex-wrap items-center justify-between gap-2 text-left"
+                  >
+                    <span className="flex flex-wrap items-center gap-2">
+                      <Badge tono={TONO[p.estado] ?? "neutral"}>
+                        {ETIQUETA_ESTADO_PAGO[p.estado as keyof typeof ETIQUETA_ESTADO_PAGO] ??
+                          p.estado}
+                      </Badge>
+                      <span className="tabular font-semibold">{formatearMonto(p.monto)}</span>
+                      <span className="text-muted">
+                        · <FechaCalendario iso={p.fechaPago} formato="d MMM yyyy" />
+                      </span>
+                      <span className="text-muted">
+                        · {p.aplicaciones.length} cuota{p.aplicaciones.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="text-xs text-muted">
+                        {p.origen === "ESCUELA" ? "(registrado por la escuela)" : ""}
+                      </span>
                     </span>
                     <span className="text-xs text-muted">
-                      {p.origen === "ESCUELA" ? "(registrado por la escuela)" : ""}
+                      {detalleAbierto ? "Ocultar" : "Ver detalle"}
                     </span>
-                  </span>
-                  <span className="text-xs text-muted">
-                    {detalleAbierto ? "Ocultar" : "Ver detalle"}
-                  </span>
-                </button>
+                  </button>
+                </div>
 
                 {detalleAbierto && (
                   <div className="space-y-3 border-t border-subtle px-4 py-3 text-sm">

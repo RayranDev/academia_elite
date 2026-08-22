@@ -151,3 +151,11 @@ export const aprobarPagoSchema = z.object({
 export function aprobarPagoDesdeFormData(fd: FormData) {
   return { pagoId: fd.get("pagoId") ?? "" };
 }
+
+export const aprobarPagosLoteSchema = z.object({
+  pagoIds: z.array(z.string().min(1)).min(1, { error: "Elige al menos un pago." }),
+});
+
+export function aprobarPagosLoteDesdeFormData(fd: FormData) {
+  return { pagoIds: fd.getAll("pagoId") };
+}
