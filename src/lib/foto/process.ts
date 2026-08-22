@@ -44,6 +44,27 @@ export async function procesarFoto(buf: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+export const MAX_COMPROBANTE_BYTES = 4 * 1024 * 1024; // 4 MB
+const MAX_LADO_COMPROBANTE = 1600;
+
+/**
+ * Procesa un pantallazo de comprobante de pago: recomprime a WebP y descarta
+ * metadatos, igual que `procesarFoto`, pero con lado máximo 1600 y más calidad.
+ * A 800px (el tope de `procesarFoto`) no se alcanza a leer un número de
+ * referencia bancaria, y ese número es exactamente lo que el admin necesita
+ * verificar contra el banco.
+ */
+export async function procesarComprobante(buf: Buffer): Promise<Buffer> {
+  return sharp(buf)
+    .rotate()
+    .resize(MAX_LADO_COMPROBANTE, MAX_LADO_COMPROBANTE, {
+      fit: "inside",
+      withoutEnlargement: true,
+    })
+    .webp({ quality: 90 })
+    .toBuffer();
+}
+
 export const MAX_ESCUDO_BYTES = 1 * 1024 * 1024; // 1 MB
 
 /**

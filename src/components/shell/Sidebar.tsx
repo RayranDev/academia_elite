@@ -64,6 +64,7 @@ export const ICONOS: Record<string, LucideIcon> = {
   asistencia: ClipboardCheck,
   ranking: Trophy,
   membresias: Wallet,
+  pagos: Wallet,
   egresos: Receipt,
   precios: Tag,
   descuentos: Percent,

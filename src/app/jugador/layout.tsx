@@ -8,6 +8,7 @@ import type { NavItem } from "@/components/shell/Sidebar";
 const NAV: NavItem[] = [
   { href: "/jugador", label: "Inicio", icon: "inicio" },
   { href: "/jugador/calendario", label: "Calendario", icon: "calendario" },
+  { href: "/jugador/pagos", label: "Pagos", icon: "pagos" },
   { href: "/jugador/mensajes", label: "Mensajes", icon: "mensajes" },
   { href: "/jugador/logros", label: "Logros", icon: "logros" },
   { href: "/jugador/fondos", label: "Fondos", icon: "fondos" },
@@ -32,10 +33,12 @@ export default async function JugadorLayout({
   const escudoUrl = branding.tieneEscudo
     ? `/api/archivos/escudo/${branding.escuelaId}`
     : null;
-  // Bloqueado: solo "Mensajes" en el nav, para no invitar a clickear
-  // secciones que igual van a rebotar a /bloqueado.
+  // Bloqueado: solo "Mensajes" y "Pagos" quedan en el nav — el resto rebota a
+  // /bloqueado. Pagos se deja a propósito: si el bloqueo es por mora, es la
+  // única pantalla que le sirve a la familia para salir de ahí (ver el estado
+  // de cuenta y reportar lo que ya pagó).
   const nav = user.bloqueado
-    ? NAV.filter((n) => n.href === "/jugador/mensajes")
+    ? NAV.filter((n) => n.href === "/jugador/mensajes" || n.href === "/jugador/pagos")
     : NAV;
 
   return (

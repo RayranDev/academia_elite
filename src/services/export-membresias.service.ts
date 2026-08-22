@@ -8,7 +8,7 @@ import { listarJugadoresGestion } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { registrarAuditoria } from "@/services/audit.service";
 import { estadoEfectivo } from "@/lib/cobranza";
-import { diaEscuelaDe, hoyISO } from "@/lib/fecha-calendario";
+import { diaDeISO, hoyISO } from "@/lib/fecha-calendario";
 import { ESTADOS_MEMBRESIA } from "@/lib/validators/membresia";
 
 /**
@@ -128,11 +128,13 @@ export async function exportarMembresias(
       monto ?? "",
       descuento ?? "",
       neto ?? "",
-      // `pagadaEn` es un INSTANTE. Formatearlo con date-fns lo lee en la zona
-      // del PROCESO, que en Vercel es UTC: un pago tomado a las 19:00 en
-      // Colombia salía informado al día siguiente, y el que concilia contra el
-      // banco veía una fecha que la app no confirmaba.
-      m.pagadaEn ? diaEscuelaDe(m.pagadaEn) : "",
+      // `pagadaEn` es DÍA DE ALMANAQUE (medianoche UTC del día de la escuela,
+      // igual que `Pago.fechaPago` — ver `membresia.repository.ts`), no un
+      // instante: se corta el ISO, no se convierte de zona. Convertirlo con
+      // `diaEscuelaDe` (que sí espera un instante) corría la fecha un día para
+      // atrás en Colombia, porque medianoche UTC ya es la tarde del día
+      // anterior ahí.
+      m.pagadaEn ? diaDeISO(m.pagadaEn.toISOString()) : "",
       m.medioPago ?? "",
       protegerCelda(m.referenciaPago ?? ""),
       bloqueado ? "Bloqueado" : "Activo",

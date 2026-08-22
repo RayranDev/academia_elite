@@ -1,9 +1,26 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
+import { hoyISO } from "@/lib/fecha-calendario";
 
 // Repositorio de membresías / cuotas (Capa 4). Firma con escuelaId (multi-tenant).
 // El modelo Membresia no tiene relación Prisma a Jugador: los nombres se
 // resuelven aparte con obtenerJugadoresMinimos.
+
+/**
+ * `Membresia.pagadaEn` es DÍA DE ALMANAQUE, no instante — mismo criterio que
+ * `Pago.fechaPago`, que es de donde sale cuando la cuota se paga a través de un
+ * `Pago` (`aprobarPago`/`crearPago` en `pago.repository.ts` escriben ahí
+ * `fechaPago` directo). Acá se sella "hoy" con el mismo formato (medianoche UTC
+ * del día de la escuela) para que las dos rutas de escritura llenen la MISMA
+ * columna con el MISMO tipo de dato — antes esta ruta guardaba `new Date()`
+ * (un instante real) mientras la otra guardaba un día de almanaque, y una sola
+ * columna con dos semánticas distintas es exactamente lo que AGENTS.md §6 pide
+ * evitar: cualquier componente que la lea acierta para una mitad de las filas
+ * y se equivoca un día para la otra.
+ */
+function diaEscuelaComoUTC(): Date {
+  return new Date(`${hoyISO()}T00:00:00.000Z`);
+}
 
 /** Filtros comunes a `listarMembresias` y `contarMembresias`. */
 interface FiltrosMembresia {
@@ -138,7 +155,7 @@ function pagoConservando(
     return { pagadaEn: null, medioPago: null, referenciaPago: null };
   }
   return {
-    pagadaEn: actual?.pagadaEn ?? new Date(),
+    pagadaEn: actual?.pagadaEn ?? diaEscuelaComoUTC(),
     medioPago: actual?.medioPago ?? null,
     referenciaPago: actual?.referenciaPago ?? null,
   };
@@ -162,7 +179,7 @@ export function registrarPagoMembresia(
       estado,
       // Acá el medio y la referencia SÍ vienen del formulario, así que se
       // escriben tal cual (a diferencia de `upsertMembresia`, que no los pide).
-      pagadaEn: pagada ? new Date() : null,
+      pagadaEn: pagada ? diaEscuelaComoUTC() : null,
       medioPago: pagada ? pago.medioPago : null,
       referenciaPago: pagada ? pago.referenciaPago : null,
     },

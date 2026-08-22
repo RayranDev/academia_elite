@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,11 +15,12 @@ import {
   etiquetaMedioPago,
 } from "@/lib/validators/membresia";
 import { ConceptoSelect } from "@/components/escuela/ConceptoSelect";
+import { ComboboxJugador } from "@/components/escuela/ComboboxJugador";
 import type { ConceptoCobroDTO } from "@/services/concepto-cobro.service";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { FechaLocal } from "@/components/ui/FechaLocal";
+import { FechaCalendario } from "@/components/ui/FechaCalendario";
 import { formatearMonto } from "@/lib/cobranza";
 import type { ActionResult } from "@/lib/action-result";
 import type { MembresiaDTO } from "@/services/membresia.service";
@@ -204,7 +205,11 @@ export function MembresiasPanel({
                   <td className="px-4 py-2 text-xs text-muted">
                     {m.pagadaEn ? (
                       <>
-                        <FechaLocal iso={m.pagadaEn} formato="d MMM yyyy" />
+                        {/* `pagadaEn` es día de almanaque (viene de `Pago.fechaPago`,
+                            que se guarda a medianoche UTC), no un instante — con
+                            FechaLocal se leía un día menos en Colombia. Mismo
+                            criterio que BandejaPagos/HistorialPagos. */}
+                        <FechaCalendario iso={m.pagadaEn} formato="d MMM yyyy" />
                         {m.medioPago && (
                           <span className="ml-1">· {etiquetaMedioPago(m.medioPago)}</span>
                         )}
@@ -227,73 +232,6 @@ export function MembresiasPanel({
           </table>
         )}
       </Card>
-    </div>
-  );
-}
-
-/**
- * Autocomplete de jugador (C2.2): reemplaza el `<select>` con miles de opciones
- * por un buscador que filtra al escribir. El `id` elegido viaja en un input
- * oculto `jugadorId`, así la action no cambia. Filtra sobre la lista ya cargada
- * (para una escuela son cientos, no miles) y muestra hasta 20 coincidencias.
- */
-function ComboboxJugador({
-  jugadores,
-  inputId,
-}: {
-  jugadores: { id: string; nombre: string }[];
-  inputId?: string;
-}) {
-  const [texto, setTexto] = useState("");
-  const [elegido, setElegido] = useState<{ id: string; nombre: string } | null>(
-    null,
-  );
-  const [abierto, setAbierto] = useState(false);
-
-  const filtrados = useMemo(() => {
-    const q = texto.trim().toLowerCase();
-    if (!q) return jugadores.slice(0, 20);
-    return jugadores.filter((j) => j.nombre.toLowerCase().includes(q)).slice(0, 20);
-  }, [texto, jugadores]);
-
-  return (
-    <div className="relative">
-      <input type="hidden" name="jugadorId" value={elegido?.id ?? ""} />
-      <input
-        id={inputId}
-        type="text"
-        value={elegido ? elegido.nombre : texto}
-        onChange={(e) => {
-          setElegido(null);
-          setTexto(e.target.value);
-          setAbierto(true);
-        }}
-        onFocus={() => setAbierto(true)}
-        // Cierre diferido: deja que el click en una opción se registre primero.
-        onBlur={() => setTimeout(() => setAbierto(false), 120)}
-        placeholder="Busca por nombre o apellido…"
-        autoComplete="off"
-        className={input}
-      />
-      {abierto && filtrados.length > 0 && !elegido && (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-subtle bg-surface shadow-xl">
-          {filtrados.map((j) => (
-            <li key={j.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  setElegido(j);
-                  setTexto("");
-                  setAbierto(false);
-                }}
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-surface-2"
-              >
-                {j.nombre}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
