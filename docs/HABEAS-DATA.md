@@ -66,9 +66,11 @@ Transferencia y Transmisión, conforme a la ley.
 > guarda. No es dato sensible (art. 5 Ley 1581): a diferencia de la foto o la
 > salud del menor, no exige consentimiento granular propio — queda cubierto
 > por la autorización general del registro (§6). Es **opcional**: quedar en
-> blanco no bloquea ninguna función. Solo lo ve el propio titular en su
-> autoservicio ("Mi cuenta") y el personal con acceso administrativo a la
-> ficha de usuarios (mismo nivel que el teléfono de contacto).
+> blanco no bloquea ninguna función. Hoy **solo lo ve el propio titular** en su
+> autoservicio ("Mi cuenta"): ninguna pantalla administrativa lo muestra, y el
+> listado de usuarios del Súper Admin ni siquiera lo lee de la base. Si alguna
+> vez una vista de administración necesita mostrarlo, esta entrada se actualiza
+> en el mismo cambio.
 
 ## 5. Finalidades del Tratamiento
 

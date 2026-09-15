@@ -7,11 +7,6 @@ const SELECT_SEGURO = {
   email: true,
   nombre: true,
   telefono: true,
-  // Identificación fiscal del acudiente (facturación futura, ver AGENTS.md /
-  // comentario en `prisma/schema.prisma`). Misma sensibilidad que `telefono`.
-  tipoDocumento: true,
-  numeroDocumento: true,
-  direccion: true,
   rol: true,
   escuelaId: true,
   activo: true,
@@ -23,8 +18,26 @@ const SELECT_SEGURO = {
   createdAt: true,
 } as const;
 
+/**
+ * Un usuario con TODO lo que su propio titular puede ver de sí mismo, incluida
+ * su identificación fiscal.
+ *
+ * Esos tres campos NO viven en `SELECT_SEGURO` a propósito: ese select también
+ * alimenta el listado de usuarios del Súper Admin, y ninguna pantalla de ese
+ * panel los muestra. Traerlos ahí sería leer documento y dirección de cientos
+ * de acudientes para descartarlos en el mapper — minimizar el dato que se lee
+ * es parte del habeas data, no una optimización.
+ */
 export function obtenerUserSeguro(id: string) {
-  return db.user.findUnique({ where: { id }, select: SELECT_SEGURO });
+  return db.user.findUnique({
+    where: { id },
+    select: {
+      ...SELECT_SEGURO,
+      tipoDocumento: true,
+      numeroDocumento: true,
+      direccion: true,
+    },
+  });
 }
 
 /** Usuarios para el panel del Súper Admin, con filtros opcionales. */
