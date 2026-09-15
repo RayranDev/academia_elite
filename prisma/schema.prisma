@@ -24,6 +24,17 @@ model User {
   nombre              String
   rol                 String // enum: SUPER_ADMIN | ESCUELA_ADMIN | DT | JUGADOR
   telefono            String? // contacto de la familia (nómina / emergencias)
+  // Identificación fiscal del ADQUIRIENTE (el acudiente que paga), no del
+  // menor: en Colombia la factura electrónica se emite a quien paga, no al
+  // jugador (que ya tiene su propio `tipoDocumento`/`numeroDocumento` en
+  // `Jugador`, con RC/TI porque ahí sí es un NNA). Hoy la plataforma NO emite
+  // factura electrónica — estos campos solo evitan tener que perseguir después
+  // a cientos de familias pidiéndoles la cédula el día que una escuela se
+  // formalice ante la DIAN. Los tres son OPCIONALES a propósito: la escuela
+  // informal no los necesita y no se le debe exigir nada.
+  tipoDocumento       String? // enum: CC | CE | NIT | PAS (adulto: sin RC ni TI)
+  numeroDocumento     String?
+  direccion           String?
   escuelaId           String?
   escuela             Escuela?       @relation(fields: [escuelaId], references: [id])
   entrenador          Entrenador?

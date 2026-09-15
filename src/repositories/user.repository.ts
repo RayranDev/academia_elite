@@ -7,6 +7,11 @@ const SELECT_SEGURO = {
   email: true,
   nombre: true,
   telefono: true,
+  // Identificación fiscal del acudiente (facturación futura, ver AGENTS.md /
+  // comentario en `prisma/schema.prisma`). Misma sensibilidad que `telefono`.
+  tipoDocumento: true,
+  numeroDocumento: true,
+  direccion: true,
   rol: true,
   escuelaId: true,
   activo: true,
@@ -90,7 +95,15 @@ export function contarUsersAdmin(filtros: {
 
 export function actualizarUserDatos(
   id: string,
-  data: { nombre?: string; email?: string; activo?: boolean; telefono?: string | null },
+  data: {
+    nombre?: string;
+    email?: string;
+    activo?: boolean;
+    telefono?: string | null;
+    tipoDocumento?: string | null;
+    numeroDocumento?: string | null;
+    direccion?: string | null;
+  },
 ) {
   return db.user.update({ where: { id }, data, select: { id: true } });
 }

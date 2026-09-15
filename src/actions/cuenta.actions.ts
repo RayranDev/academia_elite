@@ -7,6 +7,7 @@ import { ValidationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limit";
 import {
   actualizarDatosSchema,
+  actualizarDatosDesdeFormData,
   solicitarCambioEmailSchema,
   confirmarCambioEmailSchema,
   datosJugadorSchema,
@@ -67,10 +68,9 @@ export async function actualizarMisDatosAction(
 ): Promise<ActionResult> {
   try {
     const ctx = await requireAuthContext();
-    const parsed = actualizarDatosSchema.safeParse({
-      nombre: formData.get("nombre"),
-      telefono: formData.get("telefono"),
-    });
+    const parsed = actualizarDatosSchema.safeParse(
+      actualizarDatosDesdeFormData(formData),
+    );
     if (!parsed.success) {
       throw new ValidationError(
         parsed.error.issues[0]?.message ?? "Datos inválidos.",
@@ -79,6 +79,9 @@ export async function actualizarMisDatosAction(
     await actualizarMisDatos(ctx, {
       nombre: parsed.data.nombre,
       telefono: parsed.data.telefono ?? null,
+      tipoDocumento: parsed.data.tipoDocumento ?? null,
+      numeroDocumento: parsed.data.numeroDocumento ?? null,
+      direccion: parsed.data.direccion ?? null,
     });
     revalidarCuenta();
     return { ok: true };

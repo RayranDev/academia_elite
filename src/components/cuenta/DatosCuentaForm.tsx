@@ -6,6 +6,7 @@ import {
   solicitarCambioEmailAction,
   confirmarCambioEmailAction,
 } from "@/actions/cuenta.actions";
+import { TIPOS_DOCUMENTO_FISCAL } from "@/lib/validators/cuenta";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -25,11 +26,17 @@ export function DatosCuentaForm({
   email: emailInicial,
   telefono: telefonoInicial,
   emailVerificado,
+  tipoDocumento: tipoDocumentoInicial,
+  numeroDocumento: numeroDocumentoInicial,
+  direccion: direccionInicial,
 }: {
   nombre: string;
   email: string;
   telefono: string | null;
   emailVerificado: boolean;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  direccion: string | null;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -38,12 +45,22 @@ export function DatosCuentaForm({
   const [telefono, setTelefono] = useState(telefonoInicial ?? "");
   const [nombreMsg, setNombreMsg] = useState<Aviso>(null);
 
+  // --- Identificación fiscal del acudiente (opcional, facturación futura) ---
+  const [tipoDocumento, setTipoDocumento] = useState(tipoDocumentoInicial ?? "");
+  const [numeroDocumento, setNumeroDocumento] = useState(
+    numeroDocumentoInicial ?? "",
+  );
+  const [direccion, setDireccion] = useState(direccionInicial ?? "");
+
   function guardarDatos(e: FormEvent) {
     e.preventDefault();
     setNombreMsg(null);
     const fd = new FormData();
     fd.set("nombre", nombre);
     fd.set("telefono", telefono);
+    fd.set("tipoDocumento", tipoDocumento);
+    fd.set("numeroDocumento", numeroDocumento);
+    fd.set("direccion", direccion);
     startTransition(async () => {
       const res = await actualizarMisDatosAction(undefined, fd);
       setNombreMsg(
@@ -131,6 +148,65 @@ export function DatosCuentaForm({
           <p className="mt-1 text-xs text-muted">
             Lo usa la escuela para la nómina y contacto de emergencia.
           </p>
+        </div>
+        <div className="border-t border-subtle pt-3">
+          <p className="mb-2 text-xs text-muted">
+            Datos de facturación (opcional). Solo si tu escuela emite factura
+            electrónica — hoy no es obligatorio completarlos.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label
+                htmlFor="tipoDocumento"
+                className="mb-1 block text-xs text-muted"
+              >
+                Tipo de documento
+              </label>
+              <select
+                id="tipoDocumento"
+                value={tipoDocumento}
+                onChange={(e) => setTipoDocumento(e.target.value)}
+                className={input}
+              >
+                <option value="">Sin especificar</option>
+                {TIPOS_DOCUMENTO_FISCAL.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="numeroDocumento"
+                className="mb-1 block text-xs text-muted"
+              >
+                Número de documento
+              </label>
+              <input
+                id="numeroDocumento"
+                value={numeroDocumento}
+                onChange={(e) => setNumeroDocumento(e.target.value)}
+                maxLength={20}
+                placeholder="900123456-7"
+                className={input}
+              />
+            </div>
+          </div>
+          <div className="mt-2">
+            <label htmlFor="direccion" className="mb-1 block text-xs text-muted">
+              Dirección
+            </label>
+            <input
+              id="direccion"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              maxLength={200}
+              placeholder="Calle 10 # 20-30, Bogotá"
+              autoComplete="street-address"
+              className={input}
+            />
+          </div>
         </div>
         {nombreMsg && (
           <p

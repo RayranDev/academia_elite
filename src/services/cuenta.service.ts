@@ -68,6 +68,10 @@ export interface MiCuentaDTO {
   email: string;
   telefono: string | null;
   emailVerificado: boolean;
+  /** Identificación fiscal del acudiente, opcional (ver `prisma/schema.prisma`). */
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  direccion: string | null;
 }
 
 /** Datos editables de la propia cuenta ("Mi cuenta"). DTO plano. */
@@ -79,6 +83,9 @@ export async function obtenerMiCuenta(ctx: AuthContext): Promise<MiCuentaDTO> {
     email: user.email,
     telefono: user.telefono,
     emailVerificado: user.emailVerificado,
+    tipoDocumento: user.tipoDocumento,
+    numeroDocumento: user.numeroDocumento,
+    direccion: user.direccion,
   };
 }
 
@@ -140,14 +147,27 @@ export async function actualizarDatosMiJugador(
   });
 }
 
-/** Cambia el nombre y teléfono propios (autoservicio JUGADOR/DT). Auditado. */
+/**
+ * Cambia el nombre, teléfono e identificación fiscal propios (autoservicio
+ * JUGADOR/DT). Los tres campos fiscales son opcionales: quedan `null` si el
+ * usuario no los completa (ver comentario en `MiCuentaDTO`). Auditado.
+ */
 export async function actualizarMisDatos(
   ctx: AuthContext,
-  datos: { nombre: string; telefono: string | null },
+  datos: {
+    nombre: string;
+    telefono: string | null;
+    tipoDocumento: string | null;
+    numeroDocumento: string | null;
+    direccion: string | null;
+  },
 ): Promise<void> {
   await actualizarUserDatos(ctx.userId, {
     nombre: datos.nombre,
     telefono: datos.telefono,
+    tipoDocumento: datos.tipoDocumento,
+    numeroDocumento: datos.numeroDocumento,
+    direccion: datos.direccion,
   });
   await registrarAuditoria(ctx, {
     accion: "EDITAR_MI_CUENTA",

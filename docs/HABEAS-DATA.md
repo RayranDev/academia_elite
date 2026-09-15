@@ -43,6 +43,7 @@ Transferencia y Transmisión, conforme a la ley.
 | Categoría | Datos | Titular |
 |---|---|---|
 | Identificación de la familia/tutor | nombre, correo, teléfono | adulto responsable |
+| Identificación fiscal del acudiente (**opcional**) | tipo y número de documento (CC/CE/NIT/PAS), dirección | adulto responsable |
 | Identificación del menor (jugador) | nombre, apellido, fecha de nacimiento, género (opcional), posición, categoría, dorsal | NNA (menor) |
 | **Datos sensibles del menor — imagen** | **fotografía/imagen** del menor | NNA (menor) |
 | **Datos sensibles del menor — salud** | EPS, RH, alergias, condiciones médicas, vencimiento del apto médico | NNA (menor) |
@@ -55,6 +56,19 @@ Transferencia y Transmisión, conforme a la ley.
 > La **fotografía** y los **datos de salud** de un menor son datos **sensibles**
 > (arts. 5 y 6 Ley 1581: la salud es sensible por naturaleza; la imagen lo es
 > porque permite identificar al menor) y reciben protección reforzada (§7).
+
+> **Identificación fiscal del acudiente** — finalidad, acceso y base legal: el
+> documento y la dirección del ADQUIRIENTE (quien paga, no el menor —
+> Colombia factura a quien paga) se capturan con una única finalidad futura:
+> poder emitir factura electrónica si la escuela se formaliza ante la DIAN,
+> sin tener que perseguir después a cientos de familias pidiéndoles la
+> cédula. Hoy la plataforma **no factura electrónicamente**; el dato solo se
+> guarda. No es dato sensible (art. 5 Ley 1581): a diferencia de la foto o la
+> salud del menor, no exige consentimiento granular propio — queda cubierto
+> por la autorización general del registro (§6). Es **opcional**: quedar en
+> blanco no bloquea ninguna función. Solo lo ve el propio titular en su
+> autoservicio ("Mi cuenta") y el personal con acceso administrativo a la
+> ficha de usuarios (mismo nivel que el teléfono de contacto).
 
 ## 5. Finalidades del Tratamiento
 
