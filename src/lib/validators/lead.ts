@@ -2,6 +2,13 @@ import { z } from "zod";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 import { CODIGOS_PAIS } from "@/lib/indicativos";
 
+/**
+ * De dónde puede decir un cliente que vino un lead. Acotado a propósito: el
+ * campo `origen` del modelo alimenta reportes y filtros, así que no acepta
+ * texto libre desde el borde. Sumá acá cada canal de campaña que se mida.
+ */
+export const ORIGENES_LEAD = ["LANDING", "INSTAGRAM"] as const;
+
 /** Datos del lead que se persisten (frontera de dominio). */
 export const leadSchema = z.object({
   nombreEscuela: textoSeguro({ min: 2, max: 50, error: "Indica el nombre de la escuela (máx. 50)." }),
@@ -11,6 +18,8 @@ export const leadSchema = z.object({
   telefono: z.string().trim().min(5, { error: "El teléfono es obligatorio." }).max(40),
   ciudad: textoSeguro({ max: 80 }).optional().or(z.literal("")),
   mensaje: textoSeguro({ max: 100 }).optional().or(z.literal("")),
+  // De la URL (`?utm_source=instagram`); si no viene, el repositorio asume "LANDING".
+  origen: z.enum(ORIGENES_LEAD).optional(),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;
@@ -35,6 +44,9 @@ export const leadFormSchema = z.object({
     .or(z.literal("")),
   website: z.string().optional(), // honeypot
   renderizadoEn: z.coerce.number().int().optional(),
+  // Mismo campo que `leadSchema.origen`: lo manda el formulario a partir del
+  // `utm_source` de la URL.
+  origen: z.enum(ORIGENES_LEAD).optional(),
 });
 
 export type LeadFormInput = z.infer<typeof leadFormSchema>;

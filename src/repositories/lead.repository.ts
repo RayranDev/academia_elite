@@ -14,7 +14,7 @@ export function crearLeadGlobal(data: LeadInput) {
       ciudad: data.ciudad || null,
       mensaje: data.mensaje || null,
       estado: "NUEVO",
-      origen: "LANDING",
+      origen: data.origen ?? "LANDING",
     },
     select: { id: true },
   });

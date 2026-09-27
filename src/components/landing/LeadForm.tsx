@@ -23,8 +23,13 @@ export function LeadForm() {
   const [numero, setNumero] = useState("");
   // Momento de montaje: el endpoint descarta envíos < 2s (bots).
   const renderizadoEn = useRef(0);
+  // De dónde vino la visita (?utm_source=instagram); "LANDING" si no hay ninguno
+  // o no lo reconocemos. Se lee una sola vez, al montar.
+  const origen = useRef<"INSTAGRAM" | undefined>(undefined);
   useEffect(() => {
     renderizadoEn.current = Date.now();
+    const utmSource = new URLSearchParams(window.location.search).get("utm_source");
+    origen.current = utmSource?.toLowerCase() === "instagram" ? "INSTAGRAM" : undefined;
   }, []);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -42,6 +47,7 @@ export function LeadForm() {
       mensaje: String(fd.get("mensaje") ?? ""),
       website: String(fd.get("website") ?? ""), // honeypot
       renderizadoEn: renderizadoEn.current,
+      origen: origen.current,
     };
 
     // Validación cliente con el MISMO schema que usa el servidor.
@@ -69,7 +75,7 @@ export function LeadForm() {
       if (res.ok) {
         setFeedback({
           tipo: "ok",
-          titulo: "¡Bienvenido a Academia Elite!",
+          titulo: "¡Bienvenido a Academia Élite!",
           cuerpo:
             "Donde nacen las estrellas ⚽. Recibimos tus datos y muy pronto te contactaremos para mostrarte la plataforma con tus categorías.",
         });
