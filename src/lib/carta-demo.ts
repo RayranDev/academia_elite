@@ -1,12 +1,12 @@
-﻿import type { PlayerCardData, Nivel } from "@/types";
+import { NIVELES, type PlayerCardData, type Nivel } from "@/types";
 
 /**
  * Datos demo para la carta de la landing (sin tocar la BD). El slider de la
- * demo en vivo interpola entre estos cuatro niveles para mostrar la progresiÃ³n.
+ * demo en vivo interpola entre estos cuatro niveles para mostrar la progresión.
  */
 const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
   BRONCE: {
-    nombre: "Lucas GarcÃ­a",
+    nombre: "Lucas García",
     posicion: "DEL",
     ovr: 58,
     nivel: "BRONCE",
@@ -16,7 +16,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   PLATA: {
-    nombre: "Lucas GarcÃ­a",
+    nombre: "Lucas García",
     posicion: "DEL",
     ovr: 70,
     nivel: "PLATA",
@@ -26,7 +26,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   ORO: {
-    nombre: "Lucas GarcÃ­a",
+    nombre: "Lucas García",
     posicion: "DEL",
     ovr: 80,
     nivel: "ORO",
@@ -36,7 +36,7 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
     dorsal: 9,
   },
   HEROE: {
-    nombre: "Lucas GarcÃ­a",
+    nombre: "Lucas García",
     posicion: "DEL",
     ovr: 89,
     nivel: "HEROE",
@@ -48,7 +48,8 @@ const NIVELES_DEMO: Record<Nivel, PlayerCardData> = {
   },
 };
 
-export const NIVELES_ORDEN: Nivel[] = ["BRONCE", "PLATA", "ORO", "HEROE"];
+// Misma lista que `NIVELES`: si aparece un nivel nuevo, el slider lo recorre solo.
+export const NIVELES_ORDEN: readonly Nivel[] = NIVELES;
 
 export function cartaDemo(nivel: Nivel): PlayerCardData {
   return NIVELES_DEMO[nivel];

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { PlayerCard } from "@/components/cards/PlayerCard";
 import { Button } from "@/components/ui/Button";
-import { cartaDemo } from "@/lib/demo-card";
+import { cartaDemo } from "@/lib/carta-demo";
 import { fadeUp, staggerContainer } from "@/lib/motion-presets";
 
 export function Hero() {

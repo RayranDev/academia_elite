@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PlayerCard } from "@/components/cards/PlayerCard";
-import { cartaDemo, NIVELES_ORDEN } from "@/lib/demo-card";
+import { cartaDemo, NIVELES_ORDEN } from "@/lib/carta-demo";
 import { colorNivel } from "@/lib/nivel";
 
 const MS_AUTOPLAY = 1500;
