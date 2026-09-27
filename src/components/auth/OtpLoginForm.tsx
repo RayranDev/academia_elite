@@ -53,7 +53,7 @@ export function OtpLoginForm() {
 
         <div className="mb-6 text-center">
           <p className="text-xs font-bold uppercase tracking-widest text-pitch">
-            Academia Elite
+            Academia Élite
           </p>
           <h1 className="mt-1 text-2xl font-display italic uppercase">
             Entrar con código

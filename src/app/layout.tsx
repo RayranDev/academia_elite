@@ -15,7 +15,7 @@ const archivoBlack = Archivo_Black({
 });
 
 export const metadata: Metadata = {
-  title: "Academia Elite",
+  title: "Academia Élite",
   description:
     "Plataforma de formación en fútbol base: evalúa, evoluciona y vive tu carta de jugador.",
   formatDetection: {

@@ -1,6 +1,6 @@
 /**
  * Plantillas de correo (funciones puras → `{ subject, html, text }`). Sin efectos
- * ni acceso a datos. Marca Academia Elite. El HTML usa estilos inline (los
+ * ni acceso a datos. Marca Academia Élite. El HTML usa estilos inline (los
  * clientes de correo no soportan hojas de estilo externas).
  */
 
@@ -10,7 +10,7 @@ export interface Plantilla {
   text: string;
 }
 
-const MARCA = "Academia Elite";
+const MARCA = "Academia Élite";
 const TAGLINE = "Donde nacen las estrellas";
 
 function escapar(s: string): string {
@@ -59,72 +59,72 @@ function bloqueCodigo(codigo: string): string {
  */
 export function setPassword(nombre: string, codigo: string, url: string): Plantilla {
   return {
-    subject: `${codigo} — Activa tu cuenta en Academia Elite`,
+    subject: `${codigo} — Activa tu cuenta en Academia Élite`,
     html: layout(
       `Hola ${escapar(nombre)}, activa tu cuenta`,
-      `<p>Se creó una cuenta para ti en Academia Elite. Ingresa este código para fijar tu contraseña (vence en 24 horas y es de un solo uso):</p>
+      `<p>Se creó una cuenta para ti en Academia Élite. Ingresa este código para fijar tu contraseña (vence en 24 horas y es de un solo uso):</p>
        ${bloqueCodigo(codigo)}
        <p>Puedes hacerlo desde este enlace (te lleva con el correo ya cargado; el código lo ingresas tú):</p>
        ${boton("Activar mi cuenta", url)}
        ${enlaceCrudo(url)}`,
     ),
-    text: `Hola ${nombre}, activa tu cuenta en Academia Elite.\nTu código para fijar la contraseña es: ${codigo}\n(Vence en 24 horas y es de un solo uso.)\nActiva acá: ${url}`,
+    text: `Hola ${nombre}, activa tu cuenta en Academia Élite.\nTu código para fijar la contraseña es: ${codigo}\n(Vence en 24 horas y es de un solo uso.)\nActiva acá: ${url}`,
   };
 }
 
 /** Recuperación: código para restablecer la contraseña. */
 export function recuperacion(codigo: string): Plantilla {
   return {
-    subject: `${codigo} — Restablece tu contraseña — Academia Elite`,
+    subject: `${codigo} — Restablece tu contraseña — Academia Élite`,
     html: layout(
       "Restablece tu contraseña",
       `<p>Pediste restablecer tu contraseña. Ingresa este código para elegir una nueva (vence en 30 minutos y es de un solo uso):</p>
        ${bloqueCodigo(codigo)}
        <p style="color:#9ca3af;">Si no fuiste tú, ignora este correo: tu contraseña no cambia.</p>`,
     ),
-    text: `Restablece tu contraseña en Academia Elite.\nTu código es: ${codigo}\n(Vence en 30 minutos y es de un solo uso. Si no fuiste tú, ignóralo.)`,
+    text: `Restablece tu contraseña en Academia Élite.\nTu código es: ${codigo}\n(Vence en 30 minutos y es de un solo uso. Si no fuiste tú, ignóralo.)`,
   };
 }
 
 /** Verificación de correo tras registro (código). */
 export function verificacion(nombre: string, codigo: string): Plantilla {
   return {
-    subject: `${codigo} — Verifica tu correo — Academia Elite`,
+    subject: `${codigo} — Verifica tu correo — Academia Élite`,
     html: layout(
       `Hola ${escapar(nombre)}, confirma tu correo`,
       `<p>Gracias por registrarte. Ingresa este código en la app para confirmar que este correo es tuyo (vence en 48 horas):</p>
        ${bloqueCodigo(codigo)}
        <p style="color:#9ca3af;">Si no fuiste tú, ignora este correo.</p>`,
     ),
-    text: `Hola ${nombre}, verifica tu correo en Academia Elite.\nTu código es: ${codigo}\n(Vence en 48 horas.)`,
+    text: `Hola ${nombre}, verifica tu correo en Academia Élite.\nTu código es: ${codigo}\n(Vence en 48 horas.)`,
   };
 }
 
 /** Código de un solo uso (login/acción sensible). */
 export function otp(codigo: string): Plantilla {
   return {
-    subject: `${codigo} es tu código de acceso — Academia Elite`,
+    subject: `${codigo} es tu código de acceso — Academia Élite`,
     html: layout(
       "Tu código de acceso",
       `<p>Usa este código para continuar (vence en 10 minutos):</p>
        <p style="text-align:center;font-size:32px;font-weight:800;letter-spacing:8px;color:#4ade80;margin:16px 0;">${escapar(codigo)}</p>
        <p style="color:#9ca3af;">Si no lo solicitaste, ignora este correo.</p>`,
     ),
-    text: `Tu código de acceso a Academia Elite es: ${codigo}\n(Vence en 10 minutos. Si no lo solicitaste, ignóralo.)`,
+    text: `Tu código de acceso a Academia Élite es: ${codigo}\n(Vence en 10 minutos. Si no lo solicitaste, ignóralo.)`,
   };
 }
 
 /** Código para confirmar un cambio de correo (se envía al correo NUEVO). */
 export function cambioEmail(codigo: string): Plantilla {
   return {
-    subject: `${codigo} — Confirma tu nuevo correo en Academia Elite`,
+    subject: `${codigo} — Confirma tu nuevo correo en Academia Élite`,
     html: layout(
       "Confirma tu nuevo correo",
-      `<p>Pediste usar este correo en tu cuenta de Academia Elite. Ingresa este código para confirmarlo (vence en 10 minutos):</p>
+      `<p>Pediste usar este correo en tu cuenta de Academia Élite. Ingresa este código para confirmarlo (vence en 10 minutos):</p>
        <p style="text-align:center;font-size:32px;font-weight:800;letter-spacing:8px;color:#4ade80;margin:16px 0;">${escapar(codigo)}</p>
        <p style="color:#9ca3af;">Si no lo solicitaste, ignora este correo: tu cuenta sigue igual.</p>`,
     ),
-    text: `Tu código para confirmar el nuevo correo en Academia Elite es: ${codigo}\n(Vence en 10 minutos. Si no lo solicitaste, ignóralo: tu cuenta sigue igual.)`,
+    text: `Tu código para confirmar el nuevo correo en Academia Élite es: ${codigo}\n(Vence en 10 minutos. Si no lo solicitaste, ignóralo: tu cuenta sigue igual.)`,
   };
 }
 
@@ -149,13 +149,13 @@ export function codigoInvitacion(
 /** Acuse al interesado que dejó sus datos en el formulario de contacto. */
 export function confirmacionLead(nombre: string): Plantilla {
   return {
-    subject: "Recibimos tu solicitud — Academia Elite",
+    subject: "Recibimos tu solicitud — Academia Élite",
     html: layout(
       `¡Gracias, ${escapar(nombre)}!`,
       `<p>Recibimos tus datos. Muy pronto te vamos a contactar para mostrarte la plataforma con tus categorías.</p>
        <p>Donde nacen las estrellas ⚽</p>`,
     ),
-    text: `¡Gracias, ${nombre}! Recibimos tus datos y muy pronto te contactaremos. — Academia Elite`,
+    text: `¡Gracias, ${nombre}! Recibimos tus datos y muy pronto te contactaremos. — Academia Élite`,
   };
 }
 

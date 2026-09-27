@@ -234,7 +234,7 @@ cada adaptación, regla 0.8.)
     limpiar) y se muestra el aviso. DT/Escuela/SA ven el `codigoJugador` en la
     gestión para entregárselo a la familia.
 33. **Descarga de carta con marca de agua (html-to-image).** Botón en el hub que
-    exporta la carta a PNG; inyecta "Academia Elite — Donde nacen las estrellas ·
+    exporta la carta a PNG; inyecta "Academia Élite — Donde nacen las estrellas ·
     academia-elite.app" solo en el archivo (no en la web). Se eligió html-to-image
     por su mejor compatibilidad con Tailwind v4 (oklch) y gradientes.
 34. **Simulador del SA con apariencia.** El simulador prueba fondos (catálogo),

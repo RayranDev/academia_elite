@@ -137,7 +137,7 @@ export async function generarPlantillaSimulador(
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Academia Elite";
+  wb.creator = "Academia Élite";
   wb.created = new Date();
 
   // --- Hoja Parametros (fuente de los lookups de las fórmulas) ---

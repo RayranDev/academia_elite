@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 // PWA-lite (G10): los niños y familias usan la app desde el celular.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Academia Elite",
-    short_name: "Academia Elite",
+    name: "Academia Élite",
+    short_name: "Academia Élite",
     description:
       "Evalúa, evoluciona y vive tu carta de jugador.",
     start_url: "/",

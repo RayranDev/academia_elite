@@ -3,9 +3,9 @@ import { ArrowLeft } from "lucide-react";
 import { TERMINOS_VERSION } from "@/lib/legal";
 
 export const metadata = {
-  title: "Tratamiento de Datos y Habeas Data — Academia Elite",
+  title: "Tratamiento de Datos y Habeas Data — Academia Élite",
   description:
-    "Política de Tratamiento de Datos Personales y Habeas Data de Academia Elite.",
+    "Política de Tratamiento de Datos Personales y Habeas Data de Academia Élite.",
 };
 
 /**
@@ -41,7 +41,7 @@ export default function LegalPage() {
 
       <header className="mb-8">
         <p className="text-xs font-bold uppercase tracking-widest text-pitch">
-          Academia Elite
+          Academia Élite
         </p>
         <h1 className="mt-1 text-3xl font-display italic uppercase">
           Política de Tratamiento de Datos y Habeas Data

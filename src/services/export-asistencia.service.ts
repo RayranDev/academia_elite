@@ -67,7 +67,7 @@ export async function exportarAsistencia(
   ]);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Academia Elite";
+  wb.creator = "Academia Élite";
   wb.created = new Date();
 
   for (const categoria of categorias) {

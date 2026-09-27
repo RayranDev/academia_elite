@@ -23,7 +23,7 @@ export interface EmailParams {
 }
 
 const apiKey = process.env.RESEND_API_KEY;
-const FROM = process.env.EMAIL_FROM ?? "Academia Elite <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM ?? "Academia Élite <onboarding@resend.dev>";
 const DEV_TO = process.env.EMAIL_DEV_TO;
 
 const cliente = apiKey ? new Resend(apiKey) : null;

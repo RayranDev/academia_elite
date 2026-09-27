@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import type { PlayerCardData } from "@/types";
 
 // Marca de agua que se inyecta SOLO en la imagen descargada (no en la web).
-const MARCA_AGUA = "Academia Elite — Donde nacen las estrellas";
+const MARCA_AGUA = "Academia Élite — Donde nacen las estrellas";
 const WEB = "academia-elite.app";
 
 /**

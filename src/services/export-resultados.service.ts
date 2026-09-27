@@ -78,7 +78,7 @@ export async function exportarResultados(
   const partidos = await partidosParaExport(escuelaId);
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Academia Elite";
+  wb.creator = "Academia Élite";
   wb.created = new Date();
 
   const wsP = wb.addWorksheet("Partidos");

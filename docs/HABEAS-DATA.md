@@ -1,6 +1,6 @@
 # Política de Tratamiento de Datos Personales y Habeas Data
 
-**Plataforma:** Academia Elite — Fútbol Career Mode
+**Plataforma:** Academia Élite — Fútbol Career Mode
 **Última actualización:** 2026-08-01 · **Versión:** 1.0 (borrador)
 
 > ⚠️ **AVISO LEGAL.** Este documento es un **borrador técnico** preparado por el

@@ -58,7 +58,7 @@ export async function PanelShell({
           ) : null}
           <div className="leading-tight">
             <p className="text-xs font-bold uppercase tracking-widest text-brand">
-              {marca ?? "Academia Elite"}
+              {marca ?? "Academia Élite"}
             </p>
             <p className="text-xs text-muted">{ETIQUETA_ROL[rol]}</p>
           </div>

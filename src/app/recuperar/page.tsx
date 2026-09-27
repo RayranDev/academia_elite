@@ -1,6 +1,6 @@
 import { RecuperarForm } from "@/components/auth/RecuperarForm";
 
-export const metadata = { title: "Recuperar acceso — Academia Elite" };
+export const metadata = { title: "Recuperar acceso — Academia Élite" };
 
 // Next 16: searchParams es asíncrono. La activación de cuenta llega con
 // ?paso=codigo&email=... (el correo precargado; el código lo tipea el usuario).

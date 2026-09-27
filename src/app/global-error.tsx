@@ -34,7 +34,7 @@ export default function GlobalError({
           fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
         }}
       >
-        <title>Algo salió mal · Academia Elite</title>
+        <title>Algo salió mal · Academia Élite</title>
         <p style={{ fontSize: "3rem", margin: 0 }} aria-hidden>
           ⚠️
         </p>

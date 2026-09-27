@@ -60,7 +60,7 @@ export async function exportarContactos(
   });
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Academia Elite";
+  wb.creator = "Academia Élite";
   wb.created = new Date();
   const ws = wb.addWorksheet("Contactos");
   ws.addRow([...CABECERAS]);

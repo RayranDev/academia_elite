@@ -50,7 +50,7 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
 
         <div className="mb-6 text-center">
           <p className="text-xs font-bold uppercase tracking-widest text-pitch">
-            Academia Elite
+            Academia Élite
           </p>
           <h1 className="mt-1 text-2xl font-display italic uppercase">
             Iniciar sesión

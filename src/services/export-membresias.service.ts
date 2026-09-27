@@ -99,7 +99,7 @@ export async function exportarMembresias(
 
   const wb = new ExcelJS.Workbook();
   // El nombre del tenant, no el de la escuela demo: hasta acá se stampaba
-  // "Academia Elite" en la planilla de cobranza de todas las escuelas.
+  // "Academia Élite" en la planilla de cobranza de todas las escuelas.
   wb.creator = escuela.nombre;
   wb.created = new Date();
   const ws = wb.addWorksheet("Cobranza");

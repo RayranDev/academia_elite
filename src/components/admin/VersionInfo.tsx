@@ -11,7 +11,7 @@ export function VersionInfo() {
 
   return (
     <p className="mt-8 text-center text-xs text-muted">
-      Academia Elite v{version} · build{" "}
+      Academia Élite v{version} · build{" "}
       <span className="font-mono">{commit}</span>
       {fecha && ` · ${fecha}`}
     </p>
