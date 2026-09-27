@@ -60,8 +60,7 @@ npm run test:e2e            # playwright (build + start:e2e en :3100)
 npm run db:reset            # drop + migrate + seed
 ```
 
-Usuarios demo (pass `Demo1234!`): `admin@demo.app`, `escuela@demo.app`,
-`dt@demo.app`, `jugador@demo.app`.
+Usuarios demo: ver `credenciales.md` (raíz del proyecto, local, no se sube al repo).
 
 ---
 
@@ -210,6 +209,7 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 | `HABEAS-DATA.md` | Tratamiento de datos personales de menores. |
 | `CURVA-DE-DESARROLLO.md` | Diseño conceptual de la curva de desarrollo (MEN diario). |
 | `GUIA-FONDOS.md` | Cómo funcionan los fondos y efectos de carta. |
+| `GUIA-DE-MARCA.md` | Cómo se presenta la marca hacia afuera: nombre, voz, paleta, perfiles públicos y qué se puede mostrar (**cero caras de menores**, salvo el personaje de marca generado por IA). |
 | `ACADEMIA-ELITE-DEMO.md` | Credenciales y resumen de la escuela demo curada. |
 | `NGROK-PASO-A-PASO.md` | Exponer el dev local con ngrok (paso a paso). |
 | `TRAZABILIDAD.md` | **Historial único** de todo lo hecho: sprints, correcciones, planes ejecutados. |

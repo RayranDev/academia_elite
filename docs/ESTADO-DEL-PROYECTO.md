@@ -10,7 +10,7 @@ actual. Última actualización: **2026-07-31**.
 
 ## 0. Visión
 
-**Academia Elite** gamifica el fútbol base. El DT toma medidas físicas y técnicas
+**Academia Élite** gamifica el fútbol base. El DT toma medidas físicas y técnicas
 **reales** de cada chico; el motor de stats las convierte en RIT/TIR/PAS/REG/DEF/
 FIS + un sello **MEN** (mentalidad) y un **OVR de 1 a 99**; y el jugador recibe su
 **carta estilo EA FC** (Bronce / Plata / Oro / Héroe).
@@ -332,8 +332,7 @@ npm run db:seed             # datos demo (usuarios, fondos, etc.)
 npm run dev                 # http://localhost:3000
 ```
 
-Usuarios demo (contraseña `Demo1234!`): `admin@demo.app` · `escuela@demo.app` ·
-`dt@demo.app` · `jugador@demo.app`.
+Usuarios demo: ver `credenciales.md` (raíz del proyecto, local, no se sube al repo).
 
 Scripts: `dev`, `build`, `start`, `lint`, `typecheck`, `test`, `test:e2e`,
 `db:seed`, `db:reset`.

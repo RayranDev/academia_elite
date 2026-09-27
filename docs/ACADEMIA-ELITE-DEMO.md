@@ -11,7 +11,7 @@
 
 ## 🔑 Accesos
 
-Contraseña única para todas las cuentas: **`Demo1234!`**
+Contraseñas en `credenciales.md` (raíz del proyecto, local, no se sube al repo).
 
 | Rol | Email | Qué ve |
 |---|---|---|
@@ -19,9 +19,9 @@ Contraseña única para todas las cuentas: **`Demo1234!`**
 | **DT (entrenador)** | `elite-dt@demo.app` | Su "Hoy", plantel, calendario, Modo Sesión (entrenamiento y partido en vivo), evaluaciones. |
 | **Familia / Jugador** | `elite-familia@demo.app` | El hub del jugador Bautista Ramírez: carta, progreso, próximos eventos, convocatorias, notificaciones. |
 
-> El Súper Admin es global (no de esta escuela): `admin@demo.app` / `Demo1234!`.
-> Para entrar al detalle de Academia Elite como Súper Admin necesita una **sesión
-> de soporte** (M2), con motivo, que queda auditada.
+> El Súper Admin es global (no de esta escuela): `admin@demo.app` (contraseña en
+> `credenciales.md`). Para entrar al detalle de Academia Elite como Súper Admin
+> necesita una **sesión de soporte** (M2), con motivo, que queda auditada.
 
 ---
 

@@ -60,3 +60,9 @@ next-env.d.ts
 
 # Modelo de remocion de fondo self-hosteado (se regenera en postinstall)
 /public/imgly/
+
+# Marketing: prompts, guiones y assets de campaña — local, se comparte aparte del repo
+/marketing/
+
+# Credenciales de cuentas demo (algunas activas en producción) — nunca en el repo
+/credenciales.md
