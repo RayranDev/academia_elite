@@ -15,7 +15,7 @@ const FEATURES = [
   {
     titulo: "Evolución histórica",
     texto:
-      "Cada evaluación es un snapshot inmutable. Compará al jugador solo consigo mismo, sin rankings entre niños.",
+      "Cada evaluación es un snapshot inmutable. Compara al jugador solo consigo mismo, sin rankings entre niños.",
   },
   {
     titulo: "Logros con sentido",

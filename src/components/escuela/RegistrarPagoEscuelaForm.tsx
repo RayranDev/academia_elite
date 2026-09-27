@@ -111,7 +111,7 @@ export function RegistrarPagoEscuelaForm({
       <h2 className="mb-1 text-lg font-bold">Registrar un pago</h2>
       <p className="mb-4 text-sm text-muted">
         Para lo que cobraste directo (efectivo en la cancha, por ejemplo). Queda
-        aprobado al instante: acá no hace falta revisión, la estás haciendo vos.
+        aprobado al instante: acá no hace falta revisión, la estás haciendo tú.
       </p>
 
       <div className="mb-4">
