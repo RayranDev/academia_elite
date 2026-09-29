@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerMiEscuela } from "@/services/escuela.service";
+import { obtenerLandingAdmin } from "@/services/landing.service";
 import { actualizarBrandingAction } from "@/actions/escuela.actions";
 import { EscudoUpload } from "@/components/escuela/EscudoUpload";
+import { LandingForm } from "@/components/escuela/LandingForm";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -11,6 +14,7 @@ const input =
 export default async function BrandingPage() {
   const ctx = await requireAuthContext();
   const escuela = await obtenerMiEscuela(ctx);
+  const landing = await obtenerLandingAdmin(ctx);
 
   return (
     <div className="max-w-xl space-y-4">
@@ -66,6 +70,21 @@ export default async function BrandingPage() {
 
           <Button type="submit">Guardar branding</Button>
         </form>
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 text-lg font-bold">Landing pública</h2>
+        <p className="mb-4 text-xs text-muted">
+          Escaparate público de tu escuela (sin captura de datos). Vista previa:{" "}
+          <Link
+            href={`/e/${escuela.slug}`}
+            target="_blank"
+            className="text-brand underline"
+          >
+            /e/{escuela.slug}
+          </Link>
+        </p>
+        <LandingForm landing={landing} />
       </Card>
     </div>
   );

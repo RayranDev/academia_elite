@@ -13,7 +13,7 @@ import { diaEscuelaDe, offsetEscuelaMs } from "@/lib/fecha-calendario";
 import type { Posicion } from "@/types";
 
 /**
- * Escuela demo CURADA: "Academia Elite" (slug `elite`). A diferencia del seed
+ * Escuela demo CURADA: "Academia Élite" (slug `elite`). A diferencia del seed
  * genérico, acá cada dato cuenta una historia clara para poder RECORRER lo
  * construido sin adivinar:
  *  - Categorías por año (Sub-8 → Sub-14) con nombres coherentes.
@@ -111,11 +111,21 @@ export async function crearAcademiaElite(
   const escuela = await db.escuela.create({
     data: {
       id: "elite-escuela",
-      nombre: "Academia Elite",
+      nombre: "Academia Élite",
       slug: "elite",
       codigoRef: "ESC-ELITE1",
       colorPrimario: "#3B82F6",
       frecuenciaEvaluacionDias: 30,
+      // Landing pública publicada de entrada, para que la demo tenga algo que
+      // mostrar en /e/elite sin pasos manuales extra.
+      landingPublicada: true,
+      landingTitular: "Formamos jugadores, formamos personas",
+      landingDescripcion:
+        "Escuela de fútbol formativo en Córdoba: evaluamos con datos reales y acompañamos a cada chico dentro y fuera de la cancha.",
+      landingHeroId: "cancha-verde",
+      contactoWhatsapp: "5493515550100",
+      contactoEmail: "elite-admin@demo.app",
+      contactoInstagram: "academia.elite",
     },
   });
 
@@ -138,7 +148,7 @@ export async function crearAcademiaElite(
       id: "elite-user-admin",
       email: "elite-admin@demo.app",
       passwordHash,
-      nombre: "Dirección Academia Elite",
+      nombre: "Dirección Academia Élite",
       rol: "ESCUELA_ADMIN",
       escuelaId: escuela.id,
       telefono: "+54 351 555 0100",
@@ -417,7 +427,7 @@ export async function crearAcademiaElite(
   // 10) Anuncios
   await db.anuncio.createMany({
     data: [
-      { escuelaId: escuela.id, categoriaId: null, autorRol: "ESCUELA_ADMIN", titulo: "Bienvenidos a Academia Elite", cuerpo: "Nueva temporada, mismos valores: esfuerzo, respeto y juego. ¡Vamos!", fijado: true },
+      { escuelaId: escuela.id, categoriaId: null, autorRol: "ESCUELA_ADMIN", titulo: "Bienvenidos a Academia Élite", cuerpo: "Nueva temporada, mismos valores: esfuerzo, respeto y juego. ¡Vamos!", fijado: true },
       { escuelaId: escuela.id, categoriaId: cats.sub14.id, autorRol: "DT", titulo: "Empate 2-2 vs. Real Cuyo", cuerpo: "Gran carácter del equipo para empatar de visitante. Doblete de Bautista.", visibleJugador: true },
     ],
   });

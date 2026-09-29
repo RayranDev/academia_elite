@@ -20,6 +20,10 @@ const { auth } = NextAuth(authConfig);
 const isDev = process.env.NODE_ENV !== "production";
 
 // Prefijo de ruta -> rol requerido (Barrera 1: solo UX, no es la seguridad real).
+// Cualquier ruta que NO empiece con uno de estos prefijos es pública por
+// omisión (`/`, `/legal`, `/codigo`, `/login`, `/e/[slug]`…): no hace falta un
+// allowlist aparte, alcanza con no agregarla acá. La seguridad real de cada
+// ruta pública (qué datos expone) vive en su servicio (Barrera 2), no acá.
 const PREFIJO_ROL: Record<string, Rol> = {
   "/admin": "SUPER_ADMIN",
   "/escuela": "ESCUELA_ADMIN",

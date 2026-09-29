@@ -2106,6 +2106,42 @@ reloj, para cubrir el único camino que se usa de verdad.
 
 ---
 
+## 52. Landing pública por escuela (2026-09-29)
+
+Vitrina institucional en `/e/[slug]`: escaparate de la escuela (marca, textos,
+categorías, sedes) + contacto por WhatsApp/email/Instagram, **sin formulario**
+ni captura de leads. Decisiones cerradas en `DECISIONES.md` #87–89.
+
+Estados de la URL: slug inexistente o escuela inactiva → 404 (mismo response
+en ambos casos, sin oráculo de enumeración); activa sin publicar →
+"en construcción" con el nombre de la escuela y `noindex`; publicada → página
+completa. `Escuela` suma `landingPublicada` (opt-in, `false` por defecto),
+`landingTitular`, `landingDescripcion`, `landingHeroId` y los campos de
+contacto (migración `landing_escuela`). El hero se elige de un catálogo
+curado por la plataforma (`src/lib/landing-heroes.ts`, hoy gradientes
+placeholder): la escuela nunca sube fotos propias para esta página — no hay
+forma técnica de verificar consentimiento de un menor sobre una imagen, y la
+página vive en el dominio de la plataforma.
+
+El DTO público (`src/lib/mappers/landing-publica.ts`) es una whitelist
+explícita: nunca expone jugadores, cartas, rankings ni fotos, y el escudo se
+sirve como booleano (`tieneEscudo`) en vez de la key cruda de storage — la
+imagen sale por la ruta pública `GET /api/archivos/escudo-publico/[slug]`
+(activa únicamente, `Cache-Control: public, max-age=300`, rate limit 60/min
+por IP). Edición solo para `ESCUELA_ADMIN` de su propio tenant, desde
+`/escuela/branding`.
+
+Encontrado y corregido por Gentleman Guardian Angel en la revisión previa al
+commit: el DTO filtraba la key cruda de Supabase Storage (`logoUrl`) a
+visitantes anónimos aunque la UI solo la usaba como booleano — reemplazada por
+`tieneEscudo` (mismo patrón que `escuela.service.ts`). También se documentaron
+las dos superficies públicas nuevas en `SEGURIDAD.md` y se sacó una consulta
+redundante de `actualizarLandingAction` (la action pedía la escuela dos veces
+para el slug del `revalidatePath`; ahora lo devuelve el propio servicio de
+actualización).
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

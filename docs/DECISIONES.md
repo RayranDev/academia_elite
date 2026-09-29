@@ -703,3 +703,28 @@ cada adaptación, regla 0.8.)
     §8 le da al titular el derecho a actualizar y rectificar, así que el campo
     entra también en `actualizarIdentidadJugadorPropio`, junto a
     nombre/apellido/parentesco (identidad), no entre los datos deportivos.
+
+## Landing pública por escuela (2026-09-29)
+
+87. **Vitrina + contacto, sin captación.** Cada escuela tiene una página pública
+    en `/e/[slug]` que muestra quién es y cómo contactarla, **sin formulario**.
+    El CTA es un link `wa.me`. Así no nacen leads propiedad del tenant (no hace
+    falta `Lead.escuelaId` ni un consentimiento de Habeas Data a nombre de la
+    escuela). Es la primera superficie pública con datos de un tenant: el DTO
+    público (`src/lib/mappers/landing-publica.ts`) es una whitelist explícita y
+    nunca incluye jugadores, cartas, rankings ni fotos.
+88. **Estados de la URL.** Slug inexistente → 404. Escuela inactiva → 404
+    (decirle "pronto" a alguien sobre una escuela que ya no opera es una promesa
+    falsa). Escuela activa sin landing publicada → "Página en construcción" con
+    su nombre, con `noindex`. Se acepta que eso confirme que la escuela usa la
+    plataforma: el nombre es un dato institucional público, no un dato de
+    menores. La publicación es opt-in (`landingPublicada`, `false` por defecto).
+89. **Sin fotos subidas por la escuela.** No hay forma técnica de verificar que
+    exista el consentimiento de los padres para publicar la imagen de un menor,
+    y la página vive en el dominio de la plataforma. La escuela solo edita logo,
+    colores, textos y contacto, y **elige** la imagen del hero de un catálogo
+    curado por la plataforma (`src/lib/landing-heroes.ts`), sin caras. Hoy el
+    catálogo son gradientes placeholder; las imágenes reales se suman ahí sin
+    tocar el schema. Si en el futuro se habilitan fotos propias, va como fase
+    aparte, con declaración auditada, aprobación del SUPER_ADMIN, mecanismo de
+    baja y asesoría legal.

@@ -66,6 +66,8 @@ acceso ambiental que se cerraron el 2026-07-31:
 | `vincularHijoAction` | Zod | Rate limit 5/h por IP | Vincula al padre con un hijo existente (código escuela + código jugador). Si el jugador ya tiene padre o el email existe → error y NO se crea cuenta (transacción) |
 | `GET /api/auth/[...nextauth]` | Auth.js | Rate limit login 5/min (acción `login`) | bcrypt factor 12; errores genéricos |
 | `GET /api/salir` | — | — | Solo borra cookies `authjs*` y redirige a `/login` |
+| `GET /e/[slug]` | — (lectura pública por slug) | — | Slug inexistente o escuela inactiva → **mismo 404** (sin oráculo de enumeración más allá del aceptado: activa-sin-publicar muestra "en construcción" con el nombre de la escuela + `noindex` — decisión consciente, ver `DECISIONES.md` #87–89); DTO público con whitelist explícita (sin datos de jugadores ni fotos) |
+| `GET /api/archivos/escudo-publico/[slug]` | — | Rate limit 60/min por IP (429 al superarlo) | Sirve el escudo (PNG) solo si la escuela está `activa`; `Cache-Control: public, max-age=300` — hasta 5 min de staleness tras desactivar una escuela, aceptado |
 
 ## Server Actions (con sesión) — checklist por acción
 

@@ -92,6 +92,17 @@ model Escuela {
   frecuenciaEvaluacionDias Int                    @default(30)
   topeBonusEntreEvals      Int                    @default(3)
   activa                   Boolean                @default(true)
+  // Landing pública (`/e/[slug]`, escaparate + contacto, sin captura de leads):
+  // ver `src/app/e/[slug]/page.tsx` y `src/services/landing.service.ts`.
+  landingPublicada         Boolean                @default(false)
+  landingTitular           String?
+  landingDescripcion       String?
+  // Id del catálogo curado de portadas (`src/lib/landing-heroes.ts`); no es una
+  // foto subida por el tenant (Sección 4 AGENTS.md: sin uploads de tenant acá).
+  landingHeroId            String?
+  contactoWhatsapp         String?
+  contactoEmail            String?
+  contactoInstagram        String?
   users                    User[]
   sedes                    Sede[]
   categorias               Categoria[]

@@ -145,6 +145,57 @@ export function actualizarBrandingEscuela(
   return db.escuela.update({ where: { id: escuelaId }, data });
 }
 
+// tenant-global: landing pública (`/e/[slug]`) se resuelve por slug ANTES de
+// conocer el tenant — no hay sesión. El `select` es una whitelist explícita
+// (nunca jugadores/cartas/fotos/entrenadores): la fila cruzada acá termina
+// sirviendo un DTO público (Sección 5 AGENTS.md, datos de menores). Reutilizada
+// también por la ruta que sirve el escudo público de la landing.
+export function obtenerEscuelaPublicaPorSlug(slug: string) {
+  return db.escuela.findUnique({
+    where: { slug },
+    select: {
+      nombre: true,
+      slug: true,
+      logoUrl: true,
+      colorPrimario: true,
+      activa: true,
+      landingPublicada: true,
+      landingTitular: true,
+      landingDescripcion: true,
+      landingHeroId: true,
+      contactoWhatsapp: true,
+      contactoEmail: true,
+      contactoInstagram: true,
+      categorias: {
+        select: { nombre: true, anioDesde: true, anioHasta: true },
+        // De menor a mayor edad: un año de nacimiento más alto es una categoría
+        // más chica. Ordenar por nombre dejaría "Sub-8" después de "Sub-14".
+        orderBy: [{ anioHasta: { sort: "desc", nulls: "last" } }, { nombre: "asc" }],
+      },
+      sedes: {
+        select: { nombre: true, direccion: true },
+        orderBy: { nombre: "asc" },
+      },
+    },
+  });
+}
+
+/** Edición de la landing pública: siempre acotada por escuelaId (tenant del ESCUELA_ADMIN). */
+export function actualizarLandingEscuela(
+  escuelaId: string,
+  data: {
+    landingPublicada: boolean;
+    landingTitular: string | null;
+    landingDescripcion: string | null;
+    landingHeroId: string | null;
+    contactoWhatsapp: string | null;
+    contactoEmail: string | null;
+    contactoInstagram: string | null;
+  },
+) {
+  return db.escuela.update({ where: { id: escuelaId }, data, select: { id: true, slug: true } });
+}
+
 export function obtenerEscuelasDropdown() {
   return db.escuela.findMany({
     select: { id: true, nombre: true },
