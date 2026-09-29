@@ -4,11 +4,13 @@ import { PrismaClient, Prisma } from "../src/generated/prisma/client";
 import {
   computeStats,
   grupoEdadPorEdad,
+  grupoEdadSemilla,
   edadEnAnios,
   RANGOS_POR_GRUPO,
   PRUEBAS_FISICAS,
   claveRango,
   ETIQUETA_PRUEBA,
+  filaDesdeRangos,
   type GrupoEdad,
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
@@ -43,6 +45,11 @@ const DEMO_PASSWORD = "Demo1234!";
 async function limpiar() {
   // Orden inverso de dependencias para respetar las FK.
   await db.auditLog.deleteMany();
+  // SoporteSesion no tiene FK (superAdminId/escuelaId son ids sueltos), así
+  // que no rompe el reset, pero sin esto una sesión de soporte vieja queda
+  // "activa" contra la escuela/superadmin recreados con el mismo id fijo —
+  // rompe la idempotencia que este seed declara.
+  await db.soporteSesion.deleteMany();
   await db.notificacion.deleteMany();
   await db.mensaje.deleteMany();
   await db.conversacion.deleteMany();
@@ -83,6 +90,10 @@ async function limpiar() {
   // por su FK a JugadorDescuento.
   await db.jugadorDescuento.deleteMany();
   await db.descuentoRegla.deleteMany();
+  // Staff (coordinador/preparador físico/utilero): mismo tipo de bug que
+  // Arancel/Egreso y JugadorDescuento/DescuentoRegla arriba — sin esto,
+  // `escuela.deleteMany()` rompe por su FK apenas exista una fila real.
+  await db.staff.deleteMany();
   await db.jugador.deleteMany();
   await db.entrenador.deleteMany();
   await db.cancha.deleteMany();
@@ -184,6 +195,22 @@ async function main() {
       anioHasta: 2015,
     },
   });
+
+  // Calibración física inicial de cada categoría (mismo criterio que
+  // `crearCategoriaEscuela`: sin `CategoriaRangoFisico` la categoría no
+  // tiene con qué evaluar — ver src/services/categoria.service.ts). El seed
+  // crea las categorías con Prisma directo (no pasa por el service), así que
+  // tiene que sembrar la fila él mismo.
+  for (const cat of [sub10, sub12]) {
+    const grupo = grupoEdadSemilla(cat.anioDesde, cat.anioHasta);
+    await db.categoriaRangoFisico.create({
+      data: {
+        escuelaId: escuela.id,
+        categoriaId: cat.id,
+        ...filaDesdeRangos(RANGOS_POR_GRUPO[grupo]),
+      },
+    });
+  }
 
   // 5) DT asignado a ambas categorías
   const dtUser = await db.user.create({

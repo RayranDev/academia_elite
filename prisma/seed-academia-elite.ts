@@ -2,7 +2,10 @@ import type { PrismaClient } from "../src/generated/prisma/client";
 import {
   computeStats,
   grupoEdadPorEdad,
+  grupoEdadSemilla,
   edadEnAnios,
+  RANGOS_POR_GRUPO,
+  filaDesdeRangos,
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
@@ -174,6 +177,22 @@ export async function crearAcademiaElite(
     sub12: await db.categoria.create({ data: { id: "elite-cat-sub12", escuelaId: escuela.id, nombre: "Sub-12", anioDesde: 2014, anioHasta: 2015 } }),
     sub14: await db.categoria.create({ data: { id: "elite-cat-sub14", escuelaId: escuela.id, nombre: "Sub-14", anioDesde: 2012, anioHasta: 2013 } }),
   };
+
+  // Calibración física inicial de cada categoría (mismo criterio que
+  // `crearCategoriaEscuela`: sin `CategoriaRangoFisico` la categoría no
+  // tiene con qué evaluar — ver src/services/categoria.service.ts). Este
+  // seed crea las categorías con Prisma directo (no pasa por el service), así
+  // que tiene que sembrar la fila él mismo.
+  for (const cat of Object.values(cats)) {
+    const grupo = grupoEdadSemilla(cat.anioDesde, cat.anioHasta);
+    await db.categoriaRangoFisico.create({
+      data: {
+        escuelaId: escuela.id,
+        categoriaId: cat.id,
+        ...filaDesdeRangos(RANGOS_POR_GRUPO[grupo]),
+      },
+    });
+  }
 
   // 3) DT a cargo de las 4 categorías
   const dtUser = await db.user.create({
