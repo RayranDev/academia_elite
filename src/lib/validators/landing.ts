@@ -33,7 +33,7 @@ function textoOpcional(max: number, error?: string) {
 export const whatsappSchema = z
   .string()
   .trim()
-  .max(30)
+  .max(30, { error: "El WhatsApp no puede superar los 30 caracteres." })
   .optional()
   .transform((v, ctx) => {
     if (!v) return null;
@@ -59,7 +59,7 @@ export function normalizarHandleInstagram(valor: string): string {
 export const instagramSchema = z
   .string()
   .trim()
-  .max(200)
+  .max(200, { error: "El usuario de Instagram no puede superar los 200 caracteres." })
   .optional()
   .transform((v, ctx) => {
     if (!v) return null;
@@ -77,6 +77,7 @@ export const instagramSchema = z
 export const contactoEmailSchema = z
   .string()
   .trim()
+  .max(254, { error: "El email no puede superar los 254 caracteres." })
   .toLowerCase()
   .optional()
   .transform((v, ctx) => {

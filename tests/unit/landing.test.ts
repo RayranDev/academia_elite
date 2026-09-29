@@ -118,6 +118,15 @@ describe("landingSchema", () => {
     );
   });
 
+  it("un email demasiado largo muestra el mensaje propio, no el genérico de Zod", () => {
+    const emailLargo = `${"a".repeat(250)}@a.com`; // 256 caracteres
+    const r = landingSchema.safeParse({ ...base, email: emailLargo });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues[0].message).toBe(
+      "El email no puede superar los 254 caracteres.",
+    );
+  });
+
   it("acepta y normaliza un email válido a minúsculas", () => {
     const r = landingSchema.safeParse({ ...base, email: "Contacto@ESCUELA.com" });
     expect(r.success).toBe(true);
