@@ -53,13 +53,22 @@ type JugadorEval = NonNullable<Awaited<ReturnType<typeof obtenerJugador>>>;
  * Núcleo de la evaluación (sin auth): calcula stats y crea Evaluacion +
  * StatsCalculados en una transacción. Lo usan el alta del DT y la jornada de
  * medición masiva (DT y Súper Admin). El llamador ya validó rol/tenant/estado.
+ *
+ * `opciones.fecha` es un override OPCIONAL (default `new Date()`, mismo
+ * comportamiento que antes) para poder sembrar evaluaciones retroactivas
+ * reproducibles (demo de evolución) sin duplicar esta lógica en un script:
+ * fija tanto `Evaluacion.fecha` como `StatsCalculados.createdAt` y la
+ * ventana de disponibilidad de logros, para que una jornada "del pasado" no
+ * consuma bonus con reglas de HOY.
  */
 export async function evaluarJugadorCore(
   escuelaId: string,
   entrenadorId: string,
   jugador: JugadorEval,
   input: EvaluacionInput,
+  opciones: { fecha?: Date } = {},
 ): Promise<ResultadoStats> {
+  const fecha = opciones.fecha ?? new Date();
   const [escuela, paramMen, pendientesTodos, configsLogros, valoresEfectivos] =
     await Promise.all([
       obtenerEscuela(escuelaId),
@@ -74,7 +83,7 @@ export async function evaluarJugadorCore(
 
   // Solo cuentan logros activos y dentro de su ventana para la escuela (G6).
   const configPorLogro = new Map(configsLogros.map((c) => [c.logroId, c]));
-  const ahora = new Date();
+  const ahora = fecha;
   const pendientes = pendientesTodos.filter((lj) =>
     logroDisponibleParaEscuela(
       lj.logro,
@@ -134,6 +143,7 @@ export async function evaluarJugadorCore(
         escuelaId,
         jugadorId: jugador.id,
         entrenadorId,
+        fecha,
         sprint30mSeg: input.sprint30mSeg,
         saltoVerticalCm: input.saltoVerticalCm,
         agilidadIllinoisSeg: input.agilidadIllinoisSeg,
@@ -165,6 +175,7 @@ export async function evaluarJugadorCore(
         nivel: resultado.nivel,
         bonusAplicado: resultado.bonusAplicado,
         versionFormula: resultado.versionFormula,
+        createdAt: fecha,
       },
     });
     if (consumidos.length > 0) {
