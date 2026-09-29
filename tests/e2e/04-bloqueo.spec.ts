@@ -75,7 +75,7 @@ test("una familia bloqueada solo puede entrar a mensajes", async ({ page }) => {
   await expect(page).toHaveURL(/\/jugador\/mensajes$/);
   await expect(page.getByText(/comunícate con tu director técnico/i)).toBeVisible();
   await expect(
-    page.getByText(/podés seguir escribiéndole al entrenador/i),
+    page.getByText(/puedes seguir escribiéndole al entrenador/i),
   ).toBeVisible();
 
   // 4) El nav solo ofrece "Mensajes" — ninguna otra sección del panel. Acotado
