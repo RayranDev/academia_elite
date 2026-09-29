@@ -2,7 +2,7 @@ import type { PlayerCardData, Posicion, Nivel } from "@/types";
 import { parseAvatarConfig } from "@/lib/avatar/config";
 import { aGenero } from "@/lib/mappers/genero";
 
-interface StatsRow {
+export interface StatsRow {
   rit: number;
   tir: number;
   pas: number;
@@ -14,7 +14,7 @@ interface StatsRow {
   nivel: string;
 }
 
-interface JugadorRow {
+export interface JugadorRow {
   nombre: string;
   apellido: string;
   posicion: string;

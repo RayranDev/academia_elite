@@ -1,31 +1,9 @@
 import { NIVELES, type PlayerCardData, type Nivel } from "@/types";
-import { aPlayerCardData } from "@/lib/mappers/player-card";
-
-interface StatsRow {
-  rit: number;
-  tir: number;
-  pas: number;
-  reg: number;
-  def: number;
-  fis: number;
-  men: number;
-  ovr: number;
-  nivel: string;
-}
+import { aPlayerCardData, type JugadorRow, type StatsRow } from "@/lib/mappers/player-card";
 
 interface EvaluacionRow {
   fecha: Date;
   statsCalculados: StatsRow | null;
-}
-
-interface JugadorRow {
-  nombre: string;
-  apellido: string;
-  posicion: string;
-  dorsal: number | null;
-  fotoUrl: string | null;
-  genero?: string | null;
-  avatarConfig?: string | null;
 }
 
 export interface HistoriaCartaItemDTO {

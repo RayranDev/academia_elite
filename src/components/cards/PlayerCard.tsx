@@ -336,9 +336,17 @@ export function PlayerCard({
         />
         {/* 6 columnas: las 6 etiquetas en la 1ª fila y los 6 valores justo
             debajo, alineados por el wrap natural del grid. */}
-        <div className={cn(s.stat, "mt-1 grid grid-cols-6 gap-x-1 text-center")}>
+        <div className={cn(s.stat, "mt-1 grid grid-cols-6 text-center", size === "sm" ? "gap-x-0.5" : "gap-x-1")}>
           {STAT_LABELS.map(([key, label]) => (
-            <span key={`et-${key}`} className="text-[0.8em] font-semibold uppercase opacity-65">
+            <span
+              key={`et-${key}`}
+              // En `sm` cada columna mide ~14px: a 0.8em "PAS"/"REG" se pisan
+              // con la vecina (plantilla del DT, historia de la carta).
+              className={cn(
+                "font-semibold uppercase opacity-65",
+                size === "sm" ? "text-[0.62em] tracking-tighter" : "text-[0.8em]",
+              )}
+            >
               {label}
             </span>
           ))}
