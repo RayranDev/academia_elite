@@ -4,23 +4,25 @@ import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { loginSchema } from "@/lib/validators/auth";
+import { ipCliente } from "@/lib/ip-cliente";
+import { mapError, type ActionResult } from "@/lib/action-result";
 import { rateLimit } from "@/lib/rate-limit";
-import { db } from "@/lib/db";
 import { panelPorRol } from "@/lib/auth/session";
+import { rolPorEmail } from "@/services/otp.service";
 import type { Rol } from "@/types";
 
-export type ActionResult =
-  | { ok: true; redirectTo?: string }
-  | { ok: false; error: string };
+// Alias sobre el contrato canónico de `@/lib/action-result` (Sección 5
+// AGENTS.md): `redirectTo` va dentro de `data`, no en la raíz.
+export type LoginResult = ActionResult<{ redirectTo: string }>;
 
 /**
  * Login (Capa 2): valida con Zod, aplica rate limit 5/min por IP+email y
  * delega en Auth.js. Mensajes de error SIEMPRE genéricos (no revela cuentas).
  */
 export async function login(
-  _prev: ActionResult | undefined,
+  _prev: LoginResult | undefined,
   formData: FormData,
-): Promise<ActionResult> {
+): Promise<LoginResult> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -29,37 +31,36 @@ export async function login(
     return { ok: false, error: "Credenciales inválidas." };
   }
 
-  const hdrs = await headers();
-  const ip =
-    hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-  const limit = await rateLimit(`login:${ip}:${parsed.data.email}`, 5, 60_000);
-  if (!limit.ok) {
-    return {
-      ok: false,
-      error: "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
-    };
-  }
-
   try {
-    await signIn("credentials", {
-      email: parsed.data.email,
-      password: parsed.data.password,
-      redirect: false,
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { ok: false, error: "Credenciales inválidas." };
+    const ip = ipCliente(await headers());
+    const limit = await rateLimit(`login:${ip}:${parsed.data.email}`, 5, 60_000);
+    if (!limit.ok) {
+      return {
+        ok: false,
+        error: "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+      };
     }
-    throw error;
-  }
 
-  // Login correcto: resolvemos el panel destino según el rol del usuario.
-  const user = await db.user.findUnique({
-    where: { email: parsed.data.email },
-    select: { rol: true },
-  });
-  const redirectTo = user ? panelPorRol(user.rol as Rol) : "/login";
-  return { ok: true, redirectTo };
+    try {
+      await signIn("credentials", {
+        email: parsed.data.email,
+        password: parsed.data.password,
+        redirect: false,
+      });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return { ok: false, error: "Credenciales inválidas." };
+      }
+      throw error;
+    }
+
+    // Login correcto: resolvemos el panel destino según el rol del usuario.
+    const rol = await rolPorEmail(parsed.data.email);
+    const redirectTo = rol ? panelPorRol(rol as Rol) : "/login";
+    return { ok: true, data: { redirectTo } };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function logout(): Promise<void> {

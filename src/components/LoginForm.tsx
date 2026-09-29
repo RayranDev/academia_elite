@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { login, type ActionResult } from "@/actions/auth.actions";
+import { login, type LoginResult } from "@/actions/auth.actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -15,7 +15,7 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
   const router = useRouter();
   const [verPass, setVerPass] = useState(false);
   const [state, action, pending] = useActionState<
-    ActionResult | undefined,
+    LoginResult | undefined,
     FormData
   >(login, undefined);
 
@@ -23,8 +23,8 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
 
   // Tras un login correcto, deja ver la animación de entrada y navega al panel.
   useEffect(() => {
-    if (!state?.ok || !state.redirectTo) return;
-    const destino = state.redirectTo;
+    if (!state?.ok || !state.data?.redirectTo) return;
+    const destino = state.data.redirectTo;
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;

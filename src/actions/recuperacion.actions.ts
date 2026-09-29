@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 import { requireAuthContext } from "@/lib/auth/session";
 import {
@@ -30,9 +31,7 @@ export async function recuperarPasswordAction(
   });
 
   if (parsed.success) {
-    const hdrs = await headers();
-    const ip =
-      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+    const ip = ipCliente(await headers());
     const limit = await rateLimit(
       `recuperar:${ip}:${parsed.data.email}`,
       3,
@@ -71,8 +70,7 @@ export async function fijarPasswordAction(
 
   // Rate limit por IP+email: acota el intento de fuerza bruta del código además
   // del contador de intentos por token.
-  const hdrs = await headers();
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+  const ip = ipCliente(await headers());
   const limit = await rateLimit(
     `fijarpw:${ip}:${parsed.data.email}`,
     10,

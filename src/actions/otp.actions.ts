@@ -3,20 +3,17 @@
 import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
+import { mapError, type ActionResult } from "@/lib/action-result";
 import { panelPorRol } from "@/lib/auth/session";
+import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 import { solicitarOtp, rolPorEmail } from "@/services/otp.service";
 import { solicitarOtpSchema, otpLoginSchema } from "@/lib/validators/auth";
 import type { Rol } from "@/types";
 
-export type OtpResult =
-  | { ok: true; redirectTo?: string }
-  | { ok: false; error: string };
-
-async function ipDeRequest(): Promise<string> {
-  const hdrs = await headers();
-  return hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
-}
+// Alias sobre el contrato canónico de `@/lib/action-result` (Sección 5
+// AGENTS.md): `redirectTo` va dentro de `data`, no en la raíz.
+export type OtpResult = ActionResult<{ redirectTo: string }>;
 
 /**
  * Pide un código OTP por correo. Respuesta SIEMPRE genérica (`ok: true`): no
@@ -28,17 +25,22 @@ export async function solicitarOtpAction(
 ): Promise<OtpResult> {
   const parsed = solicitarOtpSchema.safeParse({ email: formData.get("email") });
   if (parsed.success) {
-    const limit = await rateLimit(
-      `otp-pedir:${await ipDeRequest()}:${parsed.data.email}`,
-      3,
-      15 * 60_000,
-    );
-    if (limit.ok) {
-      try {
-        await solicitarOtp(parsed.data.email);
-      } catch (e) {
-        console.error("[otp] error al solicitar:", e);
+    try {
+      const limit = await rateLimit(
+        `otp-pedir:${ipCliente(await headers())}:${parsed.data.email}`,
+        3,
+        15 * 60_000,
+      );
+      if (limit.ok) {
+        try {
+          await solicitarOtp(parsed.data.email);
+        } catch (e) {
+          console.error("[otp] error al solicitar:", e);
+        }
       }
+    } catch (e) {
+      // No revelamos fallos internos: el flujo siempre responde genérico.
+      console.error("[otp] error inesperado al pedir código:", e);
     }
   }
   return { ok: true };
@@ -60,28 +62,35 @@ export async function ingresarConOtpAction(
     return { ok: false, error: "Código inválido." };
   }
 
-  const limit = await rateLimit(
-    `otp-login:${await ipDeRequest()}:${parsed.data.email}`,
-    5,
-    15 * 60_000,
-  );
-  if (!limit.ok) {
-    return { ok: false, error: "Demasiados intentos. Espera un momento." };
-  }
-
   try {
-    await signIn("otp", {
-      email: parsed.data.email,
-      codigo: parsed.data.codigo,
-      redirect: false,
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { ok: false, error: "El código no es válido o ya venció." };
+    const limit = await rateLimit(
+      `otp-login:${ipCliente(await headers())}:${parsed.data.email}`,
+      5,
+      15 * 60_000,
+    );
+    if (!limit.ok) {
+      return { ok: false, error: "Demasiados intentos. Espera un momento." };
     }
-    throw error;
-  }
 
-  const rol = await rolPorEmail(parsed.data.email);
-  return { ok: true, redirectTo: rol ? panelPorRol(rol as Rol) : "/login" };
+    try {
+      await signIn("otp", {
+        email: parsed.data.email,
+        codigo: parsed.data.codigo,
+        redirect: false,
+      });
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return { ok: false, error: "El código no es válido o ya venció." };
+      }
+      throw error;
+    }
+
+    const rol = await rolPorEmail(parsed.data.email);
+    return {
+      ok: true,
+      data: { redirectTo: rol ? panelPorRol(rol as Rol) : "/login" },
+    };
+  } catch (e) {
+    return mapError(e);
+  }
 }

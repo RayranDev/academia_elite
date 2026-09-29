@@ -5,6 +5,7 @@ import {
   enviarConfirmacionLead,
   enviarAvisoLeadEquipo,
 } from "@/services/email.service";
+import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Respuesta genérica: nunca revelamos por qué se descartó (anti-bot/anti-enum).
@@ -32,8 +33,7 @@ export async function POST(req: Request) {
   // Rate limit generoso: la defensa anti-bot real es el honeypot + tiempo mínimo,
   // así que NO bloqueamos a un prospecto legítimo (perderíamos clientes). Solo
   // frenamos abuso evidente: 8/hora por IP.
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+  const ip = ipCliente(req.headers);
   const limit = await rateLimit(`leads:${ip}`, 8, 60 * 60 * 1000);
   if (!limit.ok) {
     return NextResponse.json(

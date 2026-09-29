@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { obtenerEscudoPublico } from "@/services/landing.service";
+import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 
 const NO_ENCONTRADA = () => new NextResponse(null, { status: 404 });
@@ -24,8 +25,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+  const ip = ipCliente(req.headers);
   const limite = await rateLimit(`escudo-publico:${ip}`, 60, 60 * 1000);
   if (!limite.ok) return new NextResponse(null, { status: 429 });
 

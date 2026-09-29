@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { signIn } from "@/auth";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
+import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 import { registroSchema, vincularHijoSchema } from "@/lib/validators/registro";
 import { registrarConCodigo, registrarPadreYVincular } from "@/services/registro.service";
@@ -33,9 +34,7 @@ export async function registrarConCodigoAction(
   formData: FormData,
 ): Promise<RegistroResult> {
   try {
-    const hdrs = await headers();
-    const ip =
-      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+    const ip = ipCliente(await headers());
     const limit = await rateLimit(`registro:${ip}`, 5, 60 * 60 * 1000);
     if (!limit.ok) {
       throw new ValidationError("Demasiados intentos. Inténtalo más tarde.");
@@ -66,9 +65,7 @@ export async function vincularHijoAction(
   formData: FormData,
 ): Promise<RegistroResult> {
   try {
-    const hdrs = await headers();
-    const ip =
-      hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "desconocida";
+    const ip = ipCliente(await headers());
     const limit = await rateLimit(`vincular:${ip}`, 5, 60 * 60 * 1000);
     if (!limit.ok) {
       throw new ValidationError("Demasiados intentos. Inténtalo más tarde.");

@@ -35,8 +35,8 @@ export function OtpLoginForm() {
 
   // Tras entrar, navegamos al panel.
   useEffect(() => {
-    if (entrar?.ok && entrar.redirectTo) {
-      router.push(entrar.redirectTo);
+    if (entrar?.ok && entrar.data?.redirectTo) {
+      router.push(entrar.data.redirectTo);
       router.refresh();
     }
   }, [entrar, router]);
