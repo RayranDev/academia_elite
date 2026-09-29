@@ -1,3 +1,8 @@
+// Tiene que ser el PRIMER import: normaliza DATABASE_URL ANTES de que
+// `crearEvolucionDemo` (más abajo) cargue nada de `src/services` — ese
+// código abre su propio cliente por `src/lib/db.ts`, que solo lee
+// `DATABASE_URL` y no tiene fallback a `DIRECT_URL` (ver `seed-env.ts`).
+import "./seed-env";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, Prisma } from "../src/generated/prisma/client";
@@ -19,6 +24,7 @@ import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
 import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
 import { crearAcademiaElite } from "./seed-academia-elite";
+import { crearEvolucionDemo } from "./seed-demo-evolucion";
 import type { Posicion } from "@/types";
 
 /**
@@ -588,6 +594,16 @@ async function main() {
   //     construido (reusa los catálogos globales creados arriba).
   console.log("🏆 Creando Academia Elite (demo curada)…");
   await crearAcademiaElite(db, passwordHash);
+
+  // 12) Demo de evolución de 3 meses (4 jugadores nuevos, uno por posición)
+  //     sobre Academia Elite. Se encadena acá para que `npm run db:seed` la
+  //     deje lista sin un paso manual extra: agrega ~124 filas (4 jugadores +
+  //     16 evaluaciones + 52 eventos + 52 asistencias) y, vía el cron real de
+  //     la curva, recalcula el bonus de MEN de TODOS los jugadores ACTIVO de
+  //     la plataforma (tenant-global a propósito, no es gratis pero es rápido
+  //     — confirmado corriendo `npm run test:e2e` completo).
+  console.log("📈 Creando demo de evolución (Academia Elite)…");
+  await crearEvolucionDemo(db);
 
   console.log("✅ Seed completado.");
   console.log("   Usuarios demo (contraseña: Demo1234!):");

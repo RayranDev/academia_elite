@@ -4,15 +4,25 @@ import { describe, it, expect, vi } from "vitest";
 // servicios de lectura. Se mockean todos para poder probar la lógica de
 // `opciones.fecha` (Evaluacion.fecha + StatsCalculados.createdAt) sin abrir
 // la BD real, mismo criterio que landing.test.ts / auditoria-superadmin.test.ts.
-const evaluacionCreate = vi.fn(async (args: { data: Record<string, unknown> }) => ({
-  id: "eval1",
-  ...args.data,
-}));
-const statsCalculadosCreate = vi.fn(async (args: { data: Record<string, unknown> }) => ({
-  id: "stats1",
-  ...args.data,
-}));
-const logroJugadorUpdateMany = vi.fn(async () => ({ count: 0 }));
+// `vi.hoisted` (no un `const` suelto): agregar una CUARTA `const … = vi.fn()`
+// acá rompía con un `ReferenceError` de TDZ al mockear `@/lib/db` — el
+// hoisting automático de Vitest para variables sueltas no es confiable en
+// este caso, `vi.hoisted` sí lo garantiza.
+const { evaluacionCreate, statsCalculadosCreate, logroJugadorUpdateMany, jugadorFindFirst } =
+  vi.hoisted(() => ({
+    evaluacionCreate: vi.fn(async (args: { data: Record<string, unknown> }) => ({
+      id: "eval1",
+      ...args.data,
+    })),
+    statsCalculadosCreate: vi.fn(async (args: { data: Record<string, unknown> }) => ({
+      id: "stats1",
+      ...args.data,
+    })),
+    logroJugadorUpdateMany: vi.fn(async () => ({ count: 0 })),
+    // Usado por `evaluarJugadorPorId` (vía `obtenerJugador`, sin mockear —
+    // el repositorio real solo llama a `db.jugador.findFirst`).
+    jugadorFindFirst: vi.fn(async (): Promise<unknown> => null),
+  }));
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -23,6 +33,7 @@ vi.mock("@/lib/db", () => ({
         logroJugador: { updateMany: logroJugadorUpdateMany },
       }),
     ),
+    jugador: { findFirst: jugadorFindFirst },
   },
 }));
 vi.mock("@/repositories/escuela.repository", () => ({
@@ -47,7 +58,8 @@ vi.mock("@/services/categoria-rango.service", () => ({
 }));
 
 import { RANGOS_POR_GRUPO } from "@/lib/stats-engine";
-import { evaluarJugadorCore } from "@/services/evaluacion.service";
+import { evaluarJugadorCore, evaluarJugadorPorId } from "@/services/evaluacion.service";
+import { NotFoundError } from "@/lib/errors";
 import type { EvaluacionInput } from "@/lib/validators/evaluacion";
 
 const jugador = {
@@ -98,5 +110,28 @@ describe("evaluarJugadorCore — override de fecha", () => {
     };
     expect(dataEval.fecha).toEqual(fecha);
     expect(dataStats.createdAt).toEqual(fecha);
+  });
+});
+
+describe("evaluarJugadorPorId", () => {
+  it("resuelve el jugador por id (sin que el llamador importe el repositorio) y delega en evaluarJugadorCore", async () => {
+    jugadorFindFirst.mockResolvedValueOnce(jugador);
+    const fecha = new Date("2026-08-01T12:00:00.000Z");
+
+    await evaluarJugadorPorId("esc1", "ent1", "jug1", input, { fecha });
+
+    expect(jugadorFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "jug1", escuelaId: "esc1" } }),
+    );
+    const dataEval = evaluacionCreate.mock.calls.at(-1)![0].data as { fecha: Date };
+    expect(dataEval.fecha).toEqual(fecha);
+  });
+
+  it("lanza NotFoundError si el jugador no existe en esa escuela", async () => {
+    jugadorFindFirst.mockResolvedValueOnce(null);
+
+    await expect(evaluarJugadorPorId("esc1", "ent1", "inexistente", input)).rejects.toThrow(
+      NotFoundError,
+    );
   });
 });

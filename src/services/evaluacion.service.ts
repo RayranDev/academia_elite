@@ -191,6 +191,27 @@ export async function evaluarJugadorCore(
 }
 
 /**
+ * Variante de `evaluarJugadorCore` para consumidores que solo tienen el id
+ * del jugador (p. ej. el seed de la demo de evolución): resuelve el jugador
+ * ACÁ ADENTRO, para que el llamador no tenga que importar
+ * `@/repositories/jugador.repository` directo — la resolución de datos se
+ * queda detrás del servicio, como exige la arquitectura por capas
+ * (AGENTS.md §4). Sin auth, igual que `evaluarJugadorCore`: el llamador ya
+ * validó rol/tenant/estado (o, como el seed, opera fuera del borde HTTP).
+ */
+export async function evaluarJugadorPorId(
+  escuelaId: string,
+  entrenadorId: string,
+  jugadorId: string,
+  input: EvaluacionInput,
+  opciones: { fecha?: Date } = {},
+): Promise<ResultadoStats> {
+  const jugador = await obtenerJugador(escuelaId, jugadorId);
+  if (!jugador) throw new NotFoundError("Jugador no encontrado.");
+  return evaluarJugadorCore(escuelaId, entrenadorId, jugador, input, opciones);
+}
+
+/**
  * Anula una evaluación (solo ESCUELA_ADMIN, con motivo → AuditLog).
  * Las evaluaciones no se editan: se anulan y se crea una nueva.
  */

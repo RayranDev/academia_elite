@@ -12,7 +12,7 @@ import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { MEDIOS_PAGO } from "@/lib/validators/membresia";
 import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
 import { periodoDe } from "@/lib/cobranza";
-import { diaEscuelaDe, offsetEscuelaMs } from "@/lib/fecha-calendario";
+import { aHoraEscuela } from "./seed-utils";
 import type { Posicion } from "@/types";
 
 /**
@@ -33,25 +33,6 @@ import type { Posicion } from "@/types";
  */
 
 const DIA = 24 * 60 * 60 * 1000;
-
-/**
- * Instante correspondiente a `hh:mm` del día de almanaque de la ESCUELA en que
- * cae `referencia`.
- *
- * `d.setHours(18, 0)` leería la zona del PROCESO: sembrando desde un runner en
- * UTC, "el entrenamiento de las 18:00" quedaba a las 13:00 hora de Colombia, y
- * cerca de medianoche podía caer directamente en otro día — justo el evento
- * "HOY" que existe para demostrar el Hoy del DT.
- */
-function aHoraEscuela(referencia: Date, hora: number, minuto = 0): Date {
-  const dia = diaEscuelaDe(referencia);
-  const hh = String(hora).padStart(2, "0");
-  const mm = String(minuto).padStart(2, "0");
-  // Se lee la pared del reloj de la escuela como si fuera UTC y después se
-  // descuenta el offset: en Colombia (−5) las 18:00 locales son las 23:00Z.
-  const comoSiFueraUtc = new Date(`${dia}T${hh}:${mm}:00.000Z`).getTime();
-  return new Date(comoSiFueraUtc - offsetEscuelaMs(referencia));
-}
 
 /** Mismas medidas que el seed principal: `nivel` 0..1 escala la carta. */
 function medidasNivel(nivel: number): MedidasEvaluacion {
