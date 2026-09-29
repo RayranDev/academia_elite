@@ -7,6 +7,7 @@ import { ObjetivosList } from "@/components/jugador/ObjetivosList";
 import { OnboardingBienvenida } from "@/components/jugador/OnboardingBienvenida";
 import { ProximoPartidoTile } from "@/components/jugador/ProximoPartidoTile";
 import { EvolutionChart } from "@/components/charts/EvolutionChart";
+import { HistoriaCarta } from "@/components/cards/HistoriaCarta";
 import { UpcomingList } from "@/components/calendar/UpcomingList";
 import { FechaLocal } from "@/components/ui/FechaLocal";
 import { NoticiasList } from "@/components/jugador/NoticiasList";
@@ -138,6 +139,11 @@ export default async function JugadorHubPage() {
       <Card>
         <Encabezado icon={LineChart} titulo="Evolución" />
         <EvolutionChart datos={hub.evolucion} proyeccion={hub.proyeccionOvr} />
+      </Card>
+
+      <Card>
+        <Encabezado icon={History} titulo="Historia de la carta" />
+        <HistoriaCarta historia={hub.historiaCarta} />
       </Card>
     </div>
   );

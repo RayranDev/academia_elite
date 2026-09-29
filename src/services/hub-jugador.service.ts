@@ -20,6 +20,7 @@ import {
   type ResumenPartidosDTO,
 } from "@/services/evento.service";
 import { aPlayerCardData, cartaInicialBronce } from "@/lib/mappers/player-card";
+import { aHistoriaCarta, type HistoriaCartaItemDTO } from "@/lib/mappers/historia-carta";
 import { obtenerFondo } from "@/repositories/fondo.repository";
 import { parseAvatarConfig } from "@/lib/avatar/config";
 import { ovrConMen } from "@/lib/stats-engine";
@@ -94,6 +95,8 @@ export interface HubDTO {
   bonusUltima: number;
   hijos: HijoRef[];
   evolucion: EvolucionPunto[];
+  /** Historia de la carta: una mini-carta con el snapshot de cada evaluación. */
+  historiaCarta: HistoriaCartaItemDTO[];
   /** Proyección del OVR "si mantiene el esfuerzo": stats de la última
    * evaluación + el MEN bonus actual (asistencia+rendimiento). null si
    * todavía no hay ninguna evaluación real. NUNCA toca stats físicos/
@@ -278,6 +281,7 @@ export async function obtenerHub(
       apellido: h.apellido,
     })),
     evolucion,
+    historiaCarta: aHistoriaCarta(evals, full, fotoUrl, escudoUrl),
     proyeccionOvr,
     insignias,
     bonus,

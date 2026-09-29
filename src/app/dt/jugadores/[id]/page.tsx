@@ -8,6 +8,8 @@ import { ResetPasswordButton } from "@/components/gestion/ResetPasswordButton";
 import { resetPasswordFamiliaDtAction } from "@/actions/gestion.actions";
 import { DomainError } from "@/lib/errors";
 import { PlayerCard } from "@/components/cards/PlayerCard";
+import { HistoriaCarta } from "@/components/cards/HistoriaCarta";
+import { EvolutionChart } from "@/components/charts/EvolutionChart";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -118,8 +120,22 @@ export default async function JugadorDetallePage({
                 ))}
             </ul>
           )}
+
+          {detalle.evolucion.length >= 2 && (
+            <div className="mt-6 border-t border-subtle pt-4">
+              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
+                Evolución
+              </h3>
+              <EvolutionChart datos={detalle.evolucion} />
+            </div>
+          )}
         </Card>
       </div>
+
+      <Card>
+        <h2 className="mb-3 text-lg font-bold">Historia de la carta</h2>
+        <HistoriaCarta historia={detalle.historiaCarta} />
+      </Card>
 
       <FichaEmergencia ficha={detalle.fichaEmergencia} />
 

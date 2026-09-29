@@ -14,10 +14,12 @@ import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository"
 import { cuotasImpagasDeJugadores } from "@/repositories/membresia.repository";
 import { aPlayerCardData } from "@/lib/mappers/player-card";
 import { aGenero } from "@/lib/mappers/genero";
+import { aHistoriaCarta, type HistoriaCartaItemDTO } from "@/lib/mappers/historia-carta";
 import { evaluacionVencida } from "@/lib/evaluacion";
 import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
 import type { JugadorInput } from "@/lib/validators/jugador";
 import type { PlayerCardData, Posicion, Genero } from "@/types";
+import type { EvolucionPunto } from "@/services/hub-jugador.service";
 
 /**
  * Solo SI hay deuda, nunca la cifra: es la frontera de acceso que el DT tiene a
@@ -203,6 +205,10 @@ export interface DetalleJugadorDTO {
   estado: string;
   card: PlayerCardData | null;
   historial: { fecha: string; ovr: number; nivel: string }[];
+  /** Evolución de stats para el gráfico (una evaluación real por punto). */
+  evolucion: EvolucionPunto[];
+  /** Historia de la carta: una mini-carta con el snapshot de cada evaluación. */
+  historiaCarta: HistoriaCartaItemDTO[];
   /** Solo si hay cuotas vencidas; nunca el monto (frontera de acceso del DT a cobranza). */
   enMora: boolean;
   /**
@@ -236,6 +242,21 @@ export async function obtenerDetalleJugadorDt(
     estaEnMora(escuelaId, jugadorId),
   ]);
   const stats = jugador.stats[0] ?? null;
+  const conStats = evaluaciones.filter((e) => e.statsCalculados);
+  const evolucion: EvolucionPunto[] = conStats.map((e) => {
+    const s = e.statsCalculados!;
+    return {
+      fecha: e.fecha.toISOString(),
+      ovr: s.ovr,
+      rit: s.rit,
+      tir: s.tir,
+      pas: s.pas,
+      reg: s.reg,
+      def: s.def,
+      fis: s.fis,
+      men: s.men,
+    };
+  });
 
   return {
     id: jugador.id,
@@ -247,13 +268,13 @@ export async function obtenerDetalleJugadorDt(
     categoriaNombre: jugador.categoria.nombre,
     estado: jugador.estado,
     card: stats ? aPlayerCardData(jugador, stats, fotoCartaUrl(jugador)) : null,
-    historial: evaluaciones
-      .filter((e) => e.statsCalculados)
-      .map((e) => ({
-        fecha: e.fecha.toISOString(),
-        ovr: e.statsCalculados!.ovr,
-        nivel: e.statsCalculados!.nivel,
-      })),
+    historial: conStats.map((e) => ({
+      fecha: e.fecha.toISOString(),
+      ovr: e.statsCalculados!.ovr,
+      nivel: e.statsCalculados!.nivel,
+    })),
+    evolucion,
+    historiaCarta: aHistoriaCarta(evaluaciones, jugador, fotoCartaUrl(jugador)),
     enMora,
     fichaEmergencia: {
       contactoEmergenciaNombre: jugador.contactoEmergenciaNombre,
