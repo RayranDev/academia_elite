@@ -78,12 +78,15 @@ test("una familia bloqueada solo puede entrar a mensajes", async ({ page }) => {
     page.getByText(/puedes seguir escribiéndole al entrenador/i),
   ).toBeVisible();
 
-  // 4) El nav solo ofrece "Mensajes" — ninguna otra sección del panel. Acotado
-  // al <nav> del Sidebar: la propia lista de conversaciones puede tener un
+  // 4) El nav solo ofrece "Mensajes" y "Pagos" — ninguna otra sección del
+  // panel (src/app/jugador/layout.tsx: "Pagos" se deja a propósito para que
+  // una familia bloqueada por mora pueda ver su estado de cuenta). Acotado al
+  // <nav> del Sidebar: la propia lista de conversaciones puede tener un
   // asunto que matchee por texto ("Progreso de Lucas") sin ser un link de nav.
   const nav = page.getByRole("navigation");
-  await expect(nav.getByRole("link")).toHaveCount(1);
+  await expect(nav.getByRole("link")).toHaveCount(2);
   await expect(nav.getByRole("link", { name: "Mensajes" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Pagos" })).toBeVisible();
 
   // 5) Cualquier otra ruta de /jugador sigue redirigiendo a /bloqueado.
   await page.goto("/jugador/calendario");
