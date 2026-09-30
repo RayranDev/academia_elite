@@ -2254,6 +2254,14 @@ participan de los E2E y nunca se apuntan a un schema distinto.
 
 ---
 
+## 55. Íconos: set propio en observaciones y Phosphor en el menú (2026-09-30)
+
+- Las observaciones rápidas del DT dejan los emojis del sistema por íconos
+  propios de fútbol sobre un círculo teñido (verde positivo / ámbar atención).
+- El menú (`Sidebar` y `TabBarMovil`) migra de Lucide a Phosphor; el ítem activo
+  va en `duotone`. Dependencia nueva: `@phosphor-icons/react`.
+- Decisión y descartes en DECISIONES.md #94.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

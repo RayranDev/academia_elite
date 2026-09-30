@@ -762,3 +762,22 @@ cada adaptación, regla 0.8.)
     que solo rellena lo que el usuario dejó vacío (lo escrito a mano gana).
     Resuelto en una función pura (`resolverContactoEmergencia`), no en el
     formulario, para que el servidor y la pantalla no puedan discrepar.
+
+## Lenguaje de íconos (2026-09-30)
+
+94. **Íconos propios en las observaciones, Phosphor en la navegación.** Los
+    emojis del sistema (💪🎯😓🤝) cambiaban según el dispositivo, no se podían
+    teñir con la marca y se veían genéricos. Las 4 observaciones rápidas del DT
+    usan un set propio de fútbol (`src/components/ui/IconosObservacion.tsx`:
+    llama, diana con flecha, nube a la deriva, dos jugadores) dibujado en
+    rejilla de 24 px, trazo de 1.75 px y relleno suave, sobre un círculo
+    teñido: verde para lo positivo y ámbar para lo que pide atención.
+    Se eligió Phosphor (MIT, sin atribución) para el menú: cubre los 11
+    conceptos y su peso `duotone` marca el ítem activo (`pesoIcono` en
+    `Sidebar.tsx`). Se descartó Solar por exigir atribución (CC BY 4.0) y por
+    sus coincidencias flojas (mira en lugar de diana, mano que saluda en lugar
+    de apretón). El texto guardado de la observación es solo la frase, sin
+    emoji; las observaciones ya guardadas conservan el suyo. Lucide sigue en
+    componentes fuera del menú (`EmptyState`, calendario): migrarlos es
+    trabajo aparte y no mezcla estilos dentro de una misma pantalla de navegación.
+

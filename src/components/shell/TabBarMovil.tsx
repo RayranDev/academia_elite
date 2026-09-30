@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MoreHorizontal, X } from "lucide-react";
+import { DotsThree, X } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
-import { ICONOS, esActivo, type NavItem } from "@/components/shell/Sidebar";
+import { ICONOS, esActivo, pesoIcono, type NavItem } from "@/components/shell/Sidebar";
 
 /**
  * Barra inferior en móvil, para TODOS los roles. En el celular el pulgar llega
@@ -77,7 +77,7 @@ export function TabBarMovil({
           {abierto ? (
             <X className="h-5 w-5" aria-hidden />
           ) : (
-            <MoreHorizontal className="h-5 w-5" aria-hidden />
+            <DotsThree weight="bold" className="h-5 w-5" aria-hidden />
           )}
           Más
           {hayBadgeEnResto && !abierto && (
@@ -101,7 +101,7 @@ function ItemTab({
   activo: boolean;
   onNavegar: () => void;
 }) {
-  const Icon = ICONOS[item.icon] ?? MoreHorizontal;
+  const Icon = ICONOS[item.icon] ?? DotsThree;
   return (
     <Link
       href={item.href}
@@ -112,7 +112,7 @@ function ItemTab({
         activo ? "text-brand" : "text-muted",
       )}
     >
-      <Icon className="h-5 w-5" aria-hidden />
+      <Icon weight={pesoIcono(activo)} className="h-5 w-5" aria-hidden />
       {item.label}
       {item.badge != null && item.badge > 0 && (
         <span className="absolute right-[28%] top-2 h-2 w-2 rounded-full bg-alerta" aria-hidden />
@@ -130,7 +130,7 @@ function ItemMenu({
   activo: boolean;
   onNavegar: () => void;
 }) {
-  const Icon = ICONOS[item.icon] ?? MoreHorizontal;
+  const Icon = ICONOS[item.icon] ?? DotsThree;
   return (
     <Link
       href={item.href}
@@ -141,7 +141,7 @@ function ItemMenu({
         activo ? "bg-brand/15 text-brand" : "text-muted hover:text-foreground",
       )}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <Icon weight={pesoIcono(activo)} className="h-4 w-4 shrink-0" aria-hidden />
       <span>{item.label}</span>
       {item.badge != null && item.badge > 0 && (
         <span className="ml-auto rounded-full bg-alerta px-1.5 text-xs font-bold text-base">

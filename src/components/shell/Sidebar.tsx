@@ -4,68 +4,70 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Inbox,
-  Building2,
+  SquaresFour,
+  Tray,
+  Buildings,
   SlidersHorizontal,
-  ScrollText,
-  Layers,
+  Scroll,
+  Stack,
   MapPin,
   Users,
   Ticket,
   Megaphone,
   Palette,
-  CalendarDays,
-  MessageSquare,
+  UsersThree,
+  CalendarDots,
+  CalendarStar,
+  ChatCircleDots,
   UserPlus,
-  Home,
+  House,
   Medal,
   User,
-  TrendingUp,
-  FlaskConical,
-  Settings,
+  TrendUp,
+  Flask,
   Image,
-  ClipboardCheck,
-  Goal,
+  ClipboardText,
   Trophy,
   Wallet,
   Receipt,
   Tag,
   Percent,
   Briefcase,
-  ChevronDown,
-  type LucideIcon,
-} from "lucide-react";
+  Gear,
+  CaretDown,
+  type Icon,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
 
-// Mapa de iconos: las claves (string) son serializables y se pueden pasar desde
-// un Server Component (layout). Las funciones de icono viven aquí (cliente).
-export const ICONOS: Record<string, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  leads: Inbox,
-  escuelas: Building2,
+// Mapa de iconos (Phosphor): las claves (string) son serializables y se pueden
+// pasar desde un Server Component (layout). Las funciones de icono viven aquí
+// (cliente). El ítem activo usa el peso "duotone" (ver `pesoIcono`).
+export const ICONOS: Record<string, Icon> = {
+  dashboard: SquaresFour,
+  leads: Tray,
+  escuelas: Buildings,
   parametros: SlidersHorizontal,
-  auditoria: ScrollText,
-  categorias: Layers,
+  auditoria: Scroll,
+  categorias: Stack,
   sedes: MapPin,
   usuarios: Users,
   codigos: Ticket,
   anuncios: Megaphone,
   branding: Palette,
-  plantilla: Users,
-  calendario: CalendarDays,
-  // Listado de eventos (entrenamientos, partidos, evaluaciones): una portería,
-  // distinta del calendario que es por fecha.
-  eventos: Goal,
-  mensajes: MessageSquare,
+  plantilla: UsersThree,
+  calendario: CalendarDots,
+  // Listado de eventos (entrenamientos, partidos, evaluaciones): un calendario
+  // con estrella, distinto del calendario que es por fecha.
+  eventos: CalendarStar,
+  mensajes: ChatCircleDots,
   solicitudes: UserPlus,
-  inicio: Home,
+  inicio: House,
   logros: Medal,
   perfil: User,
-  progreso: TrendingUp,
-  simulador: FlaskConical,
+  progreso: TrendUp,
+  simulador: Flask,
   fondos: Image,
-  asistencia: ClipboardCheck,
+  asistencia: ClipboardText,
   ranking: Trophy,
   membresias: Wallet,
   pagos: Wallet,
@@ -73,8 +75,13 @@ export const ICONOS: Record<string, LucideIcon> = {
   precios: Tag,
   descuentos: Percent,
   staff: Briefcase,
-  cuenta: Settings,
+  cuenta: Gear,
 };
+
+/** Activo = duotone (da profundidad sobre el fondo oscuro); inactivo = regular. */
+export function pesoIcono(activo: boolean): "duotone" | "regular" {
+  return activo ? "duotone" : "regular";
+}
 
 export type IconKey = keyof typeof ICONOS;
 
@@ -108,7 +115,7 @@ export function Sidebar({
 
   const activo =
     items.find((i) => esActivo(pathname, i.href, base)) ?? items[0];
-  const IconoActivo = activo ? ICONOS[activo.icon] ?? LayoutDashboard : LayoutDashboard;
+  const IconoActivo = activo ? ICONOS[activo.icon] ?? SquaresFour : SquaresFour;
   const hayBadges = items.some((i) => (i.badge ?? 0) > 0);
 
   return (
@@ -155,7 +162,7 @@ export function Sidebar({
           className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold"
         >
           <span className="flex items-center gap-2 text-foreground">
-            <IconoActivo className="h-4 w-4 shrink-0" aria-hidden />
+            <IconoActivo weight="duotone" className="h-4 w-4 shrink-0" aria-hidden />
             {activo?.label ?? "Menú"}
           </span>
           <span className="flex items-center gap-1.5 text-muted">
@@ -163,7 +170,7 @@ export function Sidebar({
               <span className="h-2 w-2 rounded-full bg-alerta" aria-hidden />
             )}
             Menú
-            <ChevronDown
+            <CaretDown
               className={cn("h-4 w-4 transition-transform", abierto && "rotate-180")}
               aria-hidden
             />
@@ -196,7 +203,7 @@ function NavLink({
   active: boolean;
   onNavigate?: () => void;
 }) {
-  const Icon = ICONOS[item.icon] ?? LayoutDashboard;
+  const Icon = ICONOS[item.icon] ?? SquaresFour;
   return (
     <Link
       href={item.href}
@@ -209,7 +216,7 @@ function NavLink({
       )}
       aria-current={active ? "page" : undefined}
     >
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <Icon weight={pesoIcono(active)} className="h-4 w-4 shrink-0" aria-hidden />
       <span>{item.label}</span>
       {item.badge != null && item.badge > 0 && (
         <span className="ml-auto rounded-full bg-alerta px-1.5 text-xs font-bold text-base">

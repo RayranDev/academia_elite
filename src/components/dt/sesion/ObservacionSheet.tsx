@@ -4,14 +4,29 @@ import { useState, useTransition } from "react";
 import { crearObservacionAction } from "@/actions/sesion.actions";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
+import {
+  IconoActitud,
+  IconoCompanerismo,
+  IconoDistraccion,
+  IconoMejora,
+} from "@/components/ui/IconosObservacion";
 
-/** Atajos de 1 toque: la observación tiene que salir en segundos, no en minutos. */
+/**
+ * Atajos de 1 toque: la observación tiene que salir en segundos, no en minutos.
+ * El texto que se agrega es solo la frase (sin emoji); el ícono es de la marca
+ * y el tono distingue lo positivo (verde) de lo que requiere atención (ámbar).
+ */
 const CHIPS = [
-  "💪 Gran actitud",
-  "🎯 Mejoró el perfil débil",
-  "😓 Desconcentrado",
-  "🤝 Buen compañero",
-];
+  { texto: "Gran actitud", Icono: IconoActitud, tono: "positivo" },
+  { texto: "Mejoró el perfil débil", Icono: IconoMejora, tono: "positivo" },
+  { texto: "Desconcentrado", Icono: IconoDistraccion, tono: "atencion" },
+  { texto: "Buen compañero", Icono: IconoCompanerismo, tono: "positivo" },
+] as const;
+
+const TONO_ICONO = {
+  positivo: "bg-pitch/15 text-pitch",
+  atencion: "bg-oro/15 text-oro",
+} as const;
 
 /**
  * Observación en caliente sobre un jugador (PLAN-UX-DT PR-3 §3.3). El toggle
@@ -63,13 +78,18 @@ export function ObservacionSheet({
       title={jugador ? `Observación · ${jugador.nombre}` : "Observación"}
     >
       <div className="mb-3 flex flex-wrap gap-2">
-        {CHIPS.map((chip) => (
+        {CHIPS.map(({ texto: chip, Icono, tono }) => (
           <button
             key={chip}
             type="button"
-            onClick={() => setTexto((t) => (t ? `${t} ${chip}` : chip))}
-            className="min-h-11 rounded-full border border-subtle bg-surface-2 px-3 text-sm font-semibold"
+            onClick={() => setTexto((t) => (t ? `${t} · ${chip}` : chip))}
+            className="flex min-h-11 items-center gap-2 rounded-full border border-subtle bg-surface-2 py-1 pl-1.5 pr-3.5 text-sm font-semibold"
           >
+            <span
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg ${TONO_ICONO[tono]}`}
+            >
+              <Icono />
+            </span>
             {chip}
           </button>
         ))}
