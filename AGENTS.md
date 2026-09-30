@@ -184,6 +184,32 @@ Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.m
 
 ---
 
+## 6 bis. Estándar de calidad: no somos distintos, somos los mejores
+
+Este producto busca la perfección, no lo "suficiente". Aplica a todo lo que se
+haga, por pequeño que sea:
+
+- **Nada se deja para después.** Un warning, un hallazgo del hook, un texto
+  desalineado, un caso borde o un estado vacío sin resolver se cierran en la
+  misma entrega. Si algo queda fuera de alcance de verdad, se dice de forma
+  explícita y se registra en `PENDIENTES.md`; nunca se omite en silencio.
+- **Cada acción del usuario tiene respuesta visible.** Guardar, enviar o borrar
+  siempre confirma el resultado (éxito, error, estado de carga). Si el usuario
+  tiene que preguntarse "¿pasó algo?", el diseño falló.
+- **Se cuestiona y se reinventa.** Antes de copiar el patrón existente, se
+  pregunta si es el mejor posible. Si no lo es, se propone una versión mejor
+  y se explica por qué. "Así estaba" nunca es una razón.
+- **Sin romper nada.** Mejorar no autoriza a degradar: typecheck, lint, tests y
+  e2e siguen verdes, y el cambio de comportamiento se prueba, no se asume.
+- **Lo genérico se reemplaza por lo propio.** Emojis del sistema, íconos de
+  relleno y textos de plantilla no son aceptables donde el producto tiene
+  identidad propia.
+- **El flujo del usuario manda.** Se diseña desde lo que el DT, la escuela o
+  la familia necesitan hacer en ese momento (menos clics, menos pantallas), no
+  desde cómo está organizado el código.
+
+---
+
 ## 7. Antes de dar algo por terminado
 
 1. `npm run typecheck` — limpio.
