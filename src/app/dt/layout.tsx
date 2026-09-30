@@ -3,7 +3,7 @@ import { requirePanelUser, requireAuthContext } from "@/lib/auth/session";
 import { obtenerBrandingTenant } from "@/services/escuela.service";
 import { listarSolicitudesDt } from "@/services/jugador.service";
 import { PanelShell } from "@/components/PanelShell";
-import type { NavItem } from "@/components/shell/Sidebar";
+import { navDt } from "@/lib/nav/dt";
 
 export default async function DtLayout({
   children,
@@ -22,23 +22,7 @@ export default async function DtLayout({
     ? `/api/archivos/escudo/${branding.escuelaId}`
     : null;
 
-  const nav: NavItem[] = [
-    { href: "/dt", label: "Hoy", icon: "inicio" },
-    { href: "/dt/plantilla", label: "Plantilla", icon: "plantilla" },
-    { href: "/dt/perfil", label: "Mi perfil", icon: "perfil" },
-    { href: "/dt/calendario", label: "Calendario", icon: "calendario" },
-    { href: "/dt/progreso", label: "Progreso", icon: "progreso" },
-    { href: "/dt/logros", label: "Logros", icon: "logros" },
-    { href: "/dt/mensajes", label: "Mensajes", icon: "mensajes" },
-    { href: "/dt/anuncios", label: "Anuncios", icon: "anuncios" },
-    {
-      href: "/dt/solicitudes",
-      label: "Solicitudes",
-      icon: "solicitudes",
-      badge: solicitudes.length,
-    },
-    { href: "/dt/cuenta", label: "Mi cuenta", icon: "cuenta" },
-  ];
+  const nav = navDt(solicitudes.length);
 
   return (
     <div style={brandStyle}>

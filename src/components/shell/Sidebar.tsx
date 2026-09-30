@@ -26,6 +26,7 @@ import {
   Settings,
   Image,
   ClipboardCheck,
+  Goal,
   Trophy,
   Wallet,
   Receipt,
@@ -53,6 +54,9 @@ export const ICONOS: Record<string, LucideIcon> = {
   branding: Palette,
   plantilla: Users,
   calendario: CalendarDays,
+  // Listado de eventos (entrenamientos, partidos, evaluaciones): una portería,
+  // distinta del calendario que es por fecha.
+  eventos: Goal,
   mensajes: MessageSquare,
   solicitudes: UserPlus,
   inicio: Home,

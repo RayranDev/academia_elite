@@ -52,6 +52,12 @@ la escuela **desactivar código de invitación** (`desactivarCodigoAction`),
 (`src/components/ui/`); recordar que `<form action>` reinicia el DOM al
 terminar (AGENTS.md §5).
 
+Mismo paquete, otra brecha de navegación: el panel de la familia tiene la ruta
+`/jugador/eventos` (listado con filtros, `EventosListado`) pero ninguna
+entrada en el menú de `src/app/jugador/layout.tsx`; solo se llega desde el
+calendario. Análogo a lo resuelto en el DT (TRAZABILIDAD #53.3): sumar
+"Eventos" con su ícono y probar la sección activa.
+
 ---
 
 ## Paquete — Vigencia y bloqueo automático

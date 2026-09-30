@@ -2199,6 +2199,18 @@ también en `PartidoVivo` (tarjetas, gol y observación), por `TarjetaArbitral`
 (tarjeta dibujada con los colores del tema) e íconos de `lucide-react`, con el
 texto accesible que el emoji no daba.
 
+**53.3 — "Eventos" no tenía entrada en el menú del DT.** `/dt/eventos` existía
+(listado con filtros por tipo, estado y fechas) pero solo se llegaba desde el
+calendario. Se agrega "Eventos" pegado a "Calendario", con un ícono propio
+(`Goal`, registrado como `eventos` en `ICONOS`). El menú pasa a
+`src/lib/nav/dt.ts` para poder probarlo: íconos registrados, rutas únicas y
+una sola sección activa por ruta. `/dt/eventos/[id]` activa solo "Eventos" y
+`/dt/calendario` solo "Calendario" (`esActivo` compara por segmento, así que
+no hay doble resaltado). En móvil la barra inferior conserva sus 4 accesos de
+siempre; "Eventos" entra en "Más". Hallazgo análogo, no tocado por alcance: el
+panel de la familia tiene `/jugador/eventos` sin entrada de menú (ver
+`PENDIENTES.md`); la escuela no tiene listado de eventos.
+
 ---
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
