@@ -46,7 +46,11 @@ equipo y viven en [ACADEMIA-ELITE-DEMO.md](ACADEMIA-ELITE-DEMO.md), no acá.
    una **contraseña temporal**).
 5. **Jugadores**: gestión global de tu plantel, con botones para **descargar
    Excel** de jugadores, evaluaciones y contactos/nómina (útil para citar a
-   las familias).
+   las familias). **"+ Nuevo jugador"** abre el alta por pasos (jugador, ficha
+   médica, acudiente y confirmar): puedes cargar todo de una vez, y todo lo que
+   no es identidad básica es opcional. Los datos de salud solo se guardan si
+   marcas la autorización de la familia. Si cargas al acudiente, se crea su
+   cuenta con una **contraseña temporal que se muestra una sola vez**.
 6. **Asistencia**: matriz de evolución mensual por categoría (semáforo
    verde/ámbar/rojo) + exportar.
 7. **Ranking**: top OVR y goleadores de la escuela + descargar resultados
@@ -95,7 +99,9 @@ equipo y viven en [ACADEMIA-ELITE-DEMO.md](ACADEMIA-ELITE-DEMO.md), no acá.
    sesión), tus evaluaciones vencidas y tus solicitudes pendientes — todo
    accionable de un toque.
 2. **Plantilla**: ves tus jugadores como mini-cartas; en rojo los que tienen la
-   evaluación vencida.
+   evaluación vencida. **"+ Nuevo jugador"** abre el alta por pasos; como DT
+   cargas alergias, apto médico, contacto de emergencia y al acudiente (la
+   escuela completa documento, EPS y RH).
 3. **Solicitudes**: aprueba o rechaza a las familias que se registraron con un
    código. Al aprobar, el jugador pasa a ACTIVO.
 4. **Evaluar**: abre un jugador → **"Evaluar ahora"** → carga 4 pruebas físicas

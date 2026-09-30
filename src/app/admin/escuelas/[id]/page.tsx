@@ -8,6 +8,7 @@ import { listarCategoriasAdmin } from "@/services/categoria.service";
 import { EscuelaEditarForm } from "@/components/gestion/EscuelaEditarForm";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
 import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
+import { AltaJugadorDialog } from "@/components/jugadores/AltaJugadorDialog";
 import { ImportarEvaluacionesDialog } from "@/components/dt/ImportarEvaluacionesDialog";
 import { EntrarSoporteDialog } from "@/components/admin/EntrarSoporteDialog";
 import { Card } from "@/components/ui/Card";
@@ -85,6 +86,10 @@ export default async function EscuelaDetalleAdminPage({
               </a>
               <ImportarEvaluacionesDialog escuelaId={id} />
               <ImportarJugadoresDialog escuelaId={id} />
+              <AltaJugadorDialog
+                categorias={datos.categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}
+                alcance="ESCUELA"
+              />
             </div>
           </div>
           <JugadoresGestion

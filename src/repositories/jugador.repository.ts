@@ -99,6 +99,127 @@ export function crearJugador(
   });
 }
 
+/** Cuenta de familia a crear, o ya existente a la que vincular, en el alta completa. */
+export type FamiliaParaAlta =
+  | {
+      tipo: "CREAR";
+      email: string;
+      passwordHash: string;
+      nombre: string;
+      telefono: string | null;
+      tipoDocumento: string | null;
+      numeroDocumento: string | null;
+      direccion: string | null;
+    }
+  | { tipo: "VINCULAR"; userId: string };
+
+export type DatosAltaJugador = {
+  categoriaId: string;
+  nombre: string;
+  apellido: string;
+  fechaNacimiento: Date;
+  posicion: string;
+  dorsal: number | null;
+  genero: string | null;
+  parentescoAcudiente: string | null;
+  tipoDocumento: string | null;
+  numeroDocumento: string | null;
+  eps: string | null;
+  rh: string | null;
+  alergias: string | null;
+  condicionesMedicas: string | null;
+  aptoMedicoVence: Date | null;
+  contactoEmergenciaNombre: string | null;
+  contactoEmergenciaTelefono: string | null;
+  contactoEmergenciaParentesco: string | null;
+  autorizaTraslado: boolean;
+  autorizaDatosSalud: boolean;
+  autorizacionDatosSaludEn: Date | null;
+};
+
+export type ResultadoAltaJugador =
+  | {
+      ok: true;
+      jugadorId: string;
+      codigoJugador: string | null;
+      /** Id de la cuenta de familia creada en esta transacción (null si no se creó). */
+      familiaCreadaId: string | null;
+    }
+  | { ok: false; motivo: "FAMILIA_NO_ENCONTRADA" };
+
+/**
+ * Alta completa, ATÓMICA: la cuenta de la familia (si hay) y el jugador con toda
+ * su ficha se crean en una sola transacción. Antes el alta era un `create` y
+ * todo lo demás se cargaba después, en pasos sueltos; con la cuenta de por
+ * medio, un fallo a mitad dejaría una familia sin hijo (o un hijo sin la ficha
+ * que el usuario acababa de escribir). Si algo falla, no queda nada.
+ *
+ * Vincular a una familia existente re-verifica DENTRO de la transacción que
+ * pertenece a esta escuela y es de rol JUGADOR: el servicio ya lo comprobó, pero
+ * la guarda final va junto a la escritura (mismo criterio que
+ * `registro.repository`).
+ */
+export function crearJugadorConFamilia(
+  escuelaId: string,
+  datos: DatosAltaJugador,
+  familia: FamiliaParaAlta | null,
+): Promise<ResultadoAltaJugador> {
+  return db.$transaction(async (tx) => {
+    let padreUserId: string | null = null;
+    let cuentaUserId: string | null = null;
+    let familiaCreadaId: string | null = null;
+
+    if (familia?.tipo === "CREAR") {
+      const user = await tx.user.create({
+        data: {
+          escuelaId,
+          email: familia.email,
+          passwordHash: familia.passwordHash,
+          nombre: familia.nombre,
+          rol: "JUGADOR",
+          telefono: familia.telefono,
+          tipoDocumento: familia.tipoDocumento,
+          numeroDocumento: familia.numeroDocumento,
+          direccion: familia.direccion,
+        },
+      });
+      // Igual que el auto-registro: la cuenta es a la vez el padre y la cuenta
+      // con la que la familia entra al panel del jugador.
+      padreUserId = user.id;
+      cuentaUserId = user.id;
+      familiaCreadaId = user.id;
+    } else if (familia?.tipo === "VINCULAR") {
+      const existente = await tx.user.findFirst({
+        where: { id: familia.userId, escuelaId, rol: "JUGADOR" },
+        select: { id: true },
+      });
+      if (!existente) return { ok: false, motivo: "FAMILIA_NO_ENCONTRADA" } as const;
+      // Hermanos: el mismo padre con otro hijo. `cuentaUserId` es único (una
+      // cuenta por jugador), así que acá solo se vincula como padre.
+      padreUserId = existente.id;
+    }
+
+    const jugador = await tx.jugador.create({
+      data: {
+        escuelaId,
+        codigoJugador: generarCodigoInvitacion(),
+        codigoRef: generarCodigoRef("JUG"),
+        estado: "ACTIVO",
+        padreUserId,
+        cuentaUserId,
+        ...datos,
+      },
+      select: { id: true, codigoJugador: true },
+    });
+    return {
+      ok: true,
+      jugadorId: jugador.id,
+      codigoJugador: jugador.codigoJugador,
+      familiaCreadaId,
+    } as const;
+  });
+}
+
 export function actualizarEstadoJugador(
   escuelaId: string,
   id: string,

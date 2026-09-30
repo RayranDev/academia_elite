@@ -3,7 +3,7 @@ import {
   listarPlantillaDt,
   listarCategoriasDelDt,
 } from "@/services/jugador.service";
-import { CrearJugadorDialog } from "@/components/dt/CrearJugadorDialog";
+import { AltaJugadorDialog } from "@/components/jugadores/AltaJugadorDialog";
 import { ImportarEvaluacionesDialog } from "@/components/dt/ImportarEvaluacionesDialog";
 import { PlantillaGrid } from "@/components/dt/PlantillaGrid";
 
@@ -30,7 +30,7 @@ export default async function DtPlantillaPage() {
             Descargar jugadores
           </a>
           <ImportarEvaluacionesDialog />
-          <CrearJugadorDialog categorias={categorias} />
+          <AltaJugadorDialog categorias={categorias} alcance="DT" />
         </div>
       </div>
 

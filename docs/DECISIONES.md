@@ -728,3 +728,37 @@ cada adaptación, regla 0.8.)
     tocar el schema. Si en el futuro se habilitan fotos propias, va como fase
     aparte, con declaración auditada, aprobación del SUPER_ADMIN, mecanismo de
     baja y asesoría legal.
+
+## Alta completa de jugador (2026-09-30)
+
+90. **Una sola alta, por pasos, con todo opcional salvo la identidad.** El alta
+    del DT pedía seis campos y el resto (ficha, acudiente) se cargaba después en
+    pantallas sueltas, a veces por otro rol. Ahora el mismo formulario
+    (Datos del jugador · Ficha médica · Acudiente · Confirmar) sirve al DT, a la
+    escuela y al Súper Admin en soporte, y el servicio lo guarda en **una
+    transacción**: cuenta de la familia + jugador con su ficha, o nada. Se
+    eligió un diálogo y no una página porque `JugadoresGestion` también se usa
+    bajo `/admin/escuelas/[id]` (mismo motivo que #71). Los tres pasos de
+    captura quedan montados y el envío es imperativo: ni un error ni cambiar de
+    paso borran lo escrito.
+91. **El alcance sobre la ficha es el de la lectura (#68), aplicado en el
+    servidor.** El DT carga lo que ve en cancha (alergias, apto médico, contacto
+    de emergencia, traslado); documento, EPS, RH y condiciones son de la escuela.
+    Alternativa descartada: dejar que el DT cargue todo porque "es su alta".
+    Escribir un dato sensible que el rol no puede leer es recolectarlo sin
+    necesidad. **Decisión de producto abierta**: si el DT debe poder capturar
+    también documento y EPS en el alta, cambia `fichaParaGuardar` y el formulario.
+92. **El acudiente es una cuenta, no un campo.** Nombre, correo, teléfono y
+    documento fiscal viven en `User`; el parentesco, en `Jugador`. Sin cuenta no
+    hay dónde guardar al acudiente, así que cargarlo crea su cuenta
+    (contraseña temporal, una sola vez) y por eso el correo es obligatorio si se
+    carga cualquier dato suyo. Un correo que ya es una familia **de esta
+    escuela** vincula al jugador (hermanos) sin crear otra cuenta; uno de otra
+    escuela se rechaza sin decir de quién es. Quien da de alta declara con una
+    casilla obligatoria que el acudiente autoriza el tratamiento de datos; no se
+    sella `terminosAceptadosEn` (el titular no aceptó nada en línea). Pendiente
+    registrado: aceptar la Política en el primer ingreso.
+93. **El contacto de emergencia puede ser el acudiente**, como casilla opcional
+    que solo rellena lo que el usuario dejó vacío (lo escrito a mano gana).
+    Resuelto en una función pura (`resolverContactoEmergencia`), no en el
+    formulario, para que el servidor y la pantalla no puedan discrepar.

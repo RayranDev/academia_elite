@@ -100,6 +100,19 @@ deportivos internos, ni venta de datos.
   sin esta ficha, y la familia decide cargarla o no. Sin la autorización, esos
   campos no se muestran a nadie aunque estén guardados.
 
+- **Alta asistida (escuela o DT).** Cuando la escuela o el DT dan de alta al
+  jugador con su acudiente (formulario por pasos: jugador · ficha médica ·
+  acudiente · confirmar), la familia **no acepta la Política en línea** como en
+  el auto-registro. Por eso quien da de alta tiene que **declarar, con una
+  casilla obligatoria**, que el acudiente conoce la Política y autoriza el
+  tratamiento de sus datos y los del menor; esa declaración queda en `AuditLog`
+  (`autorizacionAcudiente=declarada por quien da de alta`). La cuenta creada
+  **no** sella `terminosAceptadosEn`: no se registra como aceptada por el
+  titular una aceptación que el titular no dio. Los datos de salud siguen
+  exigiendo su propia autorización específica (casilla aparte en el paso de
+  ficha); sin ella no se guardan. Todo el paso de ficha es **opcional** y lleva,
+  en el propio formulario, la finalidad (atender una urgencia) y quién ve qué.
+
 ## 7. Tratamiento de datos de niños, niñas y adolescentes (NNA)
 
 Conforme al art. 7 de la Ley 1581 y el Decreto 1377:
@@ -142,6 +155,13 @@ Conforme al art. 7 de la Ley 1581 y el Decreto 1377:
     autorización, sin generar una entrada de auditoría por cada consulta.
   - Revocar la autorización oculta los campos de salud al instante, igual que
     la foto — el dato puede quedar guardado, pero deja de mostrarse.
+  - **El alcance sobre la ficha también rige al ESCRIBIR en el alta.** La
+    escuela carga la ficha completa; el DT, solo lo que ve en cancha (alergias,
+    apto médico, contacto de emergencia y traslado). Si el request del DT trae
+    documento, EPS, RH o condiciones médicas, el servidor los descarta:
+    recolectar un dato sensible que el rol no puede ver sería recolectarlo sin
+    necesidad. El `AuditLog` del alta dice **qué** se cargó (ficha sí/no, salud
+    autorizada, familia creada o vinculada), nunca los valores.
 
 ## 8. Derechos del Titular (Habeas Data)
 
@@ -237,6 +257,7 @@ canales habituales.
 | Cifrado en reposo de fotos | ✅ Cubierto por el cifrado en reposo de Supabase Storage (bucket **privado**); no hay cifrado adicional a nivel de aplicación | Supabase Storage |
 | RLS en BD gestionada | ✅ Implementado — habilitado en **todas** las tablas del esquema `public`; las migraciones que crean tablas reaplican el bloque | `enable_rls`, `enable_rls_observacion` |
 | Política publicada y enlazada en la web | ✅ Implementado — `/legal` con versión visible, enlazada desde el footer y desde el registro | `Footer`, `AceptarTerminos`, `/legal` |
+| Alta asistida con ficha y acudiente (escuela/DT) | ✅ **Implementado** (2026-09-30) — ficha opcional con finalidad visible, autorización de salud aparte, alcance por rol aplicado en el servidor, una transacción, auditoría sin valores. **Pendiente:** que la familia acepte la Política en su primer ingreso (ver `PENDIENTES.md`) | `alta-jugador.service.ts`, `lib/jugadores/alta.ts` |
 | Datos sensibles de salud (EPS, RH, alergias) | ✅ **Implementado** (2026-08-01) — consentimiento específico que gatea guardado Y lectura (`autorizaDatosSalud`); acceso restringido por rol (DT: solo emergencia/alergias/apto médico; ESCUELA_ADMIN: todo); lectura de la ficha completa auditada | `Jugador` (ficha), `gestion-jugadores.service.ts`, `AuditLog` |
 
 ## Anexo B — Texto sugerido de autorización (registro)

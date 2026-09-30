@@ -85,7 +85,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **escuela** · crearSede / crearCancha | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **escuela** · crearDt | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **escuela** · crearCodigo / desactivarCodigo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| **dt** · crearJugador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| **alta** · crearJugadorCompleto (DT/Escuela/SA en soporte) | ✓ | ✓ | ✓ | ✓⁷ | ✓ | ✓ | ✓ | ✓ |
 | **dt** · aprobar/rechazarSolicitud | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **dt** · crearObjetivo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **dt** · crearEvaluacion | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
@@ -141,6 +141,9 @@ nunca se almacenan ni loguean en claro.
 activa `assertTenant` lanza `ForbiddenError`, y contra otra escuela
 `TenantMismatchError`. La sesión nace en solo lectura
 (`assertSoportePuedeEscribir`) y toda escritura exige motivo (`assertMotivoSoporte`).
+⁷ DT: la categoría debe ser una de las suyas (`categoriasDelDt`); ESCUELA_ADMIN: de
+su escuela (`contarCategoriasDeEscuela`); SUPER_ADMIN: la escuela sale de la
+sesión de soporte, nunca del body. La familia (JUGADOR) recibe 403.
 
 ### Bloqueo de acceso de familias (G2)
 - Lo aplican **ESCUELA_ADMIN** (su tenant) y **SUPER_ADMIN**; el DT solo lo ve.
@@ -153,6 +156,27 @@ activa `assertTenant` lanza `ForbiddenError`, y contra otra escuela
 - Solo **SUPER_ADMIN**; estado `ELIMINADO` (reversible con "restaurar").
 - La acción exige reescribir el nombre del jugador + motivo; auditada. Los
   ELIMINADO se filtran de las listas (`listarHijos`, gestión por estado).
+
+### Alta completa de jugador (hito 53.4)
+- `crearJugadorCompletoAction` → `crearJugadorCompleto`: **DT** (solo sus
+  categorías), **ESCUELA_ADMIN** (su tenant) y **SUPER_ADMIN** únicamente con
+  sesión de soporte habilitada (no solo lectura) y motivo. Reemplaza al alta del
+  DT (`crearJugador`), que creaba solo la identidad. Rate limit 60/h por
+  usuario: crea cuentas con contraseña.
+- **Una transacción** (`crearJugadorConFamilia`): cuenta de la familia (si hay) +
+  jugador con toda su ficha. Si algo falla no queda nada a medias.
+- **Alcance por rol en el servidor** (`fichaParaGuardar`): el DT no guarda
+  documento, EPS, RH ni condiciones aunque el request los traiga. Sin
+  `autorizaDatosSalud` no se guarda ningún dato de salud. Texto libre por
+  `textoSeguro`; el mapeo FormData → schema está al lado del schema y cubierto
+  por un test de renombres.
+- **Cuenta de familia**: contraseña temporal cripto-segura, devuelta una sola vez,
+  guardada solo como hash bcrypt, nunca en `AuditLog`. El correo es único global:
+  uno que pertenece a otra escuela se rechaza con mensaje genérico (no revela de
+  quién es); uno de una familia de **esta** escuela vincula al jugador (hermanos)
+  en vez de crear otra cuenta. La búsqueda va acotada por `escuelaId` + rol.
+- **Auditoría**: `CREAR_JUGADOR` (qué se cargó, sin valores) y, si se creó cuenta,
+  `CREAR_CUENTA_FAMILIA`.
 
 ### Carga masiva por Excel y plantilla (M7 · M.1)
 - `importarJugadores`: **ESCUELA_ADMIN** (su tenant) / **SUPER_ADMIN** (escuela

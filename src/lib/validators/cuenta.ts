@@ -26,7 +26,7 @@ export const telefonoOpcional = z
  */
 export const TIPOS_DOCUMENTO_FISCAL = ["CC", "CE", "NIT", "PAS"] as const;
 
-const tipoDocumentoFiscalOpcional = z
+export const tipoDocumentoFiscalOpcional = z
   .union([z.literal(""), z.enum(TIPOS_DOCUMENTO_FISCAL)])
   .optional()
   .transform((v) => (v === "" || v == null ? null : v));
@@ -34,7 +34,7 @@ const tipoDocumentoFiscalOpcional = z
 // Número de documento del acudiente: solo dígitos y guion (el NIT colombiano
 // lleva el dígito de verificación separado por guion, ej. "900123456-7").
 // Vacío -> null, mismo criterio que `telefonoOpcional`.
-const numeroDocumentoFiscalOpcional = z
+export const numeroDocumentoFiscalOpcional = z
   .string()
   .trim()
   .max(20, { error: "Número de documento demasiado largo." })
@@ -44,7 +44,7 @@ const numeroDocumentoFiscalOpcional = z
 
 // Dirección del acudiente: texto libre, así que pasa por `textoSeguro`
 // (AGENTS.md §5) y no por un `z.string()` pelado. Vacío -> null.
-const direccionFiscalOpcional = z
+export const direccionFiscalOpcional = z
   .union([z.literal(""), textoSeguro({ max: 200 })])
   .optional()
   .transform((v) => (v === "" || v == null ? null : v));

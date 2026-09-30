@@ -25,6 +25,12 @@ export function Modal({
 
   if (!open) return null;
 
+  // `cn` solo concatena: con `max-w-md` por defecto Y un `max-w-*` pasado por
+  // quien lo usa, ganaba el que Tailwind generara último, no el que se pedía.
+  // (`FotoCropper` pedía `max-w-lg` y nunca lo tuvo.) Si el llamador fija el
+  // ancho, el por defecto se omite.
+  const fijaAncho = /(^|\s)max-w-/.test(className ?? "");
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/60 p-4"
@@ -34,7 +40,8 @@ export function Modal({
         className={cn(
           // max-h + scroll: un modal alto (p. ej. el form de fondos) desbordaba
           // el viewport y obligaba a bajar el zoom para navegarlo.
-          "max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-subtle bg-surface p-6 shadow-2xl",
+          "max-h-[90dvh] w-full overflow-y-auto rounded-2xl border border-subtle bg-surface p-6 shadow-2xl",
+          !fijaAncho && "max-w-md",
           className,
         )}
         onClick={(e) => e.stopPropagation()}

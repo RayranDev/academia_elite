@@ -1,12 +1,11 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 import { categoriasDelDt, requireDtScope } from "@/services/dt-scope";
 import { categoriasDeEntrenador } from "@/repositories/entrenador.repository";
 import {
   listarPlantilla,
   listarSolicitudes,
   obtenerJugador,
-  crearJugador,
   actualizarEstadoJugador,
 } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
@@ -17,7 +16,6 @@ import { aGenero } from "@/lib/mappers/genero";
 import { aHistoriaCarta, type HistoriaCartaItemDTO } from "@/lib/mappers/historia-carta";
 import { evaluacionVencida } from "@/lib/evaluacion";
 import { estadoCuenta, type CuotaParaDeuda } from "@/lib/cobranza";
-import type { JugadorInput } from "@/lib/validators/jugador";
 import type { PlayerCardData, Posicion, Genero } from "@/types";
 import type { EvolucionPunto } from "@/services/hub-jugador.service";
 
@@ -149,27 +147,6 @@ export async function listarSolicitudesDt(
     padreEmail: j.padre?.email ?? null,
     fechaNacimiento: j.fechaNacimiento.toISOString(),
   }));
-}
-
-/** Alta directa de jugador por el DT (queda ACTIVO). */
-export async function crearJugadorDt(
-  ctx: AuthContext,
-  data: JugadorInput,
-): Promise<void> {
-  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
-  if (!categoriaIds.includes(data.categoriaId)) {
-    throw new ValidationError("Esa categoría no está entre las tuyas.");
-  }
-  await crearJugador(escuelaId, {
-    categoriaId: data.categoriaId,
-    nombre: data.nombre,
-    apellido: data.apellido,
-    fechaNacimiento: data.fechaNacimiento,
-    posicion: data.posicion,
-    dorsal: data.dorsal ?? null,
-    genero: data.genero ?? null,
-    estado: "ACTIVO",
-  });
 }
 
 async function cambiarEstadoSolicitud(

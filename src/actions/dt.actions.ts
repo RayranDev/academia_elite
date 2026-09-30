@@ -6,12 +6,10 @@ import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
 import { textoSeguro } from "@/lib/validators/sanitizar";
 import { rateLimit } from "@/lib/rate-limit";
-import { jugadorSchema } from "@/lib/validators/jugador";
 import { evaluacionSchema } from "@/lib/validators/evaluacion";
 import { objetivoSchema } from "@/lib/validators/objetivo";
 import { crearObjetivoDt } from "@/services/objetivo.service";
 import {
-  crearJugadorDt,
   aprobarSolicitud,
   rechazarSolicitud,
 } from "@/services/jugador.service";
@@ -24,32 +22,6 @@ import type { ResultadoStats } from "@/lib/stats-engine";
 
 function primerError(issues: { message: string }[]): string {
   return issues[0]?.message ?? "Datos inválidos.";
-}
-
-export async function crearJugadorAction(
-  _prev: ActionResult | undefined,
-  formData: FormData,
-): Promise<ActionResult> {
-  try {
-    const ctx = await requireAuthContext();
-    const parsed = jugadorSchema.safeParse({
-      nombre: formData.get("nombre"),
-      apellido: formData.get("apellido"),
-      fechaNacimiento: formData.get("fechaNacimiento"),
-      posicion: formData.get("posicion"),
-      categoriaId: formData.get("categoriaId"),
-      dorsal: formData.get("dorsal") || undefined,
-      genero: formData.get("genero") ?? undefined,
-    });
-    if (!parsed.success) {
-      throw new ValidationError(primerError(parsed.error.issues));
-    }
-    await crearJugadorDt(ctx, parsed.data);
-    revalidatePath("/dt");
-    return { ok: true };
-  } catch (e) {
-    return mapError(e);
-  }
 }
 
 // Solicitudes y objetivos se invocan IMPERATIVAMENTE desde componentes cliente

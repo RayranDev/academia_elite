@@ -2211,6 +2211,26 @@ siempre; "Eventos" entra en "Más". Hallazgo análogo, no tocado por alcance: el
 panel de la familia tiene `/jugador/eventos` sin entrada de menú (ver
 `PENDIENTES.md`); la escuela no tiene listado de eventos.
 
+**53.4 — El alta de jugador no capturaba todo.** Caminos de creación mapeados:
+(1) **DT** (`/dt/plantilla`, el único alta manual; 6 campos, sin ficha ni
+acudiente), (2) **familia con código de invitación** (`registrarConCodigo`:
+cuenta del padre + jugador PENDIENTE), (3) **vinculación a un hijo existente**
+(`registrarPadreYVincular`), (4) **importación Excel** de la escuela
+(`importarJugadores`, solo identidad) y (5) **importación de evaluaciones**,
+que crea jugadores que no existen. La escuela no tenía alta manual. Se reemplaza
+el alta del DT por un formulario por pasos —Datos del jugador · Ficha médica ·
+Acudiente · Confirmar— compartido por DT, escuela y Súper Admin en soporte, con
+validación en línea por paso (el mismo schema del servidor), todo lo no
+obligatorio claramente opcional, pantalla de éxito con el código del jugador y
+las credenciales del acudiente una sola vez. Servidor: `crearJugadorCompleto`
+en una transacción, alcance de ficha por rol, consentimiento de salud, cuenta de
+familia (o vínculo a una existente), `AuditLog` sin valores, rate limit. Sin
+cambios de schema: todos los campos ya existían. Decisiones en `DECISIONES.md`
+#90–93; `HABEAS-DATA.md` y `SEGURIDAD.md` actualizados. Tests: validador,
+reglas puras, servicio (con la base simulada) y dos specs E2E nuevos.
+Correcciones colaterales: `Modal` ahora respeta el ancho que se le pide (antes
+`max-w-md` ganaba siempre) y `fechaNacimiento` ausente ya no se coerciona a 1970.
+
 ---
 
 ## 54. Los E2E no estaban aislados: escribían en `public` (2026-09-30)

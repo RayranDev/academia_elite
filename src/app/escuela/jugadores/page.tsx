@@ -3,6 +3,7 @@ import { listarJugadoresGestion } from "@/services/gestion-jugadores.service";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
 import { JugadoresGestion } from "@/components/gestion/JugadoresGestion";
 import { ImportarJugadoresDialog } from "@/components/gestion/ImportarJugadoresDialog";
+import { AltaJugadorDialog } from "@/components/jugadores/AltaJugadorDialog";
 
 export default async function JugadoresEscuelaPage({
   searchParams,
@@ -58,6 +59,10 @@ export default async function JugadoresEscuelaPage({
             Descargar contactos
           </a>
           <ImportarJugadoresDialog />
+          <AltaJugadorDialog
+            categorias={categorias.map((c) => ({ id: c.id, nombre: c.nombre }))}
+            alcance="ESCUELA"
+          />
         </div>
       </div>
       <p className="text-sm text-muted">

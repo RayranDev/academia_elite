@@ -33,8 +33,23 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
+| [Aceptar la Política en el primer ingreso de la familia](#paquete--aceptar-la-política-en-el-primer-ingreso-de-la-familia) | Chico | Las cuentas de familia creadas por la escuela o el DT (alta asistida) entran sin haber aceptado la Política en línea |
 | [Feedback visible en formularios de familia y escuela](#paquete--feedback-visible-en-formularios-de-familia-y-escuela) | Chico | El DT ya quedó cubierto (TRAZABILIDAD #53.2); faltan los mismos envíos silenciosos en los otros roles |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
+
+---
+
+## Paquete — Aceptar la Política en el primer ingreso de la familia
+
+Chico. El alta asistida (TRAZABILIDAD #53.4) crea la cuenta del acudiente sin
+que este haya aceptado la Política de Tratamiento de Datos: hoy lo cubre una
+casilla de quien da de alta y su entrada en `AuditLog`, pero el titular no dio
+su aceptación en línea y `User.terminosAceptadosEn` queda en `null`. Falta: en
+el primer ingreso de una cuenta con `terminosAceptadosEn = null`, una pantalla
+que muestre la Política, pida aceptarla y selle fecha y versión
+(`TERMINOS_VERSION`), bloqueando el panel hasta entonces. Requiere revisión
+del texto por el abogado (HABEAS-DATA.md, aviso legal). Mientras tanto, las
+cuentas del auto-registro no cambian.
 
 ---
 

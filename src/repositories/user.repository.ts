@@ -228,3 +228,16 @@ export function nombresDeUsuarios(ids: string[]) {
     select: { id: true, nombre: true },
   });
 }
+
+/**
+ * Cuenta de FAMILIA (rol JUGADOR) de una escuela por su email. Sirve para no
+ * duplicar al padre cuando llega otro hijo suyo (hermanos): se vincula en vez
+ * de crear una cuenta nueva. Acotado por tenant: un email de OTRA escuela no
+ * se encuentra acá (el servicio lo rechaza aparte sin revelar a quién pertenece).
+ */
+export function buscarFamiliaDeEscuela(escuelaId: string, email: string) {
+  return db.user.findFirst({
+    where: { escuelaId, email, rol: "JUGADOR" },
+    select: { id: true, nombre: true },
+  });
+}
