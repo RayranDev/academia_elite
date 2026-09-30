@@ -10,6 +10,7 @@ import {
   convocarJugadores,
   obtenerEvento,
   listarEventosCategorias,
+  proximoEventoCategorias,
   actualizarConfirmacion,
   obtenerConvocatoria,
   registrarAsistencias,
@@ -30,6 +31,8 @@ import { listarObservacionesVisiblesDeEvento } from "@/repositories/observacion.
 import { listarSedes } from "@/repositories/sede.repository";
 import type { EventoInput, EditarEventoInput, EstadisticaInput } from "@/lib/validators/evento";
 import { estadoDeEvento, permiteVerEstadisticas } from "@/lib/eventos/estado";
+import { faseSesionHoy, type FaseSesionHoy } from "@/lib/eventos/hoy";
+import { rangoDelDiaEscuela } from "@/lib/fecha-calendario";
 import type { TipoEvento, Confirmacion, EstadoEvento } from "@/types";
 
 export interface EstadisticaJugadorDTO {
@@ -175,14 +178,19 @@ export async function listarCalendarioDt(
   }));
 }
 
-/** Evento de hoy en el home del DT: lo justo para decidir si arrancar la sesión. */
+/** Evento de hoy en el home del DT: lo justo para decidir qué hacer con él. */
 export interface EventoHoyDTO {
   id: string;
   tipo: TipoEvento;
   titulo: string;
   inicio: string;
   categoriaNombre: string;
+  rival: string | null;
+  esLocal: boolean | null;
   cancelado: boolean;
+  /** Fase de la sesión (Modo Sesión): decide la acción principal de la tarjeta. */
+  fase: FaseSesionHoy;
+  sesionIniciadaAt: string | null;
   sesionCerradaAt: string | null;
   convocados: number;
 }
@@ -191,25 +199,74 @@ export interface EventoHoyDTO {
  * Eventos de HOY de las categorías del DT, ordenados por hora. Alimenta la
  * sección 1 del home "Hoy" (PLAN-UX-DT PR-2 · B1): es lo primero que el DT
  * necesita al abrir la app, no la plantilla.
+ *
+ * "Hoy" es el día de la ESCUELA (America/Bogota), no el del proceso: en el
+ * servidor (UTC) `setHours(0,0,0,0)` corría el rango cinco horas y los
+ * entrenamientos de la tarde-noche desaparecían del home.
  */
 export async function eventosDeHoyDt(ctx: AuthContext): Promise<EventoHoyDTO[]> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
-  const desde = new Date();
-  desde.setHours(0, 0, 0, 0);
-  const hasta = new Date(desde);
-  hasta.setHours(23, 59, 59, 999);
+  const { desde, hasta } = rangoDelDiaEscuela();
 
   const rows = await listarEventosCategorias(escuelaId, categoriaIds, desde, hasta);
-  return rows.map((e) => ({
+  return rows.map((e) => {
+    const sesionIniciadaAt = e.sesionIniciadaAt?.toISOString() ?? null;
+    const sesionCerradaAt = e.sesionCerradaAt?.toISOString() ?? null;
+    return {
+      id: e.id,
+      tipo: e.tipo as TipoEvento,
+      titulo: e.titulo,
+      inicio: e.inicio.toISOString(),
+      categoriaNombre: e.categoria.nombre,
+      rival: e.rival,
+      esLocal: e.esLocal,
+      cancelado: e.cancelado,
+      fase: faseSesionHoy({
+        cancelado: e.cancelado,
+        sesionIniciadaAt,
+        sesionCerradaAt,
+      }),
+      sesionIniciadaAt,
+      sesionCerradaAt,
+      convocados: e._count?.convocados ?? 0,
+    };
+  });
+}
+
+/** Próximo evento (desde mañana) para el estado vacío del home "Hoy". */
+export interface ProximoEventoDtDTO {
+  id: string;
+  tipo: TipoEvento;
+  titulo: string;
+  inicio: string;
+  categoriaNombre: string;
+  rival: string | null;
+  esLocal: boolean | null;
+}
+
+/**
+ * Primer evento no cancelado a partir de mañana (día de la escuela), o null. Se
+ * usa cuando hoy no hay nada por hacer: en vez de una pantalla muerta, el DT ve
+ * qué viene y puede saltar directo a ello.
+ */
+export async function proximoEventoDt(
+  ctx: AuthContext,
+): Promise<ProximoEventoDtDTO | null> {
+  const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
+  if (categoriaIds.length === 0) return null;
+  const { hasta } = rangoDelDiaEscuela();
+  const desdeManana = new Date(hasta.getTime() + 1);
+  const e = await proximoEventoCategorias(escuelaId, categoriaIds, desdeManana);
+  if (!e) return null;
+  return {
     id: e.id,
     tipo: e.tipo as TipoEvento,
     titulo: e.titulo,
     inicio: e.inicio.toISOString(),
     categoriaNombre: e.categoria.nombre,
-    cancelado: e.cancelado,
-    sesionCerradaAt: e.sesionCerradaAt?.toISOString() ?? null,
-    convocados: e._count?.convocados ?? 0,
-  }));
+    rival: e.rival,
+    esLocal: e.esLocal,
+  };
 }
 
 /**

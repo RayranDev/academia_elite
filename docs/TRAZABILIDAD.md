@@ -2142,6 +2142,32 @@ actualización).
 
 ---
 
+## 53. Experiencia del DT: cuatro problemas de la prueba de producto (2026-09-30)
+
+El dueño del producto probó el panel del DT y reportó cuatro fricciones. Cada
+una se resolvió en su propio commit, con el estándar de `AGENTS.md` §6 bis.
+
+**53.1 — "Hoy" deja arrancar la actividad directo.** Cada evento del día trae la
+acción que corresponde a la fase de su sesión: **Iniciar sesión** (entra al Modo
+Sesión), **Continuar sesión** (ya arrancó y no se cerró) o **Ver resumen**
+(cerrada; el Modo Sesión no se reabre), más un acceso rápido a **Pasar lista**.
+La lógica es pura y probada (`src/lib/eventos/hoy.ts`); se reusa la ruta
+`/dt/eventos/[id]/sesion`, que ya arranca la sesión sola al entrar, así que no
+hay una segunda ruta de inicio. Con varios eventos el día destaca el que está en
+curso (o el próximo por iniciar). Sin nada pendiente hoy se muestra el próximo
+evento con atajos, en vez de una pantalla vacía.
+
+Causa raíz de "el Hoy se ve vacío": `eventosDeHoyDt` armaba el rango con
+`setHours(0,0,0,0)`, es decir con la zona del proceso. En Vercel (UTC) un
+entrenamiento a las 19:30 de Colombia (00:30 UTC) caía en "mañana" y
+desaparecía. Ahora el rango sale del día de la escuela (`rangoDelDiaEscuela`,
+`America/Bogota`). Además, la agenda del seed es relativa al día en que se
+sembró, así que un día después "hoy" queda sin eventos: el estado vacío nuevo
+cubre ese caso. Los botones que eran un `<Button>` dentro de un `<Link>`
+(interactivo anidado) pasan a enlaces con `buttonVariants`.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

@@ -111,3 +111,48 @@ export function aptoVencido(
   if (!aptoMedicoVenceISO) return false;
   return diaDeISO(aptoMedicoVenceISO) < hoyISO(ahora, zona);
 }
+
+/**
+ * Instante en que EMPIEZA un día del almanaque de la escuela (su medianoche
+ * local), dado como `YYYY-MM-DD`.
+ *
+ * Existe porque "los eventos de hoy" son un rango de INSTANTES: el día de
+ * Bogotá va de las 05:00 UTC de hoy a las 05:00 UTC de mañana. Armarlo con
+ * `setHours(0, 0, 0, 0)` usa la zona del proceso: en Vercel (UTC) un
+ * entrenamiento a las 19:30 hora Colombia (00:30 UTC) caía en "mañana" y
+ * desaparecía del home del DT.
+ *
+ * El desfase se calcula dos veces: la primera con la medianoche UTC como
+ * aproximación, la segunda sobre el instante ya corregido, para que un cambio
+ * de horario de verano entre ambos no lo corra una hora.
+ */
+export function inicioDeDiaEscuela(
+  diaISO: string,
+  zona: string = ZONA_ESCUELA,
+): Date {
+  const medianocheUtc = new Date(`${diaISO}T00:00:00.000Z`).getTime();
+  const aproximado = medianocheUtc - offsetEscuelaMs(new Date(medianocheUtc), zona);
+  return new Date(medianocheUtc - offsetEscuelaMs(new Date(aproximado), zona));
+}
+
+/** El día siguiente de un `YYYY-MM-DD`, sin pasar por la zona del proceso. */
+export function diaSiguienteISO(diaISO: string): string {
+  const d = new Date(`${diaISO}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Rango de instantes [desde, hasta] del día de la escuela que contiene `ahora`.
+ * `hasta` es el último milisegundo del día (inclusivo, como el resto de las
+ * consultas por rango del proyecto).
+ */
+export function rangoDelDiaEscuela(
+  ahora: Date = new Date(),
+  zona: string = ZONA_ESCUELA,
+): { desde: Date; hasta: Date } {
+  const dia = hoyISO(ahora, zona);
+  const desde = inicioDeDiaEscuela(dia, zona);
+  const manana = inicioDeDiaEscuela(diaSiguienteISO(dia), zona);
+  return { desde, hasta: new Date(manana.getTime() - 1) };
+}

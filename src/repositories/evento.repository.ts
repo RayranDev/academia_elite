@@ -122,6 +122,24 @@ export function listarEventosCategorias(
   });
 }
 
+/** Primer evento NO cancelado desde `desde` en adelante (estado vacío del home "Hoy"). */
+export function proximoEventoCategorias(
+  escuelaId: string,
+  categoriaIds: string[],
+  desde: Date,
+) {
+  return db.evento.findFirst({
+    where: {
+      escuelaId,
+      categoriaId: { in: categoriaIds },
+      cancelado: false,
+      inicio: { gte: desde },
+    },
+    include: { categoria: { select: { nombre: true } } },
+    orderBy: { inicio: "asc" },
+  });
+}
+
 export interface FiltrosListadoEventos {
   tipo?: string;
   /** Refleja estadoDeEvento() (src/lib/eventos/estado.ts) como where de Prisma:

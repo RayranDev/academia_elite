@@ -1,52 +1,91 @@
 import Link from "next/link";
+import { CalendarCheck, CheckCircle2 } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
-import { eventosDeHoyDt, type EventoHoyDTO } from "@/services/evento.service";
+import { eventosDeHoyDt, proximoEventoDt } from "@/services/evento.service";
 import {
   listarPlantillaDt,
   listarSolicitudesDt,
 } from "@/services/jugador.service";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { buttonVariants } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { FechaLocal } from "@/components/ui/FechaLocal";
-import { ETIQUETA_TIPO } from "@/components/calendar/tipos";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { EventoHoyCard } from "@/components/dt/EventoHoyCard";
+import { ProximoEventoCard } from "@/components/dt/ProximoEventoCard";
+import { eventoDestacadoId } from "@/lib/eventos/hoy";
+import { ZONA_ESCUELA } from "@/lib/fecha-calendario";
+
+/** "miércoles 30 de septiembre" en el día de la ESCUELA (no el del servidor). */
+function diaLegible(): string {
+  const texto = new Intl.DateTimeFormat("es-CO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: ZONA_ESCUELA,
+  }).format(new Date());
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
 
 /**
- * Home del DT: "Hoy" (PLAN-UX-DT PR-2 · B1). Antes aterrizaba en la plantilla y
- * su tarea principal —evaluaciones vencidas— era un número no clickeable. Ahora
- * lo primero es el evento del día, y todo lo demás es accionable de un toque.
+ * Home del DT: "Hoy" (PLAN-UX-DT PR-2 · B1). Lo primero es el evento del día y
+ * cada tarjeta trae la acción que corresponde a su fase (iniciar, continuar o
+ * ver resumen, más pasar lista): el DT llega a la cancha en un toque, sin
+ * pasar por el calendario. Todo lo demás también es accionable.
  */
 export default async function DtHoyPage() {
   const ctx = await requireAuthContext();
-  const [eventos, plantilla, solicitudes] = await Promise.all([
+  const [eventos, proximo, plantilla, solicitudes] = await Promise.all([
     eventosDeHoyDt(ctx),
+    proximoEventoDt(ctx),
     listarPlantillaDt(ctx),
     listarSolicitudesDt(ctx),
   ]);
 
   const vencidas = plantilla.filter((p) => p.vencida);
+  const destacadoId = eventoDestacadoId(eventos);
+  // Sin nada pendiente hoy (día libre, o todo cerrado o cancelado): se muestra
+  // lo que viene, para que el home nunca sea una pantalla muerta.
+  const nadaPendiente = destacadoId === null;
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-display italic uppercase">Hoy</h1>
+      <div>
+        <h1 className="text-3xl font-display italic uppercase">Hoy</h1>
+        <p className="text-sm text-muted">{diaLegible()}</p>
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-bold">
+      <section className="space-y-3" aria-labelledby="titulo-eventos-hoy">
+        <h2 id="titulo-eventos-hoy" className="text-lg font-bold">
           {eventos.length === 1 ? "Tu evento de hoy" : "Tus eventos de hoy"}
         </h2>
         {eventos.length === 0 ? (
-          <Card>
-            <p className="text-muted">
-              No tienes eventos hoy.{" "}
-              <Link href="/dt/calendario" className="font-semibold text-brand hover:underline">
-                Ver el calendario →
-              </Link>
-            </p>
-          </Card>
+          <EmptyState
+            icon={CalendarCheck}
+            titulo="Hoy no tienes eventos"
+            texto="Día libre para ti. Abajo puedes ver lo que viene."
+          >
+            <Link
+              href="/dt/calendario"
+              className={buttonVariants({ variant: "secondary" })}
+            >
+              Abrir calendario
+            </Link>
+          </EmptyState>
         ) : (
-          eventos.map((ev) => <EventoHoy key={ev.id} ev={ev} />)
+          eventos.map((ev) => (
+            <EventoHoyCard key={ev.id} ev={ev} destacado={ev.id === destacadoId} />
+          ))
         )}
       </section>
+
+      {nadaPendiente && proximo && (
+        <section className="space-y-3" aria-labelledby="titulo-proximo">
+          <h2 id="titulo-proximo" className="text-lg font-bold">
+            Lo que viene
+          </h2>
+          <ProximoEventoCard ev={proximo} />
+        </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -54,8 +93,9 @@ export default async function DtHoyPage() {
           {vencidas.length > 0 && <Badge tono="alerta">{vencidas.length}</Badge>}
         </div>
         {vencidas.length === 0 ? (
-          <Card>
-            <p className="text-muted">Ninguna evaluación vencida. Al día. 👏</p>
+          <Card className="flex items-center gap-2 text-muted">
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-pitch" aria-hidden />
+            <p>Ninguna evaluación vencida. Todo al día.</p>
           </Card>
         ) : (
           <Card className="divide-y divide-subtle p-0">
@@ -70,8 +110,11 @@ export default async function DtHoyPage() {
                   </p>
                   <p className="text-xs text-muted">{j.categoriaNombre}</p>
                 </div>
-                <Link href={`/dt/jugadores/${j.id}/evaluar`} className="shrink-0">
-                  <Button size="sm">Evaluar →</Button>
+                <Link
+                  href={`/dt/jugadores/${j.id}/evaluar`}
+                  className={buttonVariants({ size: "sm", className: "shrink-0" })}
+                >
+                  Evaluar →
                 </Link>
               </div>
             ))}
@@ -99,57 +142,19 @@ export default async function DtHoyPage() {
                 : "familias esperan aprobación"}
               .
             </p>
-            <Link href="/dt/solicitudes" className="shrink-0">
-              <Button size="sm" variant="secondary">
-                Revisar →
-              </Button>
+            <Link
+              href="/dt/solicitudes"
+              className={buttonVariants({
+                size: "sm",
+                variant: "secondary",
+                className: "shrink-0",
+              })}
+            >
+              Revisar →
             </Link>
           </Card>
         )}
       </section>
     </div>
-  );
-}
-
-/** Tarjeta del evento del día con la acción principal: arrancar la sesión. */
-function EventoHoy({ ev }: { ev: EventoHoyDTO }) {
-  const cerrado = ev.sesionCerradaAt !== null;
-  const etiqueta = ETIQUETA_TIPO[ev.tipo] ?? ev.tipo;
-
-  return (
-    <Card className={ev.cancelado ? "border-alerta/50" : undefined}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted">
-            <FechaLocal iso={ev.inicio} formato="HH:mm" /> · {etiqueta} · {ev.categoriaNombre}
-          </p>
-          <h3 className="mt-0.5 text-xl font-display italic uppercase">
-            {ev.titulo}
-          </h3>
-          <p className="mt-1 text-xs text-muted">
-            {ev.convocados}{" "}
-            {ev.convocados === 1 ? "convocado" : "convocados"}
-            {cerrado && " · sesión cerrada"}
-          </p>
-        </div>
-        {ev.cancelado ? (
-          <Badge tono="alerta">Cancelado</Badge>
-        ) : (
-          <Link href={`/dt/eventos/${ev.id}/sesion`} className="w-full sm:w-auto">
-            <Button size="lg" className="w-full">
-              {cerrado ? "Ver sesión" : `▶ Iniciar ${etiqueta.toLowerCase()}`}
-            </Button>
-          </Link>
-        )}
-      </div>
-      <div className="mt-3">
-        <Link
-          href={`/dt/eventos/${ev.id}`}
-          className="text-xs font-semibold text-muted hover:text-foreground"
-        >
-          Ver detalle del evento →
-        </Link>
-      </div>
-    </Card>
   );
 }
