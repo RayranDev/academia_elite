@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { opcionesPgDesdeUrl } from "@/lib/db-schema";
 
 // Singleton de Prisma (Capa 4). Prisma 7 exige un driver adapter.
 // Producción: Supabase PostgreSQL vía el pooler (transaction mode, 6543,
@@ -13,7 +14,10 @@ function createClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL no está definida (requerida para Postgres).");
   }
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg(
+    { connectionString },
+    opcionesPgDesdeUrl(connectionString),
+  );
   return new PrismaClient({ adapter });
 }
 

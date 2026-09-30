@@ -2213,6 +2213,27 @@ panel de la familia tiene `/jugador/eventos` sin entrada de menú (ver
 
 ---
 
+## 54. Los E2E no estaban aislados: escribían en `public` (2026-09-30)
+
+Descubierto al verificar el punto 53: dos corridas de `npm run test:e2e` habían
+borrado y resembrado los datos de `public` (los eventos demo creados a mano
+desaparecían) mientras el schema `e2e` quedaba **vacío**. El aislamiento de
+`d781196` no funcionaba: `?schema=` en la URL lo lee la CLI de Prisma (por eso
+las tablas sí se creaban en `e2e`), pero `@prisma/adapter-pg` lo ignora; el
+schema solo se respeta como opción (`new PrismaPg(cfg, { schema })`). La app y el
+seed abrían la conexión sin esa opción y escribían en `public`. La suite pasaba
+en verde, pero contra los datos reales de desarrollo.
+
+Corrección: `opcionesPgDesdeUrl` (`src/lib/db-schema.ts`, con tests) traduce el
+`?schema=` de la URL a esa opción y se usa en `src/lib/db.ts` y `prisma/seed.ts`.
+Sin `?schema=` (producción, desarrollo normal) o con `public` devuelve `{}`:
+nada cambia. Verificado: tras la corrección la corrida E2E (11/11) puebla `e2e`
+(98 eventos, 8 usuarios) y deja `public` intacto. Quedan `scripts/*.ts` y
+`prisma/seed-prod.ts` con `new PrismaPg({ connectionString })` sin la opción: no
+participan de los E2E y nunca se apuntan a un schema distinto.
+
+---
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

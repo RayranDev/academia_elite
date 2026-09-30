@@ -14,6 +14,11 @@ import { Client } from "pg";
  * base. Se recrea y siembra antes de cada corrida, así el estado es siempre el
  * mismo. No hace falta infraestructura nueva.
  *
+ * OJO: `?schema=` en la URL lo lee la CLI de Prisma (migrate) pero NO el
+ * adapter de `pg`. La app y el seed lo respetan vía `opcionesPgDesdeUrl`
+ * (`src/lib/db-schema.ts`); sin eso escribían en `public` y borraban los datos
+ * reales en cada corrida, con el schema `e2e` vacío.
+ *
  * SEGURIDAD: el reset se hace con `DROP SCHEMA "e2e"` explícito y NUNCA con
  * `prisma migrate reset`, que apunta al schema por defecto y podría borrar
  * `public` —los datos reales— si la URL no llevara el parámetro esperado.

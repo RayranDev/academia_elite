@@ -6,6 +6,7 @@ import "./seed-env";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { PrismaClient, Prisma } from "../src/generated/prisma/client";
+import { opcionesPgDesdeUrl } from "../src/lib/db-schema";
 import {
   computeStats,
   grupoEdadPorEdad,
@@ -43,7 +44,10 @@ const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error("DIRECT_URL o DATABASE_URL requerida para el seed.");
 }
-const adapter = new PrismaPg({ connectionString });
+const adapter = new PrismaPg(
+  { connectionString },
+  opcionesPgDesdeUrl(connectionString),
+);
 const db = new PrismaClient({ adapter });
 
 const DEMO_PASSWORD = "Demo1234!";
