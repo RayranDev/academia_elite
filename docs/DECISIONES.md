@@ -723,8 +723,9 @@ cada adaptación, regla 0.8.)
     exista el consentimiento de los padres para publicar la imagen de un menor,
     y la página vive en el dominio de la plataforma. La escuela solo edita logo,
     colores, textos y contacto, y **elige** la imagen del hero de un catálogo
-    curado por la plataforma (`src/lib/landing-heroes.ts`), sin caras. Hoy el
-    catálogo son gradientes placeholder; las imágenes reales se suman ahí sin
+    curado por la plataforma (`src/lib/landing-heroes.ts`), sin caras. Son 7
+    ilustraciones vectoriales propias (`HeroIlustracion.tsx`) sobre un degradado
+    de la marca de cada escuela; las fotos curadas, si llegan, se suman ahí sin
     tocar el schema. Si en el futuro se habilitan fotos propias, va como fase
     aparte, con declaración auditada, aprobación del SUPER_ADMIN, mecanismo de
     baja y asesoría legal.

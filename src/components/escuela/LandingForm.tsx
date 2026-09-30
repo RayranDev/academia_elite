@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { actualizarLandingAction } from "@/actions/landing.actions";
 import { Button } from "@/components/ui/Button";
+import { HeroIlustracion } from "@/components/landing/HeroIlustracion";
 import { HEROES_LANDING, HERO_LANDING_DEFAULT_ID } from "@/lib/landing-heroes";
 import { cn } from "@/lib/cn";
 import type { ActionResult } from "@/lib/action-result";
@@ -70,10 +71,12 @@ export function LandingForm({
               />
               <div
                 className={cn(
-                  "h-14 rounded-lg border-2 border-transparent peer-checked:border-brand",
+                  "relative h-14 overflow-hidden rounded-lg border-2 border-transparent peer-checked:border-brand",
                   h.className,
                 )}
-              />
+              >
+                <HeroIlustracion id={h.id} className="absolute inset-0 h-full w-full" />
+              </div>
               <p className="mt-1 text-[10px] text-muted">{h.etiqueta}</p>
             </label>
           ))}

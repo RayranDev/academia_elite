@@ -1,3 +1,4 @@
+import { HeroIlustracion } from "@/components/landing/HeroIlustracion";
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { cache } from "react";
@@ -211,7 +212,16 @@ function HeroSeccion({ data }: { data: LandingPublicaDTO }) {
     <section
       className={`relative overflow-hidden px-6 py-20 text-center sm:py-28 ${data.hero.className}`}
     >
-      <div className="mx-auto max-w-2xl">
+      <HeroIlustracion
+        id={data.hero.id}
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      />
+      {/* Viñeta: oscurece el centro para que el titular se lea sobre cualquier escena. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.38),transparent_72%)]"
+      />
+      <div className="relative mx-auto max-w-2xl">
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/80">
           {data.nombre}
         </p>

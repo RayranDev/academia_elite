@@ -2262,6 +2262,17 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   va en `duotone`. Dependencia nueva: `@phosphor-icons/react`.
 - Decisión y descartes en DECISIONES.md #94.
 
+## 56. Portadas ilustradas de la landing y 404 propio (2026-09-30)
+
+- El catálogo de portadas pasa de 5 degradados a 7 ilustraciones vectoriales
+  propias (cancha, atardecer, estadio de noche, líneas, vestuario, portería,
+  balón), sin personas, teñidas con la marca de cada escuela. El arte de las
+  escenas con texto encima se dibuja a los costados: el centro queda libre para
+  el titular, y una viñeta garantiza la lectura.
+- `not-found.tsx` general y `/e/[slug]/not-found.tsx` con la pantalla de la marca
+  (`PaginaNoEncontrada`), `noindex` y el mismo mensaje para escuela inexistente
+  o inactiva.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a
