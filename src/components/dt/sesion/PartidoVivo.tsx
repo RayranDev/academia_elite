@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { CircleDot, NotebookPen } from "lucide-react";
 import {
   registrarGolAction,
   fijarTarjetasAction,
@@ -17,6 +18,7 @@ import {
 } from "@/lib/partido/periodos";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
+import { TarjetaArbitral } from "@/components/ui/TarjetaArbitral";
 import { Cronometro } from "./Cronometro";
 import { ObservacionSheet } from "./ObservacionSheet";
 import type { ConvocadoSesionDTO } from "@/services/sesion.service";
@@ -288,10 +290,20 @@ export function PartidoVivo({
                 }}
               >
                 <span className="font-bold">{p.nombre}</span>
-                <span className="opacity-70">
-                  {p.estadistica.goles > 0 && `⚽${p.estadistica.goles} `}
-                  {t.amarillas > 0 && "🟨".repeat(t.amarillas)}
-                  {rojaEfectiva && "🟥"}
+                <span className="inline-flex items-center gap-1 opacity-70">
+                  {p.estadistica.goles > 0 && (
+                    <span className="inline-flex items-center gap-0.5">
+                      <CircleDot className="h-3.5 w-3.5" aria-hidden />
+                      <span className="sr-only">Goles:</span>
+                      {p.estadistica.goles}
+                    </span>
+                  )}
+                  {Array.from({ length: t.amarillas }, (_, i) => (
+                    <TarjetaArbitral key={i} color="amarilla" />
+                  ))}
+                  {t.amarillas > 0 && <span className="sr-only">Amarillas: {t.amarillas}</span>}
+                  {rojaEfectiva && <TarjetaArbitral color="roja" />}
+                  {rojaEfectiva && <span className="sr-only">Roja</span>}
                 </span>
               </Button>
             );
@@ -447,7 +459,7 @@ export function PartidoVivo({
                         })
                       }
                     >
-                      🟨
+                      <TarjetaArbitral color="amarilla" className="h-4 w-3" />
                     </Button>
                   </div>
                 </div>
@@ -465,7 +477,8 @@ export function PartidoVivo({
                     })
                   }
                 >
-                  🟥 {rojaEfectiva ? "Quitar roja" : "Roja"}
+                  <TarjetaArbitral color="roja" className="mr-2" />
+                  {rojaEfectiva ? "Quitar roja" : "Roja"}
                 </Button>
 
                 <Button
@@ -477,7 +490,8 @@ export function PartidoVivo({
                     setObservando(true);
                   }}
                 >
-                  📝 Observación
+                  <NotebookPen className="mr-2 h-4 w-4" aria-hidden />
+                  Observación
                 </Button>
               </div>
             );

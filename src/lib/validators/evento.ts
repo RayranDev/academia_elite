@@ -48,6 +48,16 @@ export const resultadoSchema = z.object({
   resultadoVisitante: z.coerce.number().int().min(0).max(99),
 });
 
+/** Lista de asistencia del detalle del evento (ver `leerRegistrosAsistencia`). */
+export const pasarListaSchema = z.object({
+  eventoId: z.string().min(1, { error: "Evento inválido." }),
+  registros: z
+    .array(z.object({ jugadorId: z.string().min(1), presente: z.boolean() }))
+    .min(1, { error: "La lista no tiene jugadores." })
+    // Una lista real ronda los 25 convocados; el tope es contra requests armados.
+    .max(300, { error: "La lista tiene demasiados jugadores." }),
+});
+
 /** Edición de un evento: mismos campos que el alta salvo categoría/convocados/recurrencia. */
 export const editarEventoSchema = z
   .object({

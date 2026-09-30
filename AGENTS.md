@@ -135,11 +135,17 @@ Son datos de menores. Esto manda sobre cualquier atajo de conveniencia.
   `ActionResult<T>` = `{ ok: true; data? }` | `{ ok: false; error }`. Envolvé
   con `mapError`, que **re-lanza las señales de control de Next** (`NEXT_REDIRECT`,
   `NEXT_NOT_FOUND`) — no las trates como error — y oculta errores inesperados
-  tras un mensaje genérico. **Excepción**: las actions invocadas por
-  `<form action=…>` sin `useActionState` (progressive enhancement) pueden ser
-  `Promise<void>` y lanzar directo — el borde de la UI las maneja con el
-  `error.tsx` del segmento. Patrón existente en `evento.actions.ts` y
-  `mensaje.actions.ts`.
+  tras un mensaje genérico. **Excepción acotada**: una action invocada por
+  `<form action=…>` sin `useActionState` puede ser `Promise<void>` y lanzar
+  directo (lo maneja el `error.tsx` del segmento) **solo si el resultado ya es
+  visible por sí mismo** (un `redirect`, un cambio evidente en pantalla). Si el
+  usuario podría preguntarse "¿pasó algo?" (§6 bis), devolvé `ActionResult` y
+  confirmá con `MensajeAccion` (`src/components/ui/`).
+  **Ojo**: React 19 reinicia el DOM de un `<form action>` al terminar la
+  acción — borra lo escrito en campos no controlados ante un error y
+  **desmarca visualmente** los checkbox controlados. En formularios de carga
+  enviá con `onSubmit` + transición (`useEnvioAccion`, o
+  `startTransition(() => action(formData))` con `useActionState`).
 - **AuditLog** para acciones sensibles.
 
 Detalle por endpoint en **[SEGURIDAD.md](docs/SEGURIDAD.md)** y **[HABEAS-DATA.md](docs/HABEAS-DATA.md)**.

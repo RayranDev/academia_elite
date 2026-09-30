@@ -33,7 +33,24 @@
 
 | Paquete | Tamaño | Qué resuelve |
 |---|---|---|
+| [Feedback visible en formularios de familia y escuela](#paquete--feedback-visible-en-formularios-de-familia-y-escuela) | Chico | El DT ya quedó cubierto (TRAZABILIDAD #53.2); faltan los mismos envíos silenciosos en los otros roles |
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
+
+---
+
+## Paquete — Feedback visible en formularios de familia y escuela
+
+Chico. AGENTS.md §6 bis: toda acción del usuario responde a la vista. El panel
+del DT se auditó y corrigió entero (TRAZABILIDAD #53.2). Quedan formularios de
+otros roles que siguen siendo `<form action>` con una action `Promise<void>`
+que recarga sin confirmar: **confirmar/rechazar convocatoria de la familia**
+(`confirmarConvocatoriaAction`, usada en `ProximoPartidoTile`,
+`CambiarRespuesta`, `UpcomingList` y `jugador/eventos/[id]`), y del lado de
+la escuela **desactivar código de invitación** (`desactivarCodigoAction`),
+**crear sede/cancha** y **branding**. Receta: la action devuelve
+`ActionResult`, el componente cliente usa `useEnvioAccion` + `MensajeAccion`
+(`src/components/ui/`); recordar que `<form action>` reinicia el DOM al
+terminar (AGENTS.md §5).
 
 ---
 

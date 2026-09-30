@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cerrarSesionAction } from "@/actions/sesion.actions";
-import { guardarEstadisticasCierreAction } from "@/actions/evento.actions";
+import { guardarEstadisticasAction } from "@/actions/evento.actions";
 import { Button } from "@/components/ui/Button";
+import { TarjetaArbitral } from "@/components/ui/TarjetaArbitral";
 import type {
   ConvocadoSesionDTO,
   EstadisticaSesionDTO,
@@ -105,7 +106,7 @@ export function CierreSesion({
             if (s.roja) fd.set(`roja_${f.jugadorId}`, "on");
             if (s.azul) fd.set(`azul_${f.jugadorId}`, "on");
           }
-          const resStats = await guardarEstadisticasCierreAction(fd);
+          const resStats = await guardarEstadisticasAction(fd);
           if (!resStats.ok) {
             setError(resStats.error);
             return;
@@ -170,7 +171,10 @@ export function CierreSesion({
                           s.roja ? "bg-alerta/20 text-alerta" : "text-muted"
                         }`}
                       >
-                        🟥 Roja
+                        <span className="inline-flex items-center gap-1.5">
+                          <TarjetaArbitral color="roja" />
+                          Roja
+                        </span>
                       </button>
                       <button
                         type="button"
@@ -180,21 +184,25 @@ export function CierreSesion({
                           s.azul ? "bg-info/20 text-info" : "text-muted"
                         }`}
                       >
-                        🟦 Azul
+                        <span className="inline-flex items-center gap-1.5">
+                          <TarjetaArbitral color="azul" />
+                          Azul
+                        </span>
                       </button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {(
                       [
-                        ["goles", "Goles"],
-                        ["asistencias", "Asist"],
-                        ["amarillas", "🟨"],
-                      ] as [Campo, string][]
-                    ).map(([campo, etiqueta]) => (
+                        ["goles", "Goles", null],
+                        ["asistencias", "Asist", null],
+                        ["amarillas", "Amarillas", <TarjetaArbitral key="am" color="amarilla" />],
+                      ] as [Campo, string, React.ReactNode][]
+                    ).map(([campo, etiqueta, icono]) => (
                       <Stepper
                         key={campo}
                         etiqueta={etiqueta}
+                        icono={icono}
                         valor={s[campo]}
                         onMenos={() => ajustar(f.jugadorId, campo, -1)}
                         onMas={() => ajustar(f.jugadorId, campo, 1)}
@@ -244,18 +252,24 @@ export function CierreSesion({
 
 function Stepper({
   etiqueta,
+  icono,
   valor,
   onMenos,
   onMas,
 }: {
   etiqueta: string;
+  /** Decorativo: el nombre accesible sigue siendo `etiqueta`. */
+  icono?: React.ReactNode;
   valor: number;
   onMenos: () => void;
   onMas: () => void;
 }) {
   return (
     <div className="rounded-lg border border-subtle p-1 text-center">
-      <p className="text-[10px] uppercase text-muted">{etiqueta}</p>
+      <p className="flex items-center justify-center gap-1 text-[10px] uppercase text-muted">
+        {icono}
+        {etiqueta}
+      </p>
       <div className="flex items-center justify-between gap-1">
         <button
           type="button"

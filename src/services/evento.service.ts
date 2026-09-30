@@ -32,6 +32,11 @@ import { listarSedes } from "@/repositories/sede.repository";
 import type { EventoInput, EditarEventoInput, EstadisticaInput } from "@/lib/validators/evento";
 import { estadoDeEvento, permiteVerEstadisticas } from "@/lib/eventos/estado";
 import { faseSesionHoy, type FaseSesionHoy } from "@/lib/eventos/hoy";
+import {
+  resumirAsistencia,
+  type RegistroAsistencia,
+  type ResultadoAsistencia,
+} from "@/lib/eventos/asistencia";
 import { rangoDelDiaEscuela } from "@/lib/fecha-calendario";
 import type { TipoEvento, Confirmacion, EstadoEvento } from "@/types";
 
@@ -249,7 +254,7 @@ export interface ProximoEventoDtDTO {
  * usa cuando hoy no hay nada por hacer: en vez de una pantalla muerta, el DT ve
  * qué viene y puede saltar directo a ello.
  */
-export async function proximoEventoDt(
+export async function obtenerProximoEventoDt(
   ctx: AuthContext,
 ): Promise<ProximoEventoDtDTO | null> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
@@ -552,8 +557,8 @@ export async function confirmarConvocatoria(
 export async function pasarListaDt(
   ctx: AuthContext,
   eventoId: string,
-  registros: { jugadorId: string; presente: boolean }[],
-): Promise<void> {
+  registros: RegistroAsistencia[],
+): Promise<ResultadoAsistencia> {
   const { escuelaId, categoriaIds } = await categoriasDelDt(ctx);
   const e = await obtenerEvento(escuelaId, eventoId);
   if (!e || !categoriaIds.includes(e.categoriaId)) {
@@ -565,8 +570,15 @@ export async function pasarListaDt(
   const plantel = await listarPlantilla(escuelaId, [e.categoriaId]);
   const validos = new Set(plantel.map((j) => j.id));
   const registrosValidos = registros.filter((r) => validos.has(r.jugadorId));
-  if (registrosValidos.length === 0) return;
+  // Antes esto salía en silencio y la pantalla parecía haber guardado: ahora el
+  // DT se entera de que no se guardó nada y por qué.
+  if (registrosValidos.length === 0) {
+    throw new ValidationError(
+      "No hay jugadores del plantel para guardar la asistencia.",
+    );
+  }
   await registrarAsistencias(escuelaId, eventoId, registrosValidos);
+  return resumirAsistencia(registros, registrosValidos);
 }
 
 /** Datos del evento que necesita el pipeline de difusión del resultado. */

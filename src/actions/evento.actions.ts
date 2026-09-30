@@ -10,7 +10,12 @@ import {
   resultadoSchema,
   editarEventoSchema,
   estadisticaSchema,
+  pasarListaSchema,
 } from "@/lib/validators/evento";
+import {
+  leerRegistrosAsistencia,
+  type ResultadoAsistencia,
+} from "@/lib/eventos/asistencia";
 import {
   crearEventoDt,
   confirmarConvocatoria,
@@ -77,41 +82,70 @@ export async function confirmarConvocatoriaAction(
   revalidatePath(`/jugador/eventos/${parsed.data.eventoId}`);
 }
 
-export async function pasarListaAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const eventoId = formData.get("eventoId");
-  if (typeof eventoId !== "string" || !eventoId) {
-    throw new ValidationError("Evento inválido.");
+/**
+ * Guarda la lista de asistencia del detalle del evento. Devuelve cuántos
+ * presentes de cuántos quedaron guardados para que el formulario lo confirme
+ * (useActionState): un guardado que recarga la página sin decir nada obliga al
+ * DT a dudar de si pasó algo.
+ */
+export async function pasarListaAction(
+  _prev: ActionResult<ResultadoAsistencia> | undefined,
+  formData: FormData,
+): Promise<ActionResult<ResultadoAsistencia>> {
+  try {
+    const ctx = await requireAuthContext();
+    // jugadorIds vienen en "jugadores"; presentes marcados en "presente_<id>".
+    const parsed = pasarListaSchema.safeParse({
+      eventoId: formData.get("eventoId"),
+      registros: leerRegistrosAsistencia(formData),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    const resultado = await pasarListaDt(
+      ctx,
+      parsed.data.eventoId,
+      parsed.data.registros,
+    );
+    revalidatePath(`/dt/eventos/${parsed.data.eventoId}`);
+    return { ok: true, data: resultado };
+  } catch (e) {
+    return mapError(e);
   }
-  // jugadorIds vienen en "jugadores"; presentes marcados en "presente_<id>".
-  const jugadorIds = formData.getAll("jugadores").map(String);
-  const registros = jugadorIds.map((jugadorId) => ({
-    jugadorId,
-    presente: formData.get(`presente_${jugadorId}`) === "on",
-  }));
-  await pasarListaDt(ctx, eventoId, registros);
-  revalidatePath(`/dt/eventos/${eventoId}`);
 }
 
-export async function cargarResultadoAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = resultadoSchema.safeParse({
-    eventoId: formData.get("eventoId"),
-    resultadoLocal: formData.get("resultadoLocal"),
-    resultadoVisitante: formData.get("resultadoVisitante"),
-  });
-  if (!parsed.success) throw new ValidationError("Resultado inválido.");
-  await cargarResultadoDt(
-    ctx,
-    parsed.data.eventoId,
-    parsed.data.resultadoLocal,
-    parsed.data.resultadoVisitante,
-  );
-  revalidatePath(`/dt/eventos/${parsed.data.eventoId}`);
+export async function cargarResultadoAction(
+  formData: FormData,
+): Promise<ActionResult<{ local: number; visitante: number }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = resultadoSchema.safeParse({
+      eventoId: formData.get("eventoId"),
+      resultadoLocal: formData.get("resultadoLocal"),
+      resultadoVisitante: formData.get("resultadoVisitante"),
+    });
+    if (!parsed.success) {
+      throw new ValidationError("Resultado inválido: usa números de 0 a 99.");
+    }
+    await cargarResultadoDt(
+      ctx,
+      parsed.data.eventoId,
+      parsed.data.resultadoLocal,
+      parsed.data.resultadoVisitante,
+    );
+    revalidatePath(`/dt/eventos/${parsed.data.eventoId}`);
+    return {
+      ok: true,
+      data: {
+        local: parsed.data.resultadoLocal,
+        visitante: parsed.data.resultadoVisitante,
+      },
+    };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 /** Lee la tabla de estadística del FormData (o lanza ValidationError). Compartido
- *  por el `<form action>` de la tabla y la llamada imperativa del cierre. */
+ *  por la tabla del detalle del evento y la del cierre de sesión. */
 function parsearEstadisticas(formData: FormData) {
   const eventoId = formData.get("eventoId");
   if (typeof eventoId !== "string" || !eventoId) {
@@ -133,18 +167,10 @@ function parsearEstadisticas(formData: FormData) {
   return { eventoId, registros };
 }
 
-// Tabla de estadística en el detalle del evento: `<form action>` sin
-// useActionState (progressive enhancement), Promise<void> — la excepción de §5.
-export async function cargarEstadisticasAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const { eventoId, registros } = parsearEstadisticas(formData);
-  await cargarEstadisticasDt(ctx, eventoId, registros);
-  revalidatePath(`/dt/eventos/${eventoId}`);
-}
-
-// Cierre de sesión: se llama IMPERATIVAMENTE desde el cliente (CierreSesion),
-// así que devuelve ActionResult para mostrar el error puntual inline.
-export async function guardarEstadisticasCierreAction(
+// Estadística individual: se llama IMPERATIVAMENTE desde el cliente (la tabla
+// del detalle del evento y CierreSesion), así que devuelve ActionResult para
+// mostrar el error puntual inline sin que el formulario se reinicie.
+export async function guardarEstadisticasAction(
   formData: FormData,
 ): Promise<ActionResult> {
   try {
@@ -186,15 +212,22 @@ export async function editarEventoAction(
   }
 }
 
-export async function cancelarEventoAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const eventoId = formData.get("eventoId");
-  if (typeof eventoId !== "string" || !eventoId) {
-    throw new ValidationError("Evento inválido.");
+export async function cancelarEventoAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const eventoId = formData.get("eventoId");
+    if (typeof eventoId !== "string" || !eventoId) {
+      throw new ValidationError("Evento inválido.");
+    }
+    await cancelarEventoDt(ctx, eventoId);
+    revalidatePath(`/dt/eventos/${eventoId}`);
+    revalidatePath("/dt/calendario");
+    // El home "Hoy" lista los eventos del dia: tambien se invalida.
+    revalidatePath("/dt");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
   }
-  await cancelarEventoDt(ctx, eventoId);
-  revalidatePath(`/dt/eventos/${eventoId}`);
-  revalidatePath("/dt/calendario");
-  // El home "Hoy" lista los eventos del dia: tambien se invalida.
-  revalidatePath("/dt");
 }

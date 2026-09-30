@@ -2166,6 +2166,39 @@ sembró, así que un día después "hoy" queda sin eventos: el estado vacío nue
 cubre ese caso. Los botones que eran un `<Button>` dentro de un `<Link>`
 (interactivo anidado) pasan a enlaces con `buttonVariants`.
 
+**53.2 — "Pasar lista" no daba ninguna respuesta.** El formulario plano de
+asistencia recargaba en silencio. Ahora `PasarListaForm` (`useActionState`,
+contrato `ActionResult` + `mapError`) muestra contador vivo "X de Y presentes"
+con barra, "Marcar todos / Desmarcar todos", botón deshabilitado con
+"Guardando…", confirmación "Asistencia guardada: X presentes de Y." o el error
+puntual, y un aviso "Hay cambios sin guardar." si el DT toca algo después de
+guardar. `pasarListaDt` devuelve el resumen (presentes, total, omitidos) y ya no
+sale en silencio cuando ningún jugador es del plantel. La lógica pura vive en
+`src/lib/eventos/asistencia.ts` (con tests). El proyecto no tenía un toast: se
+creó `MensajeAccion` (región viva en línea, pegada al botón) y `useEnvioAccion`.
+
+Bug encontrado al verificarlo en el navegador: con `<form action>`, React 19
+reinicia el DOM al terminar la acción y **desmarcaba visualmente** los checkbox
+controlados mientras el estado seguía diciendo "4 de 5". Se resolvió enviando con
+`onSubmit` + `startTransition`; queda documentado en `AGENTS.md` §5.
+
+Auditoría de los demás formularios del DT con el mismo problema de envío
+silencioso, todos corregidos en la misma entrega: **resultado del partido**
+(`ResultadoPartidoForm`; avisa que volver a guardar vuelve a notificar a las
+familias), **estadística individual** (`EstadisticasPartidoForm`, conserva lo
+cargado ante un error), **cancelar evento** (estado "Cancelando…" y error en el
+modal), **aprobar/rechazar solicitudes** (`SolicitudesLista`: confirmación
+del resultado aunque la tarjeta desaparezca, y confirmación previa al rechazo) y
+**fijar objetivo** (`ObjetivoForm`). Sus actions pasan a devolver `ActionResult`.
+Los formularios de familia (`confirmarConvocatoriaAction`) quedan fuera del
+alcance del DT y se registran en `PENDIENTES.md`.
+
+Hallazgo del hook (Gentleman Guardian Angel), válido: `CierreSesion` usaba los
+emojis del sistema (🟨 🟥 🟦) para las tarjetas, contra §6 bis. Se reemplazan,
+también en `PartidoVivo` (tarjetas, gol y observación), por `TarjetaArbitral`
+(tarjeta dibujada con los colores del tema) e íconos de `lucide-react`, con el
+texto accesible que el emoji no daba.
+
 ---
 
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)

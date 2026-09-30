@@ -52,34 +52,60 @@ export async function crearJugadorAction(
   }
 }
 
-export async function aprobarSolicitudAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const id = formData.get("jugadorId");
-  if (typeof id !== "string" || !id) throw new ValidationError("Solicitud inválida.");
-  await aprobarSolicitud(ctx, id);
-  revalidatePath("/dt/solicitudes");
-  revalidatePath("/dt");
+// Solicitudes y objetivos se invocan IMPERATIVAMENTE desde componentes cliente
+// (SolicitudesLista, ObjetivoForm): devuelven ActionResult para que la pantalla
+// confirme el resultado o muestre el error puntual, en vez de recargar en
+// silencio.
+export async function aprobarSolicitudAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const id = formData.get("jugadorId");
+    if (typeof id !== "string" || !id) throw new ValidationError("Solicitud inválida.");
+    await aprobarSolicitud(ctx, id);
+    revalidatePath("/dt/solicitudes");
+    revalidatePath("/dt");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
-export async function rechazarSolicitudAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const id = formData.get("jugadorId");
-  if (typeof id !== "string" || !id) throw new ValidationError("Solicitud inválida.");
-  await rechazarSolicitud(ctx, id);
-  revalidatePath("/dt/solicitudes");
+export async function rechazarSolicitudAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const id = formData.get("jugadorId");
+    if (typeof id !== "string" || !id) throw new ValidationError("Solicitud inválida.");
+    await rechazarSolicitud(ctx, id);
+    revalidatePath("/dt/solicitudes");
+    revalidatePath("/dt");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
-export async function crearObjetivoAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = objetivoSchema.safeParse({
-    jugadorId: formData.get("jugadorId"),
-    stat: formData.get("stat"),
-    valorMeta: formData.get("valorMeta"),
-    fechaLimite: formData.get("fechaLimite"),
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await crearObjetivoDt(ctx, parsed.data);
-  revalidatePath(`/dt/jugadores/${parsed.data.jugadorId}`);
+export async function crearObjetivoAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = objetivoSchema.safeParse({
+      jugadorId: formData.get("jugadorId"),
+      stat: formData.get("stat"),
+      valorMeta: formData.get("valorMeta"),
+      fechaLimite: formData.get("fechaLimite"),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await crearObjetivoDt(ctx, parsed.data);
+    revalidatePath(`/dt/jugadores/${parsed.data.jugadorId}`);
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function crearEvaluacionAction(

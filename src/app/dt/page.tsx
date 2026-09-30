@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarCheck, CheckCircle2 } from "lucide-react";
 import { requireAuthContext } from "@/lib/auth/session";
-import { eventosDeHoyDt, proximoEventoDt } from "@/services/evento.service";
+import { eventosDeHoyDt, obtenerProximoEventoDt } from "@/services/evento.service";
 import {
   listarPlantillaDt,
   listarSolicitudesDt,
@@ -36,7 +36,7 @@ export default async function DtHoyPage() {
   const ctx = await requireAuthContext();
   const [eventos, proximo, plantilla, solicitudes] = await Promise.all([
     eventosDeHoyDt(ctx),
-    proximoEventoDt(ctx),
+    obtenerProximoEventoDt(ctx),
     listarPlantillaDt(ctx),
     listarSolicitudesDt(ctx),
   ]);
