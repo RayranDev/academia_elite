@@ -5,6 +5,7 @@ import {
   obtenerEscuelaPublicaPorSlug,
   actualizarLandingEscuela as actualizarLandingEscuelaRepo,
   obtenerEscuela,
+  listarSlugsLandingsPublicadas,
 } from "@/repositories/escuela.repository";
 import { leerFoto } from "@/lib/foto/storage";
 import { aLandingPublicaDTO, type LandingPublicaDTO } from "@/lib/mappers/landing-publica";
@@ -43,6 +44,12 @@ export async function obtenerLandingPublica(slug: string): Promise<LandingPublic
   }
 
   return { estado: "publicada", data: aLandingPublicaDTO(row) };
+}
+
+/** Slugs de las landings que se pueden indexar (activas y publicadas), para el sitemap. */
+export async function listarSlugsParaSitemap(): Promise<string[]> {
+  const filas = await listarSlugsLandingsPublicadas();
+  return filas.map((f) => f.slug);
 }
 
 /**

@@ -202,3 +202,15 @@ export function obtenerEscuelasDropdown() {
     orderBy: { nombre: "asc" },
   });
 }
+
+// tenant-global: el sitemap público lista las landings publicadas de TODAS las
+// escuelas. Devuelve solo el slug (nunca datos de jugadores, fotos ni contacto) y
+// únicamente escuelas activas con landing publicada: las mismas que
+// `obtenerLandingPublica` muestra completas.
+export function listarSlugsLandingsPublicadas() {
+  return db.escuela.findMany({
+    where: { activa: true, landingPublicada: true },
+    select: { slug: true },
+    orderBy: { slug: "asc" },
+  });
+}

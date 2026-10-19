@@ -32,18 +32,22 @@ import type {
  * página: ambos corren en el mismo request y piden el mismo slug (Sección
  * "Memoizing data requests" de la doc de metadata de Next 16).
  *
- * Sin `generateStaticParams` ni Request-time APIs (cookies/headers/searchParams),
- * esta ruta calificaría para el modelo "estático" clásico: se renderiza en el
- * primer request y ESE HTML queda servido para siempre desde el Full Route
- * Cache, sin volver a ejecutar `obtenerLandingPublica`. Eso rompería la
- * visibilidad por `activa`/`landingPublicada`: el SUPER_ADMIN desactiva una
- * escuela (§5 AGENTS.md, Barrera 2) y esta página seguiría sirviendo la
- * vitrina vieja indefinidamente, porque ninguna de las acciones que tocan esos
- * campos (`editarEscuelaSuperAdmin`, branding, categorías, sedes, escudo)
- * revalida `/e/[slug]`. `force-dynamic` hace que Barrera 2 se evalúe en CADA
- * request, como en el resto de la app.
+ * **Caché (ISR de 60 s).** La landing es pública y idéntica para todos, así que se
+ * sirve desde la caché y solo se regenera como máximo una vez por minuto. Antes
+ * era `force-dynamic` y CADA visita ejecutaba una función y consultaba la base:
+ * un script repitiendo esta URL costaba plata y conexiones aunque no robara nada.
+ *
+ * La visibilidad (`activa` / `landingPublicada`, Barrera 2 de AGENTS.md §5) sigue
+ * mandando: se evalúa cada vez que la página se regenera, y las acciones que
+ * cambian lo que la landing muestra o su visibilidad llaman a
+ * `invalidarLandingsPublicas()` (`src/lib/landing-cache.ts`) para adelantarlo al
+ * instante. El techo, si algún camino la olvidara, es de 60 s.
+ *
+ * Límite conocido: un slug inventado al azar es un "miss" propio (se consulta una
+ * vez y su 404 queda cacheado 60 s). Eso lo frena el Firewall de la plataforma y el
+ * rate limit del proxy, no esta caché.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const getLanding = cache((slug: string) => obtenerLandingPublica(slug));
 

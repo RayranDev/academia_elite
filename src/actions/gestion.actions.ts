@@ -1,5 +1,6 @@
 "use server";
 
+import { invalidarLandingsPublicas } from "@/lib/landing-cache";
 import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
@@ -439,6 +440,7 @@ export async function editarEscuelaAction(
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     await editarEscuelaSuperAdmin(ctx, parsed.data);
+    invalidarLandingsPublicas();
     revalidatePath("/admin/escuelas");
     return { ok: true };
   } catch (e) {

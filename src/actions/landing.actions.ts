@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidarLandingsPublicas } from "@/lib/landing-cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
@@ -33,6 +34,7 @@ export async function actualizarLandingAction(
 
     revalidatePath("/escuela/branding");
     revalidatePath(`/e/${slug}`);
+    invalidarLandingsPublicas();
     return { ok: true };
   } catch (e) {
     return mapError(e);

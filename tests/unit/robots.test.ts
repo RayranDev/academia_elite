@@ -13,7 +13,7 @@ function reglas() {
 describe("robots", () => {
   it("bloquea las áreas con sesión, la API y las pantallas de acceso", () => {
     const { disallow } = reglas();
-    for (const ruta of ["/api/", "/admin", "/escuela", "/dt", "/jugador", "/login"]) {
+    for (const ruta of ["/api/", "/admin", "/escuela", "/dt", "/jugador", "/login", "/aceptar-politica"]) {
       expect(disallow).toContain(ruta);
     }
   });

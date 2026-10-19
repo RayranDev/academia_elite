@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { urlPublicaBase } from "@/lib/url-publica";
 
 /**
  * robots.txt. NO es una defensa: solo lo respetan los buscadores y los bots que
@@ -25,7 +26,9 @@ export default function robots(): MetadataRoute.Robots {
         "/registro",
         "/recuperar",
         "/bloqueado",
+        "/aceptar-politica",
       ],
     },
+    sitemap: `${urlPublicaBase()}/sitemap.xml`,
   };
 }
