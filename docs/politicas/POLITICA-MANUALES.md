@@ -134,8 +134,9 @@ capa pública.
 
 ## 5. Cómo se prueba un módulo
 
-Entorno igual al de `POLITICA-QA.md` §2: instancia **local**, base de pruebas, datos
-ficticios, sin efectos externos. **Nunca producción.**
+Entorno aislado de `POLITICA-QA.md` §2: `npm run qa:entorno` (schema `qa`, datos ficticios, sin
+efectos externos) y `npm run qa:detener` al terminar. **Nunca producción ni el schema `public`.** El
+agente lo hace solo, sin intervención humana.
 
 1. **Preparar el contexto** mínimo y documentar qué datos hacen falta.
 2. **Inventariar los controles** de la pantalla: botones, campos, filtros, menús,
@@ -156,8 +157,9 @@ o del código, ni "debería funcionar así".
 ## 6. Evidencia y privacidad
 
 - Capturas **de la ejecución real**, nunca montadas ni de memoria.
-- **Cero caras de menores:** solo avatares generados, el personaje de marca o imágenes
-  de prueba (`GUIA-DE-MARCA.md`).
+- **Cero caras de menores.** Las cartas se capturan con el **niño de marca** (`public/nino_carta.png`,
+  personaje generado por IA que permite `GUIA-DE-MARCA.md`; `qa:entorno` se lo asigna a los jugadores
+  demo), nunca con avatares dibujados ni fotos reales.
 - **Cero credenciales visibles:** ni contraseñas, ni tokens, ni correos reales, ni la
   barra del navegador con datos de un entorno.
 - Datos ficticios coherentes entre módulos: el mismo jugador de demostración recorre
@@ -255,6 +257,6 @@ scratch/                         # trabajo descartable, ignorado por git
 Los prompts viven en la biblioteca (`docs/prompts/README.md`):
 
 - **P10** — manual completo de **un rol**: recorre todo su menú, módulo por módulo, y
-  al final arma el Word y el PDF.
+  al final arma el Word y el PDF. Orden: súper admin, escuela, entrenador, familia.
 - **P04** — un solo módulo (escribir o reverificar).
 - **P11** — construir y revisar los entregables.

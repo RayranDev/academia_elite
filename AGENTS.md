@@ -58,6 +58,8 @@ npm run lint                # eslint         ── debe quedar LIMPIO
 npm run test                # vitest run (unit)
 npm run test:e2e            # playwright (build + start:e2e en :3100)
 npm run db:reset            # BORRA toda la base de .env: solo contra una base de pruebas (ver POLITICA-QA §2)
+npm run qa:entorno            # entorno de pruebas aislado (schema qa, nunca public) para QA y manuales
+npm run qa:detener             # lo apaga
 ```
 
 Usuarios demo: ver `credenciales.md` (raíz del proyecto, local, no se sube al repo).

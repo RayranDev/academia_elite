@@ -2383,6 +2383,26 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   sueltas) y `docs/manuales/salida/` ignorada para lo generado; `scripts/` solo conserva
   herramientas que se mantienen.
 
+## 62. Entorno de QA aislado y desatendido, y guardia contra borrados (2026-10-19)
+
+- Se confirmó que la base del `.env` local es la misma que usa producción. Eso hacía peligroso que un
+  agente (o una persona) probara escribiendo datos, y `db:reset` / `db:seed` borrarían los datos reales.
+- `npm run qa:entorno` / `qa:detener` (`scripts/qa/`): app compilada en su propio build
+  (`scratch/qa/next`, para no pisar `.next`) contra un **schema `qa`** recreado con `DROP SCHEMA` explícito;
+  correo, Upstash y Supabase Storage deshabilitados; fotos en disco local; dos escuelas con sus usuarios
+  demo; **el niño de marca** (`public/nino_carta.png`) como foto de los 27 jugadores demo, de modo que las
+  cartas y los manuales no usan avatares ni rostros de menores. Una sola instancia a la vez; `qa:detener`
+  solo termina el pid que registró.
+- `src/lib/foto/almacenamiento-local.ts`: respaldo de disco para `storage.ts` si existe
+  `ALMACENAMIENTO_LOCAL_DIR`; error si coexiste con `SUPABASE_URL` o corre en Vercel.
+- Guardia de borrado (`scripts/guardia-borrado.mjs`): `db:reset` y todos los seeds que borran se niegan a
+  correr contra el schema `public` salvo `PERMITIR_BORRADO_DE_BASE=1`; los schemas `e2e` y `qa` pasan sin
+  más. Falla cerrada si no puede interpretar la URL.
+- Se corrigió `seed-demo-evolucion.run.ts`, que ignoraba `?schema=` y escribía en `public` aunque la URL
+  dijera `qa` o `e2e`.
+- Verificado por el orquestador: el candado bloquea con el `.env` real (exit 1) y los conteos de `public`
+  (27 jugadores, 7 usuarios, 2 escuelas) no cambiaron antes ni después.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

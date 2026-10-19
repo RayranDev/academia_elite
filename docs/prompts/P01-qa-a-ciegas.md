@@ -3,15 +3,13 @@
 > **Cuándo usarlo:** antes de una salida a producción, tras una funcionalidad grande, o
 > cada trimestre. Es la auditoría que encuentra lo que el usuario *vive*, no lo que el
 > código *dice*.
-> **Entrada:** app corriendo en local con base de pruebas · credenciales por rol ·
-> (opcional) un rol o alcance acotado.
+> **Entrada:** (opcional) un rol o alcance acotado. El agente levanta solo su entorno aislado.
 > **Salida:** `docs/auditoria/REPORTE-QA-CIEGO-<AAAA-MM-DD>.md`.
 > **Después:** P02 (triage) por **otra** sesión. Este agente se detiene al entregar.
 > **Política:** `docs/politicas/POLITICA-QA.md`.
 
-**Antes de lanzarlo:** levantar la app en local contra la base de pruebas
-(`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Con `EMAIL_DEV_TO` activo y
-Upstash vacío. Nunca producción.
+**Antes de lanzarlo:** nada que preparar a mano: el agente levanta y apaga su propio entorno aislado
+(`npm run qa:entorno` / `npm run qa:detener`).
 
 ---
 
@@ -27,14 +25,15 @@ como lo haría una persona real, sin saber cómo está construida.
 anteriores. Si necesitas saber cómo se hace algo, la respuesta es que no lo sabes:
 descúbrelo desde la interfaz o regístralo como hallazgo de descubrimiento.
 
-**Datos de la prueba**
-- URL: `http://localhost:<PUERTO>`
-- Credenciales (solo para iniciar sesión):
-  - Súper Admin: `<correo>` / `<clave>`
-  - Administrador de escuela: `<correo>` / `<clave>`
-  - Entrenador: `<correo>` / `<clave>`
-  - Familia: `<correo>` / `<clave>`
-- Alcance: `<todos los roles | solo <rol>>`
+**Entorno (lo preparas tú, sin ayuda de nadie):**
+1. Ejecuta `npm run qa:entorno`. Levanta la aplicación compilada en un puerto propio contra un
+   **schema aparte (`qa`)** de la base, con fotos en disco local, sin correo ni Upstash, y deja la
+   URL y las **cuentas demo** de cada rol en `scratch/qa/entorno.json`. **Nunca toca `public`** (los
+   datos reales). Las cartas ya muestran al **niño de marca**, no avatares.
+2. Lee ese archivo para saber la URL y las cuentas; no necesitas que te las pasen.
+3. Al terminar, o si debes parar, ejecuta `npm run qa:detener`. Si `qa:entorno` dice que ya hay un
+   entorno activo, otra sesión lo está usando: **no lo pises**, detente y repórtalo.
+4. Nunca corras `db:reset` ni `db:seed` contra la base real; las guardias del proyecto lo bloquean.
 
 **Cómo trabajar**
 1. Fase A (exploración), B (misiones del §4 de la política), C (botón por botón) y D

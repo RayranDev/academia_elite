@@ -32,7 +32,7 @@
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | 👤 [Hallazgos de la auditoría QA](#paquete--hallazgos-de-la-auditoría-qa-2026-10-18) | Chico | Datos legales, `.env.example` y los hallazgos menores ya verificados |
 | 👤 [Protección contra tráfico malicioso](#paquete--protección-contra-tráfico-malicioso-lo-que-no-se-hace-desde-el-código) | Config | Spend Management, Firewall, Supabase, Upstash: paneles externos |
-| 👤 [Entorno de pruebas separado de producción](#paquete--entorno-de-pruebas-separado-de-producción--alta) | Chico | Verificar si local y producción comparten base; crear un proyecto Supabase de desarrollo |
+| 👤 [Entorno de pruebas separado de producción](#paquete--entorno-de-pruebas-separado-de-producción-) | Chico | Aislado por schema `qa` y con guardia de borrado; falta un proyecto Supabase aparte |
 | [Calidad: QA a ciegas y manuales por módulo](#paquete--calidad-qa-a-ciegas-y-manuales-por-módulo) | Grande | Ejecutar las políticas `politicas/POLITICA-QA.md` y `politicas/POLITICA-MANUALES.md` por primera vez |
 
 ---
@@ -77,21 +77,24 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 ---
 
-## Paquete — Entorno de pruebas separado de producción 👤 (Alta)
+## Paquete — Entorno de pruebas separado de producción 👤
 
-Indicios de que la base de tu `.env` local es la **misma** que la de producción (un solo proyecto
-Supabase: `DECISIONES.md` #13; las mismas cuentas y personas demo aparecen local y en producción).
-Si es así: `db:reset` / `db:seed` borrarían producción, y toda prueba con escritura (QA, manuales,
-E2E fuera de su schema) ensucia datos reales. Por hacer:
+**Confirmado:** la base del `.env` local es la **misma** que usa producción (se subió el mismo `.env` a
+Vercel: un solo proyecto Supabase, schema `public` con los datos reales). Resuelto en parte
+(TRAZABILIDAD #62):
 
-- **Verificar** (tú, sin copiar contraseñas): comparar servidor y ref de proyecto de `DATABASE_URL` /
-  `DIRECT_URL` de tu `.env` con los de Vercel → Settings → Environment Variables (Production).
-- **Crear un proyecto Supabase aparte** (el plan gratis admite varios) para desarrollo y QA; aplicar
-  `prisma migrate deploy` y el seed ahí; apuntar el `.env` local a él.
-- **Defensa en código** (recomendada): que `db:reset` y el seed se nieguen a correr salvo que una
-  variable explícita (p. ej. `PERMITIR_BORRADO_DE_BASE=1`) esté definida en el `.env` de pruebas, para que
-  un descuido nunca borre la base equivocada.
-- Hasta entonces: **no ejecutar `db:reset`, `db:seed` ni pruebas de escritura** (P01, P04, P07, P10).
+- **Hecho:** `npm run qa:entorno` levanta la app compilada contra un **schema aparte (`qa`)**, con fotos en
+  disco local (`ALMACENAMIENTO_LOCAL_DIR`), sin correo ni Upstash, con las cuentas demo de dos escuelas y
+  el niño de marca en las cartas; `npm run qa:detener` lo apaga. Nunca toca `public`.
+- **Hecho:** `db:reset` y los seeds se **niegan** a correr contra `public` (guardia fail-closed,
+  `scripts/guardia-borrado.mjs`); se desbloquean solo con `PERMITIR_BORRADO_DE_BASE=1` en ese comando.
+- **Riesgo que persiste (tuyo):** el aislamiento es por **schema**, no por servidor: sigue siendo la misma
+  instancia Postgres y el mismo proyecto Supabase que producción. La solución de fondo es un **proyecto
+  Supabase aparte** para desarrollo y QA (el plan gratis admite varios): crearlo, aplicar
+  `prisma migrate deploy`, apuntar el `.env` local a él y dejar en Vercel solo las variables de producción.
+- **Nunca** dejar `PERMITIR_BORRADO_DE_BASE=1` definido en `.env`: anularía la guardia para siempre.
+- La guardia solo mira `?schema=` en la URL: no cubre un `prisma migrate reset` lanzado a mano sin pasar por
+  `npm run db:reset`.
 
 ---
 
@@ -190,15 +193,14 @@ Orden sugerido:
    tuvo que leer el repositorio, así que tampoco fue ciega. Sus hallazgos describen
    código de septiembre y hay que tomarlos como pistas, no como evidencia, hasta
    pasarlos por P02/P06.
-1. **Primera prueba a ciegas** (`POLITICA-QA.md`, prompt **P01** de `docs/prompts/`) con un agente que no lea código ni
+1. **Primera prueba a ciegas** (`POLITICA-QA.md`, prompt **P01** de `docs/prompts/`; desatendida) con un agente que no lea código ni
    docs. Entrega `docs/auditoria/REPORTE-QA-CIEGO-<fecha>.md`; recién después, el
    triage. Cada hallazgo confirmado termina corregido (con test), en este archivo o
    descartado.
 2. **Manuales completos por rol** (`POLITICA-MANUALES.md` v2, prompt **P10**): los cuatro
    roles, **todas** sus pantallas, entregados en **Word y PDF**. La herramienta
    `npm run manuales:cobertura` mide el avance por ruta; `npm run manuales:build` genera
-   los entregables. Orden sugerido: entrenador, familia, administrador de escuela,
-   súper admin. Después **P11** y una prueba de lectura con una persona nueva.
+   los entregables. Orden: **súper admin, administrador de escuela, entrenador, familia**. Después **P11** y una prueba de lectura con una persona nueva.
    `docs/MANUAL-DE-USO.md` pasa a ser un índice cuando cada rol esté completo.
 3. Los manuales generados son **material de capacitación local**: no se versionan (carpeta
    `salida/` ignorada); los de octubre de 2026 anteriores a este proceso quedaron en

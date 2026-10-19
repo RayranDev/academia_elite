@@ -2,13 +2,14 @@
 
 > **Cuándo usarlo:** antes de sumar una escuela real, tras tocar autenticación, roles,
 > `proxy.ts`, archivos o exportaciones.
-> **Entrada:** app en local con **dos escuelas** de prueba y un usuario de cada rol en
-> cada una · credenciales.
+> **Entrada:** ninguna. El agente levanta su entorno aislado y usa las cuentas demo de
+> `scratch/qa/entorno.json` (dos escuelas, un usuario de cada rol en cada una).
 > **Salida:** `docs/auditoria/REPORTE-SEGURIDAD-<AAAA-MM-DD>.md`.
 > **Datos sensibles:** son menores. Cualquier fuga es CRÍTICA.
 
-**Antes de lanzarlo:** base de pruebas con dos escuelas y datos ficticios
-(`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. **Solo `localhost`.**
+**Antes de lanzarlo:** nada que preparar a mano: el agente ejecuta `npm run qa:entorno` (schema `qa`,
+nunca los datos reales) y `npm run qa:detener`. Si el seed solo trae una escuela, crea la segunda desde el
+panel de Súper Admin **dentro de ese entorno**. **Solo `localhost`.**
 
 ---
 
@@ -19,7 +20,7 @@ conseguir, desde la interfaz y con peticiones HTTP, ver o modificar lo que **no 
 corresponde**. Solo contra `http://localhost:<PUERTO>` y con datos ficticios.
 
 No abras `src/`, `prisma/`, `tests/` ni `docs/` durante la prueba. Trabaja con las
-credenciales que te doy:
+cuentas demo de `scratch/qa/entorno.json`:
 - Escuela A: administrador, entrenador, familia · Escuela B: administrador,
   entrenador, familia · Súper Admin.
 

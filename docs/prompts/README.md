@@ -12,8 +12,9 @@
 ## Cómo se usa
 
 1. Abre el agente con la raíz del repositorio como carpeta de trabajo.
-2. Si el prompt lo pide, levanta la app **en local contra la base de pruebas**
-   (`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Nunca producción.
+2. **Nada que levantar a mano:** los prompts de prueba (P01, P04, P07, P10) hacen que el propio agente
+   ejecute `npm run qa:entorno` (schema `qa` aislado, nunca los datos reales) y `npm run qa:detener`. Una
+   sola sesión de estas a la vez.
 3. Copia el **lanzador** de la tabla, completa lo que está entre `<…>` y pégalo.
 4. Cuando el agente termine, lee el resultado **antes** de aceptarlo: pásalo por
    **P06** si trae hallazgos.
@@ -45,9 +46,7 @@ agente sí abre su propio archivo de prompt y la política que cita; nada más.
 
 **P01 — QA a ciegas**
 ```
-Ejecuta el prompt docs/prompts/P01-qa-a-ciegas.md.
-URL: http://localhost:<PUERTO>. Alcance: <todos los roles | solo <rol>>.
-Credenciales — Súper Admin: <correo>/<clave> · Escuela: <correo>/<clave> · Entrenador: <correo>/<clave> · Familia: <correo>/<clave>.
+Ejecuta el prompt docs/prompts/P01-qa-a-ciegas.md. Alcance: <todos los roles | solo <rol>>.
 ```
 
 **P02 — Triage**
@@ -63,15 +62,13 @@ Ejecuta el prompt docs/prompts/P03-qa-por-lectura-de-codigo.md. Fecha para los a
 **P04 — Manual de un módulo**
 ```
 Ejecuta el prompt docs/prompts/P04-manual-por-modulo.md.
-Rol: <rol>. Módulo: <módulo>. URL: http://localhost:<PUERTO>.
-Credenciales — <rol>: <correo>/<clave> · otros roles que necesites: <correo>/<clave>.
+Rol: <rol>. Módulo: <módulo>.
 ```
 
-**P10 — Manual completo de un rol (Word y PDF)**
+**P10 — Manual completo de un rol (Word y PDF)** — desatendido: el agente se levanta su entorno
 ```
 Ejecuta el prompt docs/prompts/P10-manual-completo-de-un-rol.md.
-Rol: <super-admin | escuela | entrenador | jugador>. URL: http://localhost:<PUERTO>.
-Credenciales — <rol>: <correo>/<clave> · otros roles que necesites: <correo>/<clave>.
+Rol: <super-admin | escuela | entrenador | jugador>.
 ```
 
 **P11 — Construir y revisar los manuales**
@@ -93,10 +90,6 @@ Modo: solo-verificar.
 **P07 — Seguridad a ciegas**
 ```
 Ejecuta el prompt docs/prompts/P07-seguridad-multitenant-caja-negra.md.
-URL: http://localhost:<PUERTO>.
-Escuela A — admin: <correo>/<clave>, entrenador: <correo>/<clave>, familia: <correo>/<clave>.
-Escuela B — admin: <correo>/<clave>, entrenador: <correo>/<clave>, familia: <correo>/<clave>.
-Súper Admin: <correo>/<clave>.
 ```
 
 **P08 — Cerrar un pendiente**
@@ -118,7 +111,7 @@ Ejecuta el prompt docs/prompts/P09-preparar-release.md sobre la rama/commit <ref
 |---|---|
 | Auditoría completa antes de una salida | P01 → P02 → P06 (sobre el triage) → P08 por cada pendiente → P09 |
 | Revisar un reporte externo | P06 → decidir → P08 |
-| Manual completo de un rol | **P10** (un rol por corrida) → P11 → prueba de lectura con una persona nueva → P01 sobre ese rol para contrastar |
+| Manual completo de un rol | **P10** (un rol por corrida; orden: super-admin, escuela, entrenador, jugador) → P11 → prueba de lectura con una persona nueva → P01 sobre ese rol para contrastar |
 | Un módulo cambió de pantalla | P04 sobre ese módulo → P11 |
 | Entregar manuales a una escuela o capacitación | P11 (veredicto) → enviar los .docx/.pdf de `docs/manuales/salida/` |
 | Sumar una escuela real | P07 → P09 |

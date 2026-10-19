@@ -3,13 +3,13 @@
 > **Cuándo usarlo:** para escribir o **reverificar** la ficha de **un** módulo suelto
 > (por ejemplo, tras un cambio de interfaz). Para el manual completo de un rol usa
 > **P10**, que recorre todo el menú y arma el Word y el PDF.
-> **Entrada:** app en local con base de pruebas · credenciales · `<ROL>` y `<MODULO>`.
+> **Entrada:** `<ROL>` y `<MODULO>`. El agente levanta solo su entorno aislado.
 > **Salida:** `docs/manuales/fuentes/<rol>/<modulo>.md` (con su cabecera `rol`, `modulo`,
 > `orden`, `rutas`) y capturas en `docs/manuales/img/<rol>/<modulo>/`.
 > **Política:** `docs/politicas/POLITICA-MANUALES.md` (v2).
 
-**Antes de lanzarlo:** app en local contra la base de pruebas
-(`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Nunca producción.
+**Antes de lanzarlo:** nada que preparar a mano: el agente levanta y apaga su propio entorno aislado
+(`npm run qa:entorno` / `npm run qa:detener`).
 
 ---
 
@@ -24,10 +24,15 @@ sus dos capas (§4), pruebas (§5), privacidad de las capturas (§6), estilo (§
 definición de terminado (§10). Puedes consultar el código y `docs/` para entender *por
 qué* algo funciona así, pero **lo que escribes lo has visto ocurrir**.
 
-**Datos de la prueba**
-- URL: `http://localhost:<PUERTO>`
-- Credenciales: `<ROL>`: `<correo>` / `<clave>` · otros roles para comprobar efectos:
-  `<correo>` / `<clave>`.
+**Entorno (lo preparas tú, sin ayuda de nadie):**
+1. Ejecuta `npm run qa:entorno`. Levanta la aplicación compilada en un puerto propio contra un
+   **schema aparte (`qa`)** de la base, con fotos en disco local, sin correo ni Upstash, y deja la
+   URL y las **cuentas demo** de cada rol en `scratch/qa/entorno.json`. **Nunca toca `public`** (los
+   datos reales). Las cartas ya muestran al **niño de marca**, no avatares.
+2. Lee ese archivo para saber la URL y las cuentas; no necesitas que te las pasen.
+3. Al terminar, o si debes parar, ejecuta `npm run qa:detener`. Si `qa:entorno` dice que ya hay un
+   entorno activo, otra sesión lo está usando: **no lo pises**, detente y repórtalo.
+4. Nunca corras `db:reset` ni `db:seed` contra la base real; las guardias del proyecto lo bloquean.
 
 **Procedimiento**
 1. Prepara el contexto mínimo del módulo y documenta qué datos hacen falta.

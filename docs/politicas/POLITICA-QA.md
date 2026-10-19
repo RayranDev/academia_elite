@@ -44,14 +44,15 @@ diseño, no como error.
 
 - **Nunca producción.** Instancia local (`npm run dev`) contra una base de datos **exclusiva
   de pruebas**.
-- **Antes de resetear o sembrar (obligatorio).** `npm run db:reset` y `npm run db:seed` **borran
-  todas las tablas** de la base a la que apunte `.env`. Comprueba primero que esa base NO es la de
-  producción: compara el servidor y el identificador del proyecto de `DATABASE_URL` / `DIRECT_URL`
-  de tu `.env` (la parte `…@host:puerto/…` y el `postgres.<ref>` del usuario, **sin copiar la
-  contraseña a ningún lado**) con los de las variables de producción en Vercel. **Si coinciden, es
-  la misma base: no resetees, no siembres, y recuerda que cualquier prueba que cree, edite o borre
-  datos (logros, evaluaciones, pagos…) está escribiendo en producción.** La solución es un proyecto
-  Supabase aparte para desarrollo y QA.
+- **Entorno aislado y desatendido.** `npm run qa:entorno` levanta la aplicación compilada contra un
+  **schema aparte (`qa`)** dentro de la base, con las fotos en disco local, sin correo ni Upstash y con
+  cuentas demo por rol (quedan en `scratch/qa/entorno.json`); `npm run qa:detener` lo apaga. **Nunca
+  toca el schema `public`**, donde están los datos reales. Una sola instancia a la vez.
+- **Por qué hace falta.** La base del `.env` local es la **misma** que usa producción (el mismo proyecto
+  Supabase, subido a Vercel). Por eso `npm run db:reset` y `npm run db:seed` —que borran todas las
+  tablas del schema al que apunten— se niegan a correr contra `public` salvo que se desbloqueen
+  conscientemente (`PERMITIR_BORRADO_DE_BASE=1`). Cualquier prueba que escriba datos (logros,
+  evaluaciones, pagos, fotos) debe hacerse en el entorno aislado, nunca contra `public`.
 - **Sin efectos externos.** Correos desviados a `EMAIL_DEV_TO` o desactivados;
   Upstash vacío en local; ningún pago, WhatsApp ni servicio de terceros real.
 - **Datos ficticios.** Nunca datos reales de menores. Fotos: solo avatares o
