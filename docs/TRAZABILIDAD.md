@@ -2320,6 +2320,9 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   con `onSubmit`).
 - `ipCliente` acepta `IP_CLIENTE_HEADER` para el VPS detrás de Cloudflare; sin
   la env no cambia nada.
+- `robots.txt` (`src/app/robots.ts`): bloquea API, paneles con sesión y pantallas
+  de acceso; deja `/e/` abierto para que se vea su `noindex`. Excluido del
+  matcher del proxy (antes recibía CSP y cookies de auth).
 - Decisión: `/e/[slug]` se deja `force-dynamic` (cachearla cambia una regla de
   producto y no frena slugs al azar). Las capas externas (Firewall de Vercel,
   Spend Management) quedan en `PENDIENTES.md`.

@@ -134,12 +134,13 @@ export default auth(async (req) => {
 
 // El proxy corre en TODAS las rutas de documento para poder emitir la CSP en un
 // único lugar. Se excluyen /api (respuestas no-HTML con sus propias cabeceras),
-// los estáticos de Next, el optimizador de imágenes, el favicon y /imgly (chunks
+// los estáticos de Next, el optimizador de imágenes, el favicon, robots.txt y sitemap.xml
+// (texto para rastreadores: no necesita CSP, sesión ni contar contra el rate limit) y /imgly (chunks
 // del modelo de remoción de fondo: no necesitan CSP ni el costo de decodificar el JWT).
 export const config = {
   matcher: [
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico|imgly).*)",
+      source: "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|imgly).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

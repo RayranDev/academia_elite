@@ -72,6 +72,9 @@ acceso ambiental que se cerraron el 2026-07-31:
      pooler de Supabase activo. `/e/[slug]` es `force-dynamic` a propósito (la
      desactivación de una escuela debe verse al instante) y por eso depende de
      las capas 1 y 2.
+  - **`robots.txt`** (`src/app/robots.ts`): higiene, no defensa. Saca de los
+    buscadores las áreas con sesión y la API para no gastar pedidos; `/e/` no se
+    bloquea para que lean el `noindex` de cada landing. Está excluido del proxy.
   - **VPS futuro**: Cloudflare adelante + firewall del servidor que acepte solo
     sus IPs + `IP_CLIENTE_HEADER=cf-connecting-ip` (ver `ipCliente`; toma el primer valor y
     exige forma de IP). Sin esa
