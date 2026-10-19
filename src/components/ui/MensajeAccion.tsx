@@ -16,13 +16,21 @@ export function MensajeAccion({
   exito,
   error,
   className,
+  reservarAltura = true,
 }: {
   exito?: string | null;
   error?: string | null;
   className?: string;
+  /** `false` en listas densas, donde reservar una línea por fila sería ruido:
+   *  el mensaje empuja el contenido al aparecer, pero la región viva sigue
+   *  siempre en el DOM. */
+  reservarAltura?: boolean;
 }) {
   return (
-    <div aria-live="polite" className={cn("min-h-6 text-sm", className)}>
+    <div
+      aria-live="polite"
+      className={cn("text-sm", reservarAltura && "min-h-6", className)}
+    >
       {error ? (
         <p role="alert" className="flex items-start gap-1.5 font-semibold text-alerta">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />

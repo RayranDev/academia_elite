@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
+import { RespuestaConvocatoria } from "@/components/eventos/RespuestaConvocatoria";
 import { TEXTO_TIPO, ETIQUETA_TIPO, ICONO_TIPO } from "@/components/calendar/tipos";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 import type { TipoEvento } from "@/types";
@@ -62,41 +61,14 @@ export function UpcomingList({
               {e.canchaNombre ? ` · ${e.canchaNombre}` : ""}
             </p>
 
-            {/* Respondida: se muestra el estado + un botón para CAMBIARLO a la
-                opción opuesta. Mismo criterio que `ProximoPartidoTile`. */}
             {e.convocado && (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                {e.confirmacion === "CONFIRMADO" ? (
-                  <>
-                    <Badge tono="pitch">Asistencia confirmada</Badge>
-                    <CambiarRespuesta eventoId={e.id} jugadorId={jugadorId} a="RECHAZADO" texto="Cambiar: no asistiré" />
-                  </>
-                ) : e.confirmacion === "RECHAZADO" ? (
-                  <>
-                    <Badge tono="alerta">No asistirá</Badge>
-                    <CambiarRespuesta eventoId={e.id} jugadorId={jugadorId} a="CONFIRMADO" texto="Cambiar: confirmar" />
-                  </>
-                ) : (
-                  <>
-                    <Badge tono="oro">Confirmación pendiente</Badge>
-                    <form action={confirmarConvocatoriaAction}>
-                      <input type="hidden" name="eventoId" value={e.id} />
-                      <input type="hidden" name="jugadorId" value={jugadorId} />
-                      <input type="hidden" name="confirmacion" value="CONFIRMADO" />
-                      <button className="rounded bg-pitch px-2 py-1 text-xs font-semibold text-base">
-                        Confirmar
-                      </button>
-                    </form>
-                    <form action={confirmarConvocatoriaAction}>
-                      <input type="hidden" name="eventoId" value={e.id} />
-                      <input type="hidden" name="jugadorId" value={jugadorId} />
-                      <input type="hidden" name="confirmacion" value="RECHAZADO" />
-                      <button className="rounded border border-subtle px-2 py-1 text-xs text-muted hover:text-foreground">
-                        No asistirá
-                      </button>
-                    </form>
-                  </>
-                )}
+              <div className="mt-2">
+                <RespuestaConvocatoria
+                  eventoId={e.id}
+                  jugadorId={jugadorId}
+                  confirmacion={e.confirmacion}
+                  variante="compacta"
+                />
               </div>
             )}
           </li>

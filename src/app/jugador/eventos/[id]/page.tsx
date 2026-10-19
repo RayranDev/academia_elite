@@ -2,12 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuthContext } from "@/lib/auth/session";
 import { obtenerDetalleEventoJugador } from "@/services/evento.service";
-import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { DomainError } from "@/lib/errors";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
+import { RespuestaConvocatoria } from "@/components/eventos/RespuestaConvocatoria";
 import { ETIQUETA_TIPO, ICONO_TIPO, TEXTO_TIPO } from "@/components/calendar/tipos";
 import type { TipoEvento } from "@/types";
 
@@ -77,48 +75,11 @@ export default async function EventoJugadorPage({
           </h2>
 
           {!ev.cancelado && (
-            <div className="flex items-center gap-2">
-              {h.confirmacion === "CONFIRMADO" ? (
-                <>
-                  <Badge tono="pitch">Asistencia confirmada</Badge>
-                  <CambiarRespuesta
-                    eventoId={ev.id}
-                    jugadorId={h.jugadorId}
-                    a="RECHAZADO"
-                    texto="Cambiar: no asistiré"
-                  />
-                </>
-              ) : h.confirmacion === "RECHAZADO" ? (
-                <>
-                  <Badge tono="alerta">No asistirá</Badge>
-                  <CambiarRespuesta
-                    eventoId={ev.id}
-                    jugadorId={h.jugadorId}
-                    a="CONFIRMADO"
-                    texto="Cambiar: confirmar asistencia"
-                  />
-                </>
-              ) : (
-                <>
-                  <form action={confirmarConvocatoriaAction}>
-                    <input type="hidden" name="eventoId" value={ev.id} />
-                    <input type="hidden" name="jugadorId" value={h.jugadorId} />
-                    <input type="hidden" name="confirmacion" value="CONFIRMADO" />
-                    <button className="rounded-lg bg-pitch px-4 py-2 text-sm font-semibold text-base">
-                      Confirmar asistencia
-                    </button>
-                  </form>
-                  <form action={confirmarConvocatoriaAction}>
-                    <input type="hidden" name="eventoId" value={ev.id} />
-                    <input type="hidden" name="jugadorId" value={h.jugadorId} />
-                    <input type="hidden" name="confirmacion" value="RECHAZADO" />
-                    <button className="rounded-lg border border-subtle px-4 py-2 text-sm text-muted hover:text-foreground">
-                      No asistirá
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
+            <RespuestaConvocatoria
+              eventoId={ev.id}
+              jugadorId={h.jugadorId}
+              confirmacion={h.confirmacion}
+            />
           )}
 
           {h.estadistica && (

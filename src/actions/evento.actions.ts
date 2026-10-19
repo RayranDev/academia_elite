@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
+import type { Confirmacion } from "@/types";
 import {
   eventoSchema,
   confirmarConvocatoriaSchema,
@@ -61,25 +62,37 @@ export async function crearEventoAction(
   }
 }
 
+/**
+ * Respuesta de la familia a una convocatoria. Se invoca IMPERATIVAMENTE desde
+ * `RespuestaConvocatoria` (useEnvioAccion), así que devuelve la confirmación
+ * guardada para que el componente la confirme en pantalla; un error (evento
+ * cancelado, convocatoria ajena) se muestra junto al botón en vez de caer al
+ * error.tsx del segmento.
+ */
 export async function confirmarConvocatoriaAction(
   formData: FormData,
-): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = confirmarConvocatoriaSchema.safeParse({
-    eventoId: formData.get("eventoId"),
-    jugadorId: formData.get("jugadorId"),
-    confirmacion: formData.get("confirmacion"),
-  });
-  if (!parsed.success) throw new ValidationError("Datos inválidos.");
-  await confirmarConvocatoria(
-    ctx,
-    parsed.data.eventoId,
-    parsed.data.jugadorId,
-    parsed.data.confirmacion,
-  );
-  revalidatePath("/jugador");
-  revalidatePath("/jugador/calendario");
-  revalidatePath(`/jugador/eventos/${parsed.data.eventoId}`);
+): Promise<ActionResult<{ confirmacion: Confirmacion }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = confirmarConvocatoriaSchema.safeParse({
+      eventoId: formData.get("eventoId"),
+      jugadorId: formData.get("jugadorId"),
+      confirmacion: formData.get("confirmacion"),
+    });
+    if (!parsed.success) throw new ValidationError("Datos inválidos.");
+    await confirmarConvocatoria(
+      ctx,
+      parsed.data.eventoId,
+      parsed.data.jugadorId,
+      parsed.data.confirmacion,
+    );
+    revalidatePath("/jugador");
+    revalidatePath("/jugador/calendario");
+    revalidatePath(`/jugador/eventos/${parsed.data.eventoId}`);
+    return { ok: true, data: { confirmacion: parsed.data.confirmacion } };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 /**

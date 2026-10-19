@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { invalidarLandingsPublicas } from "@/lib/landing-cache";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
@@ -30,18 +31,28 @@ function primerError(issues: { message: string }[]): string {
   return issues[0]?.message ?? "Datos inválidos.";
 }
 
+// Las cuatro acciones de configuración de la escuela que siguen (branding,
+// sede, cancha, desactivar código) se invocan IMPERATIVAMENTE desde el cliente
+// (useEnvioAccion): devuelven ActionResult para que el formulario confirme el
+// resultado o muestre el motivo del error junto al botón.
 export async function actualizarBrandingAction(
   formData: FormData,
-): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = brandingSchema.safeParse({
-    nombre: formData.get("nombre"),
-    colorPrimario: formData.get("colorPrimario"),
-    frecuenciaEvaluacionDias: formData.get("frecuenciaEvaluacionDias"),
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await actualizarBranding(ctx, parsed.data);
-  revalidatePath("/escuela", "layout");
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = brandingSchema.safeParse({
+      nombre: formData.get("nombre"),
+      colorPrimario: formData.get("colorPrimario"),
+      frecuenciaEvaluacionDias: formData.get("frecuenciaEvaluacionDias"),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await actualizarBranding(ctx, parsed.data);
+    revalidatePath("/escuela", "layout");
+    invalidarLandingsPublicas();
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function subirEscudoAction(
@@ -61,6 +72,7 @@ export async function subirEscudoAction(
     await subirEscudo(ctx, buf);
     revalidatePath("/escuela", "layout");
     revalidatePath("/escuela/branding");
+    invalidarLandingsPublicas();
     return { ok: true };
   } catch (e) {
     return mapError(e);
@@ -82,35 +94,52 @@ export async function crearCategoriaAction(
     if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
     await crearCategoriaEscuela(ctx, parsed.data);
     revalidatePath("/escuela/categorias");
+    invalidarLandingsPublicas();
     return { ok: true };
   } catch (e) {
     return mapError(e);
   }
 }
 
-export async function crearSedeAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = sedeSchema.safeParse({
-    nombre: formData.get("nombre"),
-    direccion: formData.get("direccion"),
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await crearSedeEscuela(ctx, {
-    nombre: parsed.data.nombre,
-    direccion: parsed.data.direccion || undefined,
-  });
-  revalidatePath("/escuela/sedes");
+export async function crearSedeAction(
+  formData: FormData,
+): Promise<ActionResult<{ nombre: string }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = sedeSchema.safeParse({
+      nombre: formData.get("nombre"),
+      direccion: formData.get("direccion"),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await crearSedeEscuela(ctx, {
+      nombre: parsed.data.nombre,
+      direccion: parsed.data.direccion || undefined,
+    });
+    revalidatePath("/escuela/sedes");
+    invalidarLandingsPublicas();
+    return { ok: true, data: { nombre: parsed.data.nombre } };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
-export async function crearCanchaAction(formData: FormData): Promise<void> {
-  const ctx = await requireAuthContext();
-  const parsed = canchaSchema.safeParse({
-    sedeId: formData.get("sedeId"),
-    nombre: formData.get("nombre"),
-  });
-  if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
-  await crearCanchaEscuela(ctx, parsed.data.sedeId, parsed.data.nombre);
-  revalidatePath("/escuela/sedes");
+export async function crearCanchaAction(
+  formData: FormData,
+): Promise<ActionResult<{ nombre: string }>> {
+  try {
+    const ctx = await requireAuthContext();
+    const parsed = canchaSchema.safeParse({
+      sedeId: formData.get("sedeId"),
+      nombre: formData.get("nombre"),
+    });
+    if (!parsed.success) throw new ValidationError(primerError(parsed.error.issues));
+    await crearCanchaEscuela(ctx, parsed.data.sedeId, parsed.data.nombre);
+    revalidatePath("/escuela/sedes");
+    invalidarLandingsPublicas();
+    return { ok: true, data: { nombre: parsed.data.nombre } };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 export async function crearDtAction(
@@ -162,12 +191,17 @@ export async function crearCodigoAction(
 
 export async function desactivarCodigoAction(
   formData: FormData,
-): Promise<void> {
-  const ctx = await requireAuthContext();
-  const id = formData.get("id");
-  if (typeof id !== "string" || !id) throw new ValidationError("Código inválido.");
-  await desactivarCodigoEscuela(ctx, id);
-  revalidatePath("/escuela/codigos");
+): Promise<ActionResult> {
+  try {
+    const ctx = await requireAuthContext();
+    const id = formData.get("id");
+    if (typeof id !== "string" || !id) throw new ValidationError("Código inválido.");
+    await desactivarCodigoEscuela(ctx, id);
+    revalidatePath("/escuela/codigos");
+    return { ok: true };
+  } catch (e) {
+    return mapError(e);
+  }
 }
 
 /** Envía un código de invitación al correo de una familia (ESCUELA_ADMIN). */

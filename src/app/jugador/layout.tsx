@@ -3,19 +3,7 @@ import { requirePanelUser, requireAuthContext } from "@/lib/auth/session";
 import { obtenerBrandingTenant } from "@/services/escuela.service";
 import { PanelShell } from "@/components/PanelShell";
 import { AvisoVerificarEmail } from "@/components/auth/AvisoVerificarEmail";
-import type { NavItem } from "@/components/shell/Sidebar";
-
-const NAV: NavItem[] = [
-  { href: "/jugador", label: "Inicio", icon: "inicio" },
-  { href: "/jugador/calendario", label: "Calendario", icon: "calendario" },
-  { href: "/jugador/pagos", label: "Pagos", icon: "pagos" },
-  { href: "/jugador/mensajes", label: "Mensajes", icon: "mensajes" },
-  { href: "/jugador/logros", label: "Logros", icon: "logros" },
-  { href: "/jugador/fondos", label: "Fondos", icon: "fondos" },
-  { href: "/jugador/progreso", label: "Progreso", icon: "progreso" },
-  { href: "/jugador/perfil", label: "Perfil", icon: "perfil" },
-  { href: "/jugador/cuenta", label: "Mi cuenta", icon: "cuenta" },
-];
+import { navJugador } from "@/lib/nav/jugador";
 
 export default async function JugadorLayout({
   children,
@@ -27,19 +15,15 @@ export default async function JugadorLayout({
   // /jugador/mensajes — las demás páginas siguen bloqueándose solas con su
   // propio requireAuthContext() sin el flag (ver AGENTS.md, PENDIENTES).
   const user = await requirePanelUser("JUGADOR", { permitirBloqueado: true });
+
   const ctx = await requireAuthContext({ permitirBloqueado: true });
   const branding = await obtenerBrandingTenant(ctx);
   const brandStyle = { ["--brand"]: branding.colorPrimario } as CSSProperties;
   const escudoUrl = branding.tieneEscudo
     ? `/api/archivos/escudo/${branding.escuelaId}`
     : null;
-  // Bloqueado: solo "Mensajes" y "Pagos" quedan en el nav — el resto rebota a
-  // /bloqueado. Pagos se deja a propósito: si el bloqueo es por mora, es la
-  // única pantalla que le sirve a la familia para salir de ahí (ver el estado
-  // de cuenta y reportar lo que ya pagó).
-  const nav = user.bloqueado
-    ? NAV.filter((n) => n.href === "/jugador/mensajes" || n.href === "/jugador/pagos")
-    : NAV;
+  // Bloqueado: el menú se reduce a Mensajes y Pagos (ver `navJugador`).
+  const nav = navJugador(user.bloqueado);
 
   return (
     <div style={brandStyle}>

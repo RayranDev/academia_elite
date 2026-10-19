@@ -1,9 +1,7 @@
 import { Trophy, MapPin } from "lucide-react";
-import { confirmarConvocatoriaAction } from "@/actions/evento.actions";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
 import { FechaLocal } from "@/components/ui/FechaLocal";
-import { CambiarRespuesta } from "@/components/eventos/CambiarRespuesta";
+import { RespuestaConvocatoria } from "@/components/eventos/RespuestaConvocatoria";
 import type { ProximoEventoDTO } from "@/services/evento.service";
 
 export function ProximoPartidoTile({
@@ -37,50 +35,14 @@ export function ProximoPartidoTile({
       )}
 
       {evento.convocado && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          {/* Ya respondida: se muestra el estado + un botón para CAMBIAR a la
-              opción opuesta. Así queda claro qué se registró y, a la vez, se puede
-              rectificar (antes quedaba fijo para siempre). */}
-          {evento.confirmacion === "CONFIRMADO" ? (
-            <>
-              <Badge tono="pitch">Asistencia confirmada</Badge>
-              <CambiarRespuesta
-                eventoId={evento.id}
-                jugadorId={jugadorId}
-                a="RECHAZADO"
-                texto="Cambiar: no asistiré"
-              />
-            </>
-          ) : evento.confirmacion === "RECHAZADO" ? (
-            <>
-              <Badge tono="alerta">No asistirá</Badge>
-              <CambiarRespuesta
-                eventoId={evento.id}
-                jugadorId={jugadorId}
-                a="CONFIRMADO"
-                texto="Cambiar: confirmar asistencia"
-              />
-            </>
-          ) : (
-            <>
-              <form action={confirmarConvocatoriaAction}>
-                <input type="hidden" name="eventoId" value={evento.id} />
-                <input type="hidden" name="jugadorId" value={jugadorId} />
-                <input type="hidden" name="confirmacion" value="CONFIRMADO" />
-                <button className="rounded-lg bg-pitch px-4 py-2 text-sm font-semibold text-base">
-                  Confirmar asistencia
-                </button>
-              </form>
-              <form action={confirmarConvocatoriaAction}>
-                <input type="hidden" name="eventoId" value={evento.id} />
-                <input type="hidden" name="jugadorId" value={jugadorId} />
-                <input type="hidden" name="confirmacion" value="RECHAZADO" />
-                <button className="rounded-lg border border-subtle px-4 py-2 text-sm text-muted hover:text-foreground">
-                  No asistirá
-                </button>
-              </form>
-            </>
-          )}
+        <div className="mt-4">
+          {/* Estado + botones para responder o rectificar, con feedback visible
+              (carga, éxito, error). */}
+          <RespuestaConvocatoria
+            eventoId={evento.id}
+            jugadorId={jugadorId}
+            confirmacion={evento.confirmacion}
+          />
         </div>
       )}
     </Card>

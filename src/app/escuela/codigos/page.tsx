@@ -1,7 +1,7 @@
 import { requireAuthContext } from "@/lib/auth/session";
 import { listarCodigosEscuela } from "@/services/codigo.service";
 import { listarCategoriasEscuela } from "@/services/categoria.service";
-import { desactivarCodigoAction } from "@/actions/escuela.actions";
+import { DesactivarCodigoButton } from "@/components/escuela/DesactivarCodigoButton";
 import { CrearCodigoDialog } from "@/components/escuela/CrearCodigoDialog";
 import { EnviarCodigoForm } from "@/components/escuela/EnviarCodigoForm";
 import { Card } from "@/components/ui/Card";
@@ -56,15 +56,7 @@ export default async function CodigosPage() {
               </p>
               {c.vigente && <EnviarCodigoForm codigoId={c.id} />}
               {c.activo && (
-                <form action={desactivarCodigoAction} className="mt-3">
-                  <input type="hidden" name="id" value={c.id} />
-                  <button
-                    type="submit"
-                    className="text-xs text-alerta hover:underline"
-                  >
-                    Desactivar
-                  </button>
-                </form>
+                <DesactivarCodigoButton codigoId={c.id} codigo={c.codigo} />
               )}
             </Card>
           ))}
