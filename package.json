@@ -19,7 +19,13 @@
     "db:reset": "prisma migrate reset --force",
     "copy:imgly": "node scripts/copy-imgly-assets.mjs",
     "prebuild": "node scripts/copy-imgly-assets.mjs",
-    "postinstall": "prisma generate && node scripts/copy-imgly-assets.mjs"
+    "postinstall": "prisma generate && node scripts/copy-imgly-assets.mjs",
+    "manuales:inventario": "node scripts/manuales/inventario.mjs",
+    "manuales:cobertura": "node scripts/manuales/cobertura.mjs",
+    "manuales:indice": "node scripts/manuales/indice.mjs",
+    "manuales:optimizar": "node scripts/manuales/optimizar-imagenes.mjs",
+    "manuales:build": "node scripts/manuales/build.mjs",
+    "manuales:word": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/manuales/word-actualizar.ps1"
   },
   "dependencies": {
     "@dicebear/core": "^10.2.0",
@@ -65,9 +71,11 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "docx": "^9.8.1",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "marked": "^18.0.14",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5",
