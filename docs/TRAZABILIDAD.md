@@ -2400,6 +2400,9 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   más. Falla cerrada si no puede interpretar la URL.
 - Se corrigió `seed-demo-evolucion.run.ts`, que ignoraba `?schema=` y escribía en `public` aunque la URL
   dijera `qa` o `e2e`.
+- `manuales:build` guarda el manual anterior en `salida/<rol>/anteriores/` (últimas 5 copias por
+  archivo) antes de sobrescribirlo. Los manuales de octubre (`salida/previos-2026-10-18/`) no los toca
+  ningún script.
 - Verificado por el orquestador: el candado bloquea con el `.env` real (exit 1) y los conteos de `public`
   (27 jugadores, 7 usuarios, 2 escuelas) no cambiaron antes ni después.
 

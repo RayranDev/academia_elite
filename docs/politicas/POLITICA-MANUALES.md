@@ -209,6 +209,10 @@ scratch/                         # trabajo descartable, ignorado por git
 | `npm run manuales:build` | Construye el Word y el PDF de cada rol y escribe el informe. `--estricto` falla por cobertura incompleta, imágenes faltantes **o fugas técnicas**. |
 | `npm run manuales:word` | Solo Windows con Microsoft Word: calcula los números de página del índice del .docx, lo guarda y exporta un `*_word.pdf`. Se corre **antes de entregar el Word**. |
 
+- **Versiones anteriores.** Regenerar un manual sobrescribe `Manual_<Rol>.docx` y `.pdf`, pero antes de
+  hacerlo el generador guarda el anterior en `salida/<rol>/anteriores/` con fecha y hora (las últimas 5
+  copias de cada archivo). Así una versión que gustó, o un Word retocado a mano, no se pierde por volver a
+  correr el generador. Las fuentes (`fuentes/`) son la verdad y están en git.
 - **El índice del Word y su aviso.** Si el .docx pide "actualizar campos" al abrirse
   (la opción `updateFields` o un campo marcado `dirty`), Word muestra al usuario un
   cuadro de advertencia y, abierto de forma automática, se cuelga. Por eso el generador no

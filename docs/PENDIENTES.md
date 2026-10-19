@@ -80,7 +80,9 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 ## Paquete — Entorno de pruebas separado de producción 👤
 
 **Confirmado:** la base del `.env` local es la **misma** que usa producción (se subió el mismo `.env` a
-Vercel: un solo proyecto Supabase, schema `public` con los datos reales). Resuelto en parte
+Vercel: un solo proyecto Supabase, schema `public`). Hoy son **solo datos de prueba**: producción no
+salió al público y no hay datos reales de menores, así que el riesgo actual es bajo. **Separar las bases
+es requisito antes del lanzamiento público**, cuando esos datos pasen a ser reales. Resuelto en parte
 (TRAZABILIDAD #62):
 
 - **Hecho:** `npm run qa:entorno` levanta la app compilada contra un **schema aparte (`qa`)**, con fotos en
@@ -88,7 +90,7 @@ Vercel: un solo proyecto Supabase, schema `public` con los datos reales). Resuel
   el niño de marca en las cartas; `npm run qa:detener` lo apaga. Nunca toca `public`.
 - **Hecho:** `db:reset` y los seeds se **niegan** a correr contra `public` (guardia fail-closed,
   `scripts/guardia-borrado.mjs`); se desbloquean solo con `PERMITIR_BORRADO_DE_BASE=1` en ese comando.
-- **Riesgo que persiste (tuyo):** el aislamiento es por **schema**, no por servidor: sigue siendo la misma
+- **Riesgo que persiste (tuyo, antes de salir al público):** el aislamiento es por **schema**, no por servidor: sigue siendo la misma
   instancia Postgres y el mismo proyecto Supabase que producción. La solución de fondo es un **proyecto
   Supabase aparte** para desarrollo y QA (el plan gratis admite varios): crearlo, aplicar
   `prisma migrate deploy`, apuntar el `.env` local a él y dejar en Vercel solo las variables de producción.
@@ -219,6 +221,7 @@ desde el código. Orden sugerido:
       aceptación del primer ingreso (HABEAS-DATA.md).
 - [ ] **Vercel a Pro** (Hobby es no comercial) y configurar **Spend Management**.
 - [ ] **Firewall de Vercel**: la regla de rate limit descrita arriba.
+- [ ] **Proyecto Supabase aparte para desarrollo y QA** (hoy comparten proyecto con producción).
 - [ ] **Supabase**: confirmar pooler 6543; plan Pro y evaluar PITR (hoy Free: sin
       backups automáticos).
 - [ ] **Upstash**: variables en Production y presupuesto mensual si se pasa a pago.

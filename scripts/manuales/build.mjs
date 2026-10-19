@@ -4,6 +4,8 @@
 //   docs/manuales/salida/<rol>/Manual_<NombreRol>.docx
 //   docs/manuales/salida/<rol>/Manual_<NombreRol>.pdf
 // y escribe docs/manuales/salida/_informe-construccion.md.
+// Si ya existe un manual de ese rol, el anterior se guarda en salida/<rol>/anteriores/ con fecha y hora
+// (las últimas 5 copias por archivo) antes de sobrescribirlo.
 // Paso opcional posterior (Windows con Word): `npm run manuales:word` deja el índice del .docx con sus
 // números de página y exporta el PDF de Word (*_word.pdf).
 //
@@ -24,6 +26,7 @@ import { problemasDeFugas, problemasDeImagenes } from "./lib/estricto.mjs";
 import { introduccionMarkdown } from "./lib/introduccion.mjs";
 import { renderizarManualDocx } from "./lib/render-docx.mjs";
 import { renderizarManualHtml } from "./lib/render-html.mjs";
+import { respaldarAnterior } from "./lib/respaldo.mjs";
 
 /**
  * @param {string[]} argv
@@ -150,6 +153,7 @@ export async function construir(argv = process.argv.slice(2)) {
 
       if (opciones.solo !== "pdf") {
         const buffer = await renderizarManualDocx(datos);
+        respaldarAnterior(`${base}.docx`);
         fs.writeFileSync(`${base}.docx`, buffer);
         salida.docx = buffer.length;
         console.log(`    Word: ${relativa(`${base}.docx`)} (${formatoMB(buffer.length)})`);
@@ -159,6 +163,7 @@ export async function construir(argv = process.argv.slice(2)) {
         const html = renderizarManualHtml(datos);
         fs.writeFileSync(path.join(carpeta, "_manual.html"), html, "utf8");
         const pdf = await generarPdf(navegador, html);
+        respaldarAnterior(`${base}.pdf`);
         fs.writeFileSync(`${base}.pdf`, pdf);
         salida.pdf = pdf.length;
         salida.paginas = contarPaginasPdf(pdf);
