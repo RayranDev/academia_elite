@@ -1,5 +1,13 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  borrarDeDisco,
+  contentTypeDe,
+  directorioLocalDesdeEnv,
+  guardarEnDisco,
+  leerDeDisco,
+  nombreValido,
+} from "@/lib/foto/almacenamiento-local";
 
 /**
  * Almacenamiento de archivos subidos (fotos de jugadores y escudos) en
@@ -34,18 +42,21 @@ function storage() {
   return cliente.storage.from(BUCKET);
 }
 
-/** Evita path traversal: solo nombres de archivo simples (UUID.ext). */
-function nombreValido(nombre: string): boolean {
-  return !(nombre.includes("/") || nombre.includes("\\") || nombre.includes(".."));
-}
-
-function contentTypeDe(nombre: string): string {
-  return nombre.endsWith(".png") ? "image/png" : "image/webp";
-}
-
+/**
+ * Modo local (solo entornos de prueba aislados): si `ALMACENAMIENTO_LOCAL_DIR`
+ * existe, los archivos van a ese directorio del disco EN LUGAR de Supabase, para
+ * que probar subidas nunca escriba en el bucket real. Se resuelve en cada
+ * llamada (no se cachea) y lanza si convive con `SUPABASE_URL`. Ver
+ * `@/lib/foto/almacenamiento-local`.
+ */
 export async function guardarFoto(nombre: string, buf: Buffer): Promise<void> {
   if (!nombreValido(nombre)) {
     throw new Error("Nombre de archivo inválido.");
+  }
+  const dirLocal = directorioLocalDesdeEnv(process.env);
+  if (dirLocal) {
+    await guardarEnDisco(dirLocal, nombre, buf);
+    return;
   }
   const { error } = await storage().upload(nombre, buf, {
     contentType: contentTypeDe(nombre),
@@ -58,6 +69,8 @@ export async function guardarFoto(nombre: string, buf: Buffer): Promise<void> {
 
 export async function leerFoto(nombre: string): Promise<Buffer | null> {
   if (!nombreValido(nombre)) return null;
+  const dirLocal = directorioLocalDesdeEnv(process.env);
+  if (dirLocal) return leerDeDisco(dirLocal, nombre);
   const { data, error } = await storage().download(nombre);
   if (error || !data) return null;
   return Buffer.from(await data.arrayBuffer());
@@ -70,6 +83,11 @@ export async function leerFoto(nombre: string): Promise<Buffer | null> {
 export async function borrarFoto(nombre: string | null | undefined): Promise<void> {
   if (!nombre || !nombreValido(nombre)) return;
   try {
+    const dirLocal = directorioLocalDesdeEnv(process.env);
+    if (dirLocal) {
+      await borrarDeDisco(dirLocal, nombre);
+      return;
+    }
     await storage().remove([nombre]);
   } catch {
     // El huérfano queda; no es motivo para fallar la subida nueva.

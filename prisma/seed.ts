@@ -21,6 +21,7 @@ import {
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { CATALOGO_LOGROS } from "./seed-logros";
+import { DEMO_PASSWORD } from "./seed-credenciales";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
 import { TERMINOS_VERSION } from "../src/lib/legal";
 import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
@@ -51,7 +52,6 @@ const adapter = new PrismaPg(
 );
 const db = new PrismaClient({ adapter });
 
-const DEMO_PASSWORD = "Demo1234!";
 
 async function limpiar() {
   // Orden inverso de dependencias para respetar las FK.

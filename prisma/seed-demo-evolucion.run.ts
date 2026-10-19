@@ -3,6 +3,7 @@
 import "./seed-env";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { opcionesPgDesdeUrl } from "../src/lib/db-schema";
 import { crearEvolucionDemo } from "./seed-demo-evolucion";
 
 /**
@@ -18,7 +19,12 @@ import { crearEvolucionDemo } from "./seed-demo-evolucion";
  * es solo el punto de entrada para correrla sola.
  */
 const connectionString = process.env.DATABASE_URL!; // normalizada por seed-env
-const adapter = new PrismaPg({ connectionString });
+// `?schema=` no lo lee el adapter pg: sin las opciones, este runner escribiría
+// en `public` aunque la URL (y la guardia de borrado) apunten a `qa`/`e2e`.
+const adapter = new PrismaPg(
+  { connectionString },
+  opcionesPgDesdeUrl(connectionString),
+);
 const db = new PrismaClient({ adapter });
 
 crearEvolucionDemo(db)

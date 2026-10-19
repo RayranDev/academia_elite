@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { exigirBorradoPermitido } from "../scripts/guardia-borrado.mjs";
 
 /**
  * Normaliza a UNA sola conexión antes de que se importe nada de `src/`.
@@ -26,4 +27,25 @@ if (process.env.DIRECT_URL) {
 }
 if (!process.env.DATABASE_URL) {
   throw new Error("DIRECT_URL o DATABASE_URL requerida (.env).");
+}
+
+/**
+ * GUARDIA DE BORRADO. Todo seed que importa este módulo borra datos antes de
+ * sembrar. Si la conexión apunta al schema `public` (la base real, compartida
+ * con producción) se aborta ACÁ, antes de abrir ningún cliente ni importar
+ * nada de `src/`. Los schemas aislados (`e2e`, `qa`) pasan sin variable extra.
+ * Desbloqueo consciente: `PERMITIR_BORRADO_DE_BASE=1` (ver
+ * `scripts/guardia-borrado.mjs`). `seed-prod.ts` no lo importa a propósito:
+ * solo hace upserts y nunca borra.
+ */
+try {
+  exigirBorradoPermitido({
+    url: process.env.DATABASE_URL,
+    env: process.env,
+    operacion: "este seed",
+  });
+} catch (e) {
+  // Sin stack trace: el mensaje ya explica qué pasó y cómo desbloquearlo.
+  console.error(`\n${e instanceof Error ? e.message : String(e)}\n`);
+  process.exit(1);
 }

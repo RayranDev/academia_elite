@@ -57,6 +57,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Solo lo define `npm run qa:entorno` (scripts/qa): el build del entorno QA
+  // vive en su propia carpeta para que un `npm run build` / la suite e2e (que
+  // reescriben `.next`) no le rompan el servidor a mitad de una auditoría.
+  // Sin la variable, el comportamiento es el de siempre (`.next`). Los tipos de
+  // esa carpeta ya están en `tsconfig.json` (`include`): si faltaran, Next
+  // reescribiría el archivo en cada build QA.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Estas quedan inlineadas en el bundle (NEXT_PUBLIC_*): las lee `VersionInfo`.
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version,
