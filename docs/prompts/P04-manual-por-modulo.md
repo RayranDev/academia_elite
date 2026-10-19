@@ -42,9 +42,8 @@ qué* algo funciona así, pero **lo que escribes lo has visto ocurrir**.
    efecto (¿qué cambió y dónde se ve? Compruébalo entrando con el otro rol).
 4. Prueba la reversa (cancelar, editar, desactivar, eliminar) y los estados límite
    (vacío, un elemento, muchos, móvil 375 px).
-5. Captura la pantalla real durante la ejecución, contra la app **compilada**
-   (`npm run build && npm run start`) o sin el indicador de desarrollo de Next.js (el círculo
-   "N"): **sin caras de menores** y **sin credenciales ni correos reales**. Después ejecuta `npm run manuales:optimizar`.
+5. Captura la pantalla real durante la ejecución, con la app **compilada** del entorno QA. Cumple las
+   **reglas de capturas** de más abajo y después ejecuta `npm run manuales:optimizar`.
 6. Escribe la ficha con la plantilla. **Capa pública sin nada técnico** (ni rutas, ni
    atributos, ni funciones); nombres de botones y campos exactamente como aparecen en
    pantalla. Lo técnico y los comportamientos conocidos van en **Notas internas**.
@@ -53,6 +52,19 @@ qué* algo funciona así, pero **lo que escribes lo has visto ocurrir**.
 8. Si algo funciona mal o confunde, **no lo disfraces**: regístralo como hallazgo (formato
    de `POLITICA-QA.md` §6) y descríbelo en Notas internas.
 9. Ejecuta `npm run manuales:cobertura` y `npm run manuales:indice`.
+
+**Capturas (reglas, todas obligatorias):**
+- **Todo lo que captures entra en la ficha** con su pie de figura, y toda imagen de
+  `docs/manuales/img/<rol>/<modulo>/` que la ficha no use se **borra**. En la primera tanda de manuales solo
+  se usaron 16 de 53 capturas: no repitas ese error.
+- Pon en la ficha una captura de: la pantalla principal, **cada cuadro o diálogo que un paso abre**, **cada
+  mensaje de error que cites literalmente**, el resultado final de cada tarea y **una vista móvil (375 px)**
+  del módulo. Entre 6 y 12 figuras por módulo, sin repetir escenas.
+- **Antes de guardar cada captura, mírala y comprueba:** (a) **no aparece el círculo negro "N"** de Next.js
+  (abajo a la izquierda; solo sale en modo desarrollo: el entorno `qa:entorno` ya es compilado, no uses `npm
+  run dev`); (b) **toda carta, ficha o lista de jugadores muestra al niño de marca**, nunca un avatar dibujado
+  (si alguna vista de la app usa un avatar por diseño, no la ocultes: anótalo en "Notas internas" y avisa);
+  (c) no se ve ninguna contraseña; (d) ninguna foto real.
 
 **No avances de módulo** hasta cumplir el §10 de la política. Los scripts de uso único
 van a `scratch/`, nunca a `scripts/`. No hagas commits. Responde al final con: módulo,

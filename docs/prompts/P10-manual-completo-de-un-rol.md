@@ -48,6 +48,14 @@ ocurrir en pantalla**.
 3. Si hay rutas que no merecen capítulo (redirecciones), propón su exclusión en
    `docs/manuales/roles.json` **con la razón**; no las dejes sin explicar.
 
+**Paso 1b — Fichas que ya existen (hechas ANTES del entorno QA)**
+Las fichas de `docs/manuales/fuentes/` creadas antes del 2026-10-19 (Mediciones y evaluación del
+entrenador, Logros de los tres roles y Fondos del súper admin) tienen capturas con **dos defectos**: muestran el
+círculo "N" de desarrollo de Next.js y **avatares dibujados** en lugar del niño de marca. Si en `<ROL>` ya
+existe alguna ficha así, **no la des por cubierta**: reverifícala con el procedimiento de P04 y **recaptura
+todas sus imágenes** en el entorno QA, enriqueciéndola con las figuras que le falten (reglas de capturas en
+P04). No toques fichas de otro rol.
+
 **Paso 2 — Un módulo a la vez, hasta terminar la lista**
 Para cada módulo aplica el procedimiento de `docs/prompts/P04-manual-por-modulo.md`
 (inventario de controles, camino feliz / error / efecto, reversa, estados límite,
@@ -59,6 +67,8 @@ capturas reales) y la plantilla de ficha de la política §4, con su cabecera
 - Si tu entorno permite subagentes, delega **un módulo por subagente** con P04 (contexto
   limpio por módulo) y tú coordinas y revisas. No dos escritores sobre el mismo módulo.
 - No avances de módulo sin cumplir la definición de terminado del §10 de la política.
+- Aplica las **reglas de capturas** de P04 (todo lo capturado entra en la ficha, sin círculo "N", sin
+  avatares, vista móvil por módulo).
 - Lo técnico va en "Notas internas", nunca en la capa pública.
 - Si algo funciona mal, **no lo disfraces**: regístralo como hallazgo (formato de
   `POLITICA-QA.md` §6) y descríbelo en "Notas internas".

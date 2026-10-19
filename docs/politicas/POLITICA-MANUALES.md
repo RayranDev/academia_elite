@@ -167,6 +167,9 @@ o del código, ni "debería funcionar así".
 - **Sin el indicador de desarrollo de Next.js.** En modo desarrollo aparece un círculo con
   una "N" abajo a la izquierda y arruina la captura. Se captura contra la aplicación
   compilada (`npm run build && npm run start`) o con ese indicador desactivado.
+- **Toda captura se usa.** Lo que se captura entra en la ficha con su pie de figura y lo que no se usa se
+  borra. Mínimo por módulo: pantalla principal, cada cuadro que abre un paso, cada error citado
+  literalmente, el resultado de cada tarea y una vista móvil (6 a 12 figuras).
 - **Peso:** las capturas se optimizan con `npm run manuales:optimizar` (máx. 1400 px de
   ancho, PNG comprimido) **antes** de commitearse. Las fuentes (`.md`) y las capturas
   optimizadas sí se versionan.
