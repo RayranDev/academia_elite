@@ -155,6 +155,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **logro** · crear/editar/activar (catálogo global, SA) | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | — |
 | **logro** · crear/configurar/otorgar (DT, su escuela) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | — |
 | **cuenta** · cambiarMiPassword (todos) | ✓ | — | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| **política** · aceptarPolitica (JUGADOR, primer ingreso)⁸ | ✓ | ✓ | ✓ | ✓⁹ | ✓ | ✓ | ✓ | — |
 | **sesión** · iniciar/cerrarSesión, asistencia viva, observación (DT) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | — | — |
 | **soporte** · abrir/habilitar escritura/cerrar sesión de soporte (SA) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | — |
 | **cobranza** · registrarMembresia (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -185,6 +186,15 @@ activa `assertTenant` lanza `ForbiddenError`, y contra otra escuela
 ⁷ DT: la categoría debe ser una de las suyas (`categoriasDelDt`); ESCUELA_ADMIN: de
 su escuela (`contarCategoriasDeEscuela`); SUPER_ADMIN: la escuela sale de la
 sesión de soporte, nunca del body. La familia (JUGADOR) recibe 403.
+⁸ `aceptarPoliticaAction` → `aceptarPolitica` (`politica.service`): solo rol
+JUGADOR (`requireRole`; otro rol → `ForbiddenError`, sin tocar la base). La Zod
+exige la casilla (`aceptaTerminos = "on"`). Sella `terminosAceptadosEn` y
+`terminosVersion` (`TERMINOS_VERSION`) con un compare-and-set
+(`updateMany … where terminosAceptadosEn: null`): **idempotente** y a prueba de
+doble envío, no sobrescribe la prueba original. Audita `POLITICA_ACEPTADA` solo
+la primera vez, con la versión en `motivo` y sin datos personales extra.
+⁹ Propiedad por identidad: el `userId` sale del `AuthContext` (sesión), nunca del
+body; no hay recurso de otro tenant que referenciar.
 
 ### Bloqueo de acceso de familias (G2)
 - Lo aplican **ESCUELA_ADMIN** (su tenant) y **SUPER_ADMIN**; el DT solo lo ve.
@@ -192,6 +202,20 @@ sesión de soporte, nunca del body. La familia (JUGADOR) recibe 403.
 - `requireAuthContext`/`requirePanelUser` redirigen al JUGADOR bloqueado a
   **`/bloqueado`**, que muestra el mensaje según el motivo (PAGO, COMPORTAMIENTO,
   CONTACTA_DT o PERSONALIZADO). Los mensajes predefinidos viven en `lib/bloqueo`.
+
+### Aceptación de la Política en el primer ingreso de la familia
+- Una cuenta JUGADOR con `User.terminosAceptadosEn = null` (la que crea el alta
+  asistida) no ve el panel: el layout de `/jugador` lee la aceptación **de la
+  base** (no del JWT, que no se refresca) vía `obtenerEstadoPolitica` y
+  redirige a **`/aceptar-politica`**.
+- `/aceptar-politica` es ruta pública para el proxy (fuera de los prefijos de
+  rol; si colgara de `/jugador` el layout la redirigiría a sí misma en bucle).
+  La sesión se exige **en la propia página** con `requirePanelUser("JUGADOR")`
+  (Barrera 2): sin sesión → `/login`; otro rol → su panel; ya aceptada →
+  `/jugador`. Lleva `noindex`.
+- La compuerta es de **navegación** (layout): no sustituye la autorización de
+  cada servicio, que sigue intacta. Alcance: solo JUGADOR; DT y escuela quedan
+  fuera por ahora.
 
 ### Eliminación lógica de jugadores (G3)
 - Solo **SUPER_ADMIN**; estado `ELIMINADO` (reversible con "restaurar").

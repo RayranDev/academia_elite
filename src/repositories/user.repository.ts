@@ -121,6 +121,34 @@ export function actualizarUserDatos(
   return db.user.update({ where: { id }, data, select: { id: true } });
 }
 
+/**
+ * Prueba de aceptación de la Política de Tratamiento de Datos de un usuario
+ * (fecha y versión). Select mínimo a propósito: el gate del panel lo lee en
+ * cada carga del layout de la familia.
+ */
+export function obtenerAceptacionPolitica(id: string) {
+  return db.user.findUnique({
+    where: { id },
+    select: { terminosAceptadosEn: true, terminosVersion: true },
+  });
+}
+
+/**
+ * Sella la aceptación de la Política SOLO si todavía no existe
+ * (`terminosAceptadosEn: null` en el `where`). Es un compare-and-set atómico:
+ * dos envíos concurrentes (doble clic, dos pestañas) no pueden sobrescribirse
+ * la fecha/versión, y el llamador sabe si él fue quien selló (`count === 1`).
+ */
+export function sellarAceptacionPolitica(
+  id: string,
+  data: { terminosAceptadosEn: Date; terminosVersion: string },
+) {
+  return db.user.updateMany({
+    where: { id, terminosAceptadosEn: null },
+    data,
+  });
+}
+
 /** Aplica (o levanta) el bloqueo de acceso a un conjunto de usuarios. */
 export function actualizarBloqueoUsers(
   ids: string[],

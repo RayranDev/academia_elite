@@ -107,8 +107,20 @@ deportivos internos, ni venta de datos.
   casilla obligatoria**, que el acudiente conoce la Política y autoriza el
   tratamiento de sus datos y los del menor; esa declaración queda en `AuditLog`
   (`autorizacionAcudiente=declarada por quien da de alta`). La cuenta creada
-  **no** sella `terminosAceptadosEn`: no se registra como aceptada por el
-  titular una aceptación que el titular no dio. Los datos de salud siguen
+  **no** sella `terminosAceptadosEn` al crearse: no se registra como aceptada
+  por el titular una aceptación que el titular no dio. **La aceptación llega en
+  el primer ingreso**: mientras `terminosAceptadosEn` sea `null`, el panel de la
+  familia (`/jugador`) queda bloqueado y se le muestra `/aceptar-politica`, con
+  la Política completa, una casilla («He leído y acepto la Política de
+  Tratamiento de Datos Personales (versión X) y autorizo el tratamiento de los
+  datos de los niños, niñas y adolescentes a mi cargo conforme a ella») y el
+  botón «Aceptar y continuar»; quien no acepta puede salir (cierra sesión) pero
+  no ve el panel. Al aceptar se sellan `User.terminosAceptadosEn` (fecha) y
+  `User.terminosVersion` (la `TERMINOS_VERSION` vigente, es decir, a qué texto
+  consintió) y se audita `POLITICA_ACEPTADA` con la versión. El sellado es
+  idempotente: si ya aceptó no se reescribe la prueba original. Alcance actual:
+  solo el rol JUGADOR (familia); las cuentas de DT y escuela no pasan por esta
+  pantalla. Los datos de salud siguen
   exigiendo su propia autorización específica (casilla aparte en el paso de
   ficha); sin ella no se guardan. Todo el paso de ficha es **opcional** y lleva,
   en el propio formulario, la finalidad (atender una urgencia) y quién ve qué.
@@ -201,7 +213,7 @@ La plataforma aplica, entre otras:
   almacenadas ni registradas en claro.
 - Detalle técnico en [`SEGURIDAD.md`](SEGURIDAD.md).
 
-> **Pendiente para producción:** RLS en la base de datos gestionada, cifrado en
+> **Pendiente para producción:** cifrado en
 > reposo del almacenamiento de fotos, copias de seguridad cifradas y registro de
 > incidentes (ver §13).
 
@@ -247,6 +259,7 @@ canales habituales.
 | Requisito | Estado | Dónde |
 |---|---|---|
 | Autorización en el registro (aceptar política) | ✅ Implementado — se conserva **fecha y versión** de la política aceptada (`User.terminosAceptadosEn`, `terminosVersion`), como exige el art. 6 | `AceptarTerminos`, `registro.service`, `lib/legal` |
+| Autorización en el primer ingreso (cuentas del alta asistida) | ✅ Implementado — pantalla `/aceptar-politica` que bloquea el panel `/jugador` hasta aceptar; sella **fecha y versión** (`User.terminosAceptadosEn`, `terminosVersion`) y audita `POLITICA_ACEPTADA`. Solo rol JUGADOR; pendiente de revisión del texto por el abogado | `AceptarPoliticaForm`, `TextoPolitica`, `politica.service`, `app/jugador/layout` |
 | Consentimiento específico para foto de menor | ✅ Implementado (otorgar/revocar) | `FotoConsentimiento` |
 | Foto no pública + EXIF strip + acceso controlado | ✅ Implementado | `foto.service`, `process.ts` |
 | Revocación oculta la foto al instante | ✅ Implementado | `actualizarConsentimiento` |

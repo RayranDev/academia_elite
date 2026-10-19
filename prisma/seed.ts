@@ -22,6 +22,7 @@ import {
 } from "@/lib/stats-engine";
 import { CATALOGO_LOGROS } from "./seed-logros";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
+import { TERMINOS_VERSION } from "../src/lib/legal";
 import { FONDOS_PRESETS } from "@/lib/cartas/fondos-presets";
 import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
 import { crearAcademiaElite } from "./seed-academia-elite";
@@ -252,6 +253,11 @@ async function main() {
       nombre: "Familia García",
       rol: "JUGADOR",
       escuelaId: escuela.id,
+      // Cuenta demo con la Política ya aceptada: sin esto el panel quedaría
+      // tras la pantalla de /aceptar-politica (que es el primer ingreso de las
+      // cuentas del alta asistida, no de la demo).
+      terminosAceptadosEn: new Date(),
+      terminosVersion: TERMINOS_VERSION,
     },
   });
 

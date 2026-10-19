@@ -1,13 +1,19 @@
 import { type Page, expect } from "@playwright/test";
 
-/** Inicia sesión y espera la redirección al panel del rol. */
+/**
+ * Inicia sesión y espera la redirección al panel del rol. Una cuenta de familia
+ * creada por el alta asistida aterriza en `/aceptar-politica` (primer ingreso,
+ * antes de aceptar la Política): también cuenta como destino válido.
+ */
 export async function login(page: Page, email: string, password: string) {
   await page.goto("/login");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await page.waitForURL(/\/(admin|escuela|dt|jugador)(\/|$)/, { timeout: 15000 });
-  await expect(page).toHaveURL(/\/(admin|escuela|dt|jugador)/);
+  await page.waitForURL(/\/(admin|escuela|dt|jugador|aceptar-politica)(\/|$)/, {
+    timeout: 15000,
+  });
+  await expect(page).toHaveURL(/\/(admin|escuela|dt|jugador|aceptar-politica)/);
 }
 
 /**

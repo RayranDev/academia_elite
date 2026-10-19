@@ -9,6 +9,7 @@ import {
   type MedidasEvaluacion,
 } from "@/lib/stats-engine";
 import { generarCodigoInvitacion, generarCodigoRef } from "../src/lib/codes";
+import { TERMINOS_VERSION } from "../src/lib/legal";
 import { MEDIOS_PAGO } from "@/lib/validators/membresia";
 import { CONCEPTOS_SISTEMA } from "@/lib/validators/concepto-cobro";
 import { periodoDe } from "@/lib/cobranza";
@@ -208,6 +209,9 @@ export async function crearAcademiaElite(
       telefono: "+54 351 555 0199",
       emailVerificado: true,
       emailVerificadoEn: new Date(),
+      // Política ya aceptada: la demo no debe pasar por /aceptar-politica.
+      terminosAceptadosEn: new Date(),
+      terminosVersion: TERMINOS_VERSION,
     },
   });
 

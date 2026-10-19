@@ -70,12 +70,41 @@ test("la escuela da de alta un jugador con ficha y acudiente; la familia entra c
   await expect(pe.getByText(`${nombre} Completo`).first()).toBeVisible({ timeout: 15000 });
   await ctxEsc.close();
 
-  // La familia entra con la cuenta creada.
+  // La familia entra con la cuenta creada. Como el alta asistida no sella la
+  // aceptación de la Política, el primer ingreso cae en la pantalla de aceptación
+  // y el panel queda bloqueado hasta aceptarla.
   const ctxFam = await browser.newContext();
   const pf = await ctxFam.newPage();
   await login(pf, emailFamilia, password);
-  await expect(pf).toHaveURL(/\/jugador/);
+  await expect(pf).toHaveURL(/\/aceptar-politica$/);
+  await expect(
+    pf.getByRole("heading", { name: "Antes de continuar" }),
+  ).toBeVisible();
+  // La Política completa está en pantalla (primera y última sección).
+  await expect(pf.getByText("1. Responsable del tratamiento")).toBeVisible();
+  await expect(pf.getByText("10. Vigencia")).toBeAttached();
+
+  // Intentar saltarse la pantalla yendo directo al panel no funciona.
+  await pf.goto("/jugador");
+  await expect(pf).toHaveURL(/\/aceptar-politica$/);
+  await expect(pf.getByText(new RegExp(nombre, "i"))).toHaveCount(0); // sin panel
+
+  // Sin marcar la casilla no se puede aceptar.
+  const aceptar = pf.getByRole("button", { name: "Aceptar y continuar" });
+  const casilla = pf.getByLabel(/He leído y acepto la Política/);
+  await expect(casilla).not.toBeChecked();
+  await expect(aceptar).toBeDisabled();
+
+  // Con la casilla marcada se acepta y se llega al panel.
+  await casilla.check();
+  await expect(aceptar).toBeEnabled();
+  await aceptar.click();
+  await expect(pf).toHaveURL(/\/jugador$/, { timeout: 15000 });
   await expect(pf.getByText(new RegExp(nombre, "i")).first()).toBeVisible({ timeout: 15000 });
+
+  // Ya aceptada: la pantalla de aceptación no vuelve a aparecer.
+  await pf.goto("/aceptar-politica");
+  await expect(pf).toHaveURL(/\/jugador$/);
   await ctxFam.close();
 });
 
