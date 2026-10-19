@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  startTransition,
+  type FormEvent,
+} from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import { crearEvaluacionAction } from "@/actions/dt.actions";
@@ -92,6 +99,15 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
   );
   const completas = NOTAS.every((n) => notas[n] != null);
 
+  // `<form action>` haría que React 19 reinicie los campos al terminar la
+  // acción: un error de validación borraría las medidas que el DT cargó en
+  // cancha. Con `onSubmit` + transición los campos quedan como están.
+  function enviar(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransition(() => action(formData));
+  }
+
   useEffect(() => {
     if (resultado && !celebrado.current) {
       celebrado.current = true;
@@ -153,7 +169,7 @@ export function EvaluationForm({ jugador }: { jugador: JugadorMin }) {
   }
 
   return (
-    <form action={action} className="space-y-6">
+    <form onSubmit={enviar} className="space-y-6">
       <input type="hidden" name="jugadorId" value={jugador.id} />
 
       <Card>

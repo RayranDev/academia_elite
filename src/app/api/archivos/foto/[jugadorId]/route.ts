@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/session";
+import { limitarRuta } from "@/lib/rate-limit-http";
 import { obtenerJugadorParaFoto } from "@/repositories/jugador.repository";
-import { esResponsable } from "@/lib/foto/permisos";
+import { puedeVerFoto } from "@/lib/foto/permisos";
 import { leerFoto } from "@/lib/foto/storage";
+import { cabecerasCorsFoto } from "@/lib/foto/cors";
 
 const NO_ENCONTRADA = () => new NextResponse(null, { status: 404 });
 
@@ -12,29 +14,20 @@ const NO_ENCONTRADA = () => new NextResponse(null, { status: 404 });
  * vigente siendo del staff de la escuela). Sin permiso → 404 (se muestra avatar).
  */
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ jugadorId: string }> },
 ) {
   const { jugadorId } = await params;
   const ctx = await getAuthContext();
   if (!ctx) return NO_ENCONTRADA();
+  const bloqueo = await limitarRuta(`foto-ver:${ctx.userId}`, 1200, 60_000);
+  if (bloqueo) return bloqueo;
 
   const jugador = await obtenerJugadorParaFoto(ctx.escuelaId, jugadorId);
   if (!jugador || !jugador.fotoUrl) return NO_ENCONTRADA();
 
-  // Tenant
-  const mismoTenant =
-    ctx.rol === "SUPER_ADMIN" || ctx.escuelaId === jugador.escuelaId;
-  if (!mismoTenant) return NO_ENCONTRADA();
-
-  // Autorización: el responsable siempre; el staff solo con consentimiento.
-  const responsable = esResponsable(ctx, jugador);
-  const staffConConsentimiento =
-    jugador.consentimientoFoto &&
-    (ctx.rol === "DT" ||
-      ctx.rol === "ESCUELA_ADMIN" ||
-      ctx.rol === "SUPER_ADMIN");
-  if (!responsable && !staffConConsentimiento) return NO_ENCONTRADA();
+  // Tenant + autorización (el SUPER_ADMIN solo con sesión de soporte de esa escuela).
+  if (!puedeVerFoto(ctx, jugador)) return NO_ENCONTRADA();
 
   const buf = await leerFoto(jugador.fotoUrl);
   if (!buf) return NO_ENCONTRADA();
@@ -45,7 +38,7 @@ export async function GET(
       "Content-Type": "image/webp",
       // Datos sensibles de menores: nunca cachear en intermediarios.
       "Cache-Control": "private, no-store",
-      "Access-Control-Allow-Origin": "*",
+      ...cabecerasCorsFoto(req.headers),
     },
   });
 }
