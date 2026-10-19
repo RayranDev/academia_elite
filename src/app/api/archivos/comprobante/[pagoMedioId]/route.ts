@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/session";
+import { limitarRuta } from "@/lib/rate-limit-http";
 import { puedeVerComprobante } from "@/services/pago.service";
 import { leerFoto } from "@/lib/foto/storage";
 
@@ -18,6 +19,8 @@ export async function GET(
   const { pagoMedioId } = await params;
   const ctx = await getAuthContext();
   if (!ctx) return NO_ENCONTRADO();
+  const bloqueo = await limitarRuta(`comprobante:${ctx.userId}`, 60, 60_000);
+  if (bloqueo) return bloqueo;
 
   const acceso = await puedeVerComprobante(ctx, pagoMedioId);
   if (!acceso) return NO_ENCONTRADO();

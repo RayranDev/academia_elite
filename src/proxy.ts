@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/config";
 import type { Rol } from "@/types";
+import { excedeLimitePublico } from "@/lib/limite-publico";
 
 // En desarrollo, eliminamos las URLs estáticas si apuntan a localhost para que
 // NextAuth detecte automáticamente el host real (ej. ngrok) gracias a trustHost: true.
@@ -90,9 +91,14 @@ function panelPorRol(rol: Rol): string {
   }
 }
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl;
   const rol = req.auth?.user?.rol as Rol | undefined;
+
+  if (!rol) {
+    const bloqueo = await excedeLimitePublico(req.headers);
+    if (bloqueo) return bloqueo;
+  }
 
   // Construye URLs absolutas desde el HOST REAL de la petición (no desde
   // AUTH_URL): así los redirects funcionan en cualquier host/puerto.

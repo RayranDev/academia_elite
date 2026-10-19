@@ -39,15 +39,48 @@ acceso ambiental que se cerraron el 2026-07-31:
   exponen stack traces ni mensajes de Prisma. Los `*.service` devuelven **DTOs
   planos**, nunca modelos Prisma.
 - **IDs**: `cuid` (no autoincrementales) → sin enumeración.
-- **Cabeceras** (`next.config.ts`): CSP (sin `unsafe-eval` en producción),
-  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
-  `Permissions-Policy`, HSTS en producción.
+- **Cabeceras**: la **CSP** se emite en un solo lugar, por ruta, desde
+  `src/proxy.ts` (sin `unsafe-eval` en producción; la única excepción es
+  `/jugador/perfil`, donde `@imgly/background-removal` lo necesita). Las demás
+  (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`,
+  `Permissions-Policy`, HSTS en producción) viven en `next.config.ts`. No se
+  define la CSP en `next.config.ts`: `headers()` acumula y dos CSP solapadas se
+  intersectan.
 - **Rate limiting distribuido** con **Upstash Redis** (ventana deslizante por
   clave, p. ej. `login:ip:email`): login 5/min, leads 8/h, registro 5/h, foto
   10/día. En serverless la memoria del proceso no se comparte entre lambdas, así
   que el límite real vive en Redis. Sin las envs de Upstash (dev local, E2E) cae
   a la implementación en memoria, y si Redis se cae **degrada** en vez de tumbar
   el login (`src/lib/rate-limit.ts`).
+- **Abuso volumétrico y DDoS** — defensa en capas; ninguna sola alcanza:
+  1. **Borde de la plataforma** (primera línea, corta ANTES de ejecutar código):
+     Firewall de Vercel (reglas de rate limit por IP/ruta, *Attack Challenge
+     Mode*) y *Spend Management* con tope de gasto. Se configura en el panel de
+     Vercel, no en el repo — checklist en `PENDIENTES.md`.
+  2. **Visitantes sin sesión**: `src/proxy.ts` (vía `src/lib/limite-publico.ts`) limita
+     600 req/min por IP a todo documento (landing, login, `/e/[slug]`, escaneo de
+     rutas): frena a un script de una sola fuente sin castigar a varias familias
+     detrás de la misma IP (wifi, CGNAT móvil). Con IP desconocida no limita.
+     Responde 429 con `Retry-After`. Suma un viaje a Redis por visita anónima.
+  3. **Rutas autenticadas costosas**, por usuario (`limitarRuta`,
+     `src/lib/rate-limit-http.ts`): exports Excel 10/min, fotos 1200/min,
+     escudos 300/min, comprobantes 60/min. Mensajes 30/h (familia) y 120/h
+     (staff), cobrados después de validar (action).
+  4. **Acciones sensibles**: los límites por acción de arriba (login, registro,
+     OTP, pagos, imports…).
+  5. **Base de datos**: toda petición dinámica consulta Postgres; mantener el
+     pooler de Supabase activo. `/e/[slug]` es `force-dynamic` a propósito (la
+     desactivación de una escuela debe verse al instante) y por eso depende de
+     las capas 1 y 2.
+  - **VPS futuro**: Cloudflare adelante + firewall del servidor que acepte solo
+    sus IPs + `IP_CLIENTE_HEADER=cf-connecting-ip` (ver `ipCliente`; toma el primer valor y
+    exige forma de IP). Sin esa
+    env, `x-forwarded-for` es falseable fuera de Vercel y se esquivan todos
+    los límites por IP.
+  - **Límite honesto**: el rate limit de la app corre DENTRO de la función. Frena
+    abuso y costo de base, pero un ataque volumétrico real lo absorbe el borde.
+    Si Upstash se cae o agota su cuota, cae a memoria por instancia (débil en
+    serverless; acotada a 10.000 claves para no filtrar memoria en un VPS).
 - **Aislamiento multi-tenant verificado por test**: `tests/unit/aislamiento-tenant.test.ts`
   lee el código de los repositorios y falla si una consulta sobre un modelo con
   `escuelaId` no filtra por tenant ni está justificada con `// tenant-global:`.
@@ -61,12 +94,13 @@ acceso ambiental que se cerraron el 2026-07-31:
 
 | Endpoint | Validación | Anti-abuso | Notas |
 |---|---|---|---|
-| `POST /api/leads` | Zod | Honeypot + tiempo mínimo + rate limit 3/h + `Sec-Fetch-Site`/Origin | Respuestas genéricas; honeypot responde 200 silencioso |
+| `POST /api/leads` | Zod | Honeypot + tiempo mínimo + rate limit 8/h por IP + `Sec-Fetch-Site`/Origin | Respuestas genéricas; honeypot responde 200 silencioso |
 | `registrarConCodigoAction` | Zod | Rate limit 5/h por IP | Valida vigencia/usos del código en transacción; crea jugador PENDIENTE |
 | `vincularHijoAction` | Zod | Rate limit 5/h por IP | Vincula al padre con un hijo existente (código escuela + código jugador). Si el jugador ya tiene padre o el email existe → error y NO se crea cuenta (transacción) |
 | `GET /api/auth/[...nextauth]` | Auth.js | Rate limit login 5/min (acción `login`) | bcrypt factor 12; errores genéricos |
 | `GET /api/salir` | — | — | Solo borra cookies `authjs*` y redirige a `/login` |
 | `GET /e/[slug]` | — (lectura pública por slug) | — | Slug inexistente o escuela inactiva → **mismo 404** (sin oráculo de enumeración más allá del aceptado: activa-sin-publicar muestra "en construcción" con el nombre de la escuela + `noindex` — decisión consciente, ver `DECISIONES.md` #87–89); DTO público con whitelist explícita (sin datos de jugadores ni fotos) |
+| `GET /api/archivos/escudo/[escuelaId]` | Sesión (`getAuthContext`) | Rate limit 300/min por usuario | `assertTenant` en `escudo.service`: mismo tenant o SUPER_ADMIN con soporte de esa escuela; cualquier otro caso → 404 uniforme. CORS solo para el origen propio (la carta exporta el escudo a PNG) |
 | `GET /api/archivos/escudo-publico/[slug]` | — | Rate limit 60/min por IP (429 al superarlo) | Sirve el escudo (PNG) solo si la escuela está `activa`; `Cache-Control: public, max-age=300` — hasta 5 min de staleness tras desactivar una escuela, aceptado |
 
 ## Server Actions (con sesión) — checklist por acción
@@ -95,7 +129,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **evento** · pasarLista / cargarResultado | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **mensaje** · crearConversacion / responder | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓¹ |
 | **mensaje** · publicarAnuncio | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| **mensaje** · marcarNotificacionLeida | ✓ | — | ✓ | ✓² | ✓ | ✓ | — | — |
+| **notificación** · marcarLeida | ✓ | — | ✓ | ✓² | ✓ | ✓ | — | — |
 | **jugador** · subirFoto | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | **jugador** · actualizarConsentimiento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **jugador** · actualizarAvatar | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
@@ -124,10 +158,14 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **cobranza** · cambiarEstadoMembresia / registrar pago (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **cobranza** · generarCuotasDelPeriodo (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **cobranza** · crear/desactivarArancel (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **cobranza** · registrar/eliminarEgreso (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **cobranza** · crear/editar/desactivar/asignarJugadores DescuentoRegla (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **cobranza** · crear/editar/borrarConcepto (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **categoría** · editarRangosCategoria (Escuela; SA en soporte con motivo) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | — |
+| **landing** · actualizarLanding (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 
-¹ La longitud (≤2000) y la pertenencia del jugador acotan el abuso; el rate limit
-de mensajes (30/h) queda como refinamiento pendiente — la infraestructura de
-Upstash ya está, solo falta aplicarla a esta acción.
+¹ Mensajes: 30/h por usuario familia y 120/h para staff (conversaciones nuevas y
+respuestas comparten balde; se cobra tras validar); además la longitud (≤2000) y la pertenencia del jugador acotan el abuso.
 ² El `where` incluye `userId` del propio usuario: solo marca sus notificaciones.
 ³ Solo el responsable (padre/cuenta) del jugador; una validación por semana ISO
 (único `jugadorId+semana` también a nivel de BD).

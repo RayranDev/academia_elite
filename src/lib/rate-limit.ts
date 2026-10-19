@@ -15,6 +15,22 @@ interface Bucket {
 
 const buckets = new Map<string, Bucket>();
 
+// Tope duro del fallback en memoria. Sin esto, cada clave nueva (una por IP en
+// el proxy) vive para siempre en un proceso de larga vida (VPS) hasta agotar la
+// memoria — el limitador sería en sí mismo un vector de DoS.
+const MAX_BUCKETS = 10_000;
+
+function podarBuckets(now: number): void {
+  for (const [key, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(key);
+  }
+  // Si aún sobra, se descartan los más antiguos (el Map conserva el orden de inserción).
+  for (const key of buckets.keys()) {
+    if (buckets.size <= MAX_BUCKETS) break;
+    buckets.delete(key);
+  }
+}
+
 export interface RateLimitResult {
   ok: boolean;
   remaining: number;
@@ -53,6 +69,7 @@ function rateLimitEnMemoria(
   const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {
+    if (buckets.size >= MAX_BUCKETS) podarBuckets(now);
     buckets.set(key, { count: 1, resetAt: now + windowMs });
     return { ok: true, remaining: limit - 1, retryAfterMs: 0 };
   }
@@ -91,9 +108,7 @@ export async function rateLimit(
 }
 
 // Limpieza perezosa del fallback en memoria (no aplica al modo Redis).
-export function cleanupRateLimit(): void {
-  const now = Date.now();
-  for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) buckets.delete(key);
-  }
+export function cleanupRateLimit(): number {
+  podarBuckets(Date.now());
+  return buckets.size;
 }

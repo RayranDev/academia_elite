@@ -17,7 +17,12 @@ export function Composer({ conversacionId }: { conversacionId: string }) {
     const fd = new FormData(form);
     startTransition(async () => {
       try {
-        await responderAction(fd);
+        const res = await responderAction(fd);
+        if (!res.ok) {
+          // El texto queda en el campo: el usuario puede reintentar o copiarlo.
+          setError(res.error);
+          return;
+        }
         form.reset();
         setError(null);
         router.refresh();

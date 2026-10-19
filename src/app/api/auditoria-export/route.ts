@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthContext } from "@/lib/auth/session";
+import { limitarRuta } from "@/lib/rate-limit-http";
 import { DomainError } from "@/lib/errors";
 import { exportarAuditoria } from "@/services/export-auditoria.service";
 import { XLSX_MIME } from "@/lib/xlsx";
@@ -11,6 +12,8 @@ import { XLSX_MIME } from "@/lib/xlsx";
 export async function GET(req: Request) {
   const ctx = await getAuthContext();
   if (!ctx) return new NextResponse(null, { status: 401 });
+  const bloqueo = await limitarRuta(`export:${ctx.userId}`, 10, 60_000);
+  if (bloqueo) return bloqueo;
   const escuelaId = new URL(req.url).searchParams.get("escuelaId") ?? undefined;
   try {
     const { filename, buffer } = await exportarAuditoria(ctx, escuelaId);

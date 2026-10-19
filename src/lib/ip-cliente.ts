@@ -6,6 +6,9 @@
  */
 type HeadersLegibles = { get(name: string): string | null };
 
+/** Forma mínima de una IPv4/IPv6 (sin validar rangos): descarta basura y cadenas largas. */
+const FORMA_DE_IP = /^[0-9a-fA-F:.]{2,45}$/;
+
 /**
  * Resuelve la IP del cliente para usarla como clave de `rateLimit`.
  *
@@ -31,6 +34,20 @@ type HeadersLegibles = { get(name: string): string | null };
  * en cada action/route.
  */
 export function ipCliente(headers: HeadersLegibles): string {
+  // Fuera de Vercel (VPS), el origen queda detrás de un proxy que sí sanea la
+  // IP real en un header propio (p. ej. `cf-connecting-ip` de Cloudflare). Se
+  // activa con IP_CLIENTE_HEADER=<nombre> SOLO si el origen únicamente acepta
+  // tráfico de ese proxy (firewall del servidor): si no, cualquiera enviaría
+  // ese header y esquivaría todos los rate limits. Sin la env, todo igual.
+  const headerConfiable = process.env.IP_CLIENTE_HEADER?.trim().toLowerCase();
+  if (headerConfiable) {
+    // Primer valor de la lista (por si el operador apuntó a un header
+    // multi-valor como x-forwarded-for) y solo con forma de IP: sin esto, una
+    // cadena arbitraria serviría de clave y cada cliente tendría su propio balde.
+    const valor = headers.get(headerConfiable)?.split(",")[0]?.trim();
+    if (valor && FORMA_DE_IP.test(valor)) return valor;
+  }
+
   const xff = headers.get("x-forwarded-for");
   if (xff) {
     const primera = xff.split(",")[0]?.trim();
