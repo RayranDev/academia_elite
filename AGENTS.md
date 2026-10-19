@@ -50,14 +50,14 @@ Gestor de paquetes: **npm** (`package-lock.json`). Node **22+** (probado en 24).
 ```bash
 npm install                 # postinstall corre `prisma generate`
 npx prisma migrate deploy   # aplica migraciones
-npm run db:seed             # datos demo (idempotente)
+npm run db:seed             # datos demo — BORRA y vuelve a crear las tablas de la base de .env (solo contra una base de pruebas)
 npm run dev                 # http://localhost:3000
 
 npm run typecheck           # tsc --noEmit  ── debe quedar LIMPIO
 npm run lint                # eslint         ── debe quedar LIMPIO
 npm run test                # vitest run (unit)
 npm run test:e2e            # playwright (build + start:e2e en :3100)
-npm run db:reset            # drop + migrate + seed
+npm run db:reset            # BORRA toda la base de .env: solo contra una base de pruebas (ver POLITICA-QA §2)
 ```
 
 Usuarios demo: ver `credenciales.md` (raíz del proyecto, local, no se sube al repo).

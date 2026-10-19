@@ -32,6 +32,7 @@
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | 👤 [Hallazgos de la auditoría QA](#paquete--hallazgos-de-la-auditoría-qa-2026-10-18) | Chico | Datos legales, `.env.example` y los hallazgos menores ya verificados |
 | 👤 [Protección contra tráfico malicioso](#paquete--protección-contra-tráfico-malicioso-lo-que-no-se-hace-desde-el-código) | Config | Spend Management, Firewall, Supabase, Upstash: paneles externos |
+| 👤 [Entorno de pruebas separado de producción](#paquete--entorno-de-pruebas-separado-de-producción--alta) | Chico | Verificar si local y producción comparten base; crear un proyecto Supabase de desarrollo |
 | [Calidad: QA a ciegas y manuales por módulo](#paquete--calidad-qa-a-ciegas-y-manuales-por-módulo) | Grande | Ejecutar las políticas `politicas/POLITICA-QA.md` y `politicas/POLITICA-MANUALES.md` por primera vez |
 
 ---
@@ -73,6 +74,24 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 (El fix previo que este paquete listaba —`statsLatest` sin filtrar
 `evaluacion.anulada`— ya está resuelto: ver TRAZABILIDAD.md #48.)
+
+---
+
+## Paquete — Entorno de pruebas separado de producción 👤 (Alta)
+
+Indicios de que la base de tu `.env` local es la **misma** que la de producción (un solo proyecto
+Supabase: `DECISIONES.md` #13; las mismas cuentas y personas demo aparecen local y en producción).
+Si es así: `db:reset` / `db:seed` borrarían producción, y toda prueba con escritura (QA, manuales,
+E2E fuera de su schema) ensucia datos reales. Por hacer:
+
+- **Verificar** (tú, sin copiar contraseñas): comparar servidor y ref de proyecto de `DATABASE_URL` /
+  `DIRECT_URL` de tu `.env` con los de Vercel → Settings → Environment Variables (Production).
+- **Crear un proyecto Supabase aparte** (el plan gratis admite varios) para desarrollo y QA; aplicar
+  `prisma migrate deploy` y el seed ahí; apuntar el `.env` local a él.
+- **Defensa en código** (recomendada): que `db:reset` y el seed se nieguen a correr salvo que una
+  variable explícita (p. ej. `PERMITIR_BORRADO_DE_BASE=1`) esté definida en el `.env` de pruebas, para que
+  un descuido nunca borre la base equivocada.
+- Hasta entonces: **no ejecutar `db:reset`, `db:seed` ni pruebas de escritura** (P01, P04, P07, P10).
 
 ---
 

@@ -10,7 +10,7 @@
 > **Política:** `docs/politicas/POLITICA-QA.md`.
 
 **Antes de lanzarlo:** levantar la app en local contra la base de pruebas
-(`npm run db:reset && npm run db:seed && npm run dev`), con `EMAIL_DEV_TO` activo y
+(`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Con `EMAIL_DEV_TO` activo y
 Upstash vacío. Nunca producción.
 
 ---

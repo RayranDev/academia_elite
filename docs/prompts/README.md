@@ -13,7 +13,7 @@
 
 1. Abre el agente con la raíz del repositorio como carpeta de trabajo.
 2. Si el prompt lo pide, levanta la app **en local contra la base de pruebas**
-   (`npm run db:reset && npm run db:seed && npm run dev`). Nunca producción.
+   (`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Nunca producción.
 3. Copia el **lanzador** de la tabla, completa lo que está entre `<…>` y pégalo.
 4. Cuando el agente termine, lee el resultado **antes** de aceptarlo: pásalo por
    **P06** si trae hallazgos.

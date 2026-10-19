@@ -25,8 +25,8 @@ máxima prioridad.
 1. **Solo lectura sobre el código.** No modifiques archivos de `src/`, `prisma/`,
    `tests/` ni `docs/` existentes. No hagas commits, push ni ramas. Tu único
    entregable es el reporte (ver "Entregable").
-2. **Base de datos**: no corras `npm run db:reset` ni migraciones contra una
-   base que no sea local/demo. Si necesitás datos, usá `npm run db:seed`
+2. **Base de datos**: no corras `npm run db:reset`, `db:seed` ni migraciones contra una
+   base que no hayas comprobado que es exclusiva de pruebas (`POLITICA-QA.md` §2). Si necesitás datos, usá `npm run db:seed`
    (idempotente) y los usuarios de `credenciales.md` (raíz, local).
 3. **Antes de opinar sobre Next.js, leé `node_modules/next/dist/docs/`.** Es
    Next 16: `proxy.ts` reemplaza a `middleware.ts`; `params`, `searchParams`,

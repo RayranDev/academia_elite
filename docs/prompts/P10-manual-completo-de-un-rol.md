@@ -13,7 +13,7 @@
 > **Política:** `docs/politicas/POLITICA-MANUALES.md` (v2).
 
 **Antes de lanzarlo:** app en local contra la base de pruebas
-(`npm run db:reset && npm run db:seed && npm run dev`). Nunca producción. Tener
+(`npm run dev`) **después de comprobar que `.env` apunta a una base exclusiva de pruebas** (`POLITICA-QA.md` §2, "Antes de resetear o sembrar"). **No** corras `db:reset` ni `db:seed` sin esa comprobación: borran toda la base. Nunca producción. Tener
 Chromium de Playwright instalado (`npx playwright install chromium`) para el PDF.
 
 ---

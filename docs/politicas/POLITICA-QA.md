@@ -42,9 +42,16 @@ diseño, no como error.
 
 ## 2. Entorno (innegociable)
 
-- **Nunca producción.** Instancia local (`npm run dev`) contra una base de datos
-  de pruebas. Se permite resetear (`npm run db:reset`) porque los datos son de
-  demostración.
+- **Nunca producción.** Instancia local (`npm run dev`) contra una base de datos **exclusiva
+  de pruebas**.
+- **Antes de resetear o sembrar (obligatorio).** `npm run db:reset` y `npm run db:seed` **borran
+  todas las tablas** de la base a la que apunte `.env`. Comprueba primero que esa base NO es la de
+  producción: compara el servidor y el identificador del proyecto de `DATABASE_URL` / `DIRECT_URL`
+  de tu `.env` (la parte `…@host:puerto/…` y el `postgres.<ref>` del usuario, **sin copiar la
+  contraseña a ningún lado**) con los de las variables de producción en Vercel. **Si coinciden, es
+  la misma base: no resetees, no siembres, y recuerda que cualquier prueba que cree, edite o borre
+  datos (logros, evaluaciones, pagos…) está escribiendo en producción.** La solución es un proyecto
+  Supabase aparte para desarrollo y QA.
 - **Sin efectos externos.** Correos desviados a `EMAIL_DEV_TO` o desactivados;
   Upstash vacío en local; ningún pago, WhatsApp ni servicio de terceros real.
 - **Datos ficticios.** Nunca datos reales de menores. Fotos: solo avatares o
