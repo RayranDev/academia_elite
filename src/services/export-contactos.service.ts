@@ -1,8 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO, diaDeISO, diaAFormatoLatino } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import { listarJugadoresGestion } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
@@ -72,7 +72,9 @@ export async function exportarContactos(
     ws.addRow([
       protegerCelda(j.apellido),
       protegerCelda(j.nombre),
-      j.fechaNacimiento ? format(new Date(j.fechaNacimiento), "dd/MM/yyyy") : "",
+      j.fechaNacimiento
+        ? diaAFormatoLatino(diaDeISO(new Date(j.fechaNacimiento).toISOString()))
+        : "",
       protegerCelda(j.categoria.nombre),
       protegerCelda(j.padre?.nombre ?? ""),
       protegerCelda(j.parentescoAcudiente ?? ""),
@@ -91,7 +93,7 @@ export async function exportarContactos(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `contactos-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

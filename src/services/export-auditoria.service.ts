@@ -1,7 +1,7 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requirePermiso } from "@/lib/auth/guards";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO, instanteEscuelaTexto } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import { listarAuditGlobal } from "@/repositories/audit.repository";
 import { registrarAuditoria } from "@/services/audit.service";
@@ -51,7 +51,7 @@ export async function exportarAuditoria(
   ws.getRow(1).font = { bold: true };
   for (const r of rows) {
     ws.addRow([
-      format(r.createdAt, "yyyy-MM-dd HH:mm:ss"),
+      instanteEscuelaTexto(r.createdAt),
       r.accion,
       r.entidad,
       r.entidadId,
@@ -66,7 +66,7 @@ export async function exportarAuditoria(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `auditoria-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

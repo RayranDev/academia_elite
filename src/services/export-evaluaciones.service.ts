@@ -1,8 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO, diaEscuelaDe, diaAFormatoLatino } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import {
   listarJugadoresGestion,
@@ -105,7 +105,7 @@ export async function exportarEvaluaciones(
       // plantilla del DT: si se duplica acá, el Excel vuelve a divergir.
       const vencida = evaluacionVencida(stats.fecha, frecuencia, ahora);
       estadoEvaluacion = vencida ? "Vencida" : "Al día";
-      ultimaEvaluacion = format(stats.fecha, "dd/MM/yyyy");
+      ultimaEvaluacion = diaAFormatoLatino(diaEscuelaDe(stats.fecha));
       ovr = stats.ovr;
       nivel = stats.nivel;
     }
@@ -147,7 +147,7 @@ export async function exportarEvaluaciones(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `evaluaciones-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

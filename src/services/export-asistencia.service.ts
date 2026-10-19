@@ -1,8 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO, diaEscuelaDe, diaAFormatoLatino } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import { listarCategorias } from "@/repositories/categoria.repository";
 import { listarPlantilla } from "@/repositories/jugador.repository";
@@ -78,7 +78,7 @@ export async function exportarAsistencia(
     const nombreHoja = categoria.nombre.replace(/[\\/*?:[\]]/g, " ").slice(0, 31);
     const ws = wb.addWorksheet(nombreHoja || "Categoría");
 
-    const fechas = eventosCat.map((e) => format(new Date(e.inicio), "dd/MM"));
+    const fechas = eventosCat.map((e) => diaAFormatoLatino(diaEscuelaDe(new Date(e.inicio))).slice(0, 5));
     ws.addRow(["Jugador", ...fechas, "%"]);
     ws.getRow(1).font = { bold: true };
 
@@ -129,7 +129,7 @@ export async function exportarAsistencia(
   }
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `asistencia-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

@@ -57,6 +57,35 @@ export function diaEscuelaDe(
   return new Intl.DateTimeFormat("en-CA", { timeZone: zona }).format(instante);
 }
 
+/**
+ * `YYYY-MM-DD` -> `DD/MM/YYYY` (formato de las planillas en Colombia). Trabaja sobre
+ * el string del día, así que no hay zona horaria de por medio: úsala DESPUÉS de
+ * `diaDeISO` (día de almanaque) o `diaEscuelaDe` (instante), nunca con
+ * `date-fns format()`, que en el servidor usa la zona del proceso (UTC en Vercel).
+ */
+export function diaAFormatoLatino(dia: string): string {
+  const [anio, mes, diaDelMes] = dia.split("-");
+  return `${diaDelMes}/${mes}/${anio}`;
+}
+
+/**
+ * Un instante como texto `YYYY-MM-DD HH:mm:ss` en la zona de la escuela (para
+ * planillas y auditoría). `sv-SE` porque su formato corto ES ese, igual que
+ * `en-CA` para el día: evita armar el string con getters de la zona del proceso.
+ */
+export function instanteEscuelaTexto(instante: Date, zona: string = ZONA_ESCUELA): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: zona,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(instante);
+}
+
 /** Hoy en `YYYY-MM-DD` según la zona de la escuela. */
 export function hoyISO(ahora: Date = new Date(), zona: string = ZONA_ESCUELA): string {
   return diaEscuelaDe(ahora, zona);

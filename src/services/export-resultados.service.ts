@@ -1,8 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO, diaEscuelaDe, diaAFormatoLatino } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { partidosParaExport } from "@/repositories/gestion-deportiva.repository";
@@ -92,7 +92,7 @@ export async function exportarResultados(
   for (const p of partidos) {
     const local = p.resultadoLocal ?? 0;
     const visitante = p.resultadoVisitante ?? 0;
-    const fecha = format(new Date(p.inicio), "dd/MM/yyyy");
+    const fecha = diaAFormatoLatino(diaEscuelaDe(new Date(p.inicio)));
     const nombrePartido = p.rival
       ? `${p.esLocal === false ? "@" : "vs"} ${p.rival}`
       : p.titulo;
@@ -132,7 +132,7 @@ export async function exportarResultados(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `resultados-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),

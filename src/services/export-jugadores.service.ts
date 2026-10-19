@@ -1,8 +1,8 @@
 import type { AuthContext } from "@/lib/auth/context";
 import { requireRole, requireEscuela, assertTenant } from "@/lib/auth/guards";
 import { ValidationError, NotFoundError } from "@/lib/errors";
-import { format } from "date-fns";
 import ExcelJS from "exceljs";
+import { hoyISO } from "@/lib/fecha-calendario";
 import { protegerCelda } from "@/lib/xlsx";
 import { categoriasDelDt } from "@/services/dt-scope";
 import { listarPlantilla, listarJugadoresGestion } from "@/repositories/jugador.repository";
@@ -157,7 +157,7 @@ export async function exportarJugadores(
   });
 
   const buf = await wb.xlsx.writeBuffer();
-  const fecha = format(new Date(), "yyyyMMdd");
+  const fecha = hoyISO().replace(/-/g, "");
   return {
     filename: `jugadores-${escuela.slug}-${fecha}.xlsx`,
     buffer: Buffer.from(buf),
