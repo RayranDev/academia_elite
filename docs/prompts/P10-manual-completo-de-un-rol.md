@@ -67,6 +67,12 @@ capturas reales) y la plantilla de ficha de la política §4, con su cabecera
 4. Abre el `.docx` y el `.pdf`. Revisa portada, índice, tablas desbordadas, imágenes
    ilegibles y numeración de figuras. Corrige y reconstruye.
 
+**Capturas:** contra la aplicación **compilada** (`npm run build && npm run start`) o sin el
+indicador de desarrollo de Next.js (el círculo "N" abajo a la izquierda no puede aparecer).
+
+**Entrega del Word:** en Windows con Word, ejecuta `npm run manuales:word` para dejar el
+índice con números de página antes de dar el .docx por terminado.
+
 **Reglas:** solo `localhost` y datos ficticios; capturas **sin caras de menores ni
 credenciales**; sin commits ni push; scripts de uso único en `scratch/`, nunca en
 `scripts/`.

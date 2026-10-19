@@ -162,6 +162,9 @@ o del código, ni "debería funcionar así".
   barra del navegador con datos de un entorno.
 - Datos ficticios coherentes entre módulos: el mismo jugador de demostración recorre
   todo el manual.
+- **Sin el indicador de desarrollo de Next.js.** En modo desarrollo aparece un círculo con
+  una "N" abajo a la izquierda y arruina la captura. Se captura contra la aplicación
+  compilada (`npm run build && npm run start`) o con ese indicador desactivado.
 - **Peso:** las capturas se optimizan con `npm run manuales:optimizar` (máx. 1400 px de
   ancho, PNG comprimido) **antes** de commitearse. Las fuentes (`.md`) y las capturas
   optimizadas sí se versionan.
@@ -201,8 +204,15 @@ scratch/                         # trabajo descartable, ignorado por git
 | `npm run manuales:cobertura` | Cruza pantallas vs. fichas. `--estricto` falla si falta algo. |
 | `npm run manuales:indice` | Regenera `INDICE.md` (estado, versión, fecha y cobertura). |
 | `npm run manuales:optimizar` | Reduce el peso de las capturas. |
-| `npm run manuales:build` | Construye el Word y el PDF de cada rol y escribe el informe. |
+| `npm run manuales:build` | Construye el Word y el PDF de cada rol y escribe el informe. `--estricto` falla por cobertura incompleta, imágenes faltantes **o fugas técnicas**. |
+| `npm run manuales:word` | Solo Windows con Microsoft Word: calcula los números de página del índice del .docx, lo guarda y exporta un `*_word.pdf`. Se corre **antes de entregar el Word**. |
 
+- **El índice del Word y su aviso.** Si el .docx pide "actualizar campos" al abrirse
+  (la opción `updateFields` o un campo marcado `dirty`), Word muestra al usuario un
+  cuadro de advertencia y, abierto de forma automática, se cuelga. Por eso el generador no
+  usa ninguna de las dos y publica el índice **sin números de página**; `manuales:word`
+  los calcula con Word y los deja guardados. Los manuales se entregan ya pasados por ese
+  paso. El script solo toca las carpetas de `roles.json`, nunca `salida/previos-*`.
 - **Regla de invalidación.** Todo cambio que toque la interfaz de un módulo lo marca
   `por reverificar` en el mismo cambio; un módulo `por reverificar` no se entrega.
 - `docs/MANUAL-DE-USO.md` pasa a ser un índice que apunta a estos manuales cuando el

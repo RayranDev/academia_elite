@@ -106,6 +106,11 @@ Verificados contra el código; el detalle completo está en
   - **`actualizarParametroAction`** (admin) sigue como `<form action>` sin feedback visible: último ítem del antiguo paquete de feedback (el resto se cerró, TRAZABILIDAD #60).
   Descartados: QA-011 (no hay switches), DOC-009 (ya actualizado), DOC-010
   (ya conocido).
+- **"Volver a la plantilla" no vuelve a la plantilla** (Bajo, UX). En la pantalla de éxito de
+  la evaluación, ese enlace lleva a `/dt` (Hoy) y no a `/dt/plantilla`. Hallado al escribir el
+  manual de Mediciones (Notas internas de la ficha). Decidir si se corrige el destino o el texto.
+- **Recapturar las figuras 6 a 8 del manual de Entrenador** (Mediciones): muestran el indicador
+  de desarrollo de Next.js (círculo "N"). Recapturar contra la app compilada.
 - **Decidir si M1 (motivo obligatorio del SUPER_ADMIN) alcanza a `editarUsuarioAdmin`,
   `resetPasswordUsuarioAdmin` y `editarEscuelaSuperAdmin`** (Media, política).
   Hoy auditan el cambio pero no piden `motivo` (a diferencia de editar jugador,

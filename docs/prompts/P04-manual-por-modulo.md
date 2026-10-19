@@ -37,8 +37,9 @@ qué* algo funciona así, pero **lo que escribes lo has visto ocurrir**.
    efecto (¿qué cambió y dónde se ve? Compruébalo entrando con el otro rol).
 4. Prueba la reversa (cancelar, editar, desactivar, eliminar) y los estados límite
    (vacío, un elemento, muchos, móvil 375 px).
-5. Captura la pantalla real durante la ejecución: **sin caras de menores** y **sin
-   credenciales ni correos reales**. Después ejecuta `npm run manuales:optimizar`.
+5. Captura la pantalla real durante la ejecución, contra la app **compilada**
+   (`npm run build && npm run start`) o sin el indicador de desarrollo de Next.js (el círculo
+   "N"): **sin caras de menores** y **sin credenciales ni correos reales**. Después ejecuta `npm run manuales:optimizar`.
 6. Escribe la ficha con la plantilla. **Capa pública sin nada técnico** (ni rutas, ni
    atributos, ni funciones); nombres de botones y campos exactamente como aparecen en
    pantalla. Lo técnico y los comportamientos conocidos van en **Notas internas**.

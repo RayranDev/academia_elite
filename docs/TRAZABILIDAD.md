@@ -2364,6 +2364,25 @@ participan de los E2E y nunca se apuntan a un schema distinto.
 - Quedó creada la biblioteca de prompts y se registró el checklist de lanzamiento
   en `PENDIENTES.md`.
 
+## 61. Manuales: Word y PDF por rol desde un generador único (2026-10-19)
+
+- La corrida de manuales produjo fichas `.md` de solo cinco módulos: el usuario final no puede
+  abrirlas y cubrían menos del 10 % de las pantallas. La política pasó a v2: el entregable es un
+  **Word y un PDF por rol**, con **cobertura total medida por una herramienta** y fichas con capa
+  pública (sin nada técnico) y capa interna.
+- `scripts/manuales/`: `inventario`, `cobertura`, `indice`, `optimizar-imagenes`, `build` y `word-actualizar`.
+  Un solo generador lee las fichas (los cinco anteriores tenían el texto escrito dentro del script y
+  no se podían mantener). Capturas: 22,3 MB a 4,5 MB. `--estricto` falla por cobertura, imagen
+  faltante o fuga técnica.
+- Hallazgo con Word real: `updateFields` y los campos `dirty` hacen que Word pregunte al abrir
+  y, abierto automáticamente, se cuelgue. El índice se publica sin números y `manuales:word` los
+  calcula con Word. Verificado que el índice coincide con las páginas reales.
+- Las cinco fichas existentes se limpiaron de fugas técnicas (99 avisos a 0); la ficha de Mediciones
+  dejó de reclamar rutas que no documenta. Cobertura real: 7/59 pantallas hasta cerrar P10.
+- Orden del repositorio: `scratch/` ignorada para lo descartable (generadores viejos, capturas
+  sueltas) y `docs/manuales/salida/` ignorada para lo generado; `scripts/` solo conserva
+  herramientas que se mantienen.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

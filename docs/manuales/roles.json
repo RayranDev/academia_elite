@@ -1,0 +1,45 @@
+{
+  "_ayuda": "Metadatos de los manuales por rol. El orden de capitulos NO se define aqui: sale del campo `orden` del front-matter de cada ficha (docs/manuales/fuentes/<id>/<modulo>.md). `exclusiones` lista rutas del inventario que no necesitan ficha (p. ej. paginas que solo redirigen); cada una exige `ruta` y `razon`.",
+  "roles": [
+    {
+      "id": "super-admin",
+      "etiqueta": "Súper Admin",
+      "titulo": "Manual del Súper Administrador",
+      "subtitulo": "Guía paso a paso para administrar la plataforma: escuelas, catálogos y soporte.",
+      "audiencia": "Equipo de administración de la plataforma (Súper Administradores).",
+      "prefijoRuta": "/admin",
+      "archivo": "Manual_Super_Administrador",
+      "exclusiones": []
+    },
+    {
+      "id": "escuela",
+      "etiqueta": "Administrador de escuela",
+      "titulo": "Manual del Administrador de Escuela",
+      "subtitulo": "Guía paso a paso para operar tu escuela: jugadores, cuerpo técnico, pagos y marca.",
+      "audiencia": "Directores y administradores de escuelas de fútbol.",
+      "prefijoRuta": "/escuela",
+      "archivo": "Manual_Administrador_de_Escuela",
+      "exclusiones": []
+    },
+    {
+      "id": "entrenador",
+      "etiqueta": "Entrenador",
+      "titulo": "Manual del Entrenador",
+      "subtitulo": "Guía paso a paso para evaluar jugadores, planificar sesiones y motivar a tu plantilla.",
+      "audiencia": "Entrenadores y directores técnicos (DT) de la escuela.",
+      "prefijoRuta": "/dt",
+      "archivo": "Manual_Entrenador",
+      "exclusiones": []
+    },
+    {
+      "id": "jugador",
+      "etiqueta": "Familia / jugador",
+      "titulo": "Manual de la Familia y el Jugador",
+      "subtitulo": "Guía paso a paso para seguir la carta, el progreso, los pagos y los logros del jugador.",
+      "audiencia": "Familias, acudientes y jugadores de la escuela.",
+      "prefijoRuta": "/jugador",
+      "archivo": "Manual_Familia_y_Jugador",
+      "exclusiones": []
+    }
+  ]
+}
