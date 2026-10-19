@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "scratch/**",
   ]),
   // El prefijo `_` marca un parámetro que la firma EXIGE pero el cuerpo no usa:
   // `useActionState` siempre pasa (prev, formData) aunque la acción no los lea,

@@ -66,3 +66,10 @@ next-env.d.ts
 
 # Credenciales de cuentas demo (algunas activas en producción) — nunca en el repo
 /credenciales.md
+
+# trabajo descartable de sesiones (agentes, depuración): nunca se versiona
+/scratch/
+# manuales generados (DOCX/PDF/HTML pesan decenas de MB): se entregan como adjunto, no en git
+/docs/manuales/salida/
+# configuración local de Claude Code
+/.claude/settings.local.json
