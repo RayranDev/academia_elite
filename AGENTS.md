@@ -249,6 +249,7 @@ haga, por pequeño que sea:
 | `politicas/POLITICA-QA.md` | **Cómo se audita la app a ciegas** (sin leer el código ni los docs): fases, matriz de cobertura, formato de hallazgos y desenmascarado. |
 | `politicas/POLITICA-MANUALES.md` | **Cómo se escriben y verifican los manuales**: módulo por módulo, control por control, ficha obligatoria, frescura y privacidad de las capturas. |
 | `prompts/README.md` | **Biblioteca de prompts** para pedir trabajo a un agente (QA a ciegas, manuales por módulo, verificación de reportes, cierre de pendientes, preparación de salida): índice y lanzadores. |
+| `manuales/` | Manuales de usuario: fuentes por módulo (`fuentes/`), capturas (`img/`), `roles.json` e `INDICE.md` (generado). Los Word/PDF salen de `npm run manuales:build` a `salida/` (ignorada). Ver `politicas/POLITICA-MANUALES.md`. |
 
 **Regla de documentación:** cuando un plan se ejecuta, su resumen va a
 `TRAZABILIDAD.md` y el documento del plan **se elimina** — el detalle queda en el
@@ -256,3 +257,23 @@ historial de git. Nunca conviven dos versiones de la verdad. Por eso ya no
 existen `PLAN-MAESTRO-v4.md`, `PLAN-UX-DT.md` ni `HOJA-DE-RUTA.md`; los
 comentarios del código que citan `PLAN-UX-DT PR-n §x` refieren al hito 12 de
 `TRAZABILIDAD.md`.
+
+---
+
+## 9. Dónde va cada cosa (y dónde no)
+
+Varias sesiones de agentes escriben en este repositorio; sin una regla, cada una deja
+sus propios scripts y archivos sueltos. Esta es la regla:
+
+- **`scripts/`**: solo herramientas que se mantienen (backups, backfills, el generador
+  de manuales en `scripts/manuales/`). Nada de uso único, y **nunca** claves ni
+  correos reales dentro.
+- **`scratch/`** (ignorada por git): scripts de depuración, volcados, borradores e
+  informes de sesión. Si algo vale la pena, se **promueve** a su lugar y se versiona.
+  Ver `scratch/README.md`.
+- **`docs/manuales/salida/`** (ignorada): manuales generados (.docx/.pdf/.html).
+  Pesan decenas de MB; no se versionan binarios así.
+- **Una sola sesión escribe sobre un mismo módulo o archivo a la vez.** Si hay agentes
+  corriendo, no se hace limpieza ni refactor del mismo árbol.
+- Los informes de QA se guardan con la fecha y el entorno **realmente** auditado;
+  producción no se audita (`docs/politicas/POLITICA-QA.md` §2).

@@ -170,14 +170,15 @@ Orden sugerido:
    docs. Entrega `docs/auditoria/REPORTE-QA-CIEGO-<fecha>.md`; recién después, el
    triage. Cada hallazgo confirmado termina corregido (con test), en este archivo o
    descartado.
-2. **Manuales por módulo** (`POLITICA-MANUALES.md`, prompt **P04**), empezando por **Mediciones y
-   evaluación**, **Fondos** y **Logros**; después el resto del menú de cada rol.
-   Crear `docs/manuales/INDICE.md` con la tabla de frescura.
-3. **Decisiones previas** (ver el listado de decisiones abiertas):
-   - dónde se publican los PDF/DOCX/HTML generados (hoy pesan 13-18 MB cada uno y
-     `docs/manuales/` no está versionado): no se commitean binarios;
-   - cuando existan los manuales por módulo, `docs/MANUAL-DE-USO.md` pasa a ser un
-     índice (no pueden convivir dos manuales).
+2. **Manuales completos por rol** (`POLITICA-MANUALES.md` v2, prompt **P10**): los cuatro
+   roles, **todas** sus pantallas, entregados en **Word y PDF**. La herramienta
+   `npm run manuales:cobertura` mide el avance por ruta; `npm run manuales:build` genera
+   los entregables. Orden sugerido: entrenador, familia, administrador de escuela,
+   súper admin. Después **P11** y una prueba de lectura con una persona nueva.
+   `docs/MANUAL-DE-USO.md` pasa a ser un índice cuando cada rol esté completo.
+3. Los manuales generados son **material de capacitación local**: no se versionan (carpeta
+   `salida/` ignorada); los de octubre de 2026 anteriores a este proceso quedaron en
+   `docs/manuales/salida/previos-2026-10-18/`.
 
 ---
 

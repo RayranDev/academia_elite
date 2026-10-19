@@ -1,221 +1,250 @@
 # Política de manuales de usuario
 
-> **Qué es esto.** Cómo se escriben, verifican y mantienen los manuales de
-> Fútbol Career Mode. Un manual es una **promesa**: si dice que un botón hace
+> **Qué es esto.** Cómo se escriben, verifican, construyen y mantienen los manuales
+> de Fútbol Career Mode. Un manual es una **promesa**: si dice que un botón hace
 > algo, alguien lo tocó y lo comprobó en esta versión.
 >
-> **Por qué existe.** Un manual escrito de memoria o leyendo el código envejece
-> mal y, peor, miente con aplomo. Los lectores son entrenadores, familias y
-> administradores de escuela: no pueden contrastar el texto contra el código, solo
-> contra la pantalla. Si no coincide, pierden la confianza en ambos.
+> **Versión 2 (2026-10-19).** Reemplaza a la v1. La v1 trataba el Markdown como
+> producto y dejaba el Word/PDF como un paso opcional; el resultado fueron fichas
+> sueltas de unos pocos módulos que ningún usuario puede abrir. Cambia el producto,
+> el alcance y cómo se mide que está completo.
 
 ---
 
-## 1. Principios
+## 1. Qué se entrega
 
-1. **Se documenta lo que se ejecutó, no lo que se supone.** Cada afirmación sale
-   de usar la función en la versión vigente.
-2. **Módulo por módulo, control por control.** La unidad de trabajo es el módulo
-   (una pantalla o función de un rol). Todo botón, campo, filtro, interruptor,
+**Un manual por rol, en Word (.docx) y PDF.** Es lo único que recibe un entrenador,
+una familia, un administrador de escuela o el equipo de plataforma. El Markdown es
+un paso intermedio de trabajo, nunca el entregable.
+
+| Rol | Manual | Carpeta de la app |
+|---|---|---|
+| Súper Admin | Manual del Súper Administrador | `/admin` |
+| Administrador de escuela | Manual del Administrador de Escuela | `/escuela` |
+| Entrenador (DT) | Manual del Entrenador | `/dt` |
+| Familia / jugador | Manual de la Familia y el Jugador | `/jugador` |
+
+Cada manual tiene portada, índice, una introducción de cómo leerlo y **un capítulo
+por pantalla del menú del rol**, con capturas reales numeradas.
+
+**Se entregan como adjunto** (para capacitaciones, correo o almacenamiento propio).
+**No se versionan** los .docx/.pdf/.html generados: pesan decenas de MB y se
+reconstruyen en un minuto desde las fuentes (`docs/manuales/salida/` está en
+`.gitignore`).
+
+---
+
+## 2. Alcance: todas las pantallas, medido por una herramienta
+
+"Cubrimos los módulos importantes" no existe. **Un manual está completo cuando cada
+pantalla del rol tiene su capítulo**, y eso lo mide `npm run manuales:cobertura`, no
+una persona:
+
+- El inventario sale de `src/app/<prefijo>/**/page.tsx`: toda ruta es una pantalla.
+- Cada ficha declara en su cabecera las rutas que documenta (campo `rutas`).
+- Una ruta sin ficha figura como **pendiente**; una ruta declarada que no existe
+  figura como **error**. Con `--estricto` la herramienta falla.
+- Las pantallas que no merecen capítulo (p. ej. una redirección) se excluyen **en
+  `docs/manuales/roles.json`, con la razón escrita**.
+
+Una pantalla puede ser un módulo entero (Logros) o parte de uno (el detalle de un
+jugador forma parte de "Plantilla"). La unidad de trabajo sigue siendo el módulo.
+
+---
+
+## 3. Principios
+
+1. **Se documenta lo que se ejecutó, no lo que se supone.** Cada afirmación sale de
+   usar la función en la versión vigente.
+2. **Módulo por módulo, control por control.** Todo botón, campo, filtro, interruptor,
    menú y acción de fila se prueba y se explica.
-3. **El manual no tapa defectos.** Si un control se comporta de forma confusa o
-   incorrecta, no se escribe un rodeo en silencio: se registra el hallazgo
-   (`PENDIENTES.md` / reporte de QA) y el manual describe el comportamiento real,
-   marcado como **conocido**, hasta que se corrija.
-4. **Una sola fuente de verdad.** Existe un único manual vigente por rol. Las
-   versiones viejas se eliminan (el historial queda en git), no conviven.
-5. **Se escribe para quien no sabe.** Lenguaje de la persona que usa el producto,
-   sin términos técnicos.
+3. **El manual no tapa defectos.** Si un control se comporta mal o confunde, no se
+   escribe un rodeo en silencio: se registra el hallazgo (formato de
+   `POLITICA-QA.md` §6) y se anota en "Notas internas". El manual describe lo que
+   ocurre.
+4. **Una sola fuente de verdad.** Un manual vigente por rol. El texto vive en las
+   fichas; **nunca** dentro de un script generador (así se rompió la v1: cinco
+   generadores con el contenido escrito adentro).
+5. **Se escribe para quien no sabe.** Lenguaje de la persona que usa el producto.
 
 ---
 
-## 2. Qué es un módulo
+## 4. La ficha de módulo: dos capas
 
-Una función completa para un rol, con nombre de menú. Ejemplos del alcance:
-
-| Rol | Módulos (lista orientativa, se completa recorriendo el menú real) |
-|---|---|
-| Súper Admin | Escuelas · Usuarios · Solicitudes (leads) · **Fondos** · **Logros** · Parámetros · Simulador · Auditoría · Sesión de soporte |
-| Administrador de escuela | Marca · Sedes · Categorías (rangos) · Jugadores (alta por pasos) · Entrenadores y staff · Códigos · Aranceles, descuentos y conceptos · Membresías y pagos · Morosos · Egresos · Asistencia · Ranking · Anuncios · Landing |
-| Entrenador | Plantilla · **Mediciones y evaluación** · Progreso · Eventos y Modo Sesión · Calendario · Logros · Mensajes · Solicitudes · Perfil |
-| Familia / jugador | Carta · Progreso · Eventos y calendario · Pagos · **Fondos** · Logros · Mensajes · Perfil y cuenta |
-
-La lista definitiva se arma **recorriendo el menú real** de cada rol, no copiando
-esta tabla. Si hay rutas que existen pero no tienen entrada de menú, se anotan
-aparte (son un hallazgo de navegación, no un módulo oculto).
-
----
-
-## 3. Cómo se prueba un módulo
-
-Entorno igual al de `POLITICA-QA.md` §2: instancia local, base de pruebas,
-datos ficticios, sin efectos externos.
-
-Para cada módulo, en orden:
-
-1. **Preparar el contexto.** Qué datos hacen falta para que el módulo tenga algo
-   que mostrar (p. ej. para Mediciones: un jugador con categoría y posición). Se
-   documenta, porque es el primer lugar donde se traba un usuario nuevo.
-2. **Inventariar los controles.** Lista completa de lo que se puede tocar en la
-   pantalla, incluidos menús desplegables, íconos, filtros, ordenamientos,
-   paginadores y modales.
-3. **Probar cada control**, con tres intentos como mínimo:
-   - **Camino feliz**: con datos válidos.
-   - **Camino de error**: vacío, inválido, repetido, fuera de rango. Se copia el
-     mensaje **literal** que muestra el sistema.
-   - **Efecto**: ¿qué cambió y **dónde se ve** (en esa pantalla, en otra, en otro
-     rol)? Se comprueba entrando con el otro rol.
-4. **Probar la reversa.** Cancelar, editar, desactivar, eliminar y qué pasa con lo
-   que dependía de eso.
-5. **Probar estados límite.** Módulo vacío, con un solo elemento, con muchos;
-   móvil de 375 px.
-6. **Capturar evidencia** durante la ejecución real (sección 5).
-
-### Lo que no se acepta
-- Describir un botón sin haberlo presionado.
-- Copiar un texto de otro manual o del código.
-- "Debería funcionar así": si no se vio, no se escribe.
-
----
-
-## 4. Ficha de módulo (plantilla obligatoria)
-
-Archivo fuente: `docs/manuales/fuentes/<rol>/<modulo>.md`
+Archivo: `docs/manuales/fuentes/<rol>/<modulo>.md`. Tiene **capa pública**, que llega
+al manual, y **capa interna**, que el generador **omite**.
 
 ```markdown
-# <Nombre del módulo, igual que en el menú>
+---
+rol: entrenador
+modulo: Mediciones y evaluación
+orden: 4
+rutas: ["/dt/plantilla", "/dt/jugadores/[id]", "/dt/jugadores/[id]/evaluar"]
+---
+# Mediciones y evaluación
 
-> Verificado en la versión <x.y.z> (<sha corto>) el <AAAA-MM-DD> por <quién/agente>.
+> Verificado en la versión 0.1.0 (`abc1234`) el AAAA-MM-DD por <quién/agente>.
 
 **Para qué sirve:** una frase.
-**Quién lo usa y dónde está:** rol · ruta del menú (Menú → Sección → Pantalla).
+**Dónde está:** Menú → Sección → Pantalla.        (nombres del menú, no rutas técnicas)
 **Antes de empezar:** datos o pasos previos necesarios.
 
 ## Mapa de la pantalla
-<captura con los controles numerados>
+<captura con los controles numerados>   *Figura 1: ...*
 
 ## Controles
 | N.º | Control (nombre exacto en pantalla) | Qué hace | Reglas y límites | Si se equivoca (mensaje literal) | Verificado |
-|---|---|---|---|---|---|
 
-## Cómo se hace (tareas completas)
-### <Tarea 1: p. ej. "Evaluar a un jugador por primera vez">
-1. …  (cada paso con el nombre exacto del botón o campo)
-Resultado: qué debe ver al terminar.
+## Cómo se hace
+### <Tarea: p. ej. "Evaluar a un jugador por primera vez">
+1. …  (nombre exacto del botón o campo en cada paso)
+**Resultado:** qué ve al terminar.
 
 ## Qué ve la otra parte
-Qué cambia en la pantalla de la familia / el entrenador / la escuela tras esto.
+Qué cambia en la pantalla de la familia / el entrenador / la escuela.
 
 ## Errores y situaciones frecuentes
-Pantalla vacía, mensajes de error, qué hacer en cada caso.
+Pantalla vacía, mensajes de error, qué hacer.
 
-## Comportamientos conocidos
-Lo que hoy funciona de forma confusa o limitada (con referencia al pendiente).
+## Notas internas            <- NO se publica
+Comportamientos conocidos, rutas técnicas, selectores, referencias a hallazgos.
 
-## Registro de verificación
-Fecha · versión · cuántos controles · cuántos probados · quién.
+## Registro de verificación  <- NO se publica
+Fecha · versión · controles totales / probados · quién.
 ```
 
-### Ejemplos del nivel de detalle esperado
-- **Mediciones y evaluación**: cada campo físico y técnico (unidad, rango válido,
-  qué pasa fuera de rango), las notas de 1 a 10 y su significado, qué cambia según
-  la posición del jugador (campo vs. arquero), cuándo se calcula la carta, qué
-  hace "anular evaluación", cómo se ve el resultado para la familia.
-- **Creación de fondos**: cada opción del editor, cómo se ve la vista previa, qué
-  efectos existen y cuándo se activan, cómo se publica o desactiva, qué pasa con
-  las cartas que ya lo tenían equipado, cómo lo elige la familia.
-- **Logros**: cómo se crean y configuran, condiciones para otorgarlos, quién puede
-  otorgarlos, qué suma o no a la carta, cómo se ve en el perfil del jugador.
+**Regla de la capa pública:** nada técnico. Ni rutas (`/dt/plantilla`), ni atributos
+HTML, ni nombres de funciones, ni identificadores. Si hace falta decir dónde está algo,
+se usa el camino del menú. La columna **Verificado** de la tabla es interna y el
+generador la quita. El generador **avisa** cuando detecta una fuga técnica en la
+capa pública.
+
+### Nivel de detalle esperado (ejemplos)
+- **Mediciones y evaluación**: cada campo físico y técnico (unidad, rango válido, qué
+  pasa fuera de rango), las notas de 1 a 10 y su significado, qué cambia según la
+  posición (campo vs. arquero), cuándo se calcula la carta, qué hace "anular
+  evaluación" y cómo lo ve la familia.
+- **Creación de fondos**: cada opción del editor, la vista previa, qué efectos
+  existen, cómo se publica o desactiva, qué pasa con las cartas que ya lo tenían
+  equipado, cómo lo elige la familia.
+- **Logros**: cómo se crean y configuran, condiciones para otorgarlos, quién los
+  otorga, qué suma o no a la carta, cómo se ve en el perfil del jugador.
 
 ---
 
-## 5. Evidencia y privacidad
+## 5. Cómo se prueba un módulo
 
-- Las capturas se toman **de la ejecución real**, nunca montadas ni de memoria.
-- **Cero caras de menores.** Solo avatares generados, el personaje de marca o
-  imágenes de prueba (`GUIA-DE-MARCA.md`).
-- **Cero credenciales visibles**: ni contraseñas, ni tokens, ni correos reales,
-  ni la barra del navegador con datos de un entorno.
-- Datos de ejemplo claramente ficticios y coherentes entre módulos (el mismo
-  jugador de demostración recorre todo el manual).
-- Capturas optimizadas (formato WebP/PNG comprimido); recortadas a lo relevante.
+Entorno igual al de `POLITICA-QA.md` §2: instancia **local**, base de pruebas, datos
+ficticios, sin efectos externos. **Nunca producción.**
+
+1. **Preparar el contexto** mínimo y documentar qué datos hacen falta.
+2. **Inventariar los controles** de la pantalla: botones, campos, filtros, menús,
+   interruptores, íconos, acciones de fila, modales, paginadores, ordenamientos.
+3. **Probar cada control** con tres intentos: camino feliz, camino de error (se copia
+   el mensaje **literal**) y **efecto** (qué cambió y dónde se ve, comprobado entrando
+   con el otro rol).
+4. **Probar la reversa**: cancelar, editar, desactivar, eliminar y qué pasa con lo que
+   dependía de eso.
+5. **Estados límite**: módulo vacío, un elemento, muchos; móvil de 375 px.
+6. **Capturar** durante la ejecución real (§6).
+
+No se acepta: describir un botón sin haberlo presionado, copiar texto de otro manual
+o del código, ni "debería funcionar así".
 
 ---
 
-## 6. Estilo
+## 6. Evidencia y privacidad
+
+- Capturas **de la ejecución real**, nunca montadas ni de memoria.
+- **Cero caras de menores:** solo avatares generados, el personaje de marca o imágenes
+  de prueba (`GUIA-DE-MARCA.md`).
+- **Cero credenciales visibles:** ni contraseñas, ni tokens, ni correos reales, ni la
+  barra del navegador con datos de un entorno.
+- Datos ficticios coherentes entre módulos: el mismo jugador de demostración recorre
+  todo el manual.
+- **Peso:** las capturas se optimizan con `npm run manuales:optimizar` (máx. 1400 px de
+  ancho, PNG comprimido) **antes** de commitearse. Las fuentes (`.md`) y las capturas
+  optimizadas sí se versionan.
+
+---
+
+## 7. Estilo
 
 - Español neutro, directo, en segunda persona del singular o impersonal; el mismo
-  registro que usa la interfaz.
-- **Los nombres de botones y campos van tal como aparecen en pantalla**, en
-  negrita. Si la interfaz cambia, el manual cambia.
+  registro que la interfaz.
+- Los nombres de botones y campos van **tal como aparecen en pantalla**, en negrita.
 - Sin términos técnicos (nada de "tenant", "Server Action", "endpoint", "DTO").
-- Una tarea por sección, pasos numerados, un verbo por paso.
-- Siempre el resultado esperado al final de cada tarea.
-- Advertencias donde hay riesgo real: acciones que no se pueden deshacer, datos
+- Una tarea por sección, pasos numerados, un verbo por paso, y el **resultado
+  esperado** al final de cada tarea.
+- Recuadros: `> **Importante:**`, `> **Ojo:**` o `> **Advertencia:**` se publican como
+  recuadro. Se usan donde hay riesgo real: acciones que no se pueden deshacer, datos
   de menores, cobros.
 
 ---
 
-## 7. Estructura, versiones y archivos generados
+## 8. Estructura y herramientas
 
 ```
 docs/manuales/
-  INDICE.md                      # estado de cada módulo (tabla de frescura)
-  fuentes/<rol>/<modulo>.md      # LA fuente de verdad (Markdown)
-  img/<rol>/<modulo>/            # capturas
-  (PDF / DOCX / HTML)            # GENERADOS a partir de las fuentes
+  roles.json                     # los 4 roles, su prefijo de ruta y las exclusiones justificadas
+  INDICE.md                      # GENERADO (npm run manuales:indice): no se edita a mano
+  fuentes/<rol>/<modulo>.md      # LA fuente de verdad
+  img/<rol>/<modulo>/            # capturas optimizadas
+  salida/                        # GENERADO e ignorado por git: .docx, .pdf, informe de construcción
+scripts/manuales/                # el generador único (y su cobertura)
+scratch/                         # trabajo descartable, ignorado por git
 ```
 
-- **Las fuentes se versionan; los generados no.** Los archivos PDF/DOCX/HTML se
-  producen con los scripts de `scripts/` y hoy pesan decenas de MB: no se
-  commitean (se publican como adjunto de la versión o en el almacenamiento que se
-  defina). Lo que se commitea son las fuentes y las capturas optimizadas.
-- **Tabla de frescura** en `INDICE.md`: módulo · versión verificada · fecha ·
-  estado (`vigente` / `por reverificar` / `sin hacer`).
-- **Regla de invalidación.** Todo cambio que toque la interfaz de un módulo marca
-  ese módulo como `por reverificar` en el mismo cambio. Un módulo `por
-  reverificar` no se publica.
-- Los manuales por rol (Súper Admin, Escuela, Entrenador, Familia) se **arman a
-  partir de los módulos**; no se escriben aparte.
-- Cuando existan los manuales por módulo, `docs/MANUAL-DE-USO.md` pasa a ser un
-  índice que apunta a ellos (dos manuales a la vez es la mentira que esta política
-  evita).
+| Comando | Qué hace |
+|---|---|
+| `npm run manuales:inventario` | Lista las pantallas de cada rol según `src/app`. |
+| `npm run manuales:cobertura` | Cruza pantallas vs. fichas. `--estricto` falla si falta algo. |
+| `npm run manuales:indice` | Regenera `INDICE.md` (estado, versión, fecha y cobertura). |
+| `npm run manuales:optimizar` | Reduce el peso de las capturas. |
+| `npm run manuales:build` | Construye el Word y el PDF de cada rol y escribe el informe. |
+
+- **Regla de invalidación.** Todo cambio que toque la interfaz de un módulo lo marca
+  `por reverificar` en el mismo cambio; un módulo `por reverificar` no se entrega.
+- `docs/MANUAL-DE-USO.md` pasa a ser un índice que apunta a estos manuales cuando el
+  rol correspondiente esté completo: no pueden convivir dos manuales.
 
 ---
 
-## 8. Relación con QA
+## 9. Relación con QA
 
-- Escribir el manual **es** una auditoría funcional: todo comportamiento raro que
-  aparezca se registra como hallazgo siguiendo el formato de `POLITICA-QA.md` §6.
-- La prueba a ciegas de QA (`POLITICA-QA.md`) y la verificación de manuales se
-  hacen en **momentos y por personas/agentes distintos**: el auditor ciego no debe
-  haber leído los manuales; el redactor del manual sí necesita saber qué hace el
-  sistema (puede consultar la documentación y el código para entender *por qué*,
-  pero **lo que escribe lo comprueba en pantalla**).
+- Escribir el manual **es** una auditoría funcional: todo comportamiento raro se
+  registra como hallazgo con el formato de `POLITICA-QA.md` §6.
+- La prueba a ciegas (`POLITICA-QA.md`) y la redacción del manual se hacen en
+  **momentos y por personas o agentes distintos**: el auditor ciego no debe haber leído
+  los manuales. El redactor sí puede consultar el código y la documentación para
+  entender *por qué*, pero **lo que escribe lo comprueba en pantalla**.
 
 ---
 
-## 9. Definición de terminado de un módulo
+## 10. Definición de terminado
 
+**De un módulo**
 - [ ] Todos los controles inventariados y probados (camino feliz, error y efecto).
-- [ ] Mensajes de error copiados literalmente.
-- [ ] Efecto en el otro rol comprobado entrando con ese rol.
-- [ ] Capturas reales, sin menores ni credenciales.
-- [ ] Ficha completa con versión, fecha y registro de verificación.
-- [ ] Comportamientos confusos registrados como hallazgo y marcados como conocidos.
-- [ ] `INDICE.md` actualizado.
+- [ ] Mensajes de error copiados literalmente; efecto en el otro rol comprobado.
+- [ ] Capturas reales, optimizadas, sin menores ni credenciales.
+- [ ] Ficha completa con front-matter, versión, fecha y registro de verificación.
+- [ ] Capa pública sin fugas técnicas; lo interno en "Notas internas".
 
-## 10. Definición de terminado de un manual por rol
-
-- [ ] Todos los módulos del menú del rol en estado `vigente`.
-- [ ] Ninguna ruta con función propia sin documentar.
-- [ ] Un lector nuevo cumple las tareas principales siguiendo solo el manual
-      (prueba de lectura con una persona que no conoce el sistema).
-- [ ] Documento generado y revisado en PDF y en móvil.
+**De un manual por rol**
+- [ ] `npm run manuales:cobertura --estricto` sin pantallas pendientes para el rol.
+- [ ] `npm run manuales:build` sin avisos de fugas técnicas ni imágenes faltantes.
+- [ ] El Word y el PDF **abiertos y revisados** (portada, índice, tablas que no se
+      desbordan, imágenes legibles, números de figura correctos).
+- [ ] **Prueba de lectura:** una persona que no conoce el sistema cumple las tareas
+      principales siguiendo solo el manual.
 
 ---
 
-## Cómo se lanza
+## 11. Cómo se lanza
 
-El prompt vive en la biblioteca: **P04** (manual de un módulo). Empezar por
-**Mediciones y evaluación**, **Fondos** y **Logros**. Ver `docs/prompts/README.md`.
+Los prompts viven en la biblioteca (`docs/prompts/README.md`):
+
+- **P10** — manual completo de **un rol**: recorre todo su menú, módulo por módulo, y
+  al final arma el Word y el PDF.
+- **P04** — un solo módulo (escribir o reverificar).
+- **P11** — construir y revisar los entregables.

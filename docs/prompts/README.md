@@ -30,12 +30,14 @@ agente sí abre su propio archivo de prompt y la política que cita; nada más.
 | **P01** | [QA a ciegas](P01-qa-a-ciegas.md) | Antes de una salida o tras una funcionalidad grande: probar la app como un usuario nuevo | `docs/auditoria/REPORTE-QA-CIEGO-<fecha>.md` |
 | **P02** | [Triage del QA a ciegas](P02-triage-qa-a-ciegas.md) | P01 terminó y su informe está guardado | `…-TRIAGE.md` (aparte) |
 | **P03** | [QA por lectura de código](P03-qa-por-lectura-de-codigo.md) | Auditoría técnica: capas, tenant, fechas, rendimiento | `REPORTE-QA-<fecha>.md` |
-| **P04** | [Manual de un módulo](P04-manual-por-modulo.md) | Escribir o reverificar el manual de un módulo, control por control | `docs/manuales/fuentes/…` |
+| **P04** | [Manual de un módulo](P04-manual-por-modulo.md) | Escribir o reverificar la ficha de UN módulo suelto (p. ej. tras un cambio de pantalla) | `docs/manuales/fuentes/…` |
 | **P05** | [Documentación técnica](P05-documentacion-tecnica.md) | Documentar arquitectura/datos/endpoints y detectar docs desactualizados | `docs/auditoria/documentacion-<fecha>/` |
 | **P06** | [Verificar un reporte](P06-verificar-hallazgos.md) | Otro agente entregó hallazgos y hay que separar lo real de lo inflado | `VERIFICACION-<fecha>.md` |
 | **P07** | [Seguridad a ciegas](P07-seguridad-multitenant-caja-negra.md) | Antes de sumar una escuela real o tras tocar auth, roles o archivos | `REPORTE-SEGURIDAD-<fecha>.md` |
 | **P08** | [Cerrar un pendiente](P08-cerrar-un-pendiente.md) | Ejecutar un paquete de `PENDIENTES.md` de punta a punta | código + tests + docs |
 | **P09** | [Preparar una salida](P09-preparar-release.md) | Antes de desplegar: veredicto LISTO / NO LISTO | `RELEASE-<fecha>.md` |
+| **P10** | [Manual completo de un rol](P10-manual-completo-de-un-rol.md) | Producir el manual de usuario COMPLETO de un rol (todas sus pantallas) en Word y PDF | fichas + `docs/manuales/salida/<rol>/` |
+| **P11** | [Construir y revisar manuales](P11-construir-y-revisar-manuales.md) | Regenerar los Word/PDF y dar veredicto ENTREGABLE / NO ENTREGABLE por rol | `salida/` + veredicto |
 
 ---
 
@@ -63,6 +65,18 @@ Ejecuta el prompt docs/prompts/P03-qa-por-lectura-de-codigo.md. Fecha para los a
 Ejecuta el prompt docs/prompts/P04-manual-por-modulo.md.
 Rol: <rol>. Módulo: <módulo>. URL: http://localhost:<PUERTO>.
 Credenciales — <rol>: <correo>/<clave> · otros roles que necesites: <correo>/<clave>.
+```
+
+**P10 — Manual completo de un rol (Word y PDF)**
+```
+Ejecuta el prompt docs/prompts/P10-manual-completo-de-un-rol.md.
+Rol: <super-admin | escuela | entrenador | jugador>. URL: http://localhost:<PUERTO>.
+Credenciales — <rol>: <correo>/<clave> · otros roles que necesites: <correo>/<clave>.
+```
+
+**P11 — Construir y revisar los manuales**
+```
+Ejecuta el prompt docs/prompts/P11-construir-y-revisar-manuales.md.
 ```
 
 **P05 — Documentación técnica**
@@ -104,7 +118,9 @@ Ejecuta el prompt docs/prompts/P09-preparar-release.md sobre la rama/commit <ref
 |---|---|
 | Auditoría completa antes de una salida | P01 → P02 → P06 (sobre el triage) → P08 por cada pendiente → P09 |
 | Revisar un reporte externo | P06 → decidir → P08 |
-| Dejar un módulo documentado | P04 (repetir por módulo) → P01 sobre ese rol para contrastar |
+| Manual completo de un rol | **P10** (un rol por corrida) → P11 → prueba de lectura con una persona nueva → P01 sobre ese rol para contrastar |
+| Un módulo cambió de pantalla | P04 sobre ese módulo → P11 |
+| Entregar manuales a una escuela o capacitación | P11 (veredicto) → enviar los .docx/.pdf de `docs/manuales/salida/` |
 | Sumar una escuela real | P07 → P09 |
 | Entender qué hace la app y qué docs mienten | P05 → P06 |
 
@@ -145,4 +161,7 @@ Formato de entrega y qué responder al terminar.>
   `COMMIT: sí`), y entonces **sin atribución de IA**.
 - **Evidencia o no existe:** todo hallazgo lleva `archivo:línea` o pasos
   reproducibles; lo no verificado se marca como tal.
+- **Orden en el repositorio:** lo descartable (scripts de uso único, volcados, borradores)
+  va a `scratch/`, que está ignorada por git; `scripts/` guarda solo herramientas que
+  se mantienen. Nunca claves ni correos reales dentro de un script.
 - **Next.js 16:** antes de dar por error una convención, `node_modules/next/dist/docs/`.
