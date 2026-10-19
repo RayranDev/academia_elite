@@ -2327,6 +2327,43 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   producto y no frena slugs al azar). Las capas externas (Firewall de Vercel,
   Spend Management) quedan en `PENDIENTES.md`.
 
+## 59. Políticas de QA y manuales, y biblioteca de prompts (2026-10-19)
+
+- `docs/politicas/POLITICA-QA.md`: la auditoría pasa a hacerse **a ciegas** (sin leer
+  código ni docs), con cuatro fases, matriz de cobertura obligatoria, hallazgos
+  `QAC-xxx` y un desenmascarado posterior que no edita el informe original.
+- `docs/politicas/POLITICA-MANUALES.md`: manuales **módulo por módulo, control por
+  control**, verificados ejecutando la app, con ficha obligatoria, tabla de frescura y
+  reglas de privacidad en las capturas. Los binarios generados no se versionan.
+- `docs/prompts/`: biblioteca de prompts (P01-P09) con índice y lanzadores. Los
+  prompts anteriores de `docs/auditoria/` se movieron ahí (P03, P05).
+
+## 60. Caché de la landing, sitemap, fechas, formularios con respuesta y Política (2026-10-19)
+
+- **`/e/[slug]` en caché de 60 s** (antes `force-dynamic`: cada visita ejecutaba una
+  función y consultaba la base). `invalidarLandingsPublicas()`
+  (`src/lib/landing-cache.ts`) la invalida al instante cuando una acción cambia
+  nombre, escudo, categorías, sedes, texto de la landing o activa/desactiva la
+  escuela; si algún camino la olvidara, el techo es de 60 s. No cubre slugs al azar.
+- **`sitemap.xml`** con la portada, `/legal` y las landings activas y publicadas
+  (consulta cross-tenant marcada, solo slug); `robots.txt` lo apunta. La URL base
+  sale de `AUTH_URL`.
+- **Fechas de las planillas.** Los siete exports formateaban con `date-fns` en la zona
+  del servidor (UTC en Vercel): un cumpleaños o un partido de noche podía salir un día
+  corrido y el nombre del archivo, con la fecha de mañana. Ahora usan
+  `diaDeISO`/`diaEscuelaDe`/`instanteEscuelaTexto` (hora de Bogotá).
+- **Respuesta visible** en convocatoria de la familia, desactivar código (con
+  confirmación), sedes, canchas y branding (`ActionResult` + `useEnvioAccion` +
+  `MensajeAccion`). "Eventos" entra al menú de la familia (`src/lib/nav/jugador.ts`),
+  en "Más" en el celular para no sacar a Pagos ni Mensajes de la barra.
+- **Aceptación de la Política en el primer ingreso** (rol JUGADOR): `/aceptar-politica`,
+  `politica.service` (sellado atómico e idempotente, auditoría `POLITICA_ACEPTADA`),
+  compuerta en el layout leyendo de la base. El texto vive en un solo componente
+  (`TextoPolitica`) compartido con `/legal`. Las cuentas demo del seed quedan aceptadas.
+- Verificados 10 hallazgos pendientes de Gemini (`docs/auditoria/VERIFICACION-2026-10-19.md`).
+- Quedó creada la biblioteca de prompts y se registró el checklist de lanzamiento
+  en `PENDIENTES.md`.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

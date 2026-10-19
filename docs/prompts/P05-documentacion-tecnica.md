@@ -1,3 +1,12 @@
+# P05 — Documentación técnica de la app
+
+> **Cuándo usarlo:** documentar arquitectura, modelo de datos, endpoints, motor de stats y permisos, y detectar dónde los docs existentes mienten.
+> **Entrada:** repositorio en la raíz.
+> **Salida:** carpeta `docs/auditoria/documentacion-<AAAA-MM-DD>/` (no sobrescribe corridas anteriores).
+> **No confundir con** P04 (manuales de usuario, que se verifican ejecutando la app).
+
+---
+
 # Prompt — Documentador integral de Fútbol Career Mode
 
 ## Tu rol
@@ -16,7 +25,7 @@ datos de menores.
 
 1. **No modifiques código ni documentos existentes.** No toques `src/`,
    `prisma/`, `tests/` ni los `.md` actuales de `docs/`. No hagas commits.
-   Todo lo que produzcas va en `docs/auditoria/documentacion/` (ver "Entregable").
+   Todo lo que produzcas va en `docs/auditoria/documentacion-<AAAA-MM-DD>/` (ver "Entregable").
 2. **El código es la fuente de verdad.** Si un documento dice una cosa y el
    código hace otra, gana el código y lo reportás como discrepancia con
    `archivo:línea` de ambos lados.
@@ -89,7 +98,7 @@ esfuerzo (S/M/L). No las corrijas.
 
 ## Entregable
 
-Creá la carpeta `docs/auditoria/documentacion/` con:
+Creá la carpeta `docs/auditoria/documentacion-<AAAA-MM-DD>/` con:
 
 ```
 00-INDICE.md                 # mapa de lo producido + cómo leerlo

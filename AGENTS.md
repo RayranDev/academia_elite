@@ -246,6 +246,9 @@ haga, por pequeño que sea:
 | `NGROK-PASO-A-PASO.md` | Exponer el dev local con ngrok (paso a paso). |
 | `TRAZABILIDAD.md` | **Historial único** de todo lo hecho: sprints, correcciones, planes ejecutados. |
 | `PENDIENTES.md` | **Lo que falta** por hacer (primer lugar donde buscar pendientes). |
+| `politicas/POLITICA-QA.md` | **Cómo se audita la app a ciegas** (sin leer el código ni los docs): fases, matriz de cobertura, formato de hallazgos y desenmascarado. |
+| `politicas/POLITICA-MANUALES.md` | **Cómo se escriben y verifican los manuales**: módulo por módulo, control por control, ficha obligatoria, frescura y privacidad de las capturas. |
+| `prompts/README.md` | **Biblioteca de prompts** para pedir trabajo a un agente (QA a ciegas, manuales por módulo, verificación de reportes, cierre de pendientes, preparación de salida): índice y lanzadores. |
 
 **Regla de documentación:** cuando un plan se ejecuta, su resumen va a
 `TRAZABILIDAD.md` y el documento del plan **se elimina** — el detalle queda en el

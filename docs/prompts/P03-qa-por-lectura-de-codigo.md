@@ -1,3 +1,12 @@
+# P03 — QA por lectura de código
+
+> **Cuándo usarlo:** auditoría técnica leyendo el código (seguridad, capas, tenant, fechas, rendimiento). Complementa a P01 (a ciegas); no lo reemplaza.
+> **Entrada:** repositorio en la raíz; opcional, app local para correr `typecheck`/`lint`/`test`.
+> **Salida:** `docs/auditoria/REPORTE-QA-<AAAA-MM-DD>.md`.
+> **Después:** pasar el resultado por P06 (verificar hallazgos) antes de aceptar nada.
+
+---
+
 # Prompt — QA integral de Fútbol Career Mode
 
 ## Tu rol
@@ -130,7 +139,7 @@ impacto esperado y esfuerzo estimado (S/M/L).
 
 ## Entregable
 
-Escribí **un único archivo**: `docs/auditoria/REPORTE-QA.md` con esta estructura:
+Escribí **un único archivo**: `docs/auditoria/REPORTE-QA-<AAAA-MM-DD>.md` con esta estructura:
 
 ```markdown
 # Reporte QA — <fecha>

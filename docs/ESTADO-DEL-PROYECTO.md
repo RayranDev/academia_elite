@@ -34,8 +34,8 @@ ve solo lo suyo.
   es lo que el dueño de la escuela compra (`DECISIONES.md` §49).
 - **Mercado objetivo:** **Colombia** (Ley 1581 de habeas data, EPS, "acudiente").
   Queda pendiente pasar el copy de voseo rioplatense a tuteo neutro.
-- **Calidad:** `typecheck` + `lint` limpios · **248 tests unitarios** · **6 specs
-  E2E** (10 tests, Playwright) en verde · CI en cada push/PR.
+- **Calidad:** `typecheck` + `lint` limpios · **634 tests unitarios** · **7 specs
+  E2E** (13 tests, Playwright) en verde · CI en cada push/PR.
 - **Datos:** Supabase PostgreSQL (pooler en runtime, conexión directa para
   migraciones) + Supabase Storage para fotos, con **RLS habilitado en todas las
   tablas** del esquema `public`.
@@ -235,8 +235,9 @@ El detalle vive en **[PENDIENTES.md](PENDIENTES.md)** (con tamaño y razón). En
 titulares:
 
 - **Riesgo**: la **decisión de Auth** (sigue en v5 beta) y **observabilidad** real.
-- **ERP**: descuentos como regla, staff más allá del DT (sin rol nuevo — ver
-  `DECISIONES.md` §73), unificar el patrón de motivo de soporte.
+- **ERP**: vigencia y bloqueo automático (gateado hasta el primer ciclo de cobro
+  real), comprobante de pago en PDF y recordatorios de cobranza (ver
+  `PENDIENTES.md`). Descuentos como regla y staff más allá del DT ya existen.
 - **Progresión**: conectar el rendimiento en partido a la curva y una vista de
   seguimiento para el DT.
 - **Localización**: pasar el copy de voseo a tuteo neutro para Colombia.
@@ -317,8 +318,8 @@ estado/deuda derivados. Detalle en el hito 18 de
 [TRAZABILIDAD.md](TRAZABILIDAD.md).
 
 ### Próximo
-Descuentos como regla y staff más allá del DT, y conectar el rendimiento en
-partido a la curva de desarrollo. Ver [PENDIENTES.md](PENDIENTES.md).
+Conectar el rendimiento en partido a la curva de desarrollo, el comprobante de
+pago y el checklist de lanzamiento público. Ver [PENDIENTES.md](PENDIENTES.md).
 
 ---
 
