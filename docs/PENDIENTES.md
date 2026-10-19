@@ -94,6 +94,55 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 ---
 
+## Paquete — Hallazgos de la auditoría QA (2026-10-18)
+
+Verificados contra el código; el detalle completo está en
+`docs/auditoria/REPORTE-QA.md`.
+
+- **Datos legales reales en `/legal`** (Alta, bloqueado por el dueño). La página
+  de producción muestra `[Razón social]` y `[NIT]` (`src/app/legal/page.tsx`
+  líneas 59 y 176). Hay que cargar los datos de la entidad responsable del
+  tratamiento: no se pueden inventar.
+- **`.env.example` desactualizado** (Media). Sigue describiendo SQLite
+  (`DATABASE_URL="file:./dev.db"`) y no menciona `DIRECT_URL`, que sí usan los
+  seeds y Playwright, ni las variables de Supabase, Upstash, Resend y
+  `CRON_SECRET` que lee el código. Reescribirlo contra los `process.env.*` reales.
+- **Fecha de nacimiento corrida un día en la exportación de contactos** (Media).
+  `export-contactos.service.ts` formatea con `format(new Date(...))`; en un
+  servidor con zona UTC-5 (dev local) la fecha sale un día antes. En Vercel
+  (UTC) sale bien, pero debe usar `src/lib/fecha-calendario.ts` (AGENTS.md §6).
+
+---
+
+## Paquete — Protección contra tráfico malicioso (lo que NO se hace desde el código)
+
+La parte de código está hecha (TRAZABILIDAD #58). Estas capas se configuran en
+paneles externos; sin ellas, un ataque volumétrico igual ejecuta funciones y
+cuesta plata antes de que el rate limit de la app lo frene.
+
+- **Vercel → Settings → Spend Management**: fijar un tope mensual con aviso al
+  mail y pausa del proyecto al llegar (evita la factura sorpresa).
+- **Vercel → Firewall → Rules**: regla de rate limit por IP, por ejemplo
+  `/e/*`, `/login`, `/registro` ≤ 100 req/min → *Deny* 10 min. Verificar qué
+  cantidad de reglas incluye el plan.
+- **Vercel Firewall → Attack Challenge Mode**: no se deja prendido; es el
+  interruptor para cuando ya se está bajo ataque.
+- **Supabase**: confirmar que `DATABASE_URL` usa el pooler (puerto 6543) y que
+  hay alerta de conexiones al 80 %.
+- **Upstash**: revisar el plan. Cada visita sin sesión consume comandos de
+  Redis; si se agota la cuota el límite cae a memoria por instancia (débil).
+- **Decisión abierta — cachear `/e/[slug]`**: hoy es `force-dynamic` para que
+  desactivar una escuela se vea al instante (ver el comentario de la página).
+  Pasar a `revalidate = 60` + `revalidatePath` en las acciones que tocan la
+  landing la saca del camino de la base, a costa de hasta 60 s de retraso al
+  desactivar. No cubre slugs inventados al azar (cada uno es un miss), así que
+  el Firewall sigue siendo necesario. Requiere decisión de producto.
+- **Al migrar al VPS**: Cloudflare adelante, firewall del servidor solo para IPs
+  de Cloudflare, `IP_CLIENTE_HEADER=cf-connecting-ip`, y Nginx `limit_req` +
+  fail2ban como respaldo.
+
+---
+
 ## 🟡 Diferido — depende de algo externo, no entra en un paquete todavía
 
 > **Decisión (2026-08-04): el resto del riesgo de plataforma se retoma cuando

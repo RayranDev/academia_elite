@@ -2273,6 +2273,57 @@ participan de los E2E y nunca se apuntan a un schema distinto.
   (`PaginaNoEncontrada`), `noindex` y el mismo mensaje para escuela inexistente
   o inactiva.
 
+## 57. Auditoría QA externa: dos fixes y docs al día (2026-10-18)
+
+- Se corrió una auditoría QA + documentación (prompts en `docs/auditoria/`) y
+  se verificó cada hallazgo contra el código antes de aceptarlo: dos tenían la
+  severidad inflada y dos ya estaban en `PENDIENTES.md`.
+- **Fotos de menores**: `/api/archivos/foto/[jugadorId]` dejaba al
+  `SUPER_ADMIN` leer cualquier foto con consentimiento sin sesión de soporte
+  (contradecía M2). El permiso pasa a `puedeVerFoto()`
+  (`src/lib/foto/permisos.ts`), que reusa `assertTenant`; test en
+  `tests/unit/foto-permisos.test.ts`. La ruta dejó de responder
+  `Access-Control-Allow-Origin: *`: `cabecerasCorsFoto` (`src/lib/foto/cors.ts`)
+  refleja solo el origen propio, que alcanza para exportar la carta a PNG
+  (`crossOrigin="anonymous"`). El escudo autenticado hace lo mismo.
+- **Evaluación del DT**: `EvaluationForm` pasa de `<form action>` a
+  `onSubmit` + `startTransition`; un error del servidor ya no borra las
+  medidas cargadas en cancha (AGENTS.md §5).
+- **SEGURIDAD.md**: la CSP vive en `src/proxy.ts` (no en `next.config.ts`), el
+  rate limit de leads es 8/h en todo el documento y el checklist suma egreso,
+  descuento, concepto de cobro, rangos de categoría y landing.
+- Pendientes nuevos (datos legales, `.env.example`, fecha de contactos) en
+  `PENDIENTES.md`.
+
+## 58. Protección contra tráfico abusivo (2026-10-18)
+
+- Diagnóstico: el rate limit existía solo en acciones sensibles. Sin tope:
+  visitantes sin sesión (cada visita ejecuta función + consulta la base), los
+  7 exports Excel, fotos, escudos, comprobantes y mensajes.
+- `src/proxy.ts` (lógica en `src/lib/limite-publico.ts`): 600 req/min por IP a
+  visitantes sin sesión; 429 con `Retry-After`. Con IP desconocida no limita.
+  Probado en vivo: de 650 peticiones desde una IP pasaron 600 y 50 recibieron
+  429; otra IP y las peticiones sin IP no se vieron afectadas.
+- `limitarRuta` (`src/lib/rate-limit-http.ts`) en exports (10/min), fotos
+  (1200/min), escudos (300/min) y comprobantes (60/min), por usuario. Mensajes
+  30/h familia y 120/h staff; `responderAction` pasa a `ActionResult` y el
+  Composer muestra el motivo.
+- El escudo autenticado (`/api/archivos/escudo/[escuelaId]`) llamaba al
+  repositorio desde `app/api` y dejaba al SUPER_ADMIN leer sin sesión de soporte
+  (el comentario decía que `/admin` lo mostraba; no es cierto). Ahora pasa por
+  `escudo.service` con `assertTenant`. Se eliminó `marcarNotificacionLeidaAction`
+  (código muerto que duplicaba a `marcarLeidaAction`).
+- Revisión `code-review` (nivel alto) sobre este diff: se corrigió el mapa en
+  memoria sin tope (fuga en VPS), el tope público demasiado bajo para IPs
+  compartidas, el `catch` desnudo de `puedeVerFoto` y la validación de
+  `IP_CLIENTE_HEADER`. Se descartó un hallazgo falso (el Composer ya enviaba
+  con `onSubmit`).
+- `ipCliente` acepta `IP_CLIENTE_HEADER` para el VPS detrás de Cloudflare; sin
+  la env no cambia nada.
+- Decisión: `/e/[slug]` se deja `force-dynamic` (cachearla cambia una regla de
+  producto y no frena slugs al azar). Las capas externas (Firewall de Vercel,
+  Spend Management) quedan en `PENDIENTES.md`.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a
