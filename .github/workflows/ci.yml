@@ -8,6 +8,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Cada lunes, aunque nadie haga push: así un aviso de seguridad nuevo no espera a la
+  # próxima entrega para hacerse notar.
+  schedule:
+    - cron: "0 12 * * 1"
 
 # Un push nuevo cancela la corrida anterior de la misma rama.
 concurrency:
@@ -43,6 +47,28 @@ jobs:
 
       - name: Tests unitarios
         run: npm run test
+
+  dependencias:
+    name: auditoría de dependencias (producción)
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Falla solo ante vulnerabilidades CRÍTICAS en lo que corre en producción
+      # (sin devDependencies). Las altas y moderadas se revisan a mano: muchas llegan
+      # por dependencias indirectas sin parche aplicable (ver PENDIENTES.md).
+      - name: npm audit (producción, nivel crítico)
+        run: npm audit --omit=dev --audit-level=critical
 
 # Nota: `build` y `test:e2e` quedan fuera a propósito. Ambos necesitan una base
 # real (y el e2e además levanta el server y siembra un schema aparte), así que

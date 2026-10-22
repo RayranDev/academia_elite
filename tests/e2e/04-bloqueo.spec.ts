@@ -38,7 +38,9 @@ test("una familia bloqueada ve su mensaje al entrar", async ({ page }) => {
   await page.fill('input[name="password"]', "Demo1234!");
   await page.getByRole("button", { name: "Entrar" }).click();
   await page.waitForURL(/\/bloqueado/, { timeout: 15000 });
-  await expect(page.getByText("Acceso suspendido")).toBeVisible();
+  // Por rol y no por texto suelto: desde Next 16.4 el anunciador de rutas (a11y,
+  // `#__next-route-announcer__`) repite el título de la página y `getByText` encontraba dos.
+  await expect(page.getByRole("heading", { name: "Acceso suspendido" })).toBeVisible();
   await expect(page.getByText(/comunícate con tu director técnico/i)).toBeVisible();
   await logout(page);
 

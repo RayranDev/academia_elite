@@ -1,0 +1,29 @@
+# Actualizaciones automáticas de dependencias.
+#
+# Por qué: el 14 de octubre de 2026 salió un parche crítico de Next.js (RCE y
+# denegación de servicio en Server Actions) y el proyecto se enteró semanas después.
+# Esto abre un PR semanal con lo que haya; el CI lo prueba antes de que nadie lo mezcle.
+#
+# Para que además lleguen las ALERTAS de seguridad hay que activar, en GitHub:
+# Settings → Code security → Dependabot alerts (y Dependabot security updates).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Parches y menores juntos: un solo PR en vez de veinte.
+      produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
