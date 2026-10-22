@@ -2406,6 +2406,21 @@ participan de los E2E y nunca se apuntan a un schema distinto.
 - Verificado por el orquestador: el candado bloquea con el `.env` real (exit 1) y los conteos de `public`
   (27 jugadores, 7 usuarios, 2 escuelas) no cambiaron antes ni después.
 
+## 63. Parche de seguridad de dependencias (2026-10-22)
+
+- `npm audit --omit=dev` marcaba **24 vulnerabilidades en producción (3 críticas, 12 altas)**. Producción corría
+  Next 16.2.9; el aviso del 14-oct-2026 se corrige en 16.4.1+ (RCE por `use cache`, RCE al procesar SVG en la
+  optimización de imágenes, denegación de servicio en Server Actions; y un bypass de proxy con Turbopack).
+- Actualizado: **Next 16.2.9 → 16.4.2** (+ `eslint-config-next`), **next-auth beta.31 → 5.0.0-beta.32** (fijada
+  exacta; corrige un fallo "fail-open" del objeto `auth` y un bypass de homóglifos en el correo), **sharp →
+  0.35.5** (CVE de libvips/libheif) y **Prisma 7.8 → 7.10.1**, más `npm audit fix` de dependencias indirectas.
+- Resultado: **24 → 5 en producción, 0 críticas**. Las 5 restantes son de `@imgly/background-removal` (corre en
+  el navegador) y `exceljs`/`uuid`: sin exposición del servidor; ver PENDIENTES.
+- Aplicabilidad real: no usamos `use cache` ni `next/image`, pero sí **29 archivos con Server Actions** (el DoS
+  aplicaba) y el proxy de Next. Se parchea todo igual.
+- Vigilancia: `.github/dependabot.yml` (PR semanal) y un job de CI que falla ante críticas en producción y corre
+  los lunes. Las alertas de GitHub siguen desactivadas hasta que las active el dueño del repositorio.
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

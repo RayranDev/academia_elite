@@ -84,6 +84,10 @@ acceso ambiental que se cerraron el 2026-07-31:
     abuso y costo de base, pero un ataque volumétrico real lo absorbe el borde.
     Si Upstash se cae o agota su cuota, cae a memoria por instancia (débil en
     serverless; acotada a 10.000 claves para no filtrar memoria en un VPS).
+- **Dependencias.** `npm audit --omit=dev` corre en el CI en cada push y cada lunes y falla ante
+  vulnerabilidades críticas en producción; `.github/dependabot.yml` abre un PR semanal. Next.js,
+  next-auth, sharp y Prisma se mantienen en versiones parcheadas (TRAZABILIDAD #63). Los riesgos aceptados
+  están en `PENDIENTES.md`.
 - **Aislamiento multi-tenant verificado por test**: `tests/unit/aislamiento-tenant.test.ts`
   lee el código de los repositorios y falla si una consulta sobre un modelo con
   `escuelaId` no filtra por tenant ni está justificada con `// tenant-global:`.

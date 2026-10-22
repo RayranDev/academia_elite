@@ -32,6 +32,7 @@
 | [Vigencia y bloqueo automático](#paquete--vigencia-y-bloqueo-automático) | Medio | **Gateado** — no arrancar todavía |
 | 👤 [Hallazgos de la auditoría QA](#paquete--hallazgos-de-la-auditoría-qa-2026-10-18) | Chico | Datos legales, `.env.example` y los hallazgos menores ya verificados |
 | 👤 [Protección contra tráfico malicioso](#paquete--protección-contra-tráfico-malicioso-lo-que-no-se-hace-desde-el-código) | Config | Spend Management, Firewall, Supabase, Upstash: paneles externos |
+| 👤 [Dependencias y vulnerabilidades](#paquete--dependencias-y-vulnerabilidades-) | Chico | Activar alertas de GitHub, subir imgly y revisar Node/Vercel |
 | 👤 [Entorno de pruebas separado de producción](#paquete--entorno-de-pruebas-separado-de-producción-) | Chico | Aislado por schema `qa` y con guardia de borrado; falta un proyecto Supabase aparte |
 | [Calidad: QA a ciegas y manuales por módulo](#paquete--calidad-qa-a-ciegas-y-manuales-por-módulo) | Grande | Ejecutar las políticas `politicas/POLITICA-QA.md` y `politicas/POLITICA-MANUALES.md` por primera vez |
 
@@ -74,6 +75,30 @@ bloqueo puesto por otro motivo); `registrarAuditoriaSistema` con actorId
 
 (El fix previo que este paquete listaba —`statsLatest` sin filtrar
 `evaluacion.anulada`— ya está resuelto: ver TRAZABILIDAD.md #48.)
+
+---
+
+## Paquete — Dependencias y vulnerabilidades 👤
+
+El 14-oct-2026 salió un parche crítico de Next.js y el proyecto seguía en 16.2.9 (TRAZABILIDAD #63).
+Ya se actualizó Next, next-auth, sharp y Prisma. Queda:
+
+- **Activar las alertas de GitHub** (tuyo): hoy están **desactivadas** en el repositorio. Settings → Code
+  security → *Dependabot alerts* y *Dependabot security updates*. Con `.github/dependabot.yml` ya llega un PR
+  semanal de actualizaciones, pero las alertas de seguridad dependen de ese interruptor.
+- **`@imgly/background-removal` 1.4.5 → 1.7.0** (alta, pero solo corre en el navegador de quien sube su foto;
+  trae `lodash` y `zod` viejos). Requiere probar a mano el recorte de fondo en `/jugador/perfil` (modelo en
+  `public/imgly`, CSP con `unsafe-eval` solo en esa ruta). No es explotable contra el servidor.
+- **Riesgo aceptado:** `exceljs` (→ `uuid` 8): el defecto exige pasar un búfer propio a `uuid.v3/v5/v6`, cosa
+  que no hacemos; npm sugiere "arreglarlo" bajando a una versión de 2019, que no es una opción.
+  `lodash` (vía imgly y las herramientas de Prisma): sin parche aplicable hoy.
+- **Node.js:** no pude confirmar un parche de octubre; hubo lanzamientos de seguridad en junio y julio de 2026
+  (22.23.x, 24.18.x). Tu Node local es 24.14.0: actualizarlo. En Vercel, revisar Settings → General → Node.js
+  Version y mantenerla en una versión con soporte (Node 20 ya no recibe parches desde el 30-abr-2026).
+- **Python:** no corre en producción; solo lo usan herramientas locales de documentación. No afecta al
+  despliegue. Mantener el Python local al día por higiene.
+- El CI ahora falla ante vulnerabilidades **críticas** en producción (`npm audit --omit=dev`) y corre cada
+  lunes; las altas y moderadas se revisan a mano contra este listado.
 
 ---
 
@@ -227,7 +252,7 @@ desde el código. Orden sugerido:
 - [ ] **Upstash**: variables en Production y presupuesto mensual si se pasa a pago.
 - [ ] **Correo**: verificar el dominio en Resend y quitar `EMAIL_DEV_TO`.
 - [ ] **Dominio propio** (y, si se migra a VPS, Cloudflare + `IP_CLIENTE_HEADER`).
-- [ ] **Auth**: fijar la versión exacta de `next-auth` (sin `^`).
+- [x] **Auth**: `next-auth` fijado en la versión exacta `5.0.0-beta.32` (parche de seguridad de julio 2026).
 - [ ] Correr **P09** (`docs/prompts/`) y **P01/P07** sobre la rama a publicar.
 
 ---
