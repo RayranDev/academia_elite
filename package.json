@@ -32,7 +32,7 @@
   "dependencies": {
     "@dicebear/core": "^10.7.0",
     "@dicebear/styles": "^10.6.0",
-    "@imgly/background-removal": "1.7.0",
+    "@imgly/background-removal": "1.4.5",
     "@imgly/background-removal-data": "1.4.5",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-pg": "^7.10.1",
