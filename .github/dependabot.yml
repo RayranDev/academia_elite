@@ -14,6 +14,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # vitest 5 exige @types/node >=22 y el proyecto está en ^20: su PR no instala (ERESOLVE).
+      # Se retoma a mano cuando se suba @types/node al runtime (Node 22/24).
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
     groups:
       # Parches y menores juntos: un solo PR en vez de veinte.
       produccion:
