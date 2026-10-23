@@ -86,14 +86,21 @@ Ya se actualizó Next, next-auth, sharp y Prisma. Queda:
 - **Activar las alertas de GitHub** (tuyo): hoy están **desactivadas** en el repositorio. Settings → Code
   security → *Dependabot alerts* y *Dependabot security updates*. Con `.github/dependabot.yml` ya llega un PR
   semanal de actualizaciones, pero las alertas de seguridad dependen de ese interruptor.
-- **`@imgly/background-removal` 1.4.5 → 1.7.0** (alta, pero solo corre en el navegador de quien sube su foto;
-  trae `lodash` y `zod` viejos). Requiere probar a mano el recorte de fondo en `/jugador/perfil` (modelo en
-  `public/imgly`, CSP con `unsafe-eval` solo en esa ruta). No es explotable contra el servidor.
+- **`@imgly/background-removal` se queda en 1.4.5** (solo corre en el navegador de quien sube su foto; trae
+  `lodash` y `zod` viejos, no explotable contra el servidor). Se probó 1.7.0 en un navegador real y **rompe** el
+  recorte ("Resource /models/isnet_fp16 not found"): renombró los modelos y el paquete de modelos
+  `@imgly/background-removal-data` no pasa de 1.4.5. Dependabot los ignora. Se retoma si imgly publica modelos
+  compatibles.
+- **TypeScript 7** (PR #11 cerrado): typecheck, tests y e2e pasan, pero `typescript-eslint` aún no lo soporta y
+  el lint sale con error. Dependabot ignora el salto mayor hasta que haya soporte.
+- **vitest 5**: se ignoraba porque pedía `@types/node` ≥ 22; ahora `@types/node` está en 24, así que se puede
+  reintentar quitando el ignore de `.github/dependabot.yml`.
+- **framer-motion 14** ya está fusionado (probado: 50 pantallas de los 4 roles y la portada, sin errores).
 - **Riesgo aceptado:** `exceljs` (→ `uuid` 8): el defecto exige pasar un búfer propio a `uuid.v3/v5/v6`, cosa
   que no hacemos; npm sugiere "arreglarlo" bajando a una versión de 2019, que no es una opción.
   `lodash` (vía imgly y las herramientas de Prisma): sin parche aplicable hoy.
 - **Node.js:** no pude confirmar un parche de octubre; hubo lanzamientos de seguridad en junio y julio de 2026
-  (22.23.x, 24.18.x). Tu Node local es 24.14.0: actualizarlo. En Vercel, revisar Settings → General → Node.js
+  (22.23.x, 24.18.x). Tu Node local ya está en 24.22.1. En Vercel, revisar Settings → General → Node.js
   Version y mantenerla en una versión con soporte (Node 20 ya no recibe parches desde el 30-abr-2026).
 - **Python:** no corre en producción; solo lo usan herramientas locales de documentación. No afecta al
   despliegue. Mantener el Python local al día por higiene.

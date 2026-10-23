@@ -19,6 +19,10 @@ updates:
       # Se retoma a mano cuando se suba @types/node al runtime (Node 22/24).
       - dependency-name: "vitest"
         update-types: ["version-update:semver-major"]
+      # typescript 7 pasa typecheck y tests, pero typescript-eslint aún no lo soporta (el lint sale con
+      # exit 2). Se retoma cuando typescript-eslint publique soporte para TS 7.x.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
       # imgly 1.7.0 renombra los modelos y los busca en un CDN de terceros; el paquete de modelos
       # @imgly/background-removal-data no pasa de 1.4.5. Subir solo la librería rompe el recorte de
       # fondo ("Resource /models/isnet_fp16 not found") y los E2E no lo detectan. Se mantiene fija.
