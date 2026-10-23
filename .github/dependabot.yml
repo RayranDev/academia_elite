@@ -19,6 +19,12 @@ updates:
       # exit 2). Se retoma cuando typescript-eslint publique soporte para TS 7.x.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # @types/node sigue la versión del runtime (Node 24), no la última: los tipos de una mayor más
+      # nueva declaran APIs que el runtime no tiene.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # @types/bcryptjs 3 es un stub deprecado: bcryptjs ya trae sus propios tipos y el paquete se quitó.
+      - dependency-name: "@types/bcryptjs"
       # imgly 1.7.0 renombra los modelos y los busca en un CDN de terceros; el paquete de modelos
       # @imgly/background-removal-data no pasa de 1.4.5. Subir solo la librería rompe el recorte de
       # fondo ("Resource /models/isnet_fp16 not found") y los E2E no lo detectan. Se mantiene fija.
