@@ -93,8 +93,7 @@ Ya se actualizó Next, next-auth, sharp y Prisma. Queda:
   compatibles.
 - **TypeScript 7** (PR #11 cerrado): typecheck, tests y e2e pasan, pero `typescript-eslint` aún no lo soporta y
   el lint sale con error. Dependabot ignora el salto mayor hasta que haya soporte.
-- **vitest 5**: se ignoraba porque pedía `@types/node` ≥ 22; ahora `@types/node` está en 24, así que se puede
-  reintentar quitando el ignore de `.github/dependabot.yml`.
+- **vitest 5.0.5** ya está aplicado (typecheck, lint y 719 tests en verde); se quitó su ignore de Dependabot.
 - **framer-motion 14** ya está fusionado (probado: 50 pantallas de los 4 roles y la portada, sin errores).
 - **Riesgo aceptado:** `exceljs` (→ `uuid` 8): el defecto exige pasar un búfer propio a `uuid.v3/v5/v6`, cosa
   que no hacemos; npm sugiere "arreglarlo" bajando a una versión de 2019, que no es una opción.

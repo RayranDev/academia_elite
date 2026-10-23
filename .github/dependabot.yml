@@ -15,10 +15,6 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     ignore:
-      # vitest 5 exige @types/node >=22 y el proyecto está en ^20: su PR no instala (ERESOLVE).
-      # Se retoma a mano cuando se suba @types/node al runtime (Node 22/24).
-      - dependency-name: "vitest"
-        update-types: ["version-update:semver-major"]
       # typescript 7 pasa typecheck y tests, pero typescript-eslint aún no lo soporta (el lint sale con
       # exit 2). Se retoma cuando typescript-eslint publique soporte para TS 7.x.
       - dependency-name: "typescript"
