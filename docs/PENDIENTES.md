@@ -132,6 +132,9 @@ Modo Sesión, revocación de sesiones, solicitudes) ya están cerrados: ver TRAZ
   mostrarla y usar solo el correo de "definir contraseña", o forzar el cambio en el primer ingreso.
 - **`rol` y `escuelaId` salen del token, no de la base:** un usuario cambiado de rol o escuela conserva los
   datos viejos hasta volver a iniciar sesión. Hoy ningún flujo cambia el rol de un usuario existente.
+- **`src/lib/auth/session.ts` todavía arma dos consultas Prisma** (`entrenador` y `jugador` por usuario en
+  `getAuthContext`): son búsquedas de identidad seguras, pero saltan la capa de repositorios (AGENTS §4) y
+  quedan fuera del test guardián de aislamiento. Moverlas a un repositorio.
 - **Sesiones de soporte sin vencimiento** y con escritura habilitada si el formulario llega sin la casilla de
   solo lectura. Agregar caducidad (p. ej. 60 minutos) y solo lectura por defecto.
 - **`allowedOrigins` de las Server Actions** acepta dominios de ngrok también en producción
