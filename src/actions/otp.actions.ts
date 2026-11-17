@@ -5,6 +5,7 @@ import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { panelPorRol } from "@/lib/auth/session";
+import { esLimiteDeIntentos } from "@/lib/auth/limite-login";
 import { ipCliente } from "@/lib/ip-cliente";
 import { rateLimit } from "@/lib/rate-limit";
 import { solicitarOtp, rolPorEmail } from "@/services/otp.service";
@@ -47,8 +48,10 @@ export async function solicitarOtpAction(
 }
 
 /**
- * Inicia sesión con el código OTP. El rate limit acá acota la fuerza bruta del
- * código (el provider solo valida). Mensajes genéricos.
+ * Inicia sesión con el código OTP. El tope de intentos que acota la fuerza bruta
+ * del código vive en el `authorize` del provider (`src/auth.ts`), por donde pasa
+ * también el endpoint /api/auth/callback/otp; acá solo se traduce el error al
+ * mensaje de siempre. Mensajes genéricos.
  */
 export async function ingresarConOtpAction(
   _prev: OtpResult | undefined,
@@ -63,15 +66,6 @@ export async function ingresarConOtpAction(
   }
 
   try {
-    const limit = await rateLimit(
-      `otp-login:${ipCliente(await headers())}:${parsed.data.email}`,
-      5,
-      15 * 60_000,
-    );
-    if (!limit.ok) {
-      return { ok: false, error: "Demasiados intentos. Espera un momento." };
-    }
-
     try {
       await signIn("otp", {
         email: parsed.data.email,
@@ -79,6 +73,9 @@ export async function ingresarConOtpAction(
         redirect: false,
       });
     } catch (error) {
+      if (esLimiteDeIntentos(error)) {
+        return { ok: false, error: "Demasiados intentos. Espera un momento." };
+      }
       if (error instanceof AuthError) {
         return { ok: false, error: "El código no es válido o ya venció." };
       }

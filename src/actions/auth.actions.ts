@@ -1,12 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { loginSchema } from "@/lib/validators/auth";
-import { ipCliente } from "@/lib/ip-cliente";
 import { mapError, type ActionResult } from "@/lib/action-result";
-import { rateLimit } from "@/lib/rate-limit";
+import { esLimiteDeIntentos } from "@/lib/auth/limite-login";
 import { panelPorRol } from "@/lib/auth/session";
 import { rolPorEmail } from "@/services/otp.service";
 import type { Rol } from "@/types";
@@ -16,8 +14,11 @@ import type { Rol } from "@/types";
 export type LoginResult = ActionResult<{ redirectTo: string }>;
 
 /**
- * Login (Capa 2): valida con Zod, aplica rate limit 5/min por IP+email y
- * delega en Auth.js. Mensajes de error SIEMPRE genéricos (no revela cuentas).
+ * Login (Capa 2): valida con Zod y delega en Auth.js. El tope de intentos (5/min
+ * por IP+email y el tope por correo) vive en el `authorize` de `src/auth.ts`, que
+ * es por donde pasa TAMBIÉN el endpoint /api/auth/callback: acá solo se traduce
+ * ese error al mensaje de siempre, sin contar el intento dos veces. Mensajes de
+ * error SIEMPRE genéricos (no revela cuentas).
  */
 export async function login(
   _prev: LoginResult | undefined,
@@ -32,15 +33,6 @@ export async function login(
   }
 
   try {
-    const ip = ipCliente(await headers());
-    const limit = await rateLimit(`login:${ip}:${parsed.data.email}`, 5, 60_000);
-    if (!limit.ok) {
-      return {
-        ok: false,
-        error: "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
-      };
-    }
-
     try {
       await signIn("credentials", {
         email: parsed.data.email,
@@ -48,6 +40,12 @@ export async function login(
         redirect: false,
       });
     } catch (error) {
+      if (esLimiteDeIntentos(error)) {
+        return {
+          ok: false,
+          error: "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+        };
+      }
       if (error instanceof AuthError) {
         return { ok: false, error: "Credenciales inválidas." };
       }

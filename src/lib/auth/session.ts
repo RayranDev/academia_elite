@@ -1,19 +1,50 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import type { AuthContext } from "@/lib/auth/context";
 import type { Rol } from "@/types";
 import { sesionActivaDe } from "@/repositories/soporte.repository";
+import { obtenerEstadoDeSesion } from "@/repositories/user.repository";
+
+/**
+ * Estado del usuario de la sesión, leído UNA vez por request: `getAuthContext`,
+ * `requireAuthContext` y `requirePanelUser` corren varias veces por render
+ * (layout + shell + página) y todas comparten esta lectura. `cache` de React
+ * memoiza por request; fuera de un render (route handler, test) simplemente no
+ * memoiza y consulta cada vez, que es lo correcto.
+ */
+const estadoDeUsuario = cache(obtenerEstadoDeSesion);
+
+type EstadoDeSesion = NonNullable<Awaited<ReturnType<typeof obtenerEstadoDeSesion>>>;
+
+/**
+ * ¿La sesión (JWT) sigue valiendo? Exige que el usuario exista, esté activo y que
+ * la huella de contraseña del token coincida con la actual. Un token sin huella
+ * (emitido antes de esta revocación) NO vale: obliga a iniciar sesión de nuevo.
+ * Cambiar o resetear la contraseña invalida así todas las sesiones anteriores.
+ */
+function sesionVigente(
+  estado: EstadoDeSesion | null,
+  huellaDelToken: string | undefined,
+): estado is EstadoDeSesion {
+  if (!estado || !estado.activo) return false;
+  return !!huellaDelToken && huellaDelToken === estado.huellaPassword;
+}
 
 /**
  * Construye el AuthContext desde la sesión (Capa 2). NUNCA desde el body.
  * Completa entrenadorId / jugadorId con una consulta mínima según el rol.
- * Devuelve null si no hay sesión válida.
+ * Devuelve null si no hay sesión válida: sin sesión, usuario inexistente o
+ * desactivado, o sesión revocada por cambio de contraseña. Es la ÚNICA puerta de
+ * los route handlers de `/api`, así que acá se revoca, no solo en las páginas.
  */
 export async function getAuthContext(): Promise<AuthContext | null> {
   const session = await auth();
   if (!session?.user?.id) return null;
+  const estado = await estadoDeUsuario(session.user.id);
+  if (!sesionVigente(estado, session.user.huellaPassword)) return null;
 
   const ctx: AuthContext = {
     userId: session.user.id,
@@ -70,11 +101,10 @@ export async function requireAuthContext(opts?: {
 }): Promise<AuthContext> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { activo: true, bloqueado: true, rol: true },
-  });
-  if (!user || !user.activo) redirect("/api/salir");
+  const user = await estadoDeUsuario(session.user.id);
+  // Usuario inexistente/desactivado o sesión revocada (cambió la contraseña): se
+  // limpia la cookie en /api/salir; ir a /login nos devolvería al panel (bucle).
+  if (!sesionVigente(user, session.user.huellaPassword)) redirect("/api/salir");
   // Familia bloqueada por la escuela → pantalla con el motivo (G2), salvo
   // que el llamador pida explícitamente permitir el acceso limitado.
   const bloqueado = user.bloqueado && user.rol === "JUGADOR";
@@ -105,15 +135,13 @@ export async function requirePanelUser(
   if (actual !== rol) redirect(panelPorRol(actual));
 
   // La sesión (JWT) puede apuntar a un usuario que ya no existe (p. ej. tras un
-  // re-seed de la BD en desarrollo). En ese caso forzamos re-login en vez de
-  // dejar que las consultas de tenant fallen con un 500.
-  const user = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, activo: true, bloqueado: true },
-  });
+  // re-seed de la BD en desarrollo), estar desactivado o haber sido revocada por
+  // un cambio de contraseña. En esos casos forzamos re-login en vez de dejar que
+  // las consultas de tenant fallen con un 500.
+  const user = await estadoDeUsuario(session.user.id);
   // Redirige a un endpoint que limpia la cookie (si fuéramos a /login el proxy
   // nos reenviaría al panel y entraríamos en bucle).
-  if (!user || !user.activo) redirect("/api/salir");
+  if (!sesionVigente(user, session.user.huellaPassword)) redirect("/api/salir");
   // Familia bloqueada por la escuela → pantalla con el motivo (G2), salvo
   // que el llamador pida explícitamente permitir el acceso limitado.
   const bloqueado = user.bloqueado && actual === "JUGADOR";

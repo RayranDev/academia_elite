@@ -2,6 +2,8 @@
 
 import { invalidarLandingsPublicas } from "@/lib/landing-cache";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { signOut } from "@/auth";
 import { requireAuthContext } from "@/lib/auth/session";
 import { mapError, type ActionResult } from "@/lib/action-result";
 import { ValidationError } from "@/lib/errors";
@@ -465,7 +467,16 @@ export async function cambiarMiPasswordAction(
       throw new ValidationError(parsed.error.issues[0]?.message ?? "Datos inválidos.");
     }
     await cambiarMiPassword(ctx, parsed.data.actual, parsed.data.nueva);
-    return { ok: true };
+    // El cambio invalidó TODAS las sesiones anteriores (su huella ya no coincide),
+    // incluida la de este dispositivo. No se refresca el JWT con `unstable_update`:
+    // al mutar cookies Next vuelve a renderizar la página en esta misma request y
+    // `auth()` lee el header `cookie` ORIGINAL (token viejo) contra la base ya
+    // actualizada, así que el render echaba al usuario por /api/salir. Se cierra la
+    // sesión de este dispositivo y se lo manda a entrar con la contraseña nueva
+    // (la redirección es el resultado visible: mensaje en /login). Se redirige con
+    // una ruta relativa: la URL que arma `signOut` sale de AUTH_URL.
+    await signOut({ redirect: false });
+    redirect("/login?clave=1");
   } catch (e) {
     return mapError(e);
   }

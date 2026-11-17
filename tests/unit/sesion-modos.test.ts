@@ -24,22 +24,27 @@ const { db, evento, jugador, statActual, publicarResultadoYNotificar } =
       resultadoVisitante: null as number | null,
       convocados: [{ jugadorId: "j1" }],
     };
-    const jugador = { id: "j1", categoriaId: "cat1" };
+    const jugador = { id: "j1", categoriaId: "cat1", estado: "ACTIVO" };
     const statActual = { goles: 0, asistencias: 0, amarillas: 0 };
 
     const db = {
       evento: {
-        findFirst: vi.fn(async () => evento),
+        findFirst: vi.fn(async (_args: unknown) => evento as typeof evento | null),
         updateMany: vi.fn(async () => ({ count: 1 })),
       },
-      jugador: { findFirst: vi.fn(async () => jugador) },
+      jugador: {
+        findFirst: vi.fn(async () => jugador),
+        // Plantel ACTIVO de la categoría del evento (validación de ids del cliente):
+        // por defecto, ningún jugador fuera de los convocados.
+        findMany: vi.fn(async (_args: unknown) => [] as { id: string }[]),
+      },
       asistencia: { upsert: vi.fn(async () => ({})) },
       jugadorConvocado: { upsert: vi.fn(async () => ({})) },
       estadisticaPartido: {
         findUnique: vi.fn(async () => statActual),
         upsert: vi.fn(async () => ({})),
       },
-      observacionJugador: { create: vi.fn(async () => ({})) },
+      observacionJugador: { create: vi.fn(async (_args: unknown) => ({})) },
       $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(db)),
     };
 
@@ -65,7 +70,7 @@ vi.mock("@/services/dt-scope", () => ({
 vi.mock("@/services/evento.service", () => ({ publicarResultadoYNotificar }));
 
 import type { AuthContext } from "@/lib/auth/context";
-import { ValidationError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
   marcarAsistenciaUnitaria,
   iniciarSesion,
@@ -73,6 +78,7 @@ import {
   agregarConvocadoEnCancha,
   registrarGolVivo,
   fijarTarjetasJugador,
+  crearObservacion,
 } from "@/services/sesion.service";
 
 const dt: AuthContext = {
@@ -110,6 +116,8 @@ beforeEach(() => {
   evento.tipo = "PARTIDO";
   evento.esLocal = true;
   jugador.categoriaId = "cat1";
+  jugador.estado = "ACTIVO";
+  db.jugador.findMany.mockImplementation(async () => []);
   statActual.goles = 0;
   statActual.asistencias = 0;
 });
@@ -343,5 +351,171 @@ describe("fijarTarjetasJugador", () => {
         roja: false,
       }),
     ).rejects.toThrow(ValidationError);
+  });
+});
+
+/**
+ * Los ids de jugador llegan del cliente: ninguna función del modo puede escribir
+ * Asistencia/EstadisticaPartido para alguien que no participe del evento (otra
+ * escuela, otra categoría, inexistente, inactivo). Un cron global lee esas filas
+ * por `jugadorId` y mueve el rating de ese jugador.
+ */
+describe("jugadores ajenos al evento", () => {
+  const AJENO = "j-de-otra-escuela";
+
+  it("marcarAsistenciaUnitaria rechaza a un jugador que no participa y no escribe", async () => {
+    await expect(
+      marcarAsistenciaUnitaria(dt, {
+        eventoId: "ev1",
+        jugadorId: AJENO,
+        estado: "PRESENTE",
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(db.asistencia.upsert).not.toHaveBeenCalled();
+  });
+
+  it("registrarGolVivo rechaza un anotador ajeno y no toca marcador ni stats", async () => {
+    await expect(
+      registrarGolVivo(dt, {
+        eventoId: "ev1",
+        anotadorId: AJENO,
+        esRival: false,
+        delta: 1,
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(db.evento.updateMany).not.toHaveBeenCalled();
+    expect(db.estadisticaPartido.upsert).not.toHaveBeenCalled();
+  });
+
+  it("registrarGolVivo rechaza un asistente ajeno aunque el anotador sea válido", async () => {
+    await expect(
+      registrarGolVivo(dt, {
+        eventoId: "ev1",
+        anotadorId: "j1",
+        asistenteId: AJENO,
+        esRival: false,
+        delta: 1,
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(db.estadisticaPartido.upsert).not.toHaveBeenCalled();
+  });
+
+  it("fijarTarjetasJugador rechaza a un jugador que no participa y no escribe", async () => {
+    await expect(
+      fijarTarjetasJugador(dt, {
+        eventoId: "ev1",
+        jugadorId: AJENO,
+        amarillas: 1,
+        roja: false,
+      }),
+    ).rejects.toThrow(NotFoundError);
+    expect(db.estadisticaPartido.upsert).not.toHaveBeenCalled();
+  });
+
+  it("el error no distingue entre un id ajeno y uno inexistente", async () => {
+    const ajeno = marcarAsistenciaUnitaria(dt, {
+      eventoId: "ev1",
+      jugadorId: "existe-en-otra-escuela",
+      estado: "AUSENTE",
+    });
+    const inexistente = marcarAsistenciaUnitaria(dt, {
+      eventoId: "ev1",
+      jugadorId: "no-existe",
+      estado: "AUSENTE",
+    });
+    await expect(ajeno).rejects.toThrow("Jugador no encontrado.");
+    await expect(inexistente).rejects.toThrow("Jugador no encontrado.");
+  });
+
+  it("acota la verificación a la escuela y la categoría del evento, solo ACTIVOS", async () => {
+    await expect(
+      marcarAsistenciaUnitaria(dt, {
+        eventoId: "ev1",
+        jugadorId: AJENO,
+        estado: "PRESENTE",
+      }),
+    ).rejects.toThrow(NotFoundError);
+    const arg = db.jugador.findMany.mock.calls[0]?.[0] as {
+      where: Record<string, unknown>;
+    };
+    expect(arg.where).toMatchObject({
+      id: { in: [AJENO] },
+      escuelaId: "esc1",
+      categoriaId: "cat1",
+      estado: "ACTIVO",
+    });
+  });
+
+  it("acepta a un jugador activo de la categoría aunque no esté convocado", async () => {
+    db.jugador.findMany.mockImplementation(async () => [{ id: "j2" }]);
+    await marcarAsistenciaUnitaria(dt, {
+      eventoId: "ev1",
+      jugadorId: "j2",
+      estado: "PRESENTE",
+    });
+    expect(db.asistencia.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("un convocado se acepta sin consultar el plantel", async () => {
+    await marcarAsistenciaUnitaria(dt, {
+      eventoId: "ev1",
+      jugadorId: "j1",
+      estado: "PRESENTE",
+    });
+    expect(db.jugador.findMany).not.toHaveBeenCalled();
+  });
+
+  it("agregarConvocadoEnCancha rechaza a un jugador que no está activo", async () => {
+    jugador.estado = "PENDIENTE";
+    await expect(
+      agregarConvocadoEnCancha(dt, { eventoId: "ev1", jugadorId: "j1" }),
+    ).rejects.toThrow(ValidationError);
+    expect(db.jugadorConvocado.upsert).not.toHaveBeenCalled();
+    expect(db.asistencia.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("crearObservacion con eventoId del cliente", () => {
+  const base = { jugadorId: "j1", texto: "Buen partido", visiblePadre: false };
+
+  it("rechaza un evento de otra categoría del DT y no guarda nada", async () => {
+    evento.categoriaId = "cat-ajena";
+    try {
+      await expect(
+        crearObservacion(dt, { ...base, eventoId: "ev1" }),
+      ).rejects.toThrow(NotFoundError);
+    } finally {
+      evento.categoriaId = "cat1";
+    }
+    expect(db.observacionJugador.create).not.toHaveBeenCalled();
+  });
+
+  it("rechaza un evento inexistente o de otra escuela (la búsqueda va acotada por escuela)", async () => {
+    db.evento.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      crearObservacion(dt, { ...base, eventoId: "ev-de-otra-escuela" }),
+    ).rejects.toThrow(NotFoundError);
+    const arg = db.evento.findFirst.mock.calls[0]?.[0] as {
+      where: Record<string, unknown>;
+    };
+    expect(arg.where).toMatchObject({ id: "ev-de-otra-escuela", escuelaId: "esc1" });
+    expect(db.observacionJugador.create).not.toHaveBeenCalled();
+  });
+
+  it("guarda con un evento válido de su categoría", async () => {
+    await crearObservacion(dt, { ...base, eventoId: "ev1" });
+    const arg = db.observacionJugador.create.mock.calls[0]?.[0] as {
+      data: Record<string, unknown>;
+    };
+    expect(arg.data).toMatchObject({ jugadorId: "j1", eventoId: "ev1" });
+  });
+
+  it("sin eventoId no consulta eventos y guarda null", async () => {
+    await crearObservacion(dt, base);
+    expect(db.evento.findFirst).not.toHaveBeenCalled();
+    const arg = db.observacionJugador.create.mock.calls[0]?.[0] as {
+      data: Record<string, unknown>;
+    };
+    expect(arg.data.eventoId).toBeNull();
   });
 });

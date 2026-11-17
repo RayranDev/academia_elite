@@ -33,6 +33,7 @@
 | 👤 [Hallazgos de la auditoría QA](#paquete--hallazgos-de-la-auditoría-qa-2026-10-18) | Chico | Datos legales, `.env.example` y los hallazgos menores ya verificados |
 | 👤 [Protección contra tráfico malicioso](#paquete--protección-contra-tráfico-malicioso-lo-que-no-se-hace-desde-el-código) | Config | Spend Management, Firewall, Supabase, Upstash: paneles externos |
 | 👤 [Dependencias y vulnerabilidades](#paquete--dependencias-y-vulnerabilidades-) | Chico | Activar alertas de GitHub, subir imgly y revisar Node/Vercel |
+| [Auditoría de seguridad y rendimiento](#paquete--auditoría-de-seguridad-y-rendimiento-2026-11-16) | Medio | Lo que quedó tras cerrar los cuatro hallazgos graves (TRAZABILIDAD #64) |
 | 👤 [Entorno de pruebas separado de producción](#paquete--entorno-de-pruebas-separado-de-producción-) | Chico | Aislado por schema `qa` y con guardia de borrado; falta un proyecto Supabase aparte |
 | [Calidad: QA a ciegas y manuales por módulo](#paquete--calidad-qa-a-ciegas-y-manuales-por-módulo) | Grande | Ejecutar las políticas `politicas/POLITICA-QA.md` y `politicas/POLITICA-MANUALES.md` por primera vez |
 
@@ -105,6 +106,70 @@ Ya se actualizó Next, next-auth, sharp y Prisma. Queda:
   despliegue. Mantener el Python local al día por higiene.
 - El CI ahora falla ante vulnerabilidades **críticas** en producción (`npm audit --omit=dev`) y corre cada
   lunes; las altas y moderadas se revisan a mano contra este listado.
+
+---
+
+## Paquete — Auditoría de seguridad y rendimiento (2026-11-16)
+
+Auditoría de solo lectura de todo el proyecto. Los cuatro hallazgos graves de seguridad (límite de login,
+Modo Sesión, revocación de sesiones, solicitudes) ya están cerrados: ver TRAZABILIDAD #64. Queda:
+
+**Seguridad**
+
+- **Confirmar en producción el cierre de sesión revocada.** Se probó en local con un navegador real sobre
+  HTTPS (proxy con certificado propio, nombres `__Secure-`/`__Host-`): la sesión revocada termina en el login
+  sin bucle, y con el borrado anterior el bucle se reproduce. Los e2e corren sobre HTTP y no lo cubren, así
+  que tras el deploy conviene repetirlo una vez: cambiar la contraseña con dos sesiones abiertas.
+- **`/api/salir` redirige con URL absoluta** armada desde `req.url`. En Vercel el host es el real; detrás de
+  un proxy inverso que mapee a otro puerto interno (VPS) redirigiría al host interno. Pasarlo a una
+  redirección relativa antes de migrar.
+- **Segundo factor para el SUPER_ADMIN.** El tope de intentos por correo (20 cada 15 minutos) permite que un
+  tercero que conozca el correo mantenga la cuenta bloqueada mientras siga insistiendo. Es el costo aceptado
+  de no permitir intentos ilimitados rotando IPs; la salida de fondo es MFA y una alerta ante bloqueos
+  sostenidos de cuentas privilegiadas.
+- **Contraseña temporal de la familia en claro para el DT/escuela** (decisión de producto): al restablecerla,
+  quien la restablece la ve y nada obliga a cambiarla, así que puede entrar como el acudiente. Opciones: no
+  mostrarla y usar solo el correo de "definir contraseña", o forzar el cambio en el primer ingreso.
+- **`rol` y `escuelaId` salen del token, no de la base:** un usuario cambiado de rol o escuela conserva los
+  datos viejos hasta volver a iniciar sesión. Hoy ningún flujo cambia el rol de un usuario existente.
+- **Sesiones de soporte sin vencimiento** y con escritura habilitada si el formulario llega sin la casilla de
+  solo lectura. Agregar caducidad (p. ej. 60 minutos) y solo lectura por defecto.
+- **`allowedOrigins` de las Server Actions** acepta dominios de ngrok también en producción
+  (`next.config.ts`): limitarlo a desarrollo.
+- **Huecos de auditoría:** inicio de sesión (correcto y fallido), alta de DT, CRUD de staff, códigos de
+  invitación, escudo, marca y landing; `editarUsuarioAdmin` no guarda el antes/después.
+- **Contadores de intentos de códigos no atómicos** (OTP, recuperación, verificación): leer, comparar e
+  incrementar por separado deja pasar intentos en paralelo. Pasarlo a un `UPDATE … WHERE intentos < 5`.
+- **Subidas de archivos:** `sharp` sin `limitInputPixels` y `exceljs` cargando el libro completo antes del
+  tope de filas.
+- **Configuración que falla abierta:** sin `RESEND_API_KEY` los códigos se imprimen en el log; sin Upstash el
+  límite cae a memoria por instancia (casi inútil en serverless). Exigir ambas al arrancar en producción.
+- **Enumeración de cuentas:** el registro dice si el correo ya existe y el login responde más rápido cuando
+  la cuenta no existe (no corre bcrypt).
+- **Historial de git:** pasar un escáner de secretos (gitleaks o trufflehog); la auditoría solo revisó los
+  archivos versionados.
+- **`.gitignore`:** cubrir `/.next-*/` (hoy solo `/.next/`).
+
+**Rendimiento** (nada corregido todavía)
+
+- **Consultas de sesión repetidas en cada carga** (usuario y jugador leídos 4–5 veces en el panel del
+  jugador; categorías del DT 5 veces en `/dt`). Memoizar por petición con `cache()`.
+- **Sin `loading.tsx` ni `Suspense` en ningún segmento:** cada navegación muestra la pantalla anterior hasta
+  que llega todo.
+- **Fotos de jugadores:** una petición autenticada con descarga completa por foto, `no-store` y sin carga
+  diferida. Requiere decidir si se permite caché privada de unos minutos en el dispositivo (una foto
+  retirada tardaría ese tiempo en desaparecer de quien ya la vio) o solo `ETag` con revalidación.
+- **Librerías pesadas en la carga inicial:** gráficos (~100 KB), animaciones (~53 KB) y avatares (~36 KB);
+  `/jugador` pesa ~257 KB comprimido. Cargar el gráfico con `next/dynamic` y una carta sin animación para
+  los listados.
+- **Índices faltantes** (`StatsCalculados` por jugador, `AuditLog` por fecha, `Membresia` por período y
+  estado). Verificar con `EXPLAIN` antes de migrar.
+- **`sharp` cargado por todos los layouts** a través de `escuela.service.ts`.
+- **Cron `men-diario`:** una actualización por jugador en serie y sin `maxDuration`; las importaciones
+  masivas tienen el mismo patrón.
+- **Listados que cargan la plantilla completa** para calcular un conteo, un promedio o un top 20.
+- **Región de Vercel frente a la de Supabase:** sin confirmar; si no coinciden, cada consulta repetida
+  cuesta mucho más.
 
 ---
 

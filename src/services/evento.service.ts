@@ -28,7 +28,7 @@ import {
 } from "@/repositories/evento.repository";
 import { crearAnuncio } from "@/repositories/anuncio.repository";
 import { listarObservacionesVisiblesDeEvento } from "@/repositories/observacion.repository";
-import { listarSedes } from "@/repositories/sede.repository";
+import { listarSedes, obtenerCancha } from "@/repositories/sede.repository";
 import type { EventoInput, EditarEventoInput, EstadisticaInput } from "@/lib/validators/evento";
 import { estadoDeEvento, permiteVerEstadisticas } from "@/lib/eventos/estado";
 import { faseSesionHoy, type FaseSesionHoy } from "@/lib/eventos/hoy";
@@ -73,6 +73,22 @@ async function userIdsDePadres(jugadorIds: string[]): Promise<string[]> {
 }
 
 /**
+ * La cancha viene del form: se acepta solo si es de una sede de la escuela. Sin
+ * esto, quien conociera el id de una cancha ajena podía asignarla a su evento y
+ * su nombre terminaba visible para las familias. Un id ajeno falla como NotFound,
+ * igual que uno inexistente. Devuelve el id normalizado (`null` si no hay).
+ */
+async function validarCancha(
+  escuelaId: string,
+  canchaId: string | null | undefined,
+): Promise<string | null> {
+  if (!canchaId) return null;
+  const cancha = await obtenerCancha(escuelaId, canchaId);
+  if (!cancha) throw new NotFoundError("Cancha no encontrada.");
+  return cancha.id;
+}
+
+/**
  * Crea un evento (o serie semanal). PARTIDO convoca a quien elija el DT;
  * ENTRENAMIENTO convoca automáticamente a todo el plantel activo. En ambos
  * casos, si hay convocados, se notifica a los padres.
@@ -85,6 +101,7 @@ export async function crearEventoDt(
   if (!categoriaIds.includes(input.categoriaId)) {
     throw new ValidationError("Esa categoría no está entre las tuyas.");
   }
+  const canchaId = await validarCancha(escuelaId, input.canchaId);
 
   // Fechas de la serie (recurrencia semanal opcional).
   const fechas: { inicio: Date; fin: Date }[] = [];
@@ -125,7 +142,7 @@ export async function crearEventoDt(
       categoriaId: input.categoriaId,
       tipo: input.tipo,
       titulo: input.titulo,
-      canchaId: input.canchaId || null,
+      canchaId,
       rival: input.rival || null,
       esLocal: input.esLocal ?? null,
       inicio: f.inicio,
@@ -688,9 +705,10 @@ export async function editarEventoDt(
   if (estado === "CANCELADO" || estado === "FINALIZADO") {
     throw new ValidationError("No se puede editar un evento cancelado o finalizado.");
   }
+  const canchaId = await validarCancha(escuelaId, input.canchaId);
   await editarEvento(escuelaId, eventoId, {
     titulo: input.titulo,
-    canchaId: input.canchaId || null,
+    canchaId,
     rival: input.rival || null,
     esLocal: input.esLocal ?? null,
     inicio: input.inicio,

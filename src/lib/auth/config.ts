@@ -17,20 +17,24 @@ export const authConfig = {
   },
   providers: [],
   callbacks: {
-    // Propaga rol/escuela al token JWT.
+    // Propaga rol/escuela y la huella de contraseña al token JWT. La huella la
+    // calcula `authorize` (Node); acá solo se copia, para no traer crypto/Prisma.
     jwt({ token, user }) {
       if (user) {
         token.rol = user.rol;
         token.escuelaId = user.escuelaId;
+        token.huellaPassword = user.huellaPassword;
       }
       return token;
     },
-    // Expone rol/escuela en la sesión para la UI y el proxy.
+    // Expone rol/escuela y la huella en la sesión para la UI, el proxy y
+    // `getAuthContext` (que valida la huella contra la base).
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub ?? "";
         session.user.rol = token.rol as Rol;
         session.user.escuelaId = (token.escuelaId as string | null) ?? null;
+        session.user.huellaPassword = token.huellaPassword as string | undefined;
       }
       return session;
     },

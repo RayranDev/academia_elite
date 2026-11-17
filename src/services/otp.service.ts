@@ -1,4 +1,7 @@
-import { buscarUserPorEmail } from "@/repositories/user.repository";
+import {
+  buscarUserPorEmail,
+  obtenerEstadoDeSesion,
+} from "@/repositories/user.repository";
 import {
   crearTokenAuth,
   buscarTokenVigenteDe,
@@ -20,7 +23,7 @@ import { enviarOtp } from "@/services/email.service";
 const TTL_OTP = 10 * 60 * 1000; // 10 min
 // Intentos fallidos permitidos por código antes de invalidarlo de facto.
 // Segunda barrera anti-fuerza-bruta, persistida en DB (la primera es el rate
-// limit distribuido en la acción).
+// limit del `authorize` del provider `otp`).
 const MAX_INTENTOS_OTP = 5;
 
 function hashOtp(userId: string, codigo: string): string {
@@ -58,13 +61,16 @@ export interface UsuarioOtp {
   nombre: string;
   rol: string;
   escuelaId: string | null;
+  /** Huella de la contraseña vigente: la sesión que nace del OTP la lleva en el JWT. */
+  huellaPassword: string;
 }
 
 /**
  * Valida un OTP. Devuelve el usuario si el código es correcto y vigente (y lo
- * marca usado), o null. Anti-fuerza-bruta en dos capas: rate limit en la acción
- * que llama a `signIn` + contador de intentos persistido en el token — al
- * agotar `MAX_INTENTOS_OTP` el código deja de aceptarse aunque sea correcto.
+ * marca usado), o null. Anti-fuerza-bruta en dos capas: el tope de intentos del
+ * `authorize` del provider `otp` (`src/auth.ts`, por IP+correo y por correo) +
+ * contador de intentos persistido en el token — al agotar `MAX_INTENTOS_OTP` el
+ * código deja de aceptarse aunque sea correcto.
  */
 export async function verificarOtp(
   email: string,
@@ -84,6 +90,9 @@ export async function verificarOtp(
     return null;
   }
 
+  const estado = await obtenerEstadoDeSesion(user.id);
+  if (!estado) return null;
+
   await marcarTokenUsado(registro.id);
   return {
     id: user.id,
@@ -91,5 +100,6 @@ export async function verificarOtp(
     nombre: user.nombre,
     rol: user.rol,
     escuelaId: user.escuelaId,
+    huellaPassword: estado.huellaPassword,
   };
 }

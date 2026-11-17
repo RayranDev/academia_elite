@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState } from "react";
 import { cambiarMiPasswordAction } from "@/actions/gestion.actions";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,13 +11,10 @@ const input =
 
 /** Cambio de contraseña propio (G10). Mismo formulario para todos los roles. */
 export function CambiarPasswordForm() {
-  const formRef = useRef<HTMLFormElement>(null);
+  // Al guardar con éxito la action cierra la sesión y redirige a /login: acá solo
+  // queda el caso de error.
   const [state, action, pending] = useActionState<ActionResult | undefined, FormData>(
-    async (prev, fd) => {
-      const res = await cambiarMiPasswordAction(prev, fd);
-      if (res.ok) formRef.current?.reset();
-      return res;
-    },
+    (prev, fd) => cambiarMiPasswordAction(prev, fd),
     undefined,
   );
 
@@ -27,7 +24,7 @@ export function CambiarPasswordForm() {
       <p className="mb-4 text-sm text-muted">
         Mínimo 8 caracteres. Evita contraseñas comunes.
       </p>
-      <form ref={formRef} action={action} className="space-y-3">
+      <form action={action} className="space-y-3">
         <div>
           <label className="mb-1 block text-xs text-muted">Contraseña actual</label>
           <input name="actual" type="password" required autoComplete="current-password" className={input} />
@@ -43,7 +40,10 @@ export function CambiarPasswordForm() {
         {state && !state.ok && (
           <p className="text-sm text-alerta" role="alert">{state.error}</p>
         )}
-        {state?.ok && <p className="text-sm text-brand">Contraseña actualizada.</p>}
+        <p className="text-xs text-muted">
+          Al guardar cerraremos tu sesión en todos tus dispositivos y tendrás que
+          iniciar sesión con la contraseña nueva.
+        </p>
         <Button type="submit" disabled={pending}>
           {pending ? "Guardando…" : "Cambiar contraseña"}
         </Button>

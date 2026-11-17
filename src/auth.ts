@@ -3,6 +3,12 @@ import Credentials from "next-auth/providers/credentials";
 import { authConfig } from "@/lib/auth/config";
 import { loginSchema, otpLoginSchema } from "@/lib/validators/auth";
 import { verifyPassword } from "@/lib/auth/password";
+import { huellaDePassword } from "@/lib/auth/huella-password";
+import {
+  CANAL_OTP,
+  CANAL_PASSWORD,
+  exigirCupoDeLogin,
+} from "@/lib/auth/limite-login";
 import { verificarOtp } from "@/services/otp.service";
 import { buscarCredencialesPorEmail } from "@/repositories/user.repository";
 import type { Rol } from "@/types";
@@ -31,11 +37,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const { email, password } = parsed.data;
+        // Tope de intentos: acá y no en la action, porque el handler
+        // /api/auth/callback/credentials llega a este mismo `authorize`.
+        await exigirCupoDeLogin(request, CANAL_PASSWORD, email);
         const user = await buscarCredencialesPorEmail(email);
         if (!user || !user.activo) return null;
 
@@ -48,6 +57,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.nombre,
           rol: user.rol as Rol,
           escuelaId: user.escuelaId,
+          huellaPassword: huellaDePassword(user.passwordHash),
         };
       },
     }),
@@ -59,10 +69,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         codigo: { label: "Código", type: "text" },
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const parsed = otpLoginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
+        await exigirCupoDeLogin(request, CANAL_OTP, parsed.data.email);
         const user = await verificarOtp(parsed.data.email, parsed.data.codigo);
         if (!user) return null;
 
@@ -72,6 +83,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.nombre,
           rol: user.rol as Rol,
           escuelaId: user.escuelaId,
+          huellaPassword: user.huellaPassword,
         };
       },
     }),

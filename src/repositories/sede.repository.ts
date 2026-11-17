@@ -22,6 +22,17 @@ export function obtenerSede(escuelaId: string, sedeId: string) {
   return db.sede.findFirst({ where: { id: sedeId, escuelaId } });
 }
 
+/**
+ * Cancha por id, solo si su sede es de la escuela. `Cancha` no lleva `escuelaId`:
+ * el tenant se hereda de la sede, así que se acota por esa relación.
+ */
+export function obtenerCancha(escuelaId: string, canchaId: string) {
+  return db.cancha.findFirst({
+    where: { id: canchaId, sede: { escuelaId } },
+    select: { id: true },
+  });
+}
+
 export function crearCancha(sedeId: string, nombre: string) {
   return db.cancha.create({ data: { sedeId, nombre } });
 }

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { huellaDePassword } from "@/lib/auth/huella-password";
 
 // Repositorio de usuarios (Capa 4). Nunca expone passwordHash hacia arriba.
 
@@ -198,6 +199,27 @@ export function buscarCredencialesPorEmail(email: string) {
       passwordHash: true,
     },
   });
+}
+
+/**
+ * Lo que hace falta para decidir si una sesión (JWT) sigue siendo válida: si el
+ * usuario existe y está activo, su bloqueo, su rol y la huella de su contraseña
+ * actual. Devuelve la HUELLA, nunca el hash: `passwordHash` no sale de acá.
+ * `null` si el usuario ya no existe. Lo usa `getAuthContext` y los guards de
+ * página (`src/lib/auth/session.ts`), una vez por request.
+ */
+export async function obtenerEstadoDeSesion(id: string) {
+  const user = await db.user.findUnique({
+    where: { id },
+    select: { activo: true, bloqueado: true, rol: true, passwordHash: true },
+  });
+  if (!user) return null;
+  return {
+    activo: user.activo,
+    bloqueado: user.bloqueado,
+    rol: user.rol,
+    huellaPassword: huellaDePassword(user.passwordHash),
+  };
 }
 
 // tenant-global: lookup por clave única (email) para flujos de correo

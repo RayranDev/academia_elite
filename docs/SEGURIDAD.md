@@ -1,14 +1,18 @@
 # SEGURIDAD.md — Checklist firmado por endpoint
 
 Auditoría de seguridad aplicada a **cada** frontera de la aplicación.
-Última actualización: **2026-07-31**.
+Última actualización: **2026-11-16**.
 
 ## Garantías transversales (por arquitectura)
 
 - **Autenticación**: toda Server Action de mutación llama `requireAuthContext()`,
   que construye el `AuthContext` **desde la sesión** (JWT), nunca del body, y
-  además verifica que el usuario siga existiendo y activo (si no, limpia la
-  cookie vía `/api/salir`). El `AuthContext` para páginas usa `requirePanelUser`.
+  además verifica que el usuario siga existiendo y activo y que la sesión no haya
+  sido revocada (si no, limpia la cookie vía `/api/salir`). El `AuthContext` para
+  páginas usa `requirePanelUser`. Los route handlers de `/api` usan
+  `getAuthContext()`, que aplica **la misma revocación** (ver "Revocación de
+  sesiones" más abajo): ya no hay una vía que acepte el JWT de un usuario
+  desactivado o emitido antes de un cambio de contraseña.
 - **Autorización (Barrera 2)**: la Capa 3 (servicios) aplica `requireRole`,
   `assertTenant` (cruce de tenant → **404**, no 403), `assertOwnPlayer` /
   `requireEscuela` y el *scoping* por categorías del DT. El proxy (Barrera 1) es
@@ -47,7 +51,8 @@ acceso ambiental que se cerraron el 2026-07-31:
   define la CSP en `next.config.ts`: `headers()` acumula y dos CSP solapadas se
   intersectan.
 - **Rate limiting distribuido** con **Upstash Redis** (ventana deslizante por
-  clave, p. ej. `login:ip:email`): login 5/min, leads 8/h, registro 5/h, foto
+  clave, p. ej. `login:ip:email`): login 5/min por IP+correo y 20/15 min por
+  correo (ver "Límite de intentos de login"), leads 8/h, registro 5/h, foto
   10/día. En serverless la memoria del proceso no se comparte entre lambdas, así
   que el límite real vive en Redis. Sin las envs de Upstash (dev local, E2E) cae
   a la implementación en memoria, y si Redis se cae **degrada** en vez de tumbar
@@ -104,7 +109,7 @@ acceso ambiental que se cerraron el 2026-07-31:
 | `POST /api/leads` | Zod | Honeypot + tiempo mínimo + rate limit 8/h por IP + `Sec-Fetch-Site`/Origin | Respuestas genéricas; honeypot responde 200 silencioso |
 | `registrarConCodigoAction` | Zod | Rate limit 5/h por IP | Valida vigencia/usos del código en transacción; crea jugador PENDIENTE |
 | `vincularHijoAction` | Zod | Rate limit 5/h por IP | Vincula al padre con un hijo existente (código escuela + código jugador). Si el jugador ya tiene padre o el email existe → error y NO se crea cuenta (transacción) |
-| `GET /api/auth/[...nextauth]` | Auth.js | Rate limit login 5/min (acción `login`) | bcrypt factor 12; errores genéricos |
+| `POST /api/auth/callback/credentials` y `/callback/otp` (`[...nextauth]`) | Auth.js (CSRF) | Tope dentro de `authorize` (`src/auth.ts`), común a la action y al endpoint: contraseña 5/min por IP+correo y 20/15 min por correo; OTP 5/15 min por IP+correo y 20/15 min por correo | bcrypt factor 12; el corte ocurre antes de consultar la cuenta, así que no revela si existe; errores genéricos |
 | `GET /api/salir` | — | — | Solo borra cookies `authjs*` y redirige a `/login` |
 | `GET /e/[slug]` | — (lectura pública por slug) | — | Slug inexistente o escuela inactiva → **mismo 404** (sin oráculo de enumeración más allá del aceptado: activa-sin-publicar muestra "en construcción" con el nombre de la escuela + `noindex` — decisión consciente, ver `DECISIONES.md` #87–89); DTO público con whitelist explícita (sin datos de jugadores ni fotos) |
 | `GET /api/archivos/escudo/[escuelaId]` | Sesión (`getAuthContext`) | Rate limit 300/min por usuario | `assertTenant` en `escudo.service`: mismo tenant o SUPER_ADMIN con soporte de esa escuela; cualquier otro caso → 404 uniforme. CORS solo para el origen propio (la carta exporta el escudo a PNG) |
@@ -127,11 +132,11 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **escuela** · crearDt | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **escuela** · crearCodigo / desactivarCodigo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **alta** · crearJugadorCompleto (DT/Escuela/SA en soporte) | ✓ | ✓ | ✓ | ✓⁷ | ✓ | ✓ | ✓ | ✓ |
-| **dt** · aprobar/rechazarSolicitud | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| **dt** · aprobar/rechazarSolicitud | ✓ | ✓ | ✓ | ✓¹⁰ | ✓ | ✓ | ✓ | — |
 | **dt** · crearObjetivo | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **dt** · crearEvaluacion | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **evaluacion** · anularEvaluacion (escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| **evento** · crearEvento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| **evento** · crearEvento / editarEvento | ✓ | ✓ | ✓ | ✓¹² | ✓ | ✓ | — | — |
 | **evento** · confirmarConvocatoria (padre) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **evento** · pasarLista / cargarResultado | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | **mensaje** · crearConversacion / responder | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓¹ |
@@ -160,7 +165,7 @@ Leyenda: **S** sesión/AuthCtx · **R** requireRole · **Z** Zod · **T** tenant
 | **logro** · crear/configurar/otorgar (DT, su escuela) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | ✓ | — |
 | **cuenta** · cambiarMiPassword (todos) | ✓ | — | ✓ | — | ✓ | ✓ | ✓ | ✓ |
 | **política** · aceptarPolitica (JUGADOR, primer ingreso)⁸ | ✓ | ✓ | ✓ | ✓⁹ | ✓ | ✓ | ✓ | — |
-| **sesión** · iniciar/cerrarSesión, asistencia viva, observación (DT) | ✓ | ✓ | ✓ | ✓⁴ | ✓ | ✓ | — | — |
+| **sesión** · iniciar/cerrarSesión, asistencia viva, gol/tarjeta en vivo, observación (DT) | ✓ | ✓ | ✓ | ✓⁴ ¹¹ | ✓ | ✓ | — | — |
 | **soporte** · abrir/habilitar escritura/cerrar sesión de soporte (SA) | ✓ | ✓ | ✓ | ✓⁶ | ✓ | ✓ | ✓ | — |
 | **cobranza** · registrarMembresia (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | **cobranza** · cambiarEstadoMembresia / registrar pago (Escuela) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -199,6 +204,89 @@ doble envío, no sobrescribe la prueba original. Audita `POLITICA_ACEPTADA` solo
 la primera vez, con la versión en `motivo` y sin datos personales extra.
 ⁹ Propiedad por identidad: el `userId` sale del `AuthContext` (sesión), nunca del
 body; no hay recurso de otro tenant que referenciar.
+¹⁰ `cambiarEstadoSolicitud` (`jugador.service`): solo se resuelve una solicitud
+**PENDIENTE** de las categorías del DT; cualquier otro estado (ACTIVO, INACTIVO,
+ELIMINADO) falla con `ValidationError` y no escribe. El cambio es un
+compare-and-set (`updateMany … where estado: "PENDIENTE"`), así que dos requests
+concurrentes no se pisan, y registra `APROBAR_SOLICITUD` / `RECHAZAR_SOLICITUD` en
+el `AuditLog`. Inactivar o reactivar a un jugador ya resuelto es gestión de la
+escuela (con motivo y auditoría, `gestion-jugadores.service`).
+¹¹ Modo Sesión: los ids de jugador llegan del cliente (asistencia, anotador y
+asistente de un gol, tarjetas) y no se confían. `exigirParticipantesDelEvento`
+(`participantes-evento.ts`) exige que cada id sea un **convocado** del evento o un
+jugador **ACTIVO** de la categoría del evento en la escuela del evento; un id
+ajeno o inexistente falla igual, como `NotFoundError` (404 uniforme), antes de
+escribir. Sin esto se podían crear `Asistencia`/`EstadisticaPartido` para un
+jugador de otra escuela, y el cron de la curva (que lee esas filas por
+`jugadorId`) movía su rating. `agregarConvocadoEnCancha` además exige jugador ACTIVO.
+`crearObservacion` exige que el `eventoId` (si viene) sea de la escuela y de una
+categoría del DT; si no, `NotFoundError`.
+¹² `canchaId` del formulario se valida contra las sedes de la escuela
+(`validarCancha` → `obtenerCancha`, acotada por `sede.escuelaId`) al crear y al
+editar; una cancha ajena falla como `NotFoundError`. Sin esto una cancha de otra
+escuela se asignaba al evento y su nombre se mostraba a las familias.
+
+### Revocación de sesiones
+- El JWT (7 días) lleva una **huella de contraseña**: SHA-256 truncado (16 hex) del
+  hash vigente, nunca el hash (`src/lib/auth/huella-password.ts`). Se calcula en
+  `authorize` (Node) y `config.ts` solo la copia, para seguir siendo edge-safe.
+- `getAuthContext()` lee al usuario una vez por request (`React.cache`) y devuelve
+  `null` si **no existe, no está activo, o la huella del token no coincide** con la
+  actual. Un token sin huella (anterior a este cambio) no vale: se vuelve a entrar
+  una vez. Es la única puerta de los route handlers de `/api` (exports, fotos,
+  comprobantes, escudos), que ante `null` responden como a un anónimo (401/404).
+- `requireAuthContext` y `requirePanelUser` aplican la misma regla y, ante una
+  sesión revocada o un usuario desactivado, redirigen a `/api/salir` (limpia la
+  cookie; ir a `/login` provocaría un bucle con el proxy). Conservan el bloqueo de
+  familias (`/bloqueado`, `permitirBloqueado`) sin cambios. La propia página
+  `/bloqueado` ya no confía en el JWT solo: pasa por `requireAuthContext({
+  permitirBloqueado: true })`, así una sesión revocada no ve su mensaje de bloqueo y
+  no hay rebote entre `/bloqueado` y los guards.
+- **`/api/salir` borra con los atributos que el navegador exige** (`src/lib/auth/cookies-sesion.ts`).
+  Sobre HTTPS Auth.js usa `__Secure-authjs.session-token` y `__Host-authjs.csrf-token`;
+  el navegador rechaza cualquier Set-Cookie de esos nombres sin `Secure`, borrados
+  incluidos, y un `cookies().delete()` pelado lo emitía sin `Secure`: la cookie
+  sobrevivía y el usuario entraba en bucle guard ↔ `/api/salir`. Ahora cada cookie
+  (también los fragmentos `.0`, `.1`) se borra con `Path=/`, `HttpOnly`,
+  `SameSite=lax`, `Max-Age=0` y `Secure` para los prefijos `__Secure-`/`__Host-`,
+  sin `Domain`. El borrado por `signOut` (cambio de contraseña, logout) lo arma
+  Auth.js con las opciones con las que creó la cookie, así que no tiene este
+  problema. Cubierto por `tests/unit/api-salir.test.ts` (atributos del Set-Cookie
+  serializado; el e2e corre por HTTP y no puede ejercitar los prefijos).
+- Cualquier cambio de contraseña (propio, recuperación, temporal asignada por la
+  escuela o el SA) cambia el hash y por lo tanto invalida **todas** las sesiones
+  anteriores. Sin tabla de sesiones ni migración.
+- Quien cambia **su propia** contraseña también queda fuera en ese dispositivo:
+  `cambiarMiPasswordAction` cierra la sesión (`signOut`) y redirige a
+  `/login?clave=1`, con un mensaje que explica el motivo. Se descartó refrescar el
+  JWT con `unstable_update`: al mutar cookies, Next vuelve a renderizar la página
+  en la misma request y `auth()` lee el header `cookie` original (token viejo)
+  contra la base ya actualizada, de modo que el render echaba al usuario por
+  `/api/salir` (lo detectó el e2e `08-sesion-revocada`).
+- Límite conocido: `rol` y `escuelaId` viajan en el JWT y no se refrescan hasta el
+  próximo login.
+
+### Límite de intentos de login
+- Vive **dentro de los `authorize`** de `src/auth.ts` (`src/lib/auth/limite-login.ts`),
+  no en las Server Actions: el handler `/api/auth/callback/*` llega al mismo código
+  y el proxy excluye `/api`, así que un tope solo en la action se esquivaba pidiendo
+  un token CSRF y llamando al endpoint directo.
+- Dos topes por intento, antes de consultar la cuenta o bcrypt (por eso no revelan
+  si el correo existe): **IP+correo** (contraseña 5/min, OTP 5/15 min, como antes) y
+  **solo correo** 20/15 min (≈1.900 por día), que no se esquiva rotando de IP.
+- Superarlos lanza `LimiteIntentosError` (hereda de `CredentialsSignin`, `code`
+  `demasiados_intentos`); la action lo traduce al mismo mensaje de siempre y no
+  vuelve a contar el intento. Por el endpoint directo se ve como una redirección a
+  `/login?error=CredentialsSignin&code=demasiados_intentos`.
+- Compromiso asumido: como todo tope por cuenta, un tercero que conozca el correo
+  puede dejarlo **sin acceso por contraseña**. Con ~1,3 intentos por minuto desde
+  una sola IP mantiene lleno el cupo de 20/15 min de forma indefinida: el bloqueo
+  dura mientras él siga y termina cuando para (ventana deslizante; no hay nada que
+  levantar a mano). La alternativa —no tener tope por correo— permitiría adivinar
+  sin límite rotando de IP. El ingreso con **código por correo** tiene su propio
+  contador (`otp-login-correo`), así que sigue disponible mientras el atacante no
+  gaste también ese. Pendiente de decidir si se endurece (p. ej. alerta al
+  titular o desafío adicional).
 
 ### Bloqueo de acceso de familias (G2)
 - Lo aplican **ESCUELA_ADMIN** (su tenant) y **SUPER_ADMIN**; el DT solo lo ve.
@@ -255,7 +343,8 @@ body; no hay recurso de otro tenant que referenciar.
   mapea por nombre dentro de la escuela; los duplicados (nombre+apellido+fecha)
   se **omiten**. Crea **solo jugadores** ACTIVO (sin familia). Auditado con los
   conteos (`IMPORTAR_JUGADORES`).
-- `GET /api/plantilla-jugadores`: requiere sesión; el servicio aplica rol/tenant
+- `GET /api/plantilla-jugadores`: requiere sesión vigente (un usuario desactivado o con
+  la sesión revocada cuenta como sin sesión); el servicio aplica rol/tenant
   (sin sesión → 401; sin permiso → 404). La plantilla lleva las categorías
   válidas de **esa** escuela.
 

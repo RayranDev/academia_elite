@@ -1,12 +1,13 @@
 import type { AuthContext } from "@/lib/auth/context";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { categoriasDelDt, requireDtScope } from "@/services/dt-scope";
+import { registrarAuditoria } from "@/services/audit.service";
 import { categoriasDeEntrenador } from "@/repositories/entrenador.repository";
 import {
   listarPlantilla,
   listarSolicitudes,
   obtenerJugador,
-  actualizarEstadoJugador,
+  resolverSolicitudJugador,
 } from "@/repositories/jugador.repository";
 import { obtenerEscuela } from "@/repositories/escuela.repository";
 import { listarEvaluacionesJugador } from "@/repositories/evaluacion.repository";
@@ -149,6 +150,13 @@ export async function listarSolicitudesDt(
   }));
 }
 
+/**
+ * Aprueba o rechaza una solicitud de alta. El DT solo puede resolver solicitudes
+ * PENDIENTES de sus categorías: inactivar, reactivar o restaurar a un jugador ya
+ * resuelto es gestión de la escuela (con motivo y auditoría, ver
+ * `gestion-jugadores.service`). El cambio es compare-and-set sobre PENDIENTE, así
+ * dos requests concurrentes no pueden pisarse.
+ */
 async function cambiarEstadoSolicitud(
   ctx: AuthContext,
   jugadorId: string,
@@ -159,7 +167,19 @@ async function cambiarEstadoSolicitud(
   if (!jugador || !categoriaIds.includes(jugador.categoriaId)) {
     throw new NotFoundError("Jugador no encontrado.");
   }
-  await actualizarEstadoJugador(escuelaId, jugadorId, estado);
+  if (jugador.estado !== "PENDIENTE") {
+    throw new ValidationError("Esta solicitud ya no está pendiente.");
+  }
+  const res = await resolverSolicitudJugador(escuelaId, jugador.id, estado);
+  if (res.count === 0) {
+    throw new ValidationError("Esta solicitud ya no está pendiente.");
+  }
+  await registrarAuditoria(ctx, {
+    accion: estado === "ACTIVO" ? "APROBAR_SOLICITUD" : "RECHAZAR_SOLICITUD",
+    entidad: "Jugador",
+    entidadId: jugador.id,
+    escuelaId,
+  });
 }
 
 export function aprobarSolicitud(ctx: AuthContext, jugadorId: string) {

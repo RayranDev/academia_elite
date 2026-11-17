@@ -228,6 +228,38 @@ export function actualizarEstadoJugador(
   return db.jugador.updateMany({ where: { id, escuelaId }, data: { estado } });
 }
 
+/**
+ * Resuelve una solicitud de alta: compare-and-set sobre el estado PENDIENTE. Si
+ * el jugador ya no está pendiente (otra acción lo resolvió, o la escuela lo
+ * inactivó/eliminó) no toca nada y devuelve `count: 0`.
+ */
+export function resolverSolicitudJugador(
+  escuelaId: string,
+  id: string,
+  estado: "ACTIVO" | "INACTIVO",
+) {
+  return db.jugador.updateMany({
+    where: { id, escuelaId, estado: "PENDIENTE" },
+    data: { estado },
+  });
+}
+
+/**
+ * Ids de los jugadores ACTIVOS de una categoría entre los pedidos. Verificación
+ * barata de pertenencia (mismo criterio de plantel que `listarPlantilla`) para
+ * validar ids que llegan del cliente sin cargar toda la plantilla.
+ */
+export function idsActivosDeCategoria(
+  escuelaId: string,
+  categoriaId: string,
+  ids: string[],
+) {
+  return db.jugador.findMany({
+    where: { id: { in: ids }, escuelaId, categoriaId, estado: "ACTIVO" },
+    select: { id: true },
+  });
+}
+
 /** Busca un jugador por su código dentro de una escuela (para vincular padre). */
 export function obtenerJugadorPorCodigo(escuelaId: string, codigoJugador: string) {
   return db.jugador.findFirst({

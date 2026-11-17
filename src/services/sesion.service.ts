@@ -30,6 +30,7 @@ import {
   listarObservacionesDeJugador,
 } from "@/repositories/observacion.repository";
 import { publicarResultadoYNotificar } from "@/services/evento.service";
+import { exigirParticipantesDelEvento } from "@/services/participantes-evento";
 import type { TipoEvento } from "@/types";
 
 /**
@@ -238,6 +239,7 @@ export async function marcarAsistenciaUnitaria(
   },
 ): Promise<void> {
   const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
+  await exigirParticipantesDelEvento(escuelaId, evento, [input.jugadorId]);
   await upsertAsistencia(escuelaId, evento.id, input.jugadorId, {
     ...mapearEstado(input.estado),
     llegoTarde: input.llegoTarde ?? false,
@@ -318,6 +320,11 @@ export async function agregarConvocadoEnCancha(
   if (!jugador || jugador.categoriaId !== evento.categoriaId) {
     throw new ValidationError("El jugador no pertenece a la categoría del evento.");
   }
+  // Mismo criterio de plantel que el resto del modo: solo jugadores ACTIVOS (un
+  // pendiente o inactivo no se suma a la convocatoria aunque sea de la categoría).
+  if (jugador.estado !== "ACTIVO") {
+    throw new ValidationError("El jugador no está activo.");
+  }
 
   await crearConvocadoSiFalta(evento.id, jugador.id);
   await upsertAsistencia(escuelaId, evento.id, jugador.id, {
@@ -343,6 +350,14 @@ export async function crearObservacion(
   const jugador = await obtenerJugador(escuelaId, input.jugadorId);
   if (!jugador || !categoriaIds.includes(jugador.categoriaId)) {
     throw new NotFoundError("Jugador no encontrado.");
+  }
+  // El `eventoId` viene del cliente y se guarda tal cual: debe ser un evento de la
+  // escuela y de una categoría del DT, igual que en el resto del modo.
+  if (input.eventoId) {
+    const evento = await obtenerEvento(escuelaId, input.eventoId);
+    if (!evento || !categoriaIds.includes(evento.categoriaId)) {
+      throw new NotFoundError("Evento no encontrado.");
+    }
   }
   await crearObservacionRepo(escuelaId, {
     jugadorId: jugador.id,
@@ -422,6 +437,10 @@ export async function registrarGolVivo(
       "El partido no está en juego: no se pueden cargar goles ahora.",
     );
   }
+  await exigirParticipantesDelEvento(escuelaId, evento, [
+    input.anotadorId,
+    input.asistenteId,
+  ]);
   return ajustarGolVivo({
     escuelaId,
     eventoId: evento.id,
@@ -513,6 +532,7 @@ export async function fijarTarjetasJugador(
 ): Promise<void> {
   const { evento, escuelaId } = await eventoDelDt(ctx, input.eventoId);
   exigirPartido(evento.tipo);
+  await exigirParticipantesDelEvento(escuelaId, evento, [input.jugadorId]);
   const amarillas = Math.min(Math.max(0, Math.trunc(input.amarillas)), 2);
   const roja = input.roja || amarillas >= 2; // 2 amarillas = roja
   await fijarTarjetas(escuelaId, evento.id, input.jugadorId, { amarillas, roja });

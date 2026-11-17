@@ -252,7 +252,13 @@ export async function confirmarCambioEmail(
   return registro.emailNuevo;
 }
 
-/** Cambio de contraseña propio ("Mi cuenta", G10). Cualquier rol. Auditado. */
+/**
+ * Cambio de contraseña propio ("Mi cuenta", G10). Cualquier rol. Auditado.
+ *
+ * Cambiar el hash invalida todas las sesiones anteriores (su huella ya no
+ * coincide), incluida la del dispositivo desde el que se cambia: la action cierra
+ * esa sesión y manda a iniciar sesión de nuevo.
+ */
 export async function cambiarMiPassword(
   ctx: AuthContext,
   actual: string,

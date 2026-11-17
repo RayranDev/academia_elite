@@ -2421,6 +2421,73 @@ participan de los E2E y nunca se apuntan a un schema distinto.
 - Vigilancia: `.github/dependabot.yml` (PR semanal) y un job de CI que falla ante críticas en producción y corre
   los lunes. Las alertas de GitHub siguen desactivadas hasta que las active el dueño del repositorio.
 
+## 64. Cuatro correcciones de seguridad de la auditoría (2026-11-16)
+
+Hallazgos de una auditoría, verificados contra el código antes de corregir. Sin cambios de esquema ni
+migraciones.
+
+- **Límite de intentos de login por el endpoint de Auth.js (alto).** El tope vivía solo en las Server Actions
+  (`login`, `ingresarConOtpAction`); `POST /api/auth/callback/credentials` y `/callback/otp` llegan al mismo
+  `authorize` y el proxy excluye `/api`, así que bastaba pedir un token CSRF para adivinar contraseñas sin
+  tope. Ahora el tope vive **dentro de los dos `authorize`** (`src/lib/auth/limite-login.ts`): IP+correo
+  (contraseña 5/min, OTP 5/15 min, igual que antes) y un segundo tope **solo por correo** de **20 intentos
+  cada 15 minutos** (≈1.900 por día), que no se esquiva rotando de IP. Los dos se evalúan antes de consultar
+  la cuenta, así que la respuesta no revela si existe. La action ya no cuenta: traduce `LimiteIntentosError`
+  (hereda de `CredentialsSignin`, `code` `demasiados_intentos`) al mismo mensaje de siempre, de modo que una
+  persona que usa el formulario conserva sus 5 intentos y no se cuenta dos veces. Por qué 20: frena la
+  fuerza bruta (las contraseñas además pasan el filtro de comunes) y deja holgura a una persona real, ya
+  limitada a 5/min; el costo asumido es que un tercero que conozca el correo puede mantenerlo sin acceso por
+  contraseña mientras siga enviando (ver los ajustes al final de esta entrada).
+- **Modo Sesión escribía filas para cualquier id de jugador (medio).** `marcarAsistenciaUnitaria`,
+  `registrarGolVivo` (anotador y asistente) y `fijarTarjetasJugador` validaban el evento pero pasaban el id del
+  cliente al repositorio; un DT podía crear `Asistencia`/`EstadisticaPartido` de otra escuela o categoría y el
+  cron de la curva movía el rating de ese jugador. Misma regla que ya tenían `pasarListaDt` y
+  `cargarEstadisticasDt`, compartida en `exigirParticipantesDelEvento` (`participantes-evento.ts`): el id debe
+  ser convocado del evento o jugador ACTIVO de su categoría en su escuela; si no, `NotFoundError` uniforme
+  antes de escribir. `agregarConvocadoEnCancha` ahora exige además jugador ACTIVO. Misma clase, menor: el
+  `canchaId` del formulario de eventos (crear y editar) se valida contra las sedes de la escuela
+  (`obtenerCancha`, acotada por `sede.escuelaId`).
+- **Sesiones que nunca se revocaban (medio).** El JWT dura 7 días y `getAuthContext()` —la puerta de todos los
+  route handlers de `/api`— no verificaba que el usuario siguiera activo: un DT desactivado podía seguir
+  descargando exports de menores y una cookie robada sobrevivía a un cambio de contraseña. Ahora el JWT lleva
+  una **huella de contraseña** (SHA-256 truncado del hash vigente, nunca el hash; `huella-password.ts`),
+  calculada en `authorize` y solo copiada por `config.ts` (que sigue siendo edge-safe). `getAuthContext()`
+  lee al usuario una vez por request (`React.cache`) y devuelve `null` si no existe, no está activo o la
+  huella no coincide; los route handlers responden como a un anónimo. `requireAuthContext` y
+  `requirePanelUser` aplican la misma regla y mandan a `/api/salir` (con `/login` el proxy provocaría un
+  bucle); el bloqueo de familias queda igual. Cualquier cambio de contraseña (propio, recuperación, temporal)
+  invalida todas las sesiones anteriores; los tokens anteriores a este cambio no tienen huella y valen como
+  inválidos: **todos vuelven a entrar una vez** tras el despliegue. Quien cambia **su propia** contraseña
+  también vuelve a entrar en ese dispositivo (`signOut` + `/login?clave=1` con mensaje): se probó refrescar el
+  JWT con `unstable_update` y no es fiable, porque al mutar cookies Next re-renderiza la página en la misma
+  request y `auth()` lee el header `cookie` original contra la base ya actualizada (el e2e lo detectó: el
+  render terminaba en `/api/salir`).
+- **Un DT podía cambiar el estado de cualquier jugador (medio).** `cambiarEstadoSolicitud` comprobaba tenant y
+  categoría pero no el estado ni dejaba rastro: se podía "rechazar" a un jugador ACTIVO o "aprobar" a uno
+  inactivado/eliminado por la escuela. Ahora solo se resuelve una solicitud **PENDIENTE** (compare-and-set
+  `where estado: "PENDIENTE"`); cualquier otro estado falla con `ValidationError`, y se audita
+  `APROBAR_SOLICITUD` / `RECHAZAR_SOLICITUD`.
+- Pruebas: `login-limite`, `sesion-revocada`, `sesion-modos` (ampliado), `evento-cancha` y `solicitudes-dt`
+  (unitarias), y `08-sesion-revocada` (e2e: cambio de contraseña propia cierra todas las sesiones, con mensaje en
+  `/login`; el endpoint de Auth.js corta el 6.º intento). `SEGURIDAD.md` actualizado.
+- Ajustes tras la revisión independiente:
+  - **`/api/salir` y los prefijos de cookie (bloqueante).** Sobre HTTPS Auth.js nombra las cookies
+    `__Secure-…`/`__Host-…` y el navegador rechaza su borrado si el Set-Cookie no lleva `Secure`;
+    `cookies().delete()` lo emitía sin `Secure`, así que en producción la sesión revocada sobrevivía y el
+    usuario entraba en bucle guard ↔ `/api/salir` (existía antes, pero este cambio lo vuelve el camino
+    normal). Ahora el borrado repite los atributos de cada cookie (`cookies-sesion.ts`), también para los
+    fragmentos `.0`/`.1`. El borrado por `signOut` usa las opciones de creación de Auth.js y no se ve
+    afectado. Prueba: `api-salir.test.ts` (atributos del Set-Cookie; el e2e va por HTTP y no ejercita
+    los prefijos).
+  - **`crearObservacion`** valida que el `eventoId` sea de la escuela y de una categoría del DT.
+  - **`/bloqueado`** pasa por `requireAuthContext({ permitirBloqueado: true })` en vez de confiar en el JWT.
+  - **`CambiarPasswordForm`**: se quitó la rama de éxito (la action siempre redirige) y se avisa antes de
+    guardar que se cerrarán las sesiones.
+  - **Tope por correo, redacción corregida:** un tercero que conozca el correo puede mantenerlo sin acceso
+    por contraseña mientras siga enviando (~1,3 intentos/min desde una IP llenan el cupo); termina cuando
+    para, y el código por correo tiene contador propio. Compromiso aceptado, números sin cambios.
+  - Comentario de `verificarOtp` corregido (el tope vive en `authorize`).
+
 ## Observaciones abiertas (no bloquean, registradas para no perderlas)
 
 > Sin observaciones abiertas. La de `auth.ts` (mover el provider Credentials a

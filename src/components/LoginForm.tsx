@@ -11,7 +11,13 @@ import { Card } from "@/components/ui/Card";
 const input =
   "w-full rounded-lg border border-subtle bg-surface-2 px-3 py-2 text-foreground outline-none focus:border-pitch";
 
-export function LoginForm({ expirada = false }: { expirada?: boolean }) {
+export function LoginForm({
+  expirada = false,
+  claveCambiada = false,
+}: {
+  expirada?: boolean;
+  claveCambiada?: boolean;
+}) {
   const router = useRouter();
   const [verPass, setVerPass] = useState(false);
   const [state, action, pending] = useActionState<
@@ -57,6 +63,12 @@ export function LoginForm({ expirada = false }: { expirada?: boolean }) {
           </h1>
         </div>
 
+        {claveCambiada && (
+          <p className="mb-4 rounded-lg border border-info/40 bg-info/10 px-3 py-2 text-sm text-info">
+            Cambiaste tu contraseña y cerramos tus sesiones por seguridad. Inicia
+            sesión con la contraseña nueva.
+          </p>
+        )}
         {expirada && (
           <p className="mb-4 rounded-lg border border-info/40 bg-info/10 px-3 py-2 text-sm text-info">
             Tu sesión expiró o ya no es válida. Inicia sesión de nuevo.

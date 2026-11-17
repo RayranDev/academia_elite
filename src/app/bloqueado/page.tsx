@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
-import { auth } from "@/auth";
-import { panelPorRol } from "@/lib/auth/session";
+import { panelPorRol, requireAuthContext } from "@/lib/auth/session";
 import { obtenerEstadoBloqueo } from "@/services/cuenta.service";
 import { mensajeDeBloqueo } from "@/lib/bloqueo";
 import { logout } from "@/actions/auth.actions";
@@ -9,14 +8,18 @@ import { Button } from "@/components/ui/Button";
 import type { Rol } from "@/types";
 
 /**
- * Pantalla que ve la familia con el acceso suspendido (G2). Requiere sesión;
- * si el usuario no está bloqueado lo devuelve a su panel.
+ * Pantalla que ve la familia con el acceso suspendido (G2). Requiere sesión
+ * vigente; si el usuario no está bloqueado lo devuelve a su panel.
+ *
+ * La sesión se valida con el mismo guard que el resto de la app (usuario activo y
+ * sin revocar): un JWT revocado o de un usuario desactivado no puede ver su mensaje
+ * de bloqueo, va a /api/salir. `permitirBloqueado` evita el rebote a esta misma
+ * página (bucle) para el usuario que justamente está bloqueado.
  */
 export default async function BloqueadoPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const ctx = await requireAuthContext({ permitirBloqueado: true });
 
-  const user = await obtenerEstadoBloqueo(session.user.id);
+  const user = await obtenerEstadoBloqueo(ctx.userId);
   if (!user) redirect("/api/salir");
   if (!user.bloqueado || user.rol !== "JUGADOR") {
     redirect(panelPorRol(user.rol as Rol));
